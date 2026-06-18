@@ -1270,7 +1270,7 @@ body.dark .main-sidebar .tab:hover {
 .main-sidebar .btn-tab.quick-actions {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   padding: 0 10px;
   margin-top: 10px;
   margin-bottom: 10px;
@@ -1320,15 +1320,15 @@ body.dark .main-sidebar .tab:hover {
   justify-content: flex-start !important;
   text-align: left;
   gap: 3px;
-  height: 25px;
-  min-height: 25px;
+  height: 30px;
+  min-height: 30px;
   margin: 0;
   padding: 0 8px;
   border: 1px solid var(--pinokio-chrome-accent-bg-light) !important;
   border-radius: 5px !important;
   background: var(--pinokio-chrome-accent-bg-light) !important;
   border-color: var(--pinokio-chrome-accent-bg-light) !important;
-  color: var(--pinokio-chrome-accent-fg-light) !important;
+  color: #fff !important;
   font-size: 12px;
   font-weight: 700;
   line-height: 1;
@@ -1339,7 +1339,7 @@ body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn,
 body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn {
   border-color: var(--pinokio-chrome-accent-bg-dark) !important;
   background: var(--pinokio-chrome-accent-bg-dark) !important;
-  color: var(--pinokio-chrome-accent-fg-dark) !important;
+  color: #fff !important;
 }
 .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn:hover,
 .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn:focus-visible,
@@ -1349,7 +1349,7 @@ body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .univer
 .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn:active {
   border-color: var(--pinokio-chrome-accent-bg-light) !important;
   background: var(--pinokio-chrome-accent-bg-light) !important;
-  color: var(--pinokio-chrome-accent-fg-light) !important;
+  color: #fff !important;
 }
 body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn:hover,
 body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn:focus-visible,
@@ -1359,7 +1359,7 @@ body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .univer
 body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn:active {
   border-color: var(--pinokio-chrome-accent-bg-dark) !important;
   background: var(--pinokio-chrome-accent-bg-dark) !important;
-  color: var(--pinokio-chrome-accent-fg-dark) !important;
+  color: #fff !important;
 }
 .main-sidebar .btn-tab.quick-actions.universal-quick-actions > #explore {
   justify-content: flex-start !important;
@@ -1391,7 +1391,7 @@ body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .univer
 .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn i,
 .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn .quick-action-icon,
 .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn .caption {
-  color: var(--pinokio-chrome-accent-fg-light) !important;
+  color: #fff !important;
 }
 body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn i,
 body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn .quick-action-icon,
@@ -1399,7 +1399,7 @@ body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn .c
 body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn i,
 body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn .quick-action-icon,
 body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn .caption {
-  color: var(--pinokio-chrome-accent-fg-dark) !important;
+  color: #fff !important;
 }
 .main-sidebar .universal-create-caret {
   margin-left: auto;

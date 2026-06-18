@@ -22,11 +22,11 @@
 <style>
 :root {
   --assist-surface-light: var(--pinokio-chrome-accent-bg-light);
-  --assist-surface-light-open: rgba(255, 255, 255, 0.65);
+  --assist-surface-light-open: rgba(15, 23, 42, 0.92);
   --assist-text-light: var(--pinokio-chrome-accent-fg-light);
   --assist-text-light-open: #475569;
   --assist-surface-dark: var(--pinokio-chrome-accent-bg-dark);
-  --assist-surface-dark-open: rgba(15, 17, 21, 0.7);
+  --assist-surface-dark-open: rgba(255, 255, 255, 0.14);
   --assist-text-dark: var(--pinokio-chrome-accent-fg-dark);
   --assist-text-dark-open: rgba(226, 232, 240, 0.84);
 }
@@ -1037,7 +1037,7 @@ body.dark .app-logs-report-output {
 .appcanvas.logs-open .menu-actions #logs-toggle:focus-visible,
 .appcanvas.logs-open .menu-actions #logs-toggle.selected {
   background: var(--assist-surface-light-open) !important;
-  color: var(--assist-text-light-open) !important;
+  color: #fff !important;
   box-shadow: none;
 }
 body.dark .appcanvas > aside .menu-actions #logs-toggle.selected,
@@ -1048,7 +1048,7 @@ body.dark .appcanvas.logs-open .menu-actions #logs-toggle:hover,
 body.dark .appcanvas.logs-open .menu-actions #logs-toggle:focus-visible,
 body.dark .appcanvas.logs-open .menu-actions #logs-toggle.selected {
   background: var(--assist-surface-dark-open) !important;
-  color: var(--assist-text-dark-open) !important;
+  color: #fff !important;
   box-shadow: none;
 }
 .appcanvas > aside .menu-actions #logs-toggle .tab {
@@ -1874,13 +1874,13 @@ body.dark .appcanvas > aside .menu-actions {
   padding: 4px 8px;
   border: 0 !important;
   background: var(--assist-surface-light) !important;
-  color: var(--assist-text-light) !important;
+  color: #fff !important;
   box-shadow: none;
   transition: none;
 }
 body.dark .appcanvas > aside .menu-actions .header-item {
   background: var(--assist-surface-dark) !important;
-  color: var(--assist-text-dark) !important;
+  color: #fff !important;
 }
 .appcanvas > aside .menu-actions .header-item .display {
   display: block;
@@ -1919,13 +1919,13 @@ body.dark .appcanvas > aside .menu-actions .header-item {
 .appcanvas > aside .menu-actions .header-item:hover,
 .appcanvas > aside .menu-actions .header-item:focus-visible {
   background: var(--assist-surface-light) !important;
-  color: var(--assist-text-light) !important;
+  color: #fff !important;
   box-shadow: none;
 }
 body.dark .appcanvas > aside .menu-actions .header-item:hover,
 body.dark .appcanvas > aside .menu-actions .header-item:focus-visible {
   background: var(--assist-surface-dark) !important;
-  color: var(--assist-text-dark) !important;
+  color: #fff !important;
   box-shadow: none;
 }
 .appcanvas.community-open .menu-actions #community-toggle,
@@ -1933,7 +1933,7 @@ body.dark .appcanvas > aside .menu-actions .header-item:focus-visible {
 .appcanvas.community-open .menu-actions #community-toggle:focus-visible,
 .appcanvas.community-open .menu-actions #community-toggle.selected {
   background: var(--assist-surface-light-open) !important;
-  color: var(--assist-text-light-open) !important;
+  color: #fff !important;
   box-shadow: none;
 }
 body.dark .appcanvas.community-open .menu-actions #community-toggle,
@@ -1941,7 +1941,7 @@ body.dark .appcanvas.community-open .menu-actions #community-toggle:hover,
 body.dark .appcanvas.community-open .menu-actions #community-toggle:focus-visible,
 body.dark .appcanvas.community-open .menu-actions #community-toggle.selected {
   background: var(--assist-surface-dark-open) !important;
-  color: var(--assist-text-dark-open) !important;
+  color: #fff !important;
   box-shadow: none;
 }
 .appcanvas.panel-open .menu-actions #ask-ai-tab,
@@ -1949,7 +1949,7 @@ body.dark .appcanvas.community-open .menu-actions #community-toggle.selected {
 .appcanvas.panel-open .menu-actions #ask-ai-tab:focus-visible,
 .appcanvas.panel-open .menu-actions #ask-ai-tab.selected {
   background: var(--assist-surface-light-open) !important;
-  color: var(--assist-text-light-open) !important;
+  color: #fff !important;
   box-shadow: none;
 }
 body.dark .appcanvas.panel-open .menu-actions #ask-ai-tab,
@@ -1957,7 +1957,7 @@ body.dark .appcanvas.panel-open .menu-actions #ask-ai-tab:hover,
 body.dark .appcanvas.panel-open .menu-actions #ask-ai-tab:focus-visible,
 body.dark .appcanvas.panel-open .menu-actions #ask-ai-tab.selected {
   background: var(--assist-surface-dark-open) !important;
-  color: var(--assist-text-dark-open) !important;
+  color: #fff !important;
   box-shadow: none;
 }
 .appcanvas.vertical .menu-scroller {
@@ -1980,7 +1980,7 @@ body.dark .appcanvas.panel-open .menu-actions #ask-ai-tab.selected {
 .appcanvas.vertical .menu-actions {
   flex-direction: column;
   align-items: stretch;
-  gap: 1px;
+  gap: 0;
   margin-top: auto;
   padding: 0;
   width: 100%;
@@ -1989,6 +1989,12 @@ body.dark .appcanvas.panel-open .menu-actions #ask-ai-tab.selected {
 }
 body.dark .appcanvas.vertical .menu-actions {
   border-top: none;
+}
+.appcanvas.vertical > aside .menu-actions .header-item + .header-item {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+body.dark .appcanvas.vertical > aside .menu-actions .header-item + .header-item {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 .appcanvas.vertical.dev-workspace .menu-actions.dev-menu-actions {
   gap: 0;
@@ -4118,7 +4124,20 @@ body.app-page .appcanvas.vertical .appcanvas-resizer::before {
 }
 */
 body.app-page .appcanvas.vertical .appcanvas-resizer::before {
-  background: var(--app-page-selected-item-bg);
+  background: transparent;
+  transition: background 120ms ease;
+}
+body.app-page .appcanvas.vertical .appcanvas-resizer:hover::before {
+  background: rgba(15, 23, 42, 0.16);
+}
+body.app-page .appcanvas.vertical .appcanvas-resizer:focus-visible::before {
+  background: rgba(59, 130, 246, 0.45);
+}
+body.dark.app-page .appcanvas.vertical .appcanvas-resizer:hover::before {
+  background: rgba(255, 255, 255, 0.22);
+}
+body.dark.app-page .appcanvas.vertical .appcanvas-resizer:focus-visible::before {
+  background: rgba(96, 165, 250, 0.6);
 }
 
 /* Remote selection modal styles */

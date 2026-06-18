@@ -55,7 +55,7 @@ body.dark {
 .main-sidebar .btn-tab.quick-actions.universal-quick-actions {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   align-items: stretch;
 }
 
@@ -110,15 +110,15 @@ body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .univer
   justify-content: flex-start !important;
   text-align: left;
   gap: 3px;
-  height: 25px;
-  min-height: 25px;
+  height: 30px;
+  min-height: 30px;
   margin: 0;
   padding: 0 8px;
   border: 1px solid var(--universal-quick-action-bg) !important;
   border-radius: 5px !important;
   background: var(--universal-quick-action-bg) !important;
   border-color: var(--universal-quick-action-bg) !important;
-  color: var(--universal-quick-action-text) !important;
+  color: #fff !important;
   font-size: 12px;
   font-weight: 700;
   line-height: 1;
@@ -134,7 +134,7 @@ body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .univer
 .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn:active {
   background: var(--universal-quick-action-bg-hover) !important;
   border-color: var(--universal-quick-action-bg-hover) !important;
-  color: var(--universal-quick-action-text) !important;
+  color: #fff !important;
 }
 
 .main-sidebar .btn-tab.quick-actions.universal-quick-actions > #explore,
@@ -146,10 +146,12 @@ body.dark .main-sidebar .btn-tab.quick-actions.universal-quick-actions > #explor
 }
 
 .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn i,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn .quick-action-icon,
 .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .btn .caption,
 .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn i,
+.main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn .quick-action-icon,
 .main-sidebar .btn-tab.quick-actions.universal-quick-actions > .universal-create-menu > summary.btn .caption {
-  color: var(--universal-quick-action-text) !important;
+  color: #fff !important;
 }
 
 .main-sidebar .universal-create-caret {
