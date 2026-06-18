@@ -125,6 +125,16 @@
                 </div>
                 <div class="logs-review-file-list" id="logs-report-files" aria-label="Included log files"></div>
               </section>
+              <section class="logs-review-section" aria-label="Registry draft size">
+                <div class="logs-review-section-row">
+                  <div class="logs-review-section-title">Registry draft</div>
+                  <div class="logs-review-badge" id="logs-draft-size-badge">--</div>
+                </div>
+                <div class="logs-draft-meter" aria-hidden="true">
+                  <div class="logs-draft-meter-fill" id="logs-draft-meter-fill"></div>
+                </div>
+                <div class="logs-draft-status" id="logs-draft-status">Waiting for latest log snapshot.</div>
+              </section>
               <section class="logs-review-section" aria-label="Privacy filter status">
                 <div class="logs-review-section-row">
                   <div class="logs-review-section-title">Privacy filter</div>
@@ -140,6 +150,18 @@
               </section>
             </div>
           </aside>
+          <footer class="logs-community-footer" aria-label="Ask Community">
+            <div class="logs-community-copy">
+              <div class="logs-community-heading"><i class="fa-solid fa-comments" aria-hidden="true"></i><span>Ask Community</span></div>
+              <div class="logs-community-subtitle">Opens a draft question on pinokio.co with this report attached.</div>
+            </div>
+            <div class="logs-community-title-field">
+              <label class="logs-community-title-label" for="logs-draft-title">Title</label>
+              <input class="logs-community-title-input" id="logs-draft-title" type="text" maxlength="120" autocomplete="off" spellcheck="true" placeholder="Issue title" disabled>
+              <span class="logs-community-title-note" id="logs-draft-title-note" aria-live="polite"></span>
+            </div>
+            <button type="button" class="logs-primary-button logs-community-submit" id="logs-create-draft" disabled><i class="fa-solid fa-paper-plane"></i><span>Ask Community</span></button>
+          </footer>
         </div>
       </section>
 
@@ -204,7 +226,7 @@
   </div>
 </main>
 <script>
-window.LOGS_PAGE_DATA = <%- JSON.stringify({ rootDisplay: logsRootDisplay || '', downloadUrl: logsDownloadUrl || '/pinokio/logs.zip', workspace: logsWorkspace || '', workspaceTitle: logsTitle || '', reportUrl: logsReportUrl || '', initialView: logsInitialView || 'raw', embedded: !!logsEmbedded }) %>
+window.LOGS_PAGE_DATA = <%- JSON.stringify({ rootDisplay: logsRootDisplay || '', downloadUrl: logsDownloadUrl || '/pinokio/logs.zip', workspace: logsWorkspace || '', workspaceTitle: logsTitle || '', reportUrl: logsReportUrl || '', draftUrl: typeof logsDraftUrl !== 'undefined' ? logsDraftUrl : '', registryBase: 'https://pinokio.co', initialView: logsInitialView || 'raw', embedded: !!logsEmbedded }) %>
 </script>
 <script src="/logs.js"></script>
 </body>

@@ -4,6 +4,23 @@
   const LOGS_SIDEBAR_WIDTH_KEY = 'pinokio.logs.sidebar-width'
   const LOGS_SIDEBAR_MIN_WIDTH = 220
   const LOGS_SIDEBAR_MAX_WIDTH = 560
+  const DRAFT_BODY_TARGET_BYTES = 750 * 1024
+  const DRAFT_IMPORT_FIELD_LIMIT_BYTES = 1024 * 1024
+  const DRAFT_TITLE_MAX_LENGTH = 120
+  const DRAFT_TITLE_DISPLAY_LENGTH = 96
+  const DRAFT_TITLE_RECENT_WINDOW_MS = 48 * 60 * 60 * 1000
+  const DRAFT_SECTION_MODES = [
+    { value: 'full', label: 'Full section' },
+    { value: 'last-2000', label: 'Last 2000 lines', lines: 2000 },
+    { value: 'last-1000', label: 'Last 1000 lines', lines: 1000 },
+    { value: 'last-500', label: 'Last 500 lines', lines: 500 },
+    { value: 'exclude', label: 'Exclude' }
+  ]
+  const DRAFT_TITLE_FAILURE_PATTERN = /\b(?:error|exception|failed|failure|fatal|cannot|can't|can not|not found|denied|timeout|timed out|refused|unavailable|invalid|missing|abort|aborted|panic|overflow|crash|crashed)\b/i
+  const DRAFT_TITLE_STRONG_PATTERN = /\b(?:[A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception)|ERROR|FATAL|ERR!|exit code\s+\d+)\b/i
+  const DRAFT_TITLE_STACK_PATTERN = /^\s*(?:File\s+"[^"]+",\s+line\s+\d+|at\s+\S+|from\s+\S+\s+import\s+|return\s+|await\s+|sys\.exit\b)/i
+  const DRAFT_TITLE_NOISE_PATTERN = /^\s*(?:<<PINOKIO_SHELL>>|={6,}|-{6,}|\[api\s+local\.set\]|The default interactive shell is now|To update your account|For more details, please visit)/i
+  const textEncoder = typeof TextEncoder === 'function' ? new TextEncoder() : null
 
   const safeJsonParse = (value) => {
     try {
@@ -22,6 +39,14 @@
       index += 1
     }
     return `${size.toFixed(index === 0 ? 0 : 1)} ${units[index]}`
+  }
+
+  const textByteLength = (value) => {
+    const text = String(value || '')
+    if (textEncoder) {
+      return textEncoder.encode(text).length
+    }
+    return unescape(encodeURIComponent(text)).length
   }
 
   const withQueryParam = (href, key, value) => {
@@ -188,21 +213,37 @@
     constructor(options) {
       this.reportUrl = options.reportUrl || ''
       this.rawReportUrl = this.reportUrl ? withQueryParam(this.reportUrl, 'redaction', 'none') : ''
+      this.draftUrl = options.draftUrl || ''
+      this.registryBase = options.registryBase || 'https://pinokio.co'
       this.statusEl = options.statusEl
       this.outputEl = options.outputEl
       this.copyButton = options.copyButton
+      this.createDraftButton = options.createDraftButton
+      this.draftTitleInput = options.draftTitleInput
+      this.draftTitleNoteEl = options.draftTitleNoteEl
       this.runFilterButton = options.runFilterButton
       this.refreshButton = options.refreshButton
       this.reportFilesEl = options.reportFilesEl
       this.reportGeneratedEl = options.reportGeneratedEl
       this.reportSectionsEl = options.reportSectionsEl
+      this.draftSizeBadgeEl = options.draftSizeBadgeEl
+      this.draftMeterFillEl = options.draftMeterFillEl
+      this.draftStatusEl = options.draftStatusEl
       this.reviewListEl = options.reviewListEl
       this.reviewFiltersEl = options.reviewFiltersEl
       this.reviewCountEl = options.reviewCountEl
       this.privacyFilter = options.privacyFilter || new PrivacyFilterClient()
       this.report = null
       this.rawMarkdown = ''
+      this.reviewMarkdown = ''
       this.currentMarkdown = ''
+      this.sectionModes = new Map()
+      this.draftBodyBytes = 0
+      this.draftPayloadBytes = 0
+      this.draftOversized = false
+      this.importingDraft = false
+      this.draftTitleEdited = false
+      this.draftTitleSuggestion = null
       this.redactionItems = []
       this.renderedRedactionItems = []
       this.filterChunks = 0
@@ -215,6 +256,16 @@
 
       if (this.copyButton) {
         this.copyButton.addEventListener('click', () => this.copy())
+      }
+      if (this.createDraftButton) {
+        this.createDraftButton.addEventListener('click', () => this.createDraft())
+      }
+      if (this.draftTitleInput) {
+        this.draftTitleInput.addEventListener('input', () => {
+          this.draftTitleEdited = true
+          this.updateDraftTitleNote()
+          this.updateDraftSizeReview()
+        })
       }
       if (this.runFilterButton) {
         this.runFilterButton.addEventListener('click', () => this.filterReport())
@@ -245,16 +296,347 @@
         this.reportFilesEl.removeChild(this.reportFilesEl.firstChild)
       }
     }
+    sectionKey(section, index) {
+      return String((section && (section.file || section.script || section.source)) || `section-${index}`)
+    }
+    sectionMode(section, index) {
+      const key = this.sectionKey(section, index)
+      return this.sectionModes.get(key) || 'full'
+    }
+    setSectionMode(section, index, mode) {
+      const key = this.sectionKey(section, index)
+      const valid = DRAFT_SECTION_MODES.some((item) => item.value === mode)
+      this.sectionModes.set(key, valid ? mode : 'full')
+      this.rebuildDraftPreview(true)
+      this.renderReportFiles(this.report && this.report.sections)
+    }
+    ensureSectionModes(sections) {
+      const keys = new Set()
+      ;(sections || []).forEach((section, index) => {
+        const key = this.sectionKey(section, index)
+        keys.add(key)
+        if (!this.sectionModes.has(key)) {
+          this.sectionModes.set(key, 'full')
+        }
+      })
+      for (const key of Array.from(this.sectionModes.keys())) {
+        if (!keys.has(key)) {
+          this.sectionModes.delete(key)
+        }
+      }
+    }
+    prepareSection(section, index) {
+      const mode = this.sectionMode(section, index)
+      if (mode === 'exclude') {
+        return null
+      }
+      const config = DRAFT_SECTION_MODES.find((item) => item.value === mode)
+      const text = String((section && section.text) || '')
+      const lines = text ? text.split(/\r?\n/) : []
+      if (config && config.lines && lines.length > config.lines) {
+        const omitted = lines.length - config.lines
+        return {
+          text: `[Older ${omitted.toLocaleString()} lines omitted by user. Showing the last ${config.lines.toLocaleString()} lines.]\n${lines.slice(-config.lines).join('\n')}`,
+          includedLines: config.lines,
+          omittedLines: omitted,
+          mode
+        }
+      }
+      return {
+        text,
+        includedLines: lines.length,
+        omittedLines: 0,
+        mode
+      }
+    }
+    includedSectionCount(sections) {
+      return (sections || []).reduce((total, section, index) => {
+        return total + (this.prepareSection(section, index) ? 1 : 0)
+      }, 0)
+    }
+    updateSectionCount(sections) {
+      if (!this.reportSectionsEl) return
+      const total = Array.isArray(sections) ? sections.length : 0
+      const included = this.includedSectionCount(sections || [])
+      this.reportSectionsEl.textContent = included === total ? String(total) : `${included} / ${total}`
+    }
+    defaultDraftTitle() {
+      const payload = this.report || {}
+      const appTitle = payload.title || payload.app_id || 'Pinokio app'
+      return this.truncateDraftTitle(`Issue report: ${appTitle}`, DRAFT_TITLE_MAX_LENGTH)
+    }
+    truncateDraftTitle(value, maxLength = DRAFT_TITLE_DISPLAY_LENGTH) {
+      const text = String(value || '').replace(/\s+/g, ' ').trim()
+      if (text.length <= maxLength) {
+        return text
+      }
+      return `${text.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`
+    }
+    draftTitleValue() {
+      if (this.draftTitleInput) {
+        return this.truncateDraftTitle(this.draftTitleInput.value, DRAFT_TITLE_MAX_LENGTH)
+      }
+      return (this.draftTitleSuggestion && this.draftTitleSuggestion.title) || this.defaultDraftTitle()
+    }
+    hasDraftTitle() {
+      return Boolean(this.draftTitleValue())
+    }
+    clearDraftTitle() {
+      this.draftTitleEdited = false
+      this.draftTitleSuggestion = null
+      if (this.draftTitleInput) {
+        this.draftTitleInput.value = ''
+        this.draftTitleInput.disabled = true
+      }
+      this.updateDraftTitleNote()
+    }
+    updateDraftTitleNote() {
+      if (!this.draftTitleNoteEl) return
+      let note = ''
+      if (this.draftTitleInput && !this.draftTitleInput.disabled && !this.draftTitleInput.value.trim()) {
+        note = 'Title required'
+      }
+      this.draftTitleNoteEl.textContent = note
+    }
+    updateDraftTitleSuggestion(force = false) {
+      this.draftTitleSuggestion = this.suggestDraftTitle()
+      if (this.draftTitleInput) {
+        if (force || !this.draftTitleEdited) {
+          this.draftTitleInput.value = this.draftTitleSuggestion.title
+          this.draftTitleEdited = false
+        }
+        this.draftTitleInput.disabled = !this.reviewMarkdown
+      }
+      this.updateDraftTitleNote()
+    }
+    suggestDraftTitle() {
+      const payload = this.report || {}
+      const appTitle = payload.title || payload.app_id || 'Pinokio app'
+      const sections = Array.isArray(payload.sections) ? payload.sections : []
+      const preparedSections = []
+      let newestModified = 0
+      sections.forEach((section, index) => {
+        const prepared = this.prepareSection(section, index)
+        if (!prepared) return
+        const modified = Date.parse(section.modified || '')
+        if (Number.isFinite(modified)) {
+          newestModified = Math.max(newestModified, modified)
+        }
+        preparedSections.push({ section, index, prepared, modified: Number.isFinite(modified) ? modified : 0 })
+      })
+
+      const candidates = []
+      for (const item of preparedSections) {
+        const candidate = this.bestTitleCandidateForSection(item.section, item.index, item.prepared)
+        if (!candidate) continue
+        let score = candidate.score
+        if (newestModified && item.modified && newestModified - item.modified > DRAFT_TITLE_RECENT_WINDOW_MS) {
+          score -= 35
+        }
+        candidates.push({
+          ...candidate,
+          score,
+          modified: item.modified,
+          file: item.section.file || item.section.script || 'log'
+        })
+      }
+
+      candidates.sort((a, b) => {
+        const scoreDelta = b.score - a.score
+        if (Math.abs(scoreDelta) > 10) return scoreDelta
+        if (a.modified && b.modified && Math.abs(a.modified - b.modified) > 60000) {
+          return a.modified - b.modified
+        }
+        return a.lineIndex - b.lineIndex
+      })
+
+      const best = candidates[0]
+      if (!best || best.score < 35) {
+        return { title: '', confidence: 'low', fallback: true }
+      }
+      return {
+        title: this.truncateDraftTitle(`${appTitle}: ${best.text}`, DRAFT_TITLE_MAX_LENGTH),
+        confidence: best.score >= 70 ? 'high' : 'medium',
+        source: best.file,
+        fallback: false
+      }
+    }
+    bestTitleCandidateForSection(section, index, prepared) {
+      const lines = String((prepared && prepared.text) || '').split(/\r?\n/)
+      let best = null
+      lines.forEach((line, lineIndex) => {
+        const text = this.cleanDraftTitleLine(line)
+        if (!text) return
+        const score = this.scoreDraftTitleLine(text, lineIndex, lines.length)
+        if (score < 25) return
+        if (!best || score > best.score + 6 || (Math.abs(score - best.score) <= 6 && lineIndex < best.lineIndex)) {
+          best = { text, score, lineIndex, sectionIndex: index }
+        }
+      })
+      return best
+    }
+    scoreDraftTitleLine(line, lineIndex, lineCount) {
+      let score = 0
+      if (DRAFT_TITLE_FAILURE_PATTERN.test(line)) score += 35
+      if (DRAFT_TITLE_STRONG_PATTERN.test(line)) score += 35
+      if (/:\s+\S/.test(line) && DRAFT_TITLE_FAILURE_PATTERN.test(line)) score += 8
+      if (lineIndex > Math.floor(lineCount * 0.7)) score += 6
+      if (DRAFT_TITLE_STACK_PATTERN.test(line)) score -= 28
+      if (DRAFT_TITLE_NOISE_PATTERN.test(line)) score -= 60
+      if (line.length > 180) score -= 12
+      return score
+    }
+    cleanDraftTitleLine(value) {
+      let text = String(value || '')
+        .replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, '')
+        .replace(/\r/g, ' ')
+        .trim()
+      if (!text || DRAFT_TITLE_NOISE_PATTERN.test(text)) {
+        return ''
+      }
+      text = text
+        .replace(/^[-+*]\s+/, '')
+        .replace(/^<<PINOKIO_SHELL>>\s*/, '')
+        .replace(/\b([A-Za-z_][A-Za-z0-9_.-]*(?:TOKEN|SECRET|PASSWORD|API[_-]?KEY)[A-Za-z0-9_.-]*\s*=\s*)\S+/gi, '$1[redacted]')
+        .replace(/\b(?:sk|hf|ghp|github_pat|xox[baprs])[-_A-Za-z0-9]{12,}\b/g, '[secret]')
+        .replace(/\/(?:Users|home)\/[^/\s"'`]+\/[^\s"'`]*/g, (match) => this.shortenTitlePath(match, '/'))
+        .replace(/[A-Za-z]:\\Users\\[^\\\s"'`]+\\[^\s"'`]*/g, (match) => this.shortenTitlePath(match, '\\'))
+        .replace(/\s+/g, ' ')
+        .trim()
+      if (!text || /^[\s=#-]+$/.test(text)) {
+        return ''
+      }
+      return this.truncateDraftTitle(text, DRAFT_TITLE_DISPLAY_LENGTH)
+    }
+    shortenTitlePath(value, separator) {
+      const text = String(value || '')
+      const parts = text.split(separator).filter(Boolean)
+      if (parts.length <= 3) {
+        return text
+      }
+      return `…${separator}${parts.slice(-2).join(separator)}`
+    }
+    renderDraftMarkdown() {
+      const payload = this.report || {}
+      const sections = Array.isArray(payload.sections) ? payload.sections : []
+      const lines = [
+        '# Issue Report',
+        '',
+        `App: ${payload.title || payload.app_id || 'unknown'} (${payload.app_id || 'unknown'})`,
+        payload.repo_url ? `Repo: ${payload.repo_url}` : null,
+        `Generated: ${payload.generated_at || new Date().toISOString()}`,
+        `Pinokio: ${payload.pinokiod || 'unknown'}`,
+        `Platform: ${payload.platform || 'unknown'} ${payload.arch || ''}`.trim(),
+        `Node: ${payload.node || 'unknown'}`,
+        '',
+        '## Summary',
+        '',
+        '',
+        '## System',
+        '',
+        '```json',
+        JSON.stringify(payload.system_spec || {}, null, 2),
+        '```',
+        '',
+        '## Logs'
+      ].filter((line) => line !== null)
+
+      let included = 0
+      sections.forEach((section, index) => {
+        const prepared = this.prepareSection(section, index)
+        if (!prepared) {
+          return
+        }
+        included += 1
+        const totalLines = Number(section.line_count) || prepared.includedLines || 0
+        const availableLines = Math.min(totalLines, Number(section.tail_count) || prepared.includedLines || totalLines)
+        const lineSummary = prepared.omittedLines > 0
+          ? `${totalLines} total, last ${prepared.includedLines} selected by user`
+          : `${totalLines} total, last ${availableLines} included${section.truncated ? ' (truncated)' : ''}`
+        lines.push(
+          '',
+          `### ${section.file || section.script || 'log'}`,
+          '',
+          `Source: ${section.source || 'api'}${section.script ? ` / ${section.script}` : ''}`,
+          `Lines: ${lineSummary}`,
+          '',
+          '```text',
+          prepared.text || '',
+          '```'
+        )
+      })
+      if (!included) {
+        lines.push('', 'No app log files were selected.')
+      }
+      return lines.join('\n')
+    }
+    rebuildDraftPreview(resetRedactions) {
+      this.reviewMarkdown = this.renderDraftMarkdown()
+      if (resetRedactions) {
+        this.redactionHasRun = false
+        this.redactionItems = []
+        this.renderedRedactionItems = []
+        this.selectedRedactionId = null
+        this.activeRedactionFilter = 'all'
+        this.resetRedactionReview(this.reviewMarkdown ? 'Run the privacy filter to review detected items.' : 'No report text to review.')
+      }
+      this.currentMarkdown = this.reviewMarkdown
+      this.updateDraftTitleSuggestion(false)
+      this.renderCurrentReport()
+      this.updateSectionCount(this.report && this.report.sections)
+      this.setRunFilterEnabled(Boolean(this.reviewMarkdown) && !this.filtering)
+    }
     renderReportFiles(sections) {
       this.clearReportFiles()
       if (!this.reportFilesEl) return
-      for (const section of sections || []) {
+      ;(sections || []).forEach((section, index) => {
+        const mode = this.sectionMode(section, index)
+        const prepared = this.prepareSection(section, index)
         const item = document.createElement('div')
-        item.className = 'logs-review-file'
-        item.textContent = section.file || section.script || section.source || 'log'
-        item.title = item.textContent
+        item.className = 'logs-section-control'
+        item.classList.toggle('is-excluded', mode === 'exclude')
+
+        const checkbox = document.createElement('input')
+        checkbox.type = 'checkbox'
+        checkbox.className = 'logs-section-checkbox'
+        checkbox.checked = mode !== 'exclude'
+        checkbox.setAttribute('aria-label', `Include ${section.file || section.script || 'log section'}`)
+        checkbox.addEventListener('change', () => {
+          this.setSectionMode(section, index, checkbox.checked ? 'full' : 'exclude')
+        })
+
+        const textWrap = document.createElement('div')
+        textWrap.className = 'logs-section-text'
+        const name = document.createElement('div')
+        name.className = 'logs-section-name'
+        name.textContent = section.file || section.script || section.source || 'log'
+        name.title = name.textContent
+        const meta = document.createElement('div')
+        meta.className = 'logs-section-meta'
+        const size = Number(section.size) ? humanBytes(section.size) : 'unknown size'
+        const totalLines = Number(section.line_count) || 0
+        const trimText = prepared && prepared.omittedLines > 0 ? ` · ${prepared.omittedLines.toLocaleString()} older lines omitted` : ''
+        meta.textContent = `${totalLines.toLocaleString()} lines · ${size}${trimText}`
+        textWrap.appendChild(name)
+        textWrap.appendChild(meta)
+
+        const select = document.createElement('select')
+        select.className = 'logs-section-mode'
+        select.setAttribute('aria-label', `Draft inclusion for ${name.textContent}`)
+        for (const optionConfig of DRAFT_SECTION_MODES) {
+          const option = document.createElement('option')
+          option.value = optionConfig.value
+          option.textContent = optionConfig.label
+          select.appendChild(option)
+        }
+        select.value = mode
+        select.addEventListener('change', () => this.setSectionMode(section, index, select.value))
+
+        item.appendChild(checkbox)
+        item.appendChild(textWrap)
+        item.appendChild(select)
         this.reportFilesEl.appendChild(item)
-      }
+      })
       if (!sections || !sections.length) {
         const empty = document.createElement('div')
         empty.className = 'logs-review-empty'
@@ -264,9 +646,7 @@
     }
     renderSummary(payload) {
       const sections = Array.isArray(payload && payload.sections) ? payload.sections : []
-      if (this.reportSectionsEl) {
-        this.reportSectionsEl.textContent = String(sections.length)
-      }
+      this.updateSectionCount(sections)
       if (this.reportGeneratedEl) {
         this.reportGeneratedEl.textContent = this.formatGenerated(payload && payload.generated_at)
       }
@@ -289,14 +669,16 @@
     }
     setFiltering(isFiltering) {
       this.filtering = Boolean(isFiltering)
-      if (!this.runFilterButton) return
-      this.runFilterButton.disabled = this.filtering || !this.rawMarkdown
-      this.runFilterButton.classList.toggle('is-busy', this.filtering)
-      if (this.filtering) {
-        this.runFilterButton.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Filtering…</span>'
-      } else {
-        this.runFilterButton.innerHTML = '<i class="fa-solid fa-shield-halved"></i><span>Run privacy filter</span>'
+      if (this.runFilterButton) {
+        this.runFilterButton.disabled = this.filtering || !this.reviewMarkdown
+        this.runFilterButton.classList.toggle('is-busy', this.filtering)
+        if (this.filtering) {
+          this.runFilterButton.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Filtering…</span>'
+        } else {
+          this.runFilterButton.innerHTML = '<i class="fa-solid fa-shield-halved"></i><span>Run privacy filter</span>'
+        }
       }
+      this.updateDraftSizeReview()
     }
     setOutputText(text) {
       if (this.outputEl) {
@@ -360,7 +742,7 @@
       return source
     }
     buildCurrentReport() {
-      const text = this.rawMarkdown || ''
+      const text = this.reviewMarkdown || ''
       if (!text || !this.redactionItems.length) {
         this.currentMarkdown = text
         this.renderedRedactionItems = []
@@ -409,12 +791,121 @@
       const total = this.redactionItems.length
       this.reviewCountEl.textContent = total ? `${enabled} masked` : '0 masked'
     }
+    encodeUtf8Base64(value) {
+      const text = String(value || '')
+      if (!textEncoder || typeof btoa !== 'function') {
+        return btoa(unescape(encodeURIComponent(text)))
+      }
+      const bytes = textEncoder.encode(text)
+      let binary = ''
+      const chunkSize = 0x8000
+      for (let index = 0; index < bytes.length; index += chunkSize) {
+        const chunk = bytes.subarray(index, index + chunkSize)
+        binary += String.fromCharCode.apply(null, chunk)
+      }
+      return btoa(binary)
+    }
+    buildDraftMetadata() {
+      const payload = this.report || {}
+      const appTitle = payload.title || payload.app_id || 'Pinokio app'
+      const title = this.draftTitleInput
+        ? this.draftTitleValue()
+        : (this.draftTitleValue() || `Issue report: ${appTitle}`)
+      const metadata = {
+        title,
+        body: this.currentMarkdown || this.reviewMarkdown || '',
+        tags: ['bug', 'logs'],
+        source: 'pinokio-logs',
+        appLocalId: payload.app_id || ''
+      }
+      if (payload.repo_url) {
+        metadata.repoUrl = payload.repo_url
+        metadata.appRepoUrl = payload.repo_url
+        metadata.parent = { type: 'app', url: payload.repo_url }
+      }
+      return metadata
+    }
+    buildDraftImportPayload() {
+      const metadata = this.buildDraftMetadata()
+      const metadataJson = JSON.stringify(metadata)
+      const metadataB64 = this.encodeUtf8Base64(metadataJson)
+      return {
+        metadata,
+        metadataB64,
+        bodyBytes: textByteLength(metadata.body || ''),
+        payloadBytes: textByteLength(metadataB64)
+      }
+    }
+    setCreateDraftBusy(isBusy) {
+      this.importingDraft = Boolean(isBusy)
+      if (!this.createDraftButton) return
+      if (this.importingDraft) {
+        this.createDraftButton.disabled = true
+        this.createDraftButton.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Opening…</span>'
+      } else {
+        this.createDraftButton.innerHTML = '<i class="fa-solid fa-paper-plane"></i><span>Ask Community</span>'
+        this.updateDraftSizeReview()
+      }
+    }
+    updateDraftSizeReview() {
+      const hasText = Boolean(this.currentMarkdown || this.reviewMarkdown)
+      const hasTitle = this.hasDraftTitle()
+      let draft = null
+      if (hasText) {
+        draft = this.buildDraftImportPayload()
+        this.draftBodyBytes = draft.bodyBytes
+        this.draftPayloadBytes = draft.payloadBytes
+        this.draftOversized = draft.bodyBytes > DRAFT_BODY_TARGET_BYTES || draft.payloadBytes > DRAFT_IMPORT_FIELD_LIMIT_BYTES
+      } else {
+        this.draftBodyBytes = 0
+        this.draftPayloadBytes = 0
+        this.draftOversized = false
+      }
+      if (this.draftSizeBadgeEl) {
+        this.draftSizeBadgeEl.textContent = hasText ? `${humanBytes(this.draftBodyBytes)} / ${humanBytes(DRAFT_BODY_TARGET_BYTES)}` : '--'
+        this.draftSizeBadgeEl.classList.toggle('is-error', Boolean(hasText && this.draftOversized))
+      }
+      if (this.draftMeterFillEl) {
+        const pct = hasText ? Math.min(100, Math.round((this.draftBodyBytes / DRAFT_BODY_TARGET_BYTES) * 100)) : 0
+        this.draftMeterFillEl.style.width = `${pct}%`
+        this.draftMeterFillEl.classList.toggle('is-error', Boolean(hasText && this.draftOversized))
+      }
+      if (this.draftStatusEl) {
+        let message = 'Waiting for latest log snapshot.'
+        let isError = false
+        if (hasText && this.draftOversized) {
+          isError = true
+          message = this.draftPayloadBytes > DRAFT_IMPORT_FIELD_LIMIT_BYTES
+            ? `Too large for registry import after encoding. Exclude a section or keep fewer recent lines.`
+            : `Too large for one-click draft import. Exclude a section or keep fewer recent lines.`
+        } else if (hasText && !hasTitle) {
+          isError = true
+          message = 'Add a title before posting to Community.'
+        } else if (hasText) {
+          message = 'Ready. Community will use this preview exactly.'
+        }
+        this.draftStatusEl.textContent = message
+        this.draftStatusEl.classList.toggle('is-error', isError)
+      }
+      if (this.draftTitleInput) {
+        this.draftTitleInput.disabled = !hasText
+      }
+      this.updateDraftTitleNote()
+      if (this.createDraftButton && !this.importingDraft) {
+        const canCreate = hasText && hasTitle && !this.draftOversized && !this.filtering && Boolean(this.draftUrl)
+        this.createDraftButton.disabled = !canCreate
+        this.createDraftButton.title = canCreate
+          ? 'Open a draft question on Community'
+          : (!hasTitle ? 'Add a title before posting to Community' : (this.draftOversized ? 'Reduce the report size before posting to Community' : 'Community posting is not available for this view'))
+      }
+    }
     renderCurrentReport() {
       this.buildCurrentReport()
       const text = this.currentMarkdown || 'No latest app logs were found.'
       this.renderHighlightedOutput(text, this.renderedRedactionItems)
       this.renderRedactionReview()
       this.updateRedactionCount()
+      this.updateDraftSizeReview()
       this.setCopyEnabled(Boolean(this.currentMarkdown))
       this.selectRedaction(this.selectedRedactionId, false)
     }
@@ -614,7 +1105,9 @@
     render(payload) {
       const sections = this.renderSummary(payload)
       this.rawMarkdown = payload && payload.markdown ? String(payload.markdown) : ''
-      this.currentMarkdown = this.rawMarkdown
+      this.ensureSectionModes(sections)
+      this.reviewMarkdown = this.renderDraftMarkdown()
+      this.currentMarkdown = this.reviewMarkdown
       this.redactionItems = []
       this.renderedRedactionItems = []
       this.filterChunks = 0
@@ -622,12 +1115,13 @@
       this.filtering = false
       this.selectedRedactionId = null
       this.activeRedactionFilter = 'all'
-      this.setCopyEnabled(Boolean(this.rawMarkdown))
-      this.setRunFilterEnabled(Boolean(this.rawMarkdown))
-      this.setOutputText(this.rawMarkdown || 'No latest app logs were found.')
-      this.resetRedactionReview(this.rawMarkdown ? 'Run the privacy filter to review detected items.' : 'No report text to review.')
+      this.draftTitleEdited = false
+      this.updateDraftTitleSuggestion(true)
+      this.renderCurrentReport()
+      this.resetRedactionReview(this.reviewMarkdown ? 'Run the privacy filter to review detected items.' : 'No report text to review.')
       this.updateRedactionCount()
-      if (!this.rawMarkdown) {
+      this.setRunFilterEnabled(Boolean(this.reviewMarkdown))
+      if (!this.reviewMarkdown) {
         this.setStatus(`Latest snapshot found ${sections.length} log section${sections.length === 1 ? '' : 's'}.`)
         return
       }
@@ -638,13 +1132,16 @@
       if (this.reportGeneratedEl) this.reportGeneratedEl.textContent = '--'
       this.clearReportFiles()
       this.rawMarkdown = ''
+      this.reviewMarkdown = ''
       this.currentMarkdown = ''
       this.redactionHasRun = false
       this.filtering = false
+      this.clearDraftTitle()
       this.setOutputText(message || 'Unable to build latest log snapshot.')
       this.resetRedactionReview('No redaction review is available.')
       this.setCopyEnabled(false)
       this.setRunFilterEnabled(false)
+      this.updateDraftSizeReview()
       this.setStatus(message || 'Unable to build latest log snapshot.', true)
     }
     renderFilterProgress(progress) {
@@ -672,16 +1169,18 @@
       this.redactionItems = []
       this.renderedRedactionItems = []
       this.redactionHasRun = false
-      this.currentMarkdown = this.rawMarkdown
+      this.currentMarkdown = this.reviewMarkdown
       this.selectedRedactionId = null
       this.setCopyEnabled(Boolean(this.currentMarkdown))
-      this.setRunFilterEnabled(Boolean(this.rawMarkdown))
-      this.setOutputText(this.rawMarkdown || 'Privacy filter failed. No report text is available.')
+      this.setRunFilterEnabled(Boolean(this.reviewMarkdown))
+      this.setOutputText(this.reviewMarkdown || 'Privacy filter failed. No report text is available.')
+      this.updateDraftSizeReview()
       this.resetRedactionReview('Privacy filtering failed before any redactions could be reviewed.')
       this.setStatus(error && error.message ? error.message : 'Privacy filter failed.', true)
     }
     async filterReport() {
-      if (!this.rawMarkdown || this.filtering) {
+      const sourceMarkdown = this.reviewMarkdown || ''
+      if (!sourceMarkdown || this.filtering) {
         return
       }
       const token = this.filterToken + 1
@@ -689,7 +1188,7 @@
       this.setFiltering(true)
       this.setCopyEnabled(false)
       try {
-        const result = await this.privacyFilter.filter(this.rawMarkdown, (progress) => {
+        const result = await this.privacyFilter.filter(sourceMarkdown, (progress) => {
           if (token === this.filterToken) {
             this.renderFilterProgress(progress)
           }
@@ -697,7 +1196,7 @@
         if (token !== this.filterToken) {
           return
         }
-        this.redactionItems = this.normalizeRedactionItems(result && result.items, this.rawMarkdown)
+        this.redactionItems = this.normalizeRedactionItems(result && result.items, sourceMarkdown)
         this.filterChunks = Number(result && result.chunks) || 1
         this.redactionHasRun = true
         this.selectedRedactionId = this.redactionItems.length ? this.redactionItems[0].id : null
@@ -722,9 +1221,9 @@
       }
       if (this.report && !force) {
         this.renderSummary(this.report)
-        this.renderCurrentReport()
-        this.setRunFilterEnabled(Boolean(this.rawMarkdown) && !this.filtering)
-        if (!this.redactionHasRun && this.rawMarkdown) {
+        this.rebuildDraftPreview(false)
+        this.setRunFilterEnabled(Boolean(this.reviewMarkdown) && !this.filtering)
+        if (!this.redactionHasRun && this.reviewMarkdown) {
           this.setStatus('Unfiltered report is ready. Run the privacy filter only if you want local redaction review.')
         }
         return
@@ -735,15 +1234,18 @@
       this.setStatus('Building latest log snapshot…')
       this.filterToken += 1
       this.rawMarkdown = ''
+      this.reviewMarkdown = ''
       this.currentMarkdown = ''
       this.redactionItems = []
       this.renderedRedactionItems = []
       this.redactionHasRun = false
       this.selectedRedactionId = null
       this.activeRedactionFilter = 'all'
+      this.clearDraftTitle()
       this.resetRedactionReview('Waiting for latest log snapshot.')
       this.setCopyEnabled(false)
       this.setFiltering(false)
+      this.updateDraftSizeReview()
       try {
         const response = await fetch(this.rawReportUrl || this.reportUrl, {
           headers: { 'Accept': 'application/json' },
@@ -761,6 +1263,124 @@
         this.loading = false
         this.setBusy(false)
       }
+    }
+    registryOrigin(value) {
+      try {
+        return new URL(value || this.registryBase, window.location.origin).origin
+      } catch (_) {
+        return 'https://pinokio.co'
+      }
+    }
+    registryMessageOrigins() {
+      const origins = new Set([this.registryOrigin(this.registryBase)])
+      if (origins.has('https://pinokio.co')) {
+        origins.add('https://www.pinokio.co')
+      }
+      return origins
+    }
+    async submitDraftImport(token, registry, popup, popupOrigin) {
+      const draft = this.buildDraftImportPayload()
+      if (!draft.metadata.title) {
+        throw new Error('Add a title before posting to Community.')
+      }
+      if (!draft.metadata.body || this.draftOversized || draft.payloadBytes > DRAFT_IMPORT_FIELD_LIMIT_BYTES) {
+        throw new Error('Draft is too large for registry import.')
+      }
+      const form = new FormData()
+      form.append('token', token)
+      form.append('registry', registry || this.registryBase)
+      form.append('metadata_b64', draft.metadataB64)
+      const response = await fetch(this.draftUrl, {
+        method: 'POST',
+        body: form,
+        cache: 'no-store'
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(payload && payload.error ? payload.error : `Draft import failed (${response.status})`)
+      }
+      const editUrl = payload && payload.editUrl ? String(payload.editUrl) : ''
+      if (popup && !popup.closed) {
+        popup.postMessage({
+          type: 'pinokio:draft-import-result',
+          ok: true,
+          editUrl
+        }, popupOrigin || this.registryOrigin(this.registryBase))
+      }
+      this.setStatus(editUrl ? 'Community draft created. Opening editor.' : 'Community draft created.')
+      return payload
+    }
+    async createDraft() {
+      if (this.importingDraft || this.draftOversized || !this.hasDraftTitle() || !this.currentMarkdown || !this.draftUrl) {
+        this.updateDraftSizeReview()
+        return
+      }
+      const authorizeUrl = new URL('/draft-import/authorize', this.registryBase)
+      authorizeUrl.searchParams.set('handoff', 'post_message')
+      authorizeUrl.searchParams.set('origin', window.location.origin)
+      authorizeUrl.searchParams.set('wait', '1')
+      this.setCreateDraftBusy(true)
+      this.setStatus('Opening Community authorization…')
+      const popup = window.open(authorizeUrl.toString(), 'pinokio-draft-import', 'width=720,height=760')
+      if (!popup) {
+        this.setCreateDraftBusy(false)
+        this.setStatus('Community authorization window was blocked.', true)
+        return
+      }
+      const registryOrigin = this.registryOrigin(this.registryBase)
+      const registryMessageOrigins = this.registryMessageOrigins()
+      let popupOrigin = registryOrigin
+      let settled = false
+      const finish = (message, isError) => {
+        settled = true
+        window.removeEventListener('message', onMessage)
+        window.clearInterval(closeTimer)
+        this.setCreateDraftBusy(false)
+        if (message) {
+          this.setStatus(message, isError)
+        }
+      }
+      const failPopup = (message) => {
+        if (popup && !popup.closed) {
+          popup.postMessage({
+            type: 'pinokio:draft-import-result',
+            ok: false,
+            error: message
+          }, popupOrigin)
+        }
+      }
+      const onMessage = async (event) => {
+        if (settled || event.source !== popup || !registryMessageOrigins.has(event.origin)) {
+          return
+        }
+        const data = event.data || {}
+        if (!data || data.type !== 'pinokio:draft-import-token') {
+          return
+        }
+        popupOrigin = event.origin
+        const token = typeof data.token === 'string' ? data.token : ''
+        const registry = typeof data.registry === 'string' ? data.registry : this.registryBase
+        if (!token) {
+          failPopup('Community did not return an import token.')
+          finish('Community did not return an import token.', true)
+          return
+        }
+        try {
+          await this.submitDraftImport(token, registry, popup, popupOrigin)
+          finish(null, false)
+        } catch (error) {
+          const message = error && error.message ? error.message : 'Draft import failed.'
+          failPopup(message)
+          finish(message, true)
+        }
+      }
+      const closeTimer = window.setInterval(() => {
+        if (!settled && popup.closed) {
+          finish('Community authorization was closed before import.', true)
+        }
+      }, 1000)
+      window.addEventListener('message', onMessage)
+      popup.focus()
     }
     async copy() {
       if (!this.currentMarkdown) return
@@ -1127,14 +1747,22 @@
       this.zipControls = zipControls
       this.latestReport = new LogsLatestReport({
         reportUrl: this.reportUrl,
+        draftUrl: config.draftUrl || '',
+        registryBase: config.registryBase || 'https://pinokio.co',
         statusEl: document.getElementById('logs-report-status'),
         outputEl: document.getElementById('logs-report-output'),
         copyButton: document.getElementById('logs-copy-report'),
+        createDraftButton: document.getElementById('logs-create-draft'),
+        draftTitleInput: document.getElementById('logs-draft-title'),
+        draftTitleNoteEl: document.getElementById('logs-draft-title-note'),
         runFilterButton: document.getElementById('logs-run-filter'),
         refreshButton: document.getElementById('logs-refresh-report'),
         reportFilesEl: document.getElementById('logs-report-files'),
         reportGeneratedEl: document.getElementById('logs-report-generated'),
         reportSectionsEl: document.getElementById('logs-report-sections'),
+        draftSizeBadgeEl: document.getElementById('logs-draft-size-badge'),
+        draftMeterFillEl: document.getElementById('logs-draft-meter-fill'),
+        draftStatusEl: document.getElementById('logs-draft-status'),
         reviewListEl: document.getElementById('logs-redaction-list'),
         reviewFiltersEl: document.getElementById('logs-redaction-filters'),
         reviewCountEl: document.getElementById('logs-redaction-count')

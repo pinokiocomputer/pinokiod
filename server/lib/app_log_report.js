@@ -47,6 +47,7 @@ class AppLogReportService {
     const metadata = {
       app_id: appId,
       title: status.title || appId,
+      repo_url: this.sanitizeRemoteUrl(status.repo_url || this.readGitRemote(appRoot)),
       generated_at: new Date().toISOString(),
       pinokiod: this.readPinokioVersion(),
       platform: os.platform(),
@@ -228,6 +229,7 @@ class AppLogReportService {
       '# Issue Report',
       '',
       `App: ${metadata.title} (${metadata.app_id})`,
+      metadata.repo_url ? `Repo: ${metadata.repo_url}` : null,
       `Generated: ${metadata.generated_at}`,
       `Pinokio: ${metadata.pinokiod || 'unknown'}`,
       `Platform: ${metadata.platform} ${metadata.arch}`,
@@ -241,7 +243,7 @@ class AppLogReportService {
       '```json',
       JSON.stringify(metadata.system_spec || {}, null, 2),
       '```'
-    ]
+    ].filter((line) => line !== null)
 
     if (metadata.redaction_mode !== 'none') {
       lines.push(
@@ -287,6 +289,45 @@ class AppLogReportService {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([name, count]) => `- ${name.replace(/_/g, ' ')}: ${count}`)
       .join('\n')
+  }
+
+  readGitRemote(appRoot) {
+    if (!appRoot) {
+      return null
+    }
+    try {
+      const configPath = path.resolve(appRoot, '.git', 'config')
+      if (!this.registry.isPathWithin(appRoot, configPath)) {
+        return null
+      }
+      const raw = fs.readFileSync(configPath, 'utf8')
+      const originMatch = raw.match(/\[remote "origin"\][\s\S]*?\n\s*url\s*=\s*([^\r\n]+)/)
+      if (originMatch && originMatch[1]) {
+        return this.sanitizeRemoteUrl(originMatch[1])
+      }
+      const firstRemote = raw.match(/\[remote "[^"]+"\][\s\S]*?\n\s*url\s*=\s*([^\r\n]+)/)
+      return firstRemote && firstRemote[1] ? this.sanitizeRemoteUrl(firstRemote[1]) : null
+    } catch (_) {
+      return null
+    }
+  }
+
+  sanitizeRemoteUrl(value) {
+    const text = typeof value === 'string' ? value.trim() : ''
+    if (!text) {
+      return null
+    }
+    try {
+      const parsed = new URL(text)
+      if (parsed.username || parsed.password) {
+        parsed.username = ''
+        parsed.password = ''
+        return parsed.toString()
+      }
+    } catch (_) {
+      return text
+    }
+    return text
   }
 
   compareSections(a, b) {

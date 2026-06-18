@@ -32,6 +32,12 @@ test('app log report includes every logs/api/**/latest file and ignores shell lo
     await fs.writeFile(path.join(appRoot, 'logs', 'api', 'install.js', 'latest'), 'install log\n')
     await fs.writeFile(path.join(appRoot, 'logs', 'api', 'nested', 'start.js', 'latest'), 'nested start log\n')
     await fs.writeFile(path.join(appRoot, 'logs', 'shell', 'latest'), 'shell log should not be included\n')
+    await fs.mkdir(path.join(appRoot, '.git'), { recursive: true })
+    await fs.writeFile(path.join(appRoot, '.git', 'config'), [
+      '[remote "origin"]',
+      '  url = https://token:secret@github.com/example/demo.git',
+      ''
+    ].join('\n'))
 
     const service = new AppLogReportService({ registry: createRegistry() })
     const report = await service.buildReport({
@@ -50,6 +56,9 @@ test('app log report includes every logs/api/**/latest file and ignores shell lo
         'logs/api/nested/start.js/latest'
       ]
     )
+    assert.equal(report.repo_url, 'https://github.com/example/demo.git')
+    assert.equal(report.markdown.includes('token:secret'), false)
+    assert.equal(report.markdown.includes('Repo: https://github.com/example/demo.git'), true)
     assert.equal(report.markdown.includes('## Sanitization'), false)
     assert.equal(report.markdown.includes('shell log should not be included'), false)
   } finally {

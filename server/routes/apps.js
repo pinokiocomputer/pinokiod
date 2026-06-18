@@ -11,8 +11,19 @@ const AppLogReportService = require('../lib/app_log_report')
 const DEFAULT_PEER_PORT = 42000
 const DEFAULT_PEER_TIMEOUT_MS = 2500
 const DEFAULT_PEER_UPLOAD_TIMEOUT_MS = 30000
+const REGISTRY_DRAFT_IMPORT_FIELD_LIMIT_BYTES = 1024 * 1024
+const REGISTRY_DRAFT_IMPORT_TIMEOUT_MS = 60000
 const IPV4_HOST_PATTERN = /^(?:\d{1,3}\.){3}\d{1,3}$/
 const PINOKIO_REF_PROTOCOL = 'pinokio:'
+
+const draftImportUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fieldSize: REGISTRY_DRAFT_IMPORT_FIELD_LIMIT_BYTES,
+    fields: 6,
+    files: 0
+  }
+})
 
 const isQualifiedHost = (value = '') => {
   return IPV4_HOST_PATTERN.test(String(value || '').trim())
@@ -56,6 +67,26 @@ const parseQualifiedAppId = (value = '') => {
     host,
     qualified: true
   }
+}
+
+const normalizeRegistryBase = (value = '') => {
+  const fallback = 'https://pinokio.co'
+  let url
+  try {
+    url = new URL(value || fallback)
+  } catch (_) {
+    throw new Error('Invalid registry URL')
+  }
+  const host = url.hostname.toLowerCase()
+  const allowedHttps = new Set(['pinokio.co', 'www.pinokio.co', 'beta.pinokio.co', 'api.pinokio.co'])
+  const allowedLocal = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
+  if (url.protocol === 'https:' && allowedHttps.has(host)) {
+    return url.origin
+  }
+  if (url.protocol === 'http:' && allowedLocal.has(host)) {
+    return url.origin
+  }
+  throw new Error('Registry URL is not allowed')
 }
 
 const isLoopbackHost = (value = '') => {
@@ -1123,6 +1154,86 @@ module.exports = function registerAppRoutes(app, { registry, preferences, appSea
       source: buildSource(currentPeerHost(), true),
       ...report
     })
+  }))
+
+  router.post('/apps/logs/:app_id/drafts', draftImportUpload.none(), asyncHandler(async (req, res) => {
+    const parsedAppId = parseQualifiedAppId(req.params.app_id)
+    const requestedAppId = parsedAppId.app_id || req.params.app_id
+    const remoteHost = parsedAppId.qualified ? parsedAppId.host : null
+    if (remoteHost && remoteHost !== currentPeerHost()) {
+      res.status(400).json({ error: 'Draft import is available for local workspaces.' })
+      return
+    }
+
+    const appId = registry.normalizeAppId(requestedAppId)
+    if (!appId) {
+      res.status(400).json({ error: 'Invalid app_id' })
+      return
+    }
+    const status = await registry.buildAppStatus(appId, {
+      source: req.$source || null
+    })
+    if (!status) {
+      res.status(404).json({ error: 'App not found', app_id: appId })
+      return
+    }
+
+    const body = req.body || {}
+    const token = typeof body.token === 'string' ? body.token.trim() : ''
+    let registryBase
+    try {
+      registryBase = normalizeRegistryBase(typeof body.registry === 'string' ? body.registry.trim() : '')
+    } catch (error) {
+      res.status(400).json({ error: error && error.message ? error.message : 'Invalid registry URL' })
+      return
+    }
+    const metadataB64 = typeof body.metadata_b64 === 'string' ? body.metadata_b64.trim() : ''
+    if (!token) {
+      res.status(400).json({ error: 'Registry authorization token is required.' })
+      return
+    }
+    if (!metadataB64) {
+      res.status(400).json({ error: 'Draft metadata is required.' })
+      return
+    }
+
+    let metadata
+    try {
+      metadata = JSON.parse(Buffer.from(metadataB64, 'base64').toString('utf8'))
+    } catch (_) {
+      res.status(400).json({ error: 'Draft metadata is invalid.' })
+      return
+    }
+    if (!metadata || typeof metadata !== 'object' || typeof metadata.body !== 'string' || !metadata.body.trim()) {
+      res.status(400).json({ error: 'Draft body is required.' })
+      return
+    }
+
+    const repoUrl = appLogReportService.sanitizeRemoteUrl(metadata.appRepoUrl || metadata.repoUrl || appLogReportService.readGitRemote(status.path))
+    const enrichedMetadata = {
+      ...metadata,
+      appRepoUrl: repoUrl || metadata.appRepoUrl || metadata.repoUrl || undefined,
+      repoUrl: repoUrl || metadata.repoUrl || undefined
+    }
+    const enrichedMetadataB64 = Buffer.from(JSON.stringify(enrichedMetadata), 'utf8').toString('base64')
+    if (Buffer.byteLength(enrichedMetadataB64) > REGISTRY_DRAFT_IMPORT_FIELD_LIMIT_BYTES) {
+      res.status(413).json({ error: 'Draft is too large for registry import.' })
+      return
+    }
+
+    const form = new FormData()
+    form.append('metadata_b64', enrichedMetadataB64)
+    const response = await axios.post(`${registryBase}/registry-bridge/draft-imports`, form, {
+      headers: {
+        ...form.getHeaders(),
+        Authorization: `Bearer ${token}`
+      },
+      timeout: REGISTRY_DRAFT_IMPORT_TIMEOUT_MS,
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+      validateStatus: () => true
+    })
+    res.status(response.status).json(response.data || {})
   }))
 
   app.use(router)

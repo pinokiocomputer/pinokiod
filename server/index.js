@@ -8320,6 +8320,7 @@ class Server {
       let context
       const downloadUrl = workspace ? `/pinokio/logs.zip?workspace=${encodeURIComponent(workspace)}` : '/pinokio/logs.zip'
       const reportUrl = workspace ? `/apps/logs/${encodeURIComponent(workspace)}/report` : ''
+      const draftUrl = workspace ? `/apps/logs/${encodeURIComponent(workspace)}/drafts` : ''
       try {
         context = await this.resolveLogsRoot({ workspace })
       } catch (error) {
@@ -8337,6 +8338,7 @@ class Server {
           logsError: error && error.message ? error.message : 'Workspace not found',
           logsDownloadUrl: downloadUrl,
           logsReportUrl: reportUrl,
+          logsDraftUrl: draftUrl,
           logsEmbedded: embedded,
           logsInitialView: initialView,
         })
@@ -8356,6 +8358,7 @@ class Server {
         logsError: null,
         logsDownloadUrl: downloadUrl,
         logsReportUrl: reportUrl,
+        logsDraftUrl: draftUrl,
         logsEmbedded: embedded,
         logsInitialView: initialView,
       })
