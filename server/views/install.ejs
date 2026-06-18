@@ -19,10 +19,11 @@ document.documentElement.dataset.installSpinnerVariant = "grid-shift"
 <style>
 body {
   --install-status-bg: var(--pinokio-chrome-accent-bg-light);
+  --install-spinner-fg: rgba(0,0,0,0.8);
   --install-status-fg: var(--pinokio-chrome-accent-fg-light);
   --install-status-fg-soft: rgba(225, 178, 97, 0.34);
   --install-status-border: rgba(15, 23, 42, 0.12);
-  --install-status-detail: rgba(235, 222, 197, 0.82);
+  --install-status-detail: rgba(0, 0, 0, 0.6);
   height: 100%;
   overflow: hidden;
   /*
@@ -33,6 +34,7 @@ body {
 }
 body.dark {
   --install-status-bg: var(--pinokio-chrome-accent-bg-dark);
+  --install-spinner-fg: white;
   --install-status-fg: var(--pinokio-chrome-accent-fg-dark);
   --install-status-fg-soft: rgba(194, 178, 138, 0.28);
   --install-status-border: rgba(255, 255, 255, 0.08);
@@ -114,9 +116,6 @@ body.dark {
   width: 100%;
   margin: 0;
   overflow: hidden;
-  border-top: 1px solid var(--install-status-border);
-  background: var(--install-status-bg);
-  color: var(--install-status-fg);
 }
 #status-screen code {
   font-family: "RobotoMono", monospace;
@@ -132,7 +131,6 @@ body.dark {
   flex: 1;
 }
 .install-status-title {
-  color: var(--install-status-fg);
   font-size: 15px;
   line-height: 1.2;
   font-weight: 700;
@@ -189,13 +187,12 @@ body.dark {
   border-radius: 2px;
 }
 .install-status-grid-anchor {
-  background: var(--install-status-fg);
   opacity: 0.16;
 }
 .install-status-grid-tile,
 .install-status-grid-chaser,
 .install-status-grid-pixel {
-  background: var(--install-status-fg);
+  background: var(--install-spinner-fg);
 }
 .install-status-grid-pixel {
   width: 4px;
