@@ -7,6 +7,7 @@ const { execFileText, normalizePid } = require("./process_tree")
 
 const DEFAULT_GPU_TTL_MS = 10000
 const DEFAULT_GPU_TIMEOUT_MS = 2500
+const DEFAULT_WINDOWS_GPU_COUNTER_TTL_MS = 30000
 const MIB = 1024 * 1024
 
 function unique(values) {
@@ -98,6 +99,19 @@ function addGpuProcess(processes, pid, bytes) {
   processes.set(normalizedPid, current)
 }
 
+function mergeGpuProcess(processes, pid, bytes) {
+  const normalizedPid = normalizePid(pid)
+  if (!normalizedPid || !Number.isFinite(bytes) || bytes < 0) {
+    return
+  }
+  const current = processes.get(normalizedPid) || {
+    pid: normalizedPid,
+    usedGpuMemoryBytes: 0
+  }
+  current.usedGpuMemoryBytes = Math.max(current.usedGpuMemoryBytes || 0, bytes)
+  processes.set(normalizedPid, current)
+}
+
 function parseNvidiaCsv(stdout) {
   const processes = new Map()
   for (const line of String(stdout || "").split(/\r?\n/)) {
@@ -106,6 +120,55 @@ function parseNvidiaCsv(stdout) {
     const parts = trimmed.split(",").map((part) => part.trim())
     const pid = normalizePid(parts[0])
     const bytes = parseMemoryToBytes(parts[1], "mib")
+    addGpuProcess(processes, pid, bytes)
+  }
+  return processes
+}
+
+function parseCsvLine(line) {
+  const values = []
+  let current = ""
+  let inQuotes = false
+  const text = String(line || "")
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i]
+    if (char === "\"") {
+      if (inQuotes && text[i + 1] === "\"") {
+        current += "\""
+        i += 1
+      } else {
+        inQuotes = !inQuotes
+      }
+    } else if (char === "," && !inQuotes) {
+      values.push(current)
+      current = ""
+    } else {
+      current += char
+    }
+  }
+  values.push(current)
+  return values
+}
+
+function parseWindowsGpuProcessMemoryCsv(stdout) {
+  const rows = []
+  for (const line of String(stdout || "").split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (!trimmed || !trimmed.startsWith("\"")) continue
+    const row = parseCsvLine(trimmed)
+    if (row.length > 1) rows.push(row)
+  }
+  if (rows.length < 2) {
+    return new Map()
+  }
+  const headers = rows[0]
+  const values = rows[rows.length - 1]
+  const processes = new Map()
+  for (let i = 1; i < headers.length && i < values.length; i += 1) {
+    const instanceName = String(headers[i] || "")
+    const match = /pid[_\s-]*(\d+)/i.exec(instanceName)
+    const pid = normalizePid(match && match[1])
+    const bytes = parseMemoryToBytes(values[i])
     addGpuProcess(processes, pid, bytes)
   }
   return processes
@@ -160,26 +223,29 @@ function parseAmdJson(stdout) {
 class GpuSampler {
   constructor(options = {}) {
     this.kernel = options.kernel || null
+    this.platform = options.platform || (this.kernel && this.kernel.platform) || os.platform()
     this.ttlMs = options.ttlMs || DEFAULT_GPU_TTL_MS
     this.timeoutMs = options.timeoutMs || DEFAULT_GPU_TIMEOUT_MS
+    this.windowsCounterTtlMs = options.windowsCounterTtlMs || DEFAULT_WINDOWS_GPU_COUNTER_TTL_MS
     this.current = null
     this.inFlight = null
+    this.windowsCounterCurrent = null
+    this.windowsCounterInFlight = null
     this.providerBackoff = new Map()
   }
 
   nvidiaCandidates() {
-    const platform = os.platform()
     const candidates = [
       process.env.NVIDIA_SMI,
       "nvidia-smi",
       ...getPinokioCondaCandidates(this.kernel, ["nvidia-smi"])
     ]
-    if (platform === "win32") {
+    if (this.platform === "win32") {
       candidates.push(
         "C:\\Program Files\\NVIDIA Corporation\\NVSMI\\nvidia-smi.exe",
         "C:\\Windows\\System32\\nvidia-smi.exe"
       )
-    } else if (platform === "linux") {
+    } else if (this.platform === "linux") {
       candidates.push(
         "/usr/bin/nvidia-smi",
         "/usr/local/bin/nvidia-smi",
@@ -190,13 +256,22 @@ class GpuSampler {
     return executableCandidates(candidates)
   }
 
+  windowsGpuCounterCandidates() {
+    return executableCandidates([
+      process.env.TYPEPERF,
+      "typeperf",
+      "C:\\Windows\\System32\\typeperf.exe",
+      "C:\\Windows\\Sysnative\\typeperf.exe"
+    ])
+  }
+
   amdCandidates() {
     const candidates = [
       process.env.AMD_SMI,
       "amd-smi",
       ...getPinokioCondaCandidates(this.kernel, ["amd-smi"])
     ]
-    if (os.platform() === "linux") {
+    if (this.platform === "linux") {
       candidates.push("/opt/rocm/bin/amd-smi", "/usr/bin/amd-smi", "/usr/local/bin/amd-smi")
     }
     return executableCandidates(candidates)
@@ -209,6 +284,63 @@ class GpuSampler {
 
   backoff(provider, ms = 60000) {
     this.providerBackoff.set(provider, Date.now() + ms)
+  }
+
+  async collectWindowsGpuProcessMemoryOnce() {
+    if (this.platform !== "win32" || this.isBackedOff("windows-gpu-process-memory")) {
+      return null
+    }
+    let lastError = null
+    for (const command of this.windowsGpuCounterCandidates()) {
+      try {
+        const { stdout } = await execFileText(command, [
+          "\\GPU Process Memory(*)\\Dedicated Usage",
+          "-sc",
+          "1"
+        ], { timeoutMs: Math.max(this.timeoutMs, 3000) })
+        return {
+          provider: "windows-gpu-process-memory",
+          processes: parseWindowsGpuProcessMemoryCsv(stdout),
+          error: null,
+          collectedAt: Date.now()
+        }
+      } catch (error) {
+        lastError = error
+        if (error && error.code === "ENOENT") {
+          continue
+        }
+        break
+      }
+    }
+    this.backoff("windows-gpu-process-memory", 60000)
+    return {
+      provider: "windows-gpu-process-memory",
+      processes: new Map(),
+      error: lastError && lastError.message ? lastError.message : "Windows GPU process memory counters unavailable",
+      collectedAt: Date.now()
+    }
+  }
+
+  async collectWindowsGpuProcessMemory() {
+    if (this.platform !== "win32" || this.isBackedOff("windows-gpu-process-memory")) {
+      return null
+    }
+    const now = Date.now()
+    if (this.windowsCounterCurrent && now - this.windowsCounterCurrent.collectedAt < this.windowsCounterTtlMs) {
+      return this.windowsCounterCurrent
+    }
+    if (this.windowsCounterInFlight) {
+      return this.windowsCounterInFlight
+    }
+    this.windowsCounterInFlight = this.collectWindowsGpuProcessMemoryOnce().then((result) => {
+      if (result && !result.error) {
+        this.windowsCounterCurrent = result
+      }
+      return result
+    }).finally(() => {
+      this.windowsCounterInFlight = null
+    })
+    return this.windowsCounterInFlight
   }
 
   async collectNvidia() {
@@ -245,7 +377,7 @@ class GpuSampler {
   }
 
   async collectAmd() {
-    if (os.platform() !== "linux" || this.isBackedOff("amd")) {
+    if (this.platform !== "linux" || this.isBackedOff("amd")) {
       return null
     }
     let lastError = null
@@ -275,8 +407,15 @@ class GpuSampler {
 
   async collect() {
     const results = []
-    const nvidia = await this.collectNvidia()
-    if (nvidia) results.push(nvidia)
+
+    if (this.platform === "win32") {
+      const windowsGpuProcessMemory = await this.collectWindowsGpuProcessMemory()
+      if (windowsGpuProcessMemory) results.push(windowsGpuProcessMemory)
+    } else {
+      const nvidia = await this.collectNvidia()
+      if (nvidia) results.push(nvidia)
+    }
+
     const amd = await this.collectAmd()
     if (amd) results.push(amd)
 
@@ -288,7 +427,7 @@ class GpuSampler {
       if (result.provider) providers.push(result.provider)
       if (result.error) errors.push({ provider: result.provider, error: result.error })
       for (const entry of result.processes.values()) {
-        addGpuProcess(processes, entry.pid, entry.usedGpuMemoryBytes)
+        mergeGpuProcess(processes, entry.pid, entry.usedGpuMemoryBytes)
       }
     }
     return {
@@ -344,6 +483,8 @@ function sumGpuMemory(snapshot, pids) {
 
 module.exports = {
   GpuSampler,
+  parseNvidiaCsv,
   parseMemoryToBytes,
+  parseWindowsGpuProcessMemoryCsv,
   sumGpuMemory
 }
