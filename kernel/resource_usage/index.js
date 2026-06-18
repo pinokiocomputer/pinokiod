@@ -55,8 +55,7 @@ class ResourceUsageService {
     })
     this.gpuSampler = new GpuSampler({
       kernel: this.kernel,
-      ttlMs: 10000,
-      timeoutMs: 2500
+      ttlMs: 5000
     })
     this.cpuAverages = new Map()
     this.workspaceCache = new Map()
@@ -74,6 +73,12 @@ class ResourceUsageService {
     this.workspaceCache.clear()
     this.lastGlobalCollectAt = 0
     return preferences
+  }
+
+  stop() {
+    if (this.gpuSampler && typeof this.gpuSampler.stop === "function") {
+      this.gpuSampler.stop()
+    }
   }
 
   getShellRootGroups() {
@@ -243,8 +248,8 @@ class ResourceUsageService {
       ? await this.macFootprintSampler.getFootprintByPid(this.selectFootprintPids(allPids))
       : null
 
-    const gpuSnapshot = preferences.show_vram && allPids.size > 0
-      ? await this.gpuSampler.getSnapshot()
+    const gpuSnapshot = preferences.show_vram && this.platform !== "darwin" && allPids.size > 0
+      ? await this.gpuSampler.getSnapshot(allPids)
       : null
 
     const nextCache = new Map()

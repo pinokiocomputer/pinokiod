@@ -396,6 +396,9 @@ class Server {
     }
   }
   stop() {
+    if (this.resourceUsage && typeof this.resourceUsage.stop === 'function') {
+      this.resourceUsage.stop()
+    }
     this.server.close()
   }
   killProcessTree(pid, label) {
