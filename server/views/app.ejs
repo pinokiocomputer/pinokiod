@@ -11541,6 +11541,13 @@ const rerenderMenuSection = (container, html) => {
       if (!changesMenu) {
         return
       }
+      const keepChangesMenuOpen = () => {
+        if (!changesMenu || !changesBtn) {
+          return
+        }
+        changesMenu.classList.remove('hidden')
+        setDropdownState(changesBtn, true)
+      }
       const items = changesMenu.querySelectorAll('.git-changes-item')
       items.forEach((item) => {
         item.addEventListener('click', async (event) => {
@@ -11558,11 +11565,13 @@ const rerenderMenuSection = (container, html) => {
               node.classList.remove('git-changes-item--active')
             }
           })
-          closeStatusDropdowns()
+          keepChangesMenuOpen()
           try {
             await showGitDiffModal({ repoParam: repoKey, repoName })
           } catch (err) {
             console.error('Failed to open diff modal:', err)
+          } finally {
+            keepChangesMenuOpen()
           }
         })
       })
