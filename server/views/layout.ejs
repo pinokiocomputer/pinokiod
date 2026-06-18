@@ -10,6 +10,8 @@
       --layout-background: #ffffff;
       --layout-gutter-bg: rgba(0, 0, 0, 0.04);
       --layout-gutter-bg-hover: cornflowerblue;
+      --layout-dragger-bg: var(--layout-background);
+      --layout-dragger-border: rgba(15, 23, 42, 0.06);
       --layout-shadow: rgba(0, 0, 0, 0.06);
       --layout-viewport-height: 100vh;
       --layout-dragger-height: 0px;
@@ -32,10 +34,13 @@
       display: none;
       height: 32px;
       width: 100%;
-      background: var(--layout-gutter-bg);
+      box-sizing: border-box;
+      background: var(--layout-dragger-bg);
+      border-bottom: 1px solid var(--layout-dragger-border);
     }
     body.dark > #dragger {
-      background: var(--layout-gutter-bg); 
+      background: var(--layout-dragger-bg);
+      border-bottom-color: var(--layout-dragger-border);
     }
 
     body[data-agent="electron"] {
@@ -49,6 +54,7 @@
     body.dark {
       --layout-background: #1b1c1d;
       --layout-gutter-bg: rgba(255, 255, 255, 0.04);
+      --layout-dragger-border: rgba(255, 255, 255, 0.055);
       /*
       --layout-background: #101010;
       --layout-gutter-bg: #101010;

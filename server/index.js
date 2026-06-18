@@ -5054,7 +5054,7 @@ class Server {
 
     if (this.theme === "dark") {
       this.colors = {
-        color: "#252527",
+        color: "#1b1c1d",
 //        symbolColor: "white"
         symbolColor: "#F4F4F4"
 //        color: "rgb(31, 29, 39)",
@@ -5063,7 +5063,7 @@ class Server {
     } else {
       this.colors = {
         //color: "white",
-        color: "#F4F4F4",
+        color: "#ffffff",
 //        color: "#F5F4FA",
         symbolColor: "#000000",
       }

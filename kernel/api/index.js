@@ -673,7 +673,7 @@ class Api {
   async linkGit() {
     // iterate through all userdir folders and check for gitconfig
     // if they exist, add to this.gitPath
-    this.gitPath = {}
+    const gitPath = {}
     let files
     try {
       files = await fs.promises.readdir(this.userdir, { withFileTypes: true })
@@ -697,13 +697,14 @@ class Api {
             path: 'remote.origin.url'
           })
           if (gitRemote) {
-            this.gitPath[gitRemote] = repositoryPath
+            gitPath[gitRemote] = repositoryPath
           }
         } catch (e) {
           //console.log("E", e)
         }
       }
     }
+    this.gitPath = gitPath
   }
   denormalize(gitRemote) {
     let denormalized

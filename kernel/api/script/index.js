@@ -179,6 +179,7 @@ class Script {
         - http path
     */
     // if already running, print that it's already running
+    await kernel.api.init()
     let id = kernel.api.filePath(req.params.uri, req.cwd)
     if (kernel.api.running[id]) {
       let msg = `${req.params.uri} already running. Continuing...\r\n`
