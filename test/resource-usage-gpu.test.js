@@ -7,6 +7,7 @@ const test = require("node:test")
 const {
   GpuSampler,
   NvmlGpuMemoryClient,
+  WindowsPdhGpuMemoryClient,
   collectLinuxDrmFdinfoProcesses,
   decodeWindowsMultiSz,
   extractPidFromWindowsGpuInstance,
@@ -34,6 +35,28 @@ test("decodeWindowsMultiSz decodes double-null UTF-16 string lists", () => {
   const buffer = Buffer.from(text, "utf16le")
 
   assert.deepEqual(decodeWindowsMultiSz(buffer, text.length), ["one", "two"])
+})
+
+test("Windows PDH binds formatted counter value with exported symbol name", () => {
+  const signatures = []
+  const fakeKoffi = {
+    struct: (name, fields) => ({ name, fields }),
+    load: (library) => {
+      assert.equal(library, "pdh.dll")
+      return {
+        func: (signature) => {
+          signatures.push(signature)
+          return () => 0
+        }
+      }
+    }
+  }
+
+  const client = new WindowsPdhGpuMemoryClient({ koffi: fakeKoffi })
+  client.init()
+
+  assert(signatures.some((signature) => signature.includes("PdhGetFormattedCounterValue(")))
+  assert(!signatures.some((signature) => signature.includes("PdhGetFormattedCounterValueW(")))
 })
 
 test("parseLinuxDrmFdinfo counts dedicated DRM memory regions only", () => {

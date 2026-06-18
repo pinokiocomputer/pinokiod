@@ -472,7 +472,7 @@ class WindowsPdhGpuMemoryClient {
       collectQueryData: this.library.func("uint32_t __stdcall PdhCollectQueryData(void *hQuery)"),
       getCounterInfo: this.library.func("uint32_t __stdcall PdhGetCounterInfoW(void *hCounter, int bRetrieveExplainText, _Inout_ uint32_t *pdwBufferSize, _Out_ void *lpBuffer)"),
       expandWildCardPath: this.library.func("uint32_t __stdcall PdhExpandWildCardPathW(const char16_t *szDataSource, const char16_t *szWildCardPath, _Out_ char16_t *mszExpandedPathList, _Inout_ uint32_t *pcchPathListLength, uint32_t dwFlags)"),
-      getFormattedCounterValue: this.library.func("uint32_t __stdcall PdhGetFormattedCounterValueW(void *hCounter, uint32_t dwFormat, _Out_ uint32_t *lpdwType, _Out_ PDH_FMT_COUNTERVALUE *pValue)"),
+      getFormattedCounterValue: this.library.func("uint32_t __stdcall PdhGetFormattedCounterValue(void *hCounter, uint32_t dwFormat, _Out_ uint32_t *lpdwType, _Out_ PDH_FMT_COUNTERVALUE *pValue)"),
       closeQuery: this.library.func("uint32_t __stdcall PdhCloseQuery(void *hQuery)")
     }
   }
