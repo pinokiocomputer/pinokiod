@@ -248,6 +248,66 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   <% } %>
   const n = new N()
+  const postMessageToAncestors = (payload) => {
+    if (!payload || typeof payload !== "object") {
+      return false
+    }
+    if (typeof window !== "undefined" && typeof window.PinokioBroadcastMessage === "function") {
+      try {
+        if (window.PinokioBroadcastMessage(payload, "*", window)) {
+          return true
+        }
+      } catch (_) {}
+    }
+    const targets = new Set()
+    try {
+      if (window.parent && window.parent !== window && typeof window.parent.postMessage === "function") {
+        targets.add(window.parent)
+      }
+    } catch (_) {}
+    try {
+      if (window.top && window.top !== window && typeof window.top.postMessage === "function") {
+        targets.add(window.top)
+      }
+    } catch (_) {}
+    let dispatched = false
+    targets.forEach((target) => {
+      try {
+        target.postMessage(payload, "*")
+        dispatched = true
+      } catch (_) {}
+    })
+    return dispatched
+  }
+  const openAppLogsForError = (packet) => {
+    return postMessageToAncestors({
+      e: "pinokio:logs-new",
+      type: "pinokio:logs-new",
+      reason: "error",
+      frame: window.name || null,
+      source: "editor"
+    })
+  }
+  const showErrorScreen = (packet) => {
+    const errorScreen = document.querySelector("#error-screen")
+    const errorOutput = errorScreen ? errorScreen.querySelector("pre") : null
+    if (!errorScreen || !errorOutput) {
+      return
+    }
+    errorScreen.classList.remove("hidden")
+    errorOutput.textContent = packet && packet.data ? packet.data : ""
+    let instance = new Mark(errorOutput, {
+      separateWordSearch: false,
+      accuracy: "exactly"
+    })
+    if (packet && packet.event) {
+      instance.mark(packet.event)
+      let element = errorScreen.querySelector("mark")
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" })
+      }
+    }
+  }
   const activeProcessWait = <% if (typeof active_process_wait !== 'undefined' && active_process_wait) { %><%- JSON.stringify(active_process_wait) %><% } else { %>null<% } %>
   if (activeProcessWait && (activeProcessWait.title || activeProcessWait.description || activeProcessWait.message) && window.PinokioWaitFooterStatus) {
     window.PinokioWaitFooterStatus.show(activeProcessWait)
@@ -624,23 +684,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .starting").classList.add("hidden")
             document.querySelector(".run .stop").classList.add("hidden")
 
-            document.querySelector("#error-screen").classList.remove("hidden")
-            document.querySelector("#error-screen pre").textContent = packet.data
-            let instance = new Mark(document.querySelector("#error-screen pre"), {
-              separateWordSearch: false,
-              accuracy: "exactly"
-            })
-            /*
-            document.querySelector("#error-screen").addEventListener("click", (e) => {
-              document.querySelector("#error-screen").classList.add("hidden")
-            })
-            */
-            if (packet.event) {
-              instance.mark(packet.event)
-              let element = document.querySelector("#error-screen mark")
-              if (element) {
-                element.scrollIntoView({ behavior: "smooth", block: "center" })
-              }
+            if (!openAppLogsForError(packet)) {
+              showErrorScreen(packet)
             }
 
           } else if (packet.type === "event") {

@@ -13,6 +13,122 @@
     }
   }
 
+  const humanBytes = (value) => {
+    const units = ['B', 'KB', 'MB', 'GB']
+    let size = Number(value) || 0
+    let index = 0
+    while (size >= 1024 && index < units.length - 1) {
+      size /= 1024
+      index += 1
+    }
+    return `${size.toFixed(index === 0 ? 0 : 1)} ${units[index]}`
+  }
+
+  const withQueryParam = (href, key, value) => {
+    try {
+      const url = new URL(href, window.location.origin)
+      url.searchParams.set(key, value)
+      return `${url.pathname}${url.search}${url.hash}`
+    } catch (_) {
+      return href
+    }
+  }
+
+  class PrivacyFilterClient {
+    constructor() {
+      this.worker = null
+      this.nextId = 1
+      this.pending = new Map()
+      this.runtimePromise = null
+    }
+    getWorker() {
+      if (this.worker) {
+        return this.worker
+      }
+      try {
+        this.worker = new Worker('/privacy_filter_worker.js', { type: 'module' })
+      } catch (_) {
+        this.worker = new Worker('/privacy_filter_worker.js')
+      }
+      this.worker.addEventListener('message', (event) => this.handleMessage(event.data || {}))
+      this.worker.addEventListener('error', (event) => {
+        const error = new Error(event.message || 'Privacy filter worker failed.')
+        for (const pending of this.pending.values()) {
+          pending.reject(error)
+        }
+        this.pending.clear()
+        this.worker = null
+      })
+      return this.worker
+    }
+    handleMessage(message) {
+      if (message.type === 'download') {
+        for (const pending of this.pending.values()) {
+          pending.onProgress(message)
+        }
+        return
+      }
+      const pending = this.pending.get(message.id)
+      if (!pending) {
+        return
+      }
+      if (message.type === 'chunk') {
+        pending.onProgress(message)
+      } else if (message.type === 'fallback') {
+        pending.onProgress(message)
+      } else if (message.type === 'result') {
+        this.pending.delete(message.id)
+        pending.resolve(message)
+      } else if (message.type === 'error') {
+        this.pending.delete(message.id)
+        pending.reject(new Error(message.message || 'Privacy filter failed.'))
+      }
+    }
+    detectRuntime() {
+      if (this.runtimePromise) {
+        return this.runtimePromise
+      }
+      this.runtimePromise = (async () => {
+        try {
+          if (navigator.gpu && typeof navigator.gpu.requestAdapter === 'function') {
+            const adapter = await navigator.gpu.requestAdapter()
+            if (adapter) {
+              return {
+                device: 'webgpu',
+                dtype: adapter.features && adapter.features.has('shader-f16') ? 'q4f16' : 'q4'
+              }
+            }
+          }
+        } catch (_) {}
+        return { device: 'wasm', dtype: 'q8' }
+      })()
+      return this.runtimePromise
+    }
+    async filter(text, onProgress) {
+      const runtime = await this.detectRuntime()
+      const id = this.nextId
+      this.nextId += 1
+      const worker = this.getWorker()
+      if (typeof onProgress === 'function') {
+        onProgress({ type: 'runtime', ...runtime })
+      }
+      return new Promise((resolve, reject) => {
+        this.pending.set(id, {
+          resolve,
+          reject,
+          onProgress: typeof onProgress === 'function' ? onProgress : () => {}
+        })
+        worker.postMessage({
+          type: 'filter',
+          id,
+          text,
+          device: runtime.device,
+          dtype: runtime.dtype
+        })
+      })
+    }
+  }
+
   class LogsZipControls {
     constructor(options) {
       this.button = options.button
@@ -64,6 +180,603 @@
         this.setStatus(error.message || 'Failed to generate archive.', true)
       } finally {
         this.setBusy(false)
+      }
+    }
+  }
+
+  class LogsLatestReport {
+    constructor(options) {
+      this.reportUrl = options.reportUrl || ''
+      this.rawReportUrl = this.reportUrl ? withQueryParam(this.reportUrl, 'redaction', 'none') : ''
+      this.statusEl = options.statusEl
+      this.outputEl = options.outputEl
+      this.copyButton = options.copyButton
+      this.runFilterButton = options.runFilterButton
+      this.refreshButton = options.refreshButton
+      this.reportFilesEl = options.reportFilesEl
+      this.reportGeneratedEl = options.reportGeneratedEl
+      this.reportSectionsEl = options.reportSectionsEl
+      this.reviewListEl = options.reviewListEl
+      this.reviewFiltersEl = options.reviewFiltersEl
+      this.reviewCountEl = options.reviewCountEl
+      this.privacyFilter = options.privacyFilter || new PrivacyFilterClient()
+      this.report = null
+      this.rawMarkdown = ''
+      this.currentMarkdown = ''
+      this.redactionItems = []
+      this.renderedRedactionItems = []
+      this.filterChunks = 0
+      this.redactionHasRun = false
+      this.filtering = false
+      this.activeRedactionFilter = 'all'
+      this.selectedRedactionId = null
+      this.filterToken = 0
+      this.loading = false
+
+      if (this.copyButton) {
+        this.copyButton.addEventListener('click', () => this.copy())
+      }
+      if (this.runFilterButton) {
+        this.runFilterButton.addEventListener('click', () => this.filterReport())
+      }
+      if (this.refreshButton) {
+        this.refreshButton.addEventListener('click', () => this.load(true))
+      }
+    }
+    setStatus(message, isError) {
+      if (!this.statusEl) return
+      this.statusEl.textContent = message || ''
+      this.statusEl.classList.toggle('is-error', Boolean(isError))
+    }
+    setBusy(isBusy) {
+      if (!this.refreshButton) return
+      this.refreshButton.disabled = Boolean(isBusy)
+      this.refreshButton.classList.toggle('is-busy', Boolean(isBusy))
+    }
+    formatGenerated(value) {
+      if (!value) return '--'
+      const date = new Date(value)
+      if (Number.isNaN(date.getTime())) return String(value)
+      return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    }
+    clearReportFiles() {
+      if (!this.reportFilesEl) return
+      while (this.reportFilesEl.firstChild) {
+        this.reportFilesEl.removeChild(this.reportFilesEl.firstChild)
+      }
+    }
+    renderReportFiles(sections) {
+      this.clearReportFiles()
+      if (!this.reportFilesEl) return
+      for (const section of sections || []) {
+        const item = document.createElement('div')
+        item.className = 'logs-review-file'
+        item.textContent = section.file || section.script || section.source || 'log'
+        item.title = item.textContent
+        this.reportFilesEl.appendChild(item)
+      }
+      if (!sections || !sections.length) {
+        const empty = document.createElement('div')
+        empty.className = 'logs-review-empty'
+        empty.textContent = 'No latest files found.'
+        this.reportFilesEl.appendChild(empty)
+      }
+    }
+    renderSummary(payload) {
+      const sections = Array.isArray(payload && payload.sections) ? payload.sections : []
+      if (this.reportSectionsEl) {
+        this.reportSectionsEl.textContent = String(sections.length)
+      }
+      if (this.reportGeneratedEl) {
+        this.reportGeneratedEl.textContent = this.formatGenerated(payload && payload.generated_at)
+      }
+      this.renderReportFiles(sections)
+      return sections
+    }
+    setCopyEnabled(enabled) {
+      if (this.copyButton) {
+        this.copyButton.disabled = !enabled
+      }
+    }
+    setRunFilterEnabled(enabled) {
+      if (this.runFilterButton) {
+        this.runFilterButton.disabled = !enabled
+        if (!this.filtering) {
+          this.runFilterButton.classList.remove('is-busy')
+          this.runFilterButton.innerHTML = '<i class="fa-solid fa-shield-halved"></i><span>Run privacy filter</span>'
+        }
+      }
+    }
+    setFiltering(isFiltering) {
+      this.filtering = Boolean(isFiltering)
+      if (!this.runFilterButton) return
+      this.runFilterButton.disabled = this.filtering || !this.rawMarkdown
+      this.runFilterButton.classList.toggle('is-busy', this.filtering)
+      if (this.filtering) {
+        this.runFilterButton.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Filtering…</span>'
+      } else {
+        this.runFilterButton.innerHTML = '<i class="fa-solid fa-shield-halved"></i><span>Run privacy filter</span>'
+      }
+    }
+    setOutputText(text) {
+      if (this.outputEl) {
+        this.outputEl.textContent = text || ''
+      }
+    }
+    normalizeRedactionItems(items, text) {
+      const normalized = (Array.isArray(items) ? items : [])
+        .map((item, index) => {
+          const sourceStart = Number(item.sourceStart != null ? item.sourceStart : item.maskedStart)
+          const sourceEnd = Number(item.sourceEnd != null ? item.sourceEnd : item.maskedEnd)
+          if (!Number.isFinite(sourceStart) || !Number.isFinite(sourceEnd) || sourceEnd <= sourceStart || sourceStart < 0 || sourceEnd > text.length) {
+            return null
+          }
+          const id = item.id != null ? String(item.id) : String(index)
+          const label = String(item.label || 'private')
+          return {
+            id,
+            label,
+            sourceStart,
+            sourceEnd,
+            replacement: item.replacement || `[${label}]`,
+            enabled: item.enabled !== false,
+            line: this.lineForOffset(text, sourceStart),
+            context: this.lineContext(text, sourceStart, sourceEnd),
+            source: this.sourceForOffset(text, sourceStart)
+          }
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.sourceStart - b.sourceStart || a.sourceEnd - b.sourceEnd)
+      const nonOverlapping = []
+      let cursor = 0
+      for (const item of normalized) {
+        if (item.sourceStart < cursor) {
+          continue
+        }
+        nonOverlapping.push(item)
+        cursor = item.sourceEnd
+      }
+      return nonOverlapping
+    }
+    lineForOffset(text, offset) {
+      return String(text || '').slice(0, Math.max(0, offset)).split('\n').length
+    }
+    lineContext(text, start, end) {
+      const value = String(text || '')
+      const lineStart = value.lastIndexOf('\n', Math.max(0, start - 1)) + 1
+      const nextLine = value.indexOf('\n', Math.max(0, end))
+      const lineEnd = nextLine >= 0 ? nextLine : value.length
+      return value.slice(lineStart, lineEnd).trim()
+    }
+    sourceForOffset(text, offset) {
+      const before = String(text || '').slice(0, Math.max(0, offset))
+      let source = 'Issue report'
+      const pattern = /^###\s+(.+)$/gm
+      let match = pattern.exec(before)
+      while (match) {
+        source = match[1]
+        match = pattern.exec(before)
+      }
+      return source
+    }
+    buildCurrentReport() {
+      const text = this.rawMarkdown || ''
+      if (!text || !this.redactionItems.length) {
+        this.currentMarkdown = text
+        this.renderedRedactionItems = []
+        return
+      }
+      let cursor = 0
+      let output = ''
+      const renderedItems = []
+      for (const item of this.redactionItems) {
+        if (item.sourceStart < cursor) {
+          continue
+        }
+        if (item.sourceStart > cursor) {
+          output += text.slice(cursor, item.sourceStart)
+        }
+        const value = item.enabled ? item.replacement : text.slice(item.sourceStart, item.sourceEnd)
+        const maskedStart = output.length
+        output += value
+        const maskedEnd = output.length
+        renderedItems.push({
+          ...item,
+          maskedStart,
+          maskedEnd,
+          line: this.lineForOffset(output, maskedStart),
+          context: this.lineContext(output, maskedStart, maskedEnd),
+          source: this.sourceForOffset(output, maskedStart)
+        })
+        cursor = item.sourceEnd
+      }
+      if (cursor < text.length) {
+        output += text.slice(cursor)
+      }
+      this.currentMarkdown = output
+      this.renderedRedactionItems = renderedItems
+    }
+    enabledRedactionCount() {
+      return this.redactionItems.reduce((total, item) => total + (item.enabled ? 1 : 0), 0)
+    }
+    updateRedactionCount() {
+      if (!this.reviewCountEl) return
+      if (!this.redactionHasRun) {
+        this.reviewCountEl.textContent = 'Not run'
+        return
+      }
+      const enabled = this.enabledRedactionCount()
+      const total = this.redactionItems.length
+      this.reviewCountEl.textContent = total ? `${enabled} masked` : '0 masked'
+    }
+    renderCurrentReport() {
+      this.buildCurrentReport()
+      const text = this.currentMarkdown || 'No latest app logs were found.'
+      this.renderHighlightedOutput(text, this.renderedRedactionItems)
+      this.renderRedactionReview()
+      this.updateRedactionCount()
+      this.setCopyEnabled(Boolean(this.currentMarkdown))
+      this.selectRedaction(this.selectedRedactionId, false)
+    }
+    renderHighlightedOutput(text, items = []) {
+      if (!this.outputEl) {
+        return
+      }
+      this.outputEl.textContent = ''
+      if (!text) {
+        return
+      }
+      if (!items.length) {
+        this.outputEl.textContent = text
+        return
+      }
+      let cursor = 0
+      for (const item of items) {
+        if (item.maskedStart < cursor) {
+          continue
+        }
+        if (item.maskedStart > cursor) {
+          this.outputEl.appendChild(document.createTextNode(text.slice(cursor, item.maskedStart)))
+        }
+        const token = document.createElement('span')
+        token.className = item.enabled ? 'logs-mask-token' : 'logs-unmasked-token'
+        token.dataset.redactionId = item.id
+        token.textContent = text.slice(item.maskedStart, item.maskedEnd)
+        token.title = `${item.enabled ? 'Masked' : 'Visible'} ${item.label} · line ${item.line}`
+        this.outputEl.appendChild(token)
+        cursor = item.maskedEnd
+      }
+      if (cursor < text.length) {
+        this.outputEl.appendChild(document.createTextNode(text.slice(cursor)))
+      }
+    }
+    renderRedactionReview() {
+      const items = this.redactionItems || []
+      const renderedById = new Map((this.renderedRedactionItems || []).map((item) => [item.id, item]))
+      const labels = new Map()
+      for (const item of items) {
+        labels.set(item.label, (labels.get(item.label) || 0) + 1)
+      }
+      this.updateRedactionCount()
+      if (this.reviewFiltersEl) {
+        this.reviewFiltersEl.textContent = ''
+        const filters = [['all', `All ${items.length}`], ...Array.from(labels.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([label, count]) => [label, `${label} ${count}`])]
+        for (const [value, label] of filters) {
+          const button = document.createElement('button')
+          button.type = 'button'
+          button.className = 'logs-redaction-filter'
+          button.classList.toggle('is-active', this.activeRedactionFilter === value)
+          button.dataset.redactionFilter = value
+          button.textContent = label
+          button.addEventListener('click', () => {
+            this.activeRedactionFilter = value
+            this.renderRedactionReview()
+          })
+          this.reviewFiltersEl.appendChild(button)
+        }
+      }
+      if (!this.reviewListEl) {
+        return
+      }
+      this.reviewListEl.textContent = ''
+      if (!items.length) {
+        const empty = document.createElement('div')
+        empty.className = 'logs-redaction-empty'
+        empty.textContent = this.redactionHasRun ? 'No redactions detected.' : 'Run the privacy filter to review detected items.'
+        this.reviewListEl.appendChild(empty)
+        return
+      }
+      const visibleItems = this.activeRedactionFilter === 'all'
+        ? items
+        : items.filter((item) => item.label === this.activeRedactionFilter)
+      if (!visibleItems.length) {
+        const empty = document.createElement('div')
+        empty.className = 'logs-redaction-empty'
+        empty.textContent = 'No redactions match this filter.'
+        this.reviewListEl.appendChild(empty)
+        return
+      }
+      for (const item of visibleItems) {
+        const rendered = renderedById.get(item.id) || item
+        const row = document.createElement('div')
+        row.className = 'logs-redaction-row'
+        row.dataset.redactionId = item.id
+        row.classList.toggle('is-selected', this.selectedRedactionId === item.id)
+        row.classList.toggle('is-disabled', !item.enabled)
+        row.tabIndex = 0
+        row.setAttribute('role', 'button')
+        row.setAttribute('aria-current', this.selectedRedactionId === item.id ? 'true' : 'false')
+        row.addEventListener('click', () => this.selectRedaction(item.id, true))
+        row.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            this.selectRedaction(item.id, true)
+          }
+        })
+
+        const top = document.createElement('div')
+        top.className = 'logs-redaction-row-top'
+        const meta = document.createElement('div')
+        meta.className = 'logs-redaction-row-meta'
+
+        const label = document.createElement('span')
+        label.className = 'logs-redaction-label'
+        label.textContent = item.label
+        meta.appendChild(label)
+
+        const source = document.createElement('span')
+        source.className = 'logs-redaction-source'
+        source.textContent = `${item.source} · line ${item.line}`
+        source.title = source.textContent
+        meta.appendChild(source)
+
+        const toggle = document.createElement('label')
+        toggle.className = 'logs-redaction-toggle'
+        toggle.title = item.enabled ? 'Keep this item masked' : 'Show this item in the copied report'
+        toggle.addEventListener('click', (event) => event.stopPropagation())
+        const checkbox = document.createElement('input')
+        checkbox.type = 'checkbox'
+        checkbox.checked = item.enabled
+        checkbox.setAttribute('aria-label', `${item.enabled ? 'Mask' : 'Show'} ${item.label}`)
+        checkbox.addEventListener('click', (event) => event.stopPropagation())
+        checkbox.addEventListener('change', (event) => {
+          event.stopPropagation()
+          item.enabled = checkbox.checked
+          this.selectedRedactionId = item.id
+          this.renderCurrentReport()
+        })
+        const toggleTrack = document.createElement('span')
+        toggleTrack.className = 'logs-redaction-toggle-track'
+        toggle.appendChild(checkbox)
+        toggle.appendChild(toggleTrack)
+
+        const context = document.createElement('div')
+        context.className = 'logs-redaction-context'
+        context.textContent = rendered.context || ''
+        context.title = rendered.context || ''
+
+        top.appendChild(meta)
+        top.appendChild(toggle)
+        row.appendChild(top)
+        row.appendChild(context)
+        this.reviewListEl.appendChild(row)
+      }
+    }
+    selectRedaction(id, scrollPreview) {
+      this.selectedRedactionId = id == null ? null : String(id)
+      if (this.outputEl) {
+        this.outputEl.querySelectorAll('.logs-mask-token, .logs-unmasked-token').forEach((node) => {
+          node.classList.toggle('is-selected', node.dataset.redactionId === this.selectedRedactionId)
+        })
+      }
+      if (this.reviewListEl) {
+        this.reviewListEl.querySelectorAll('.logs-redaction-row').forEach((node) => {
+          const selected = node.dataset.redactionId === this.selectedRedactionId
+          node.classList.toggle('is-selected', selected)
+          node.setAttribute('aria-current', selected ? 'true' : 'false')
+        })
+      }
+      if (!scrollPreview || !this.outputEl || !this.selectedRedactionId) {
+        return
+      }
+      const token = Array.from(this.outputEl.querySelectorAll('.logs-mask-token, .logs-unmasked-token')).find((node) => {
+        return node.dataset.redactionId === this.selectedRedactionId
+      })
+      if (!token) {
+        return
+      }
+      const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      const outputRect = this.outputEl.getBoundingClientRect()
+      const tokenRect = token.getBoundingClientRect()
+      const nextTop = this.outputEl.scrollTop + tokenRect.top - outputRect.top - Math.round(outputRect.height * 0.35)
+      this.outputEl.scrollTo({
+        top: Math.max(0, nextTop),
+        behavior: reducedMotion ? 'auto' : 'smooth'
+      })
+    }
+    resetRedactionReview(message = 'Filtering has not run yet.') {
+      this.redactionItems = []
+      this.renderedRedactionItems = []
+      this.selectedRedactionId = null
+      this.activeRedactionFilter = 'all'
+      this.updateRedactionCount()
+      if (this.reviewFiltersEl) {
+        this.reviewFiltersEl.textContent = ''
+      }
+      if (this.reviewListEl) {
+        this.reviewListEl.textContent = ''
+        const empty = document.createElement('div')
+        empty.className = 'logs-redaction-empty'
+        empty.textContent = message
+        this.reviewListEl.appendChild(empty)
+      }
+    }
+    render(payload) {
+      const sections = this.renderSummary(payload)
+      this.rawMarkdown = payload && payload.markdown ? String(payload.markdown) : ''
+      this.currentMarkdown = this.rawMarkdown
+      this.redactionItems = []
+      this.renderedRedactionItems = []
+      this.filterChunks = 0
+      this.redactionHasRun = false
+      this.filtering = false
+      this.selectedRedactionId = null
+      this.activeRedactionFilter = 'all'
+      this.setCopyEnabled(Boolean(this.rawMarkdown))
+      this.setRunFilterEnabled(Boolean(this.rawMarkdown))
+      this.setOutputText(this.rawMarkdown || 'No latest app logs were found.')
+      this.resetRedactionReview(this.rawMarkdown ? 'Run the privacy filter to review detected items.' : 'No report text to review.')
+      this.updateRedactionCount()
+      if (!this.rawMarkdown) {
+        this.setStatus(`Latest snapshot found ${sections.length} log section${sections.length === 1 ? '' : 's'}.`)
+        return
+      }
+      this.setStatus(`Latest snapshot built from ${sections.length} log section${sections.length === 1 ? '' : 's'}. Run the privacy filter only if you want local redaction review.`)
+    }
+    renderError(message) {
+      if (this.reportSectionsEl) this.reportSectionsEl.textContent = '--'
+      if (this.reportGeneratedEl) this.reportGeneratedEl.textContent = '--'
+      this.clearReportFiles()
+      this.rawMarkdown = ''
+      this.currentMarkdown = ''
+      this.redactionHasRun = false
+      this.filtering = false
+      this.setOutputText(message || 'Unable to build latest log snapshot.')
+      this.resetRedactionReview('No redaction review is available.')
+      this.setCopyEnabled(false)
+      this.setRunFilterEnabled(false)
+      this.setStatus(message || 'Unable to build latest log snapshot.', true)
+    }
+    renderFilterProgress(progress) {
+      if (!progress || typeof progress !== 'object') {
+        return
+      }
+      if (progress.type === 'runtime') {
+        this.setStatus(`Loading OpenAI Privacy Filter locally (${progress.device}/${progress.dtype}). First run downloads and caches the model.`)
+      } else if (progress.type === 'fallback') {
+        this.setStatus(progress.message || `Retrying privacy filtering locally with ${progress.device}/${progress.dtype}.`)
+      } else if (progress.type === 'download') {
+        const fileLabel = progress.file ? ` ${progress.file}` : ''
+        if (progress.total) {
+          this.setStatus(`Downloading privacy filter${fileLabel}: ${humanBytes(progress.loaded)} / ${humanBytes(progress.total)}. Cached for future reports.`)
+        } else {
+          this.setStatus(`Downloading privacy filter${fileLabel}. Cached for future reports.`)
+        }
+      } else if (progress.type === 'chunk') {
+        const total = Number(progress.total) || 0
+        const done = Number(progress.done) || 0
+        this.setStatus(total > 0 ? `Filtering locally… ${Math.min(done + 1, total)} / ${total} chunks.` : 'Filtering locally…')
+      }
+    }
+    renderFilterError(error) {
+      this.redactionItems = []
+      this.renderedRedactionItems = []
+      this.redactionHasRun = false
+      this.currentMarkdown = this.rawMarkdown
+      this.selectedRedactionId = null
+      this.setCopyEnabled(Boolean(this.currentMarkdown))
+      this.setRunFilterEnabled(Boolean(this.rawMarkdown))
+      this.setOutputText(this.rawMarkdown || 'Privacy filter failed. No report text is available.')
+      this.resetRedactionReview('Privacy filtering failed before any redactions could be reviewed.')
+      this.setStatus(error && error.message ? error.message : 'Privacy filter failed.', true)
+    }
+    async filterReport() {
+      if (!this.rawMarkdown || this.filtering) {
+        return
+      }
+      const token = this.filterToken + 1
+      this.filterToken = token
+      this.setFiltering(true)
+      this.setCopyEnabled(false)
+      try {
+        const result = await this.privacyFilter.filter(this.rawMarkdown, (progress) => {
+          if (token === this.filterToken) {
+            this.renderFilterProgress(progress)
+          }
+        })
+        if (token !== this.filterToken) {
+          return
+        }
+        this.redactionItems = this.normalizeRedactionItems(result && result.items, this.rawMarkdown)
+        this.filterChunks = Number(result && result.chunks) || 1
+        this.redactionHasRun = true
+        this.selectedRedactionId = this.redactionItems.length ? this.redactionItems[0].id : null
+        this.renderCurrentReport()
+        this.selectRedaction(this.selectedRedactionId, false)
+        const maskedCount = this.enabledRedactionCount()
+        this.setStatus(`Privacy filter finished locally. ${maskedCount} item${maskedCount === 1 ? '' : 's'} masked across ${this.filterChunks} chunk${this.filterChunks === 1 ? '' : 's'}.`)
+      } catch (error) {
+        if (token === this.filterToken) {
+          this.renderFilterError(error)
+        }
+      } finally {
+        if (token === this.filterToken) {
+          this.setFiltering(false)
+        }
+      }
+    }
+    async load(force = false) {
+      if (!this.reportUrl) {
+        this.renderError('Latest log snapshot is available for app workspaces.')
+        return
+      }
+      if (this.report && !force) {
+        this.renderSummary(this.report)
+        this.renderCurrentReport()
+        this.setRunFilterEnabled(Boolean(this.rawMarkdown) && !this.filtering)
+        if (!this.redactionHasRun && this.rawMarkdown) {
+          this.setStatus('Unfiltered report is ready. Run the privacy filter only if you want local redaction review.')
+        }
+        return
+      }
+      if (this.loading) return
+      this.loading = true
+      this.setBusy(true)
+      this.setStatus('Building latest log snapshot…')
+      this.filterToken += 1
+      this.rawMarkdown = ''
+      this.currentMarkdown = ''
+      this.redactionItems = []
+      this.renderedRedactionItems = []
+      this.redactionHasRun = false
+      this.selectedRedactionId = null
+      this.activeRedactionFilter = 'all'
+      this.resetRedactionReview('Waiting for latest log snapshot.')
+      this.setCopyEnabled(false)
+      this.setFiltering(false)
+      try {
+        const response = await fetch(this.rawReportUrl || this.reportUrl, {
+          headers: { 'Accept': 'application/json' },
+          cache: 'no-store'
+        })
+        const payload = await response.json().catch(() => null)
+        if (!response.ok) {
+          throw new Error(payload && payload.error ? payload.error : `HTTP ${response.status}`)
+        }
+        this.report = payload
+        this.render(payload)
+      } catch (error) {
+        this.renderError(error && error.message ? error.message : String(error || 'Unknown error'))
+      } finally {
+        this.loading = false
+        this.setBusy(false)
+      }
+    }
+    async copy() {
+      if (!this.currentMarkdown) return
+      try {
+        await navigator.clipboard.writeText(this.currentMarkdown)
+        this.setStatus(this.redactionHasRun ? 'Reviewed report copied.' : 'Unfiltered report copied.')
+      } catch (_) {
+        if (this.outputEl) {
+          this.outputEl.focus()
+          const selection = window.getSelection()
+          const range = document.createRange()
+          range.selectNodeContents(this.outputEl)
+          selection.removeAllRanges()
+          selection.addRange(range)
+        }
+        this.setStatus('Select the snapshot text to copy.')
       }
     }
   }
@@ -385,6 +1098,8 @@
       this.rootDisplay = config.rootDisplay || ''
       this.workspace = typeof config.workspace === 'string' ? config.workspace.trim() : ''
       this.workspaceTitle = config.workspaceTitle || ''
+      this.reportUrl = config.reportUrl || (this.workspace ? `/apps/logs/${encodeURIComponent(this.workspace)}/report` : '')
+      this.initialView = config.initialView === 'latest' && this.reportUrl ? 'latest' : 'raw'
       this.boundApplyHeight = null
       this.boundBeforeUnload = null
       this.headerObserver = null
@@ -399,6 +1114,7 @@
       this.resizeState = null
       this.sidebarPreferenceKey = this.workspace ? `${LOGS_SIDEBAR_STORAGE_KEY}:${this.workspace}` : LOGS_SIDEBAR_STORAGE_KEY
       this.sidebarWidthKey = this.workspace ? `${LOGS_SIDEBAR_WIDTH_KEY}:${this.workspace}` : LOGS_SIDEBAR_WIDTH_KEY
+      this.closeButton = document.getElementById('logs-close-view')
       const downloadHref = config.downloadUrl || (this.workspace ? `/pinokio/logs.zip?workspace=${encodeURIComponent(this.workspace)}` : '/pinokio/logs.zip')
       const zipEndpoint = this.workspace ? `/pinokio/log?workspace=${encodeURIComponent(this.workspace)}` : '/pinokio/log'
       const zipControls = new LogsZipControls({
@@ -409,6 +1125,20 @@
         defaultDownloadHref: downloadHref
       })
       this.zipControls = zipControls
+      this.latestReport = new LogsLatestReport({
+        reportUrl: this.reportUrl,
+        statusEl: document.getElementById('logs-report-status'),
+        outputEl: document.getElementById('logs-report-output'),
+        copyButton: document.getElementById('logs-copy-report'),
+        runFilterButton: document.getElementById('logs-run-filter'),
+        refreshButton: document.getElementById('logs-refresh-report'),
+        reportFilesEl: document.getElementById('logs-report-files'),
+        reportGeneratedEl: document.getElementById('logs-report-generated'),
+        reportSectionsEl: document.getElementById('logs-report-sections'),
+        reviewListEl: document.getElementById('logs-redaction-list'),
+        reviewFiltersEl: document.getElementById('logs-redaction-filters'),
+        reviewCountEl: document.getElementById('logs-redaction-count')
+      })
       this.viewer = new LogsViewer({
         outputEl: document.getElementById('logs-viewer-output'),
         statusEl: document.getElementById('logs-viewer-status'),
@@ -440,10 +1170,80 @@
           }
         })
       }
+      this.initCloseButton()
+      this.initViewSwitch()
       this.initSidebarWidth()
       this.initSidebarToggle()
       this.initSidebarResizer()
       this.setupPaneHeightManagement()
+    }
+
+    initCloseButton() {
+      if (!this.closeButton) {
+        return
+      }
+      this.closeButton.addEventListener('click', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        try {
+          window.parent.postMessage({ type: 'pinokio:close-logs', e: 'pinokio:close-logs' }, window.location.origin)
+        } catch (_) {
+          window.parent.postMessage({ type: 'pinokio:close-logs', e: 'pinokio:close-logs' }, '*')
+        }
+      })
+    }
+
+    initViewSwitch() {
+      if (!this.rootElement) {
+        return
+      }
+      this.viewButtons = Array.from(this.rootElement.querySelectorAll('[data-logs-view]'))
+      this.viewButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const view = button.dataset.logsView === 'latest' && this.reportUrl ? 'latest' : 'raw'
+          this.setView(view, true)
+        })
+      })
+      this.setView(this.initialView, false)
+    }
+
+    setView(view, updateUrl) {
+      const nextView = view === 'latest' && this.reportUrl ? 'latest' : 'raw'
+      if (this.rootElement) {
+        this.rootElement.dataset.view = nextView
+      }
+      if (Array.isArray(this.viewButtons)) {
+        this.viewButtons.forEach((button) => {
+          const active = button.dataset.logsView === nextView
+          button.classList.toggle('is-active', active)
+          button.setAttribute('aria-selected', active ? 'true' : 'false')
+          button.tabIndex = active ? 0 : -1
+        })
+      }
+      const latestPanel = document.getElementById('logs-latest-panel')
+      const rawPanel = document.getElementById('logs-raw-panel')
+      if (latestPanel) {
+        latestPanel.hidden = nextView !== 'latest'
+      }
+      if (rawPanel) {
+        rawPanel.hidden = nextView !== 'raw'
+      }
+      if (nextView === 'latest') {
+        if (this.viewer) {
+          this.viewer.stop()
+        }
+        if (this.latestReport) {
+          this.latestReport.load(false)
+        }
+      }
+      if (updateUrl) {
+        try {
+          const url = new URL(window.location.href)
+          url.searchParams.set('view', nextView === 'latest' ? 'latest' : 'raw')
+          window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
+        } catch (_) {}
+      }
+      this.applyPaneHeight()
     }
 
     initSidebarWidth() {

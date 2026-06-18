@@ -284,6 +284,35 @@ const postMessageToAncestors = (payload) => {
   })
   return dispatched
 }
+const openAppLogsForError = (packet) => {
+  return postMessageToAncestors({
+    e: "pinokio:logs-new",
+    type: "pinokio:logs-new",
+    reason: "error",
+    frame: window.name || null,
+    source: "shell"
+  })
+}
+const showErrorScreen = (packet) => {
+  const errorScreen = document.querySelector("#error-screen")
+  const errorOutput = errorScreen ? errorScreen.querySelector("pre") : null
+  if (!errorScreen || !errorOutput) {
+    return
+  }
+  errorScreen.classList.remove("hidden")
+  errorOutput.textContent = packet && packet.data ? packet.data : ""
+  let instance = new Mark(errorOutput, {
+    separateWordSearch: false,
+    accuracy: "exactly"
+  })
+  if (packet && packet.event) {
+    instance.mark(packet.event)
+    let element = errorScreen.querySelector("mark")
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" })
+    }
+  }
+}
 const notifyShellSession = (id) => {
   if (!id || id === lastNotifiedShellId) {
     return
@@ -901,23 +930,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".starting-btn").classList.add("hidden")
             document.querySelector(".stop-btn").classList.add("hidden")
 
-            document.querySelector("#error-screen").classList.remove("hidden")
-            document.querySelector("#error-screen pre").textContent = packet.data
-            let instance = new Mark(document.querySelector("#error-screen pre"), {
-              separateWordSearch: false,
-              accuracy: "exactly"
-            })
-            /*
-            document.querySelector("#error-screen").addEventListener("click", (e) => {
-              document.querySelector("#error-screen").classList.add("hidden")
-            })
-            */
-            if (packet.event) {
-              instance.mark(packet.event)
-              let element = document.querySelector("#error-screen mark")
-              if (element) {
-                element.scrollIntoView({ behavior: "smooth", block: "center" })
-              }
+            if (!openAppLogsForError(packet)) {
+              showErrorScreen(packet)
             }
 
             this.stop()

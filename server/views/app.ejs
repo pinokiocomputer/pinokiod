@@ -835,6 +835,345 @@ body.dark .community-drawer-empty-icon {
 body.dark .community-frame {
   background: #0b1220;
 }
+.app-logs-drawer {
+  display: none;
+  flex: 0 0 auto;
+  width: var(--app-logs-width, 460px);
+  min-width: 280px;
+  min-height: 0;
+  border-left: 1px solid rgba(0,0,0,0.08);
+  background: #f8fafc;
+}
+body.dark .app-logs-drawer {
+  border-left-color: rgba(255,255,255,0.08);
+  background: #0f1115;
+}
+.appcanvas.logs-open .app-logs-drawer {
+  display: flex;
+}
+.app-logs-drawer-inner {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.app-logs-drawer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(6px);
+}
+body.dark .app-logs-drawer-bar {
+  border-bottom-color: rgba(255,255,255,0.08);
+  background: rgba(15, 17, 21, 0.74);
+}
+.app-logs-drawer-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.app-logs-drawer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.app-logs-drawer-actions .btn2 {
+  padding: 4px;
+  font-size: 12px;
+  min-width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+}
+.app-logs-drawer-actions .btn2 i {
+  margin: 0;
+  font-size: 12px;
+}
+.app-logs-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  overflow: hidden;
+}
+.app-logs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.app-logs-toolbar .btn {
+  font-size: 12px;
+  padding: 6px 9px;
+}
+.app-logs-status {
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(15, 23, 42, 0.72);
+}
+body.dark .app-logs-status {
+  color: rgba(248, 250, 252, 0.72);
+}
+.app-logs-error-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 9px;
+  border: 1px solid rgba(220, 38, 38, 0.18);
+  border-radius: 6px;
+  background: rgba(254, 242, 242, 0.85);
+  color: rgba(127, 29, 29, 0.95);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.app-logs-error-callout i {
+  margin-top: 2px;
+  color: rgba(185, 28, 28, 0.9);
+}
+.app-logs-error-callout-title {
+  font-weight: 700;
+}
+.app-logs-error-callout-message {
+  overflow-wrap: anywhere;
+}
+body.dark .app-logs-error-callout {
+  border-color: rgba(248, 113, 113, 0.24);
+  background: rgba(127, 29, 29, 0.18);
+  color: rgba(254, 226, 226, 0.92);
+}
+body.dark .app-logs-error-callout i {
+  color: rgba(248, 113, 113, 0.92);
+}
+.app-logs-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.app-logs-summary-item {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 6px;
+  padding: 8px;
+  background: rgba(255,255,255,0.68);
+  min-width: 0;
+}
+body.dark .app-logs-summary-item {
+  border-color: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+}
+.app-logs-summary-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: rgba(15, 23, 42, 0.56);
+  letter-spacing: 0;
+}
+body.dark .app-logs-summary-label {
+  color: rgba(248, 250, 252, 0.56);
+}
+.app-logs-summary-value {
+  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-logs-section-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.app-logs-section-chip {
+  max-width: 100%;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 999px;
+  padding: 4px 7px;
+  font-size: 11px;
+  color: rgba(15, 23, 42, 0.74);
+  background: rgba(255,255,255,0.72);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.dark .app-logs-section-chip {
+  border-color: rgba(255,255,255,0.12);
+  color: rgba(248, 250, 252, 0.74);
+  background: rgba(255,255,255,0.05);
+}
+.app-logs-report-output {
+  flex: 1 1 auto;
+  min-height: 180px;
+  margin: 0;
+  padding: 10px;
+  overflow: auto;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 6px;
+  background: #ffffff;
+  color: rgba(15, 23, 42, 0.9);
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+body.dark .app-logs-report-output {
+  border-color: rgba(255,255,255,0.1);
+  background: #090b10;
+  color: rgba(248, 250, 252, 0.9);
+}
+.appcanvas > aside .menu-actions #logs-toggle.selected,
+.appcanvas > aside .menu-actions #logs-toggle.selected:hover,
+.appcanvas > aside .menu-actions #logs-toggle.selected:focus-visible,
+.appcanvas.logs-open .menu-actions #logs-toggle,
+.appcanvas.logs-open .menu-actions #logs-toggle:hover,
+.appcanvas.logs-open .menu-actions #logs-toggle:focus-visible,
+.appcanvas.logs-open .menu-actions #logs-toggle.selected {
+  background: var(--assist-surface-light-open) !important;
+  color: var(--assist-text-light-open) !important;
+  box-shadow: none;
+}
+body.dark .appcanvas > aside .menu-actions #logs-toggle.selected,
+body.dark .appcanvas > aside .menu-actions #logs-toggle.selected:hover,
+body.dark .appcanvas > aside .menu-actions #logs-toggle.selected:focus-visible,
+body.dark .appcanvas.logs-open .menu-actions #logs-toggle,
+body.dark .appcanvas.logs-open .menu-actions #logs-toggle:hover,
+body.dark .appcanvas.logs-open .menu-actions #logs-toggle:focus-visible,
+body.dark .appcanvas.logs-open .menu-actions #logs-toggle.selected {
+  background: var(--assist-surface-dark-open) !important;
+  color: var(--assist-text-dark-open) !important;
+  box-shadow: none;
+}
+.appcanvas > aside .menu-actions #logs-toggle .tab {
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+.appcanvas > aside .menu-actions #logs-toggle.has-new {
+  position: relative;
+  animation: logsAttentionFlashLight 1.05s steps(2, end) infinite;
+}
+body.dark .appcanvas > aside .menu-actions #logs-toggle.has-new {
+  animation-name: logsAttentionFlashDark;
+}
+.logs-new-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  min-width: 24px;
+  height: 16px;
+  max-height: 16px;
+  margin-left: auto;
+  border: 1px solid rgba(255,255,255,0.28);
+  border-radius: 5px;
+  padding: 0 5px;
+  background: #b91c1c;
+  color: #fff;
+  font-size: 9px;
+  line-height: 14px;
+  font-weight: 750;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  box-shadow: none;
+}
+body.dark .logs-new-badge {
+  background: #dc2626;
+  color: #fff;
+  border-color: rgba(255,255,255,0.22);
+}
+.mobile-nav-logs.has-new {
+  position: relative;
+  animation: logsMobileAttentionFlashLight 1.05s steps(2, end) infinite;
+}
+body.dark .mobile-nav-logs.has-new {
+  animation-name: logsMobileAttentionFlashDark;
+}
+.mobile-nav-logs.has-new::after {
+  content: "";
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #dc2626;
+  box-shadow: 0 0 0 2px #fff;
+  transform-origin: center;
+}
+body.dark .mobile-nav-logs.has-new::after {
+  box-shadow: 0 0 0 2px #0f1115;
+}
+@keyframes logsAttentionFlashLight {
+  0%, 100% {
+    --assist-surface-light: var(--pinokio-chrome-accent-bg-light);
+    --assist-text-light: var(--pinokio-chrome-accent-fg-light);
+  }
+  50% {
+    --assist-surface-light: var(--pinokio-chrome-accent-fg-light);
+    --assist-text-light: var(--pinokio-chrome-accent-bg-light);
+  }
+}
+@keyframes logsAttentionFlashDark {
+  0%, 100% {
+    --assist-surface-dark: var(--pinokio-chrome-accent-bg-dark);
+    --assist-text-dark: var(--pinokio-chrome-accent-fg-dark);
+  }
+  50% {
+    --assist-surface-dark: var(--pinokio-chrome-accent-fg-dark);
+    --assist-text-dark: var(--pinokio-chrome-accent-bg-dark);
+  }
+}
+@keyframes logsMobileAttentionFlashLight {
+  0%, 100% {
+    background: transparent;
+    color: #64748b;
+  }
+  50% {
+    background: #64748b;
+    color: #fff;
+  }
+}
+@keyframes logsMobileAttentionFlashDark {
+  0%, 100% {
+    background: transparent;
+    color: rgba(148, 163, 184, 0.9);
+  }
+  50% {
+    background: rgba(148, 163, 184, 0.9);
+    color: #0f1115;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .appcanvas > aside .menu-actions #logs-toggle.has-new,
+  .mobile-nav-logs.has-new {
+    animation: none;
+  }
+  .appcanvas > aside .menu-actions #logs-toggle.has-new {
+    --assist-surface-light: var(--pinokio-chrome-accent-fg-light);
+    --assist-text-light: var(--pinokio-chrome-accent-bg-light);
+  }
+  body.dark .appcanvas > aside .menu-actions #logs-toggle.has-new {
+    --assist-surface-dark: var(--pinokio-chrome-accent-fg-dark);
+    --assist-text-dark: var(--pinokio-chrome-accent-bg-dark);
+  }
+  .mobile-nav-logs.has-new {
+    background: #64748b;
+    color: #fff;
+  }
+  body.dark .mobile-nav-logs.has-new {
+    background: rgba(148, 163, 184, 0.9);
+    color: #0f1115;
+  }
+}
 .ask-ai-drawer {
   display: none;
   flex: 0 0 auto;
@@ -1234,7 +1573,8 @@ body.dark .event-launch-frame {
   gap: 2px;
   flex: 0 0 auto;
   min-width: 0;
-  margin: 0 0 4px;
+  width: calc(100% - 16px);
+  margin: 0 8px 0 8px;
   padding: 3px;
   border-radius: 7px;
   border: 1px solid rgba(15, 23, 42, 0.055);
@@ -1244,9 +1584,6 @@ body.dark .event-launch-frame {
 body.dark .appcanvas > aside .workspace-mode-switch {
   border-color: rgba(255, 255, 255, 0.075);
   background: rgba(255, 255, 255, 0.045);
-}
-.appcanvas.vertical > aside .workspace-mode-switch {
-  width: 100%;
 }
 .workspace-mode-link {
   flex: 1 1 0;
@@ -1341,6 +1678,7 @@ body.dark .workspace-mode-link:hover {
   flex-direction: column;
   overflow: hidden;
   width: var(--appcanvas-sidebar-width);
+  box-sizing: border-box;
 }
 .appcanvas.vertical .config-info {
   margin-bottom: 10px;
@@ -1404,6 +1742,8 @@ body.dark .appcanvas.vertical .appcanvas-resizer:focus-visible::before {
 }
 .appcanvas.vertical > aside .header-item {
   max-width: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .appcanvas > .container {
@@ -3657,6 +3997,9 @@ body.dark .fs-status-btn:hover {
 body.app-page .appcanvas {
   background: transparent;
 }
+body.app-page .appcanvas.vertical .menu-scroller {
+  padding-top: 10px;
+}
 body.app-page .appcanvas > aside,
 body.dark.app-page .appcanvas > aside {
   background: transparent !important;
@@ -5777,6 +6120,7 @@ header.navheader h1 {
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
+    padding-top: 0;
   }
   body.mobile-menu-open .appcanvas > aside .config-info {
     padding: 6px 8px 2px;
@@ -5995,6 +6339,7 @@ header.navheader h1 {
     display: none;
   }
   .appcanvas.panel-open .ask-ai-drawer,
+  .appcanvas.logs-open .app-logs-drawer,
   .appcanvas.event-drawer-open .event-launch-drawer,
   .appcanvas.event-bottom-open .event-launch-drawer {
     display: flex;
@@ -6007,11 +6352,13 @@ header.navheader h1 {
     z-index: 10000000;
   }
   .appcanvas.panel-open .ask-ai-resizer,
+  .appcanvas.logs-open .app-logs-resizer,
   .appcanvas.event-drawer-open .event-launch-resizer,
   .appcanvas.event-bottom-open .event-launch-resizer {
     display: none;
   }
   .appcanvas.panel-open main.browserview,
+  .appcanvas.logs-open main.browserview,
   .appcanvas.event-drawer-open main.browserview,
   .appcanvas.event-bottom-open main.browserview {
     display: none;
@@ -6158,20 +6505,12 @@ header.navheader h1 {
 </button>
 </h1>
 </header>
-<div class='appcanvas vertical <%=type === "browse" ? "dev-workspace" : ""%>'>
-<% if (error) { %>
-  <div class='error-message'>
-    <div>
-      <h1><i class="fa-solid fa-triangle-exclamation"></i> Error</h1> 
-      <div><%=error%></div>
-    </div>
-  </div>
-<% } else { %>
+<div class='appcanvas vertical <%=type === "browse" ? "dev-workspace" : ""%>' data-page-error="<%= error ? '1' : '0' %>">
   <% if (type !== 'files') { %>
   <aside id='app-sidebar' class='active'>
       <div class='menu-container'>
         <div class='menu-scroller'>
-        <div class='mode-selector workspace-mode-switch' role="tablist" aria-label="Workspace mode">
+        <div class='workspace-mode-switch' role="tablist" aria-label="Workspace mode">
           <a class="workspace-mode-link <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>" role="tab" aria-selected="<%=type === 'run' ? 'true' : 'false'%>">
             <i class="fa-solid fa-circle-play"></i>
             <span>Run</span>
@@ -6312,6 +6651,14 @@ header.navheader h1 {
             </div>
           </button>
         <% } %>
+        <button type='button' id='logs-toggle' class="btn header-item" data-tippy-content="logs" aria-expanded="false" aria-controls="app-logs-drawer">
+          <div class='tab'>
+            <i class="fa-solid fa-laptop-code menu-action-leading-icon"></i>
+            <div class='display'>Logs</div>
+            <div class='flexible'></div>
+            <span class='logs-new-badge hidden' id='logs-new-badge'>New</span>
+          </div>
+        </button>
         <% if (registryEnabled) { %>
           <button type='button' id='community-toggle' class="btn header-item" data-tippy-content="community">
             <div class='tab'>
@@ -6454,6 +6801,53 @@ header.navheader h1 {
         </div>
       </aside>
       <% } %>
+      <aside class='app-logs-drawer' id='app-logs-drawer' data-app-id="<%=name%>" data-report-url="/apps/logs/<%= encodeURIComponent(name) %>/report" data-full-logs-url="/logs?workspace=<%= encodeURIComponent(name) %>" data-community-available="<%= registryEnabled && community_url ? '1' : '0' %>" data-page-error="<%= error ? '1' : '0' %>" aria-hidden="true">
+        <div class='app-logs-drawer-inner'>
+          <div class='app-logs-drawer-bar'>
+            <div class='app-logs-drawer-title'>
+              <i class="fa-solid fa-laptop-code" aria-hidden="true"></i>
+              <span>Logs</span>
+            </div>
+            <div class='app-logs-drawer-actions'>
+              <button type='button' class='btn2 app-logs-refresh' data-tippy-content="Refresh" aria-label="Refresh report">
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+              <button type='button' class='btn2 app-logs-close' data-tippy-content="Close panel" aria-label="Close logs panel">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+          <div class='app-logs-body'>
+            <% if (error) { %>
+              <div class='app-logs-error-callout' role="alert">
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                <div>
+                  <div class='app-logs-error-callout-title'>Error detected</div>
+                  <div class='app-logs-error-callout-message'><%=error%></div>
+                </div>
+              </div>
+            <% } %>
+            <div class='app-logs-toolbar'>
+              <button type='button' class='btn app-logs-copy' disabled>
+                <i class="fa-solid fa-copy"></i> Copy report
+              </button>
+            </div>
+            <div class='app-logs-status' role="status" aria-live="polite">Ready.</div>
+            <div class='app-logs-summary' aria-label="Log report summary">
+              <div class='app-logs-summary-item'>
+                <div class='app-logs-summary-label'>Sections</div>
+                <div class='app-logs-summary-value' data-app-logs-summary="sections">--</div>
+              </div>
+              <div class='app-logs-summary-item'>
+                <div class='app-logs-summary-label'>Redactions</div>
+                <div class='app-logs-summary-value' data-app-logs-summary="redactions">--</div>
+              </div>
+            </div>
+            <div class='app-logs-section-list' aria-label="Included log files"></div>
+            <pre class='app-logs-report-output' tabindex="0"></pre>
+          </div>
+        </div>
+      </aside>
       <% if (registryEnabled) { %>
       <div class='community-resizer' id='community-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="9999" aria-valuenow="360" tabindex="0" aria-label="Resize community panel"></div>
       <aside class='community-drawer' id='community-drawer' data-community-url="<%=community_url%>">
@@ -6569,6 +6963,9 @@ header.navheader h1 {
       <i class="fa-solid fa-globe"></i>
     </button>
     <% } %>
+    <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-logs' data-mobile-proxy="#logs-toggle" data-mobile-close-menu="true" aria-pressed="false" aria-label="Logs">
+      <i class="fa-solid fa-laptop-code"></i>
+    </button>
     <% if (type === 'run') { %>
     <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-ask-ai' data-mobile-proxy="#ask-ai-tab" data-mobile-close-menu="true" aria-pressed="false" aria-label="Ask AI">
       <i class="fa-solid fa-robot"></i>
@@ -6585,7 +6982,7 @@ header.navheader h1 {
     <div>Pinokio</div>
   </div>
   <div class='mobile-menu-fallback__body'>
-    <div class='mode-selector workspace-mode-switch' role="tablist" aria-label="Workspace mode">
+    <div class='workspace-mode-switch' role="tablist" aria-label="Workspace mode">
       <a class="workspace-mode-link <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>" role="tab" aria-selected="<%=type === 'run' ? 'true' : 'false'%>">
         <i class="fa-solid fa-circle-play"></i>
         <span>Run</span>
@@ -8292,6 +8689,9 @@ const rerenderMenuSection = (container, html) => {
 
     if (!target) {
       syncActiveNestedPath()
+      if (typeof syncLogsSelectedState === "function") {
+        syncLogsSelectedState(null)
+      }
       browserPopoutSurface.hide()
       document.querySelector(".container").classList.remove("active")
       document.querySelector("aside").classList.add("active")
@@ -8325,6 +8725,9 @@ const rerenderMenuSection = (container, html) => {
     })
     target.classList.add("selected")
     syncActiveNestedPath({ selectedLink: target })
+    if (typeof syncLogsSelectedState === "function") {
+      syncLogsSelectedState(target)
+    }
     if (skipPersistedSelection && target.hasAttribute('data-default')) {
       ignorePersistedSelection = false
     }
@@ -8628,11 +9031,12 @@ const rerenderMenuSection = (container, html) => {
         tabs
       })
     })
-  }
+	  }
   const addTab = async (url, options = {}) => {
     const label = typeof options.label === 'string' && options.label.trim().length > 0 ? options.label.trim() : null
     const providedTarget = typeof options.target === 'string' && options.target.trim().length > 0 ? options.target.trim() : null
-    const shouldPersist = options.persist !== false
+    const internalTab = options.internal === true
+    const shouldPersist = options.persist !== false && !internalTab
     const isShellTab = (() => {
       try {
         return new URL(url, window.location.origin).pathname.startsWith("/shell/")
@@ -8650,6 +9054,12 @@ const rerenderMenuSection = (container, html) => {
     item.href = url
     item.setAttribute("data-index", index)
     item.className = "btn header-item frame-link"
+    if (internalTab) {
+      item.classList.add("hidden")
+      item.dataset.internal = "true"
+      item.setAttribute("aria-hidden", "true")
+      item.tabIndex = -1
+    }
     if (isShellTab) {
       item.dataset.shellTab = "1"
     }
@@ -8683,12 +9093,179 @@ const rerenderMenuSection = (container, html) => {
     }
 
 
-    return {
-      tab: item,
-      frame
-    }
+	    return {
+	      tab: item,
+	      frame
+	    }
 
+	  }
+	  const appLogsName = <%- JSON.stringify(name || "") %>
+	  const logsNotificationKey = `pinokio.logs.new:${appLogsName}`
+	  const logsToggleButton = document.getElementById("logs-toggle")
+	  const logsNewBadge = document.getElementById("logs-new-badge")
+	  const mobileLogsButton = document.querySelector(".mobile-nav-logs")
+	  const setLogsSelected = (active) => {
+	    const selected = Boolean(active)
+	    if (logsToggleButton) {
+	      logsToggleButton.classList.toggle("selected", selected)
+	      logsToggleButton.setAttribute("aria-expanded", selected ? "true" : "false")
+	    }
+	    if (mobileLogsButton) {
+	      mobileLogsButton.classList.toggle("selected", selected)
+	      mobileLogsButton.setAttribute("aria-pressed", selected ? "true" : "false")
+	    }
+	  }
+	  const setLogsNewBadge = (active) => {
+	    const show = Boolean(active)
+	    if (logsToggleButton) {
+	      logsToggleButton.classList.toggle("has-new", show)
+	    }
+	    if (logsNewBadge) {
+	      logsNewBadge.classList.toggle("hidden", !show)
+	    }
+	    if (mobileLogsButton) {
+	      mobileLogsButton.classList.toggle("has-new", show)
+	      mobileLogsButton.setAttribute("aria-label", show ? "Logs, new issue" : "Logs")
+	    }
+	    try {
+	      if (show) {
+	        window.sessionStorage.setItem(logsNotificationKey, "1")
+	      } else {
+	        window.sessionStorage.removeItem(logsNotificationKey)
+	      }
+	    } catch (_) {}
+	  }
+  const buildEmbeddedLogsUrl = (view = "latest") => {
+    const url = new URL("/logs", window.location.origin)
+    url.searchParams.set("workspace", appLogsName)
+    url.searchParams.set("embed", "1")
+    url.searchParams.set("view", view === "raw" ? "raw" : "latest")
+    return `${url.pathname}${url.search}`
   }
+		  const isLogsLink = (link) => {
+		    if (!link) return false
+		    try {
+		      const parsed = new URL(link.href, window.location.origin)
+		      return parsed.pathname === "/logs" && parsed.searchParams.get("workspace") === appLogsName
+		    } catch (_) {
+		      return false
+		    }
+		  }
+		  let lastNonLogsSelectedLink = null
+		  const isSelectableLogsFallbackLink = (link) => {
+		    return Boolean(
+		      link &&
+		      link.classList &&
+		      link.classList.contains("frame-link") &&
+		      !isLogsLink(link) &&
+		      !link.classList.contains("hidden") &&
+		      !link.closest(".hidden") &&
+		      !link.classList.contains("reveal") &&
+		      !link.hasAttribute("data-filepath") &&
+		      !link.hasAttribute("data-action") &&
+		      link.getAttribute("target") !== "_blank" &&
+		      link.href
+		    )
+		  }
+		  const rememberNonLogsSelection = (link) => {
+		    if (isSelectableLogsFallbackLink(link)) {
+		      lastNonLogsSelectedLink = link
+		    }
+		  }
+		  const findLogsFallbackLink = () => {
+		    if (lastNonLogsSelectedLink && document.contains(lastNonLogsSelectedLink) && isSelectableLogsFallbackLink(lastNonLogsSelectedLink)) {
+		      return lastNonLogsSelectedLink
+		    }
+		    const candidates = [
+		      document.querySelector(".frame-link.selected"),
+		      document.querySelector("[data-default].frame-link"),
+		      document.querySelector("#devtab.frame-link")
+		    ]
+		    for (const candidate of candidates) {
+		      if (isSelectableLogsFallbackLink(candidate)) {
+		        return candidate
+		      }
+		    }
+		    return Array.from(document.querySelectorAll("aside .frame-link")).find(isSelectableLogsFallbackLink) || null
+		  }
+		  const markLogsLinkInternal = (link) => {
+		    if (!link) return
+		    link.classList.add("hidden")
+	    link.dataset.internal = "true"
+	    link.dataset.persist = "false"
+	    link.setAttribute("aria-hidden", "true")
+	    link.tabIndex = -1
+	  }
+		  const syncLogsSelectedState = (selectedLink = undefined) => {
+		    const link = selectedLink === undefined ? document.querySelector(".frame-link.selected") : selectedLink
+		    const drawerOpen = !!(document.querySelector(".appcanvas") && document.querySelector(".appcanvas").classList.contains("logs-open"))
+		    const logsSelected = drawerOpen || isLogsLink(link)
+		    if (!logsSelected) {
+		      rememberNonLogsSelection(link)
+		    }
+		    setLogsSelected(logsSelected)
+		  }
+		  window.PinokioIsLogsPageSelected = () => isLogsLink(document.querySelector(".frame-link.selected"))
+		  window.PinokioSyncLogsSelectedState = syncLogsSelectedState
+		  Array.from(document.querySelectorAll('.temp-menu .frame-link')).filter(isLogsLink).forEach(markLogsLinkInternal)
+		  window.PinokioCloseLogsPage = async () => {
+		    const logsLinks = Array.from(document.querySelectorAll('.temp-menu .frame-link')).filter(isLogsLink)
+		    for (const link of logsLinks) {
+		      const frameName = link.getAttribute("target") || ""
+		      const escapedFrameName = escapeTargetSelector(frameName)
+		      const frame = escapedFrameName ? document.querySelector(`main.browserview iframe[name="${escapedFrameName}"]`) : null
+		      if (frame) {
+		        frame.remove()
+		      }
+		      link.remove()
+		    }
+		    setLogsSelected(false)
+		    await syncTabs()
+		    const fallbackLink = findLogsFallbackLink()
+		    if (fallbackLink) {
+		      await renderSelection({ target: fallbackLink, force: true })
+		    } else {
+		      await renderSelection({ force: true })
+		    }
+		  }
+		  window.PinokioOpenLogsPage = async (options = {}) => {
+		    const view = options && options.view === "raw" ? "raw" : "latest"
+		    const relativeUrl = buildEmbeddedLogsUrl(view)
+		    const existingLink = Array.from(document.querySelectorAll('.temp-menu .frame-link')).find(isLogsLink)
+		    rememberNonLogsSelection(document.querySelector(".frame-link.selected"))
+		    setLogsNewBadge(false)
+		    setLogsSelected(true)
+	    if (existingLink) {
+	      markLogsLinkInternal(existingLink)
+	      const display = existingLink.querySelector('.display')
+	      if (display) {
+	        display.textContent = 'Logs'
+	      }
+	      try {
+	        const frameName = existingLink.getAttribute("target") || ""
+	        const escapedFrameName = frameName && window.CSS && typeof window.CSS.escape === "function" ? window.CSS.escape(frameName) : frameName.replace(/["\\]/g, "\\$&")
+	        const frame = frameName ? document.querySelector(`main.browserview iframe[name="${escapedFrameName}"]`) : null
+	        if (frame) {
+	          frame.src = relativeUrl
+	        }
+	        existingLink.href = relativeUrl
+	      } catch (_) {
+	        existingLink.href = relativeUrl
+	      }
+	      existingLink.click()
+	      return
+	    }
+	    const { tab } = await addTab(relativeUrl, { label: 'Logs', target: 'pinokio-logs', persist: false, internal: true })
+	    requestAnimationFrame(() => {
+	      tab.click()
+	    })
+	  }
+	  try {
+	    setLogsNewBadge(window.sessionStorage.getItem(logsNotificationKey) === "1")
+	  } catch (_) {}
+	  if (document.querySelector(".appcanvas") && document.querySelector(".appcanvas").dataset.pageError === "1") {
+	    setLogsNewBadge(true)
+	  }
   const pluginInstallPreflightCache = new Map()
   const normalizePluginPathFromLaunchHref = (rawHref) => {
     if (!rawHref || typeof rawHref !== "string") {
@@ -8940,6 +9517,9 @@ const rerenderMenuSection = (container, html) => {
       button.classList.toggle("selected", askAiOpen)
       button.setAttribute("aria-pressed", askAiOpen ? "true" : "false")
     })
+    if (typeof syncLogsSelectedState === "function") {
+      syncLogsSelectedState()
+    }
     document.querySelectorAll(".mobile-close-window-action").forEach((button) => {
       button.classList.toggle("hidden", !closeSectionVisible)
       button.setAttribute("aria-hidden", closeSectionVisible ? "false" : "true")
@@ -9926,7 +10506,17 @@ const rerenderMenuSection = (container, html) => {
       if (String(port) === String(location.port) || /https:\/\/.*pinokio\..*(localhost|co)/.test(origin)) {
       //if (String(port) === "<%=port%>" || /https:\/\/pinokio\..*localhost/.test(origin)) {
       //if (String(port) === "<%=port%>") {
-        if (event.data) {
+	        if (event.data) {
+	          if (event.data.e === "pinokio:close-logs" || event.data.type === "pinokio:close-logs") {
+	            if (window.PinokioCloseLogsPage && typeof window.PinokioCloseLogsPage === "function") {
+	              await window.PinokioCloseLogsPage()
+	            }
+	            return
+	          }
+	          if (event.data.e === "pinokio:logs-new" || event.data.type === "pinokio:logs-new" || event.data.e === "pinokio:open-logs" || event.data.type === "pinokio:open-logs") {
+	            setLogsNewBadge(true)
+	            return
+          }
           if (event.data.action) {
             if (event.data.action.type === "newtab") {
               addTab(event.data.action.url)
@@ -10123,20 +10713,34 @@ const rerenderMenuSection = (container, html) => {
       return statusUri.includes('?') ? `${statusUri}&force=1` : `${statusUri}?force=1`
     }
 
-    const buildWorkspaceLogsUrl = () => {
-      if (workspaceName && workspaceName.length > 0) {
-        return `/logs?workspace=${encodeURIComponent(workspaceName)}`
-      }
-      return '/logs'
-    }
+	    const buildWorkspaceLogsUrl = () => {
+	      if (workspaceName && workspaceName.length > 0) {
+	        return `/logs?workspace=${encodeURIComponent(workspaceName)}&embed=1&view=latest`
+	      }
+	      return '/logs?embed=1&view=raw'
+	    }
 
-    const focusOrCreateLogsTab = async () => {
-      const relativeUrl = buildWorkspaceLogsUrl()
-      const absoluteUrl = new URL(relativeUrl, window.location.origin).toString()
-      const existingLink = Array.from(document.querySelectorAll('.temp-menu .frame-link')).find((link) => {
-        return link.href === absoluteUrl
-      })
+	    const focusOrCreateLogsTab = async () => {
+	      if (window.PinokioOpenLogsPage && typeof window.PinokioOpenLogsPage === "function") {
+	        await window.PinokioOpenLogsPage({ view: "latest" })
+	        return
+	      }
+	      const relativeUrl = buildWorkspaceLogsUrl()
+	      const absoluteUrl = new URL(relativeUrl, window.location.origin).toString()
+	      const existingLink = Array.from(document.querySelectorAll('.temp-menu .frame-link')).find((link) => {
+	        try {
+	          const parsed = new URL(link.href, window.location.origin)
+	          return parsed.pathname === "/logs" && parsed.searchParams.get("workspace") === workspaceName
+	        } catch (_) {
+	          return link.href === absoluteUrl
+	        }
+	      })
       if (existingLink) {
+        existingLink.classList.add("hidden")
+        existingLink.dataset.internal = "true"
+        existingLink.dataset.persist = "false"
+        existingLink.setAttribute("aria-hidden", "true")
+        existingLink.tabIndex = -1
         const display = existingLink.querySelector('.display')
         if (display) {
           display.textContent = 'Logs'
@@ -10144,7 +10748,7 @@ const rerenderMenuSection = (container, html) => {
         existingLink.click()
         return
       }
-      const { tab } = await addTab(relativeUrl, { label: 'Logs' })
+      const { tab } = await addTab(relativeUrl, { label: 'Logs', persist: false, internal: true })
       requestAnimationFrame(() => {
         tab.click()
       })
@@ -13513,7 +14117,6 @@ const rerenderMenuSection = (container, html) => {
   }, 1000)
 
   </script>
-<% } %>
 <script>
 (() => {
   const workspaceName = <%- JSON.stringify(typeof name === "string" ? name : "") %>
@@ -15268,6 +15871,208 @@ document.addEventListener("DOMContentLoaded", () => {
     close: () => setOpen(false),
     isOpen: () => open
   }
+})();
+
+(function() {
+  const drawer = document.getElementById("app-logs-drawer")
+  if (!drawer) {
+    return
+  }
+  const appcanvas = document.querySelector(".appcanvas")
+  const toggle = document.getElementById("logs-toggle")
+  const mobileToggle = document.querySelector(".mobile-nav-logs")
+  const closeBtn = drawer.querySelector(".app-logs-close")
+  const refreshBtn = drawer.querySelector(".app-logs-refresh")
+  const copyBtn = drawer.querySelector(".app-logs-copy")
+  const statusEl = drawer.querySelector(".app-logs-status")
+  const outputEl = drawer.querySelector(".app-logs-report-output")
+  const sectionList = drawer.querySelector(".app-logs-section-list")
+  const sectionsValue = drawer.querySelector('[data-app-logs-summary="sections"]')
+  const redactionsValue = drawer.querySelector('[data-app-logs-summary="redactions"]')
+  const reportUrl = drawer.dataset.reportUrl || ""
+  let open = false
+  let loading = false
+  let report = null
+
+  const setStatus = (text) => {
+    if (statusEl) {
+      statusEl.textContent = text
+    }
+  }
+
+  const updateToggleState = () => {
+    const logsPageSelected = !!(window.PinokioIsLogsPageSelected && window.PinokioIsLogsPageSelected())
+    const selected = open || logsPageSelected
+    if (toggle) {
+      toggle.classList.toggle("selected", selected)
+      toggle.setAttribute("aria-expanded", open ? "true" : "false")
+    }
+    if (mobileToggle) {
+      mobileToggle.classList.toggle("selected", selected)
+      mobileToggle.setAttribute("aria-pressed", selected ? "true" : "false")
+    }
+  }
+
+  const setOpen = (next, options = {}) => {
+    open = !!next
+    if (appcanvas) {
+      appcanvas.classList.toggle("logs-open", open)
+    }
+    drawer.setAttribute("aria-hidden", open ? "false" : "true")
+    updateToggleState()
+    if (open) {
+      loadReport(Boolean(options && options.force))
+    }
+  }
+
+  const countRedactions = (counts) => {
+    return Object.values(counts || {}).reduce((total, value) => {
+      const numeric = Number(value)
+      return total + (Number.isFinite(numeric) ? numeric : 0)
+    }, 0)
+  }
+
+  const clearSections = () => {
+    if (!sectionList) return
+    while (sectionList.firstChild) {
+      sectionList.removeChild(sectionList.firstChild)
+    }
+  }
+
+  const renderSections = (sections) => {
+    clearSections()
+    if (!sectionList) return
+    for (const section of sections || []) {
+      const chip = document.createElement("div")
+      chip.className = "app-logs-section-chip"
+      chip.textContent = section.file || section.script || section.source || "log"
+      chip.title = chip.textContent
+      sectionList.appendChild(chip)
+    }
+  }
+
+  const renderReport = (payload) => {
+    const sections = Array.isArray(payload && payload.sections) ? payload.sections : []
+    const redactionCount = countRedactions(payload && payload.redactions)
+    if (sectionsValue) {
+      sectionsValue.textContent = String(sections.length)
+    }
+    if (redactionsValue) {
+      redactionsValue.textContent = redactionCount > 0 ? `${redactionCount} hidden` : "0"
+    }
+    renderSections(sections)
+    if (outputEl) {
+      outputEl.textContent = payload && payload.markdown ? payload.markdown : "No app log files were found."
+    }
+    if (copyBtn) {
+      copyBtn.disabled = !(payload && payload.markdown)
+    }
+    setStatus(`Basic redaction applied. ${sections.length} latest log file${sections.length === 1 ? "" : "s"} included.`)
+  }
+
+  const renderError = (message) => {
+    if (sectionsValue) sectionsValue.textContent = "--"
+    if (redactionsValue) redactionsValue.textContent = "--"
+    clearSections()
+    if (outputEl) {
+      outputEl.textContent = message
+    }
+    if (copyBtn) {
+      copyBtn.disabled = true
+    }
+    setStatus("Unable to build log report.")
+  }
+
+  async function loadReport(force) {
+    if (!reportUrl || loading) {
+      return
+    }
+    if (report && !force) {
+      renderReport(report)
+      return
+    }
+    loading = true
+    if (refreshBtn) {
+      refreshBtn.disabled = true
+    }
+    setStatus("Building sanitized log report...")
+    try {
+      const response = await fetch(reportUrl, {
+        headers: { "Accept": "application/json" },
+        cache: "no-store"
+      })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok) {
+        throw new Error(payload && payload.error ? payload.error : `HTTP ${response.status}`)
+      }
+      report = payload
+      renderReport(report)
+    } catch (error) {
+      renderError(error && error.message ? error.message : String(error || "Unknown error"))
+    } finally {
+      loading = false
+      if (refreshBtn) {
+        refreshBtn.disabled = false
+      }
+    }
+  }
+
+  const copyReport = async () => {
+    if (!report || !report.markdown) {
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(report.markdown)
+      setStatus("Report copied.")
+    } catch (_) {
+      if (outputEl) {
+        outputEl.focus()
+        const selection = window.getSelection()
+        const range = document.createRange()
+        range.selectNodeContents(outputEl)
+        selection.removeAllRanges()
+        selection.addRange(range)
+      }
+      setStatus("Select the report text to copy.")
+    }
+  }
+
+  if (toggle) {
+    toggle.addEventListener("click", (event) => {
+      event.preventDefault()
+      if (window.PinokioOpenLogsPage && typeof window.PinokioOpenLogsPage === "function") {
+        window.PinokioOpenLogsPage({ view: "latest" })
+        return
+      }
+      setOpen(!open)
+    })
+  }
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => setOpen(false))
+  }
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => loadReport(true))
+  }
+  if (copyBtn) {
+    copyBtn.addEventListener("click", copyReport)
+  }
+  const communityToggle = document.getElementById("community-toggle")
+  if (communityToggle) {
+    communityToggle.addEventListener("click", () => {
+      if (open) {
+        setOpen(false)
+      }
+    }, { capture: true })
+  }
+
+  window.PinokioLogsDrawer = {
+    open: (options = {}) => setOpen(true, options),
+    close: () => setOpen(false),
+    refresh: () => loadReport(true),
+    isOpen: () => open
+  }
+
+  setOpen(false)
 })();
 
 (function() {

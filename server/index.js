@@ -84,6 +84,7 @@ const { createContentValidationService } = require("./lib/content_validation")
 const { buildSecureRouterDebugSnapshot, createSecureRouterDebugStore } = require("./lib/secure_router_debug")
 const AppRegistryService = require("./lib/app_registry")
 const AppLogService = require("./lib/app_logs")
+const AppLogReportService = require("./lib/app_log_report")
 const AppSearchService = require("./lib/app_search")
 const AppPreferencesService = require("./lib/app_preferences")
 const ResourceUsageService = require("../kernel/resource_usage")
@@ -219,6 +220,7 @@ class Server {
     this.kernel.appPreferences = this.appPreferences
     this.resourceUsage = new ResourceUsageService({ kernel: this.kernel })
     this.appLogs = new AppLogService({ registry: this.appRegistry })
+    this.appLogReports = new AppLogReportService({ registry: this.appRegistry, kernel: this.kernel })
     this.appSearch = new AppSearchService({
       kernel: this.kernel,
       registry: this.appRegistry,
@@ -6532,6 +6534,7 @@ class Server {
       preferences: this.appPreferences,
       appSearch: this.appSearch,
       appLogs: this.appLogs,
+      appLogReports: this.appLogReports,
       getTheme: () => this.theme
     })
 
@@ -8311,8 +8314,12 @@ class Server {
       const peerAccess = await this.composePeerAccessPayload()
       const list = this.getPeers()
       const workspace = typeof req.query.workspace === 'string' ? req.query.workspace.trim() : ''
+      const embedded = req.query.embed === '1' || req.query.embed === 'true'
+      const requestedView = typeof req.query.view === 'string' ? req.query.view.trim().toLowerCase() : ''
+      const initialView = workspace && requestedView !== 'raw' ? 'latest' : 'raw'
       let context
       const downloadUrl = workspace ? `/pinokio/logs.zip?workspace=${encodeURIComponent(workspace)}` : '/pinokio/logs.zip'
+      const reportUrl = workspace ? `/apps/logs/${encodeURIComponent(workspace)}/report` : ''
       try {
         context = await this.resolveLogsRoot({ workspace })
       } catch (error) {
@@ -8329,6 +8336,9 @@ class Server {
           logsTitle: workspace || null,
           logsError: error && error.message ? error.message : 'Workspace not found',
           logsDownloadUrl: downloadUrl,
+          logsReportUrl: reportUrl,
+          logsEmbedded: embedded,
+          logsInitialView: initialView,
         })
         return
       }
@@ -8345,6 +8355,9 @@ class Server {
         logsTitle: context.title,
         logsError: null,
         logsDownloadUrl: downloadUrl,
+        logsReportUrl: reportUrl,
+        logsEmbedded: embedded,
+        logsInitialView: initialView,
       })
     }))
     this.app.get("/api/logs/tree", ex(async (req, res) => {

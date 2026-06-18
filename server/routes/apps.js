@@ -6,6 +6,7 @@ const axios = require('axios')
 const multer = require('multer')
 const FormData = require('form-data')
 const sanitize = require('sanitize-filename')
+const AppLogReportService = require('../lib/app_log_report')
 
 const DEFAULT_PEER_PORT = 42000
 const DEFAULT_PEER_TIMEOUT_MS = 2500
@@ -135,10 +136,11 @@ const buildPinokioRef = ({ host, port, scope, id }) => {
   return `pinokio://${normalizedHost}:${normalizedPort}/${encodedPath}`
 }
 
-module.exports = function registerAppRoutes(app, { registry, preferences, appSearch, appLogs, getTheme }) {
+module.exports = function registerAppRoutes(app, { registry, preferences, appSearch, appLogs, appLogReports, getTheme }) {
   if (!app || !registry || !preferences || !appSearch || !appLogs) {
     throw new Error('App routes require app, registry, preferences, appSearch, and appLogs')
   }
+  const appLogReportService = appLogReports || new AppLogReportService({ registry })
 
   const router = express.Router()
   const upload = multer()
@@ -1039,6 +1041,87 @@ module.exports = function registerAppRoutes(app, { registry, preferences, appSea
       source: resolvedLog.source,
       file: registry.toPosixRelative(status.path, resolvedLog.file),
       ...logData
+    })
+  }))
+
+  router.get('/apps/logs/:app_id/report', asyncHandler(async (req, res) => {
+    const parsedAppId = parseQualifiedAppId(req.params.app_id)
+    const requestedAppId = parsedAppId.app_id || req.params.app_id
+    const remoteHost = parsedAppId.qualified ? parsedAppId.host : null
+    if (remoteHost && remoteHost !== currentPeerHost()) {
+      try {
+        const params = {}
+        const tail = registry.parseTailCount(req.query.tail, 800)
+        if (Number.isFinite(tail) && tail > 0) {
+          params.tail = String(tail)
+        }
+        if (req.query.redaction === 'none') {
+          params.redaction = 'none'
+        }
+        const response = await axios.get(`http://${remoteHost}:${peerPort()}/apps/logs/${encodeURIComponent(requestedAppId)}/report`, {
+          timeout: DEFAULT_PEER_TIMEOUT_MS,
+          headers: peerRequestHeaders(req),
+          params
+        })
+        const payload = response && response.data && typeof response.data === 'object'
+          ? { ...response.data }
+          : {}
+        payload.app_id = qualifyAppId(requestedAppId, remoteHost)
+        payload.source = buildSource(remoteHost, false)
+        payload.ref = buildPinokioRef({
+          host: remoteHost,
+          port: peerPort(),
+          scope: 'api',
+          id: requestedAppId
+        })
+        res.json(payload)
+        return
+      } catch (error) {
+        if (error && error.response) {
+          res.status(error.response.status).json(error.response.data)
+          return
+        }
+        res.status(502).json({
+          error: 'Peer log report unavailable',
+          app_id: qualifyAppId(requestedAppId, remoteHost),
+          source: buildSource(remoteHost, false)
+        })
+        return
+      }
+    }
+    const appId = registry.normalizeAppId(requestedAppId)
+    if (!appId) {
+      res.status(400).json({ error: 'Invalid app_id' })
+      return
+    }
+    const status = await registry.buildAppStatus(appId, {
+      source: req.$source || null
+    })
+    if (!status) {
+      res.status(404).json({ error: 'App not found', app_id: appId })
+      return
+    }
+    const tail = registry.parseTailCount(req.query.tail, 800)
+    const report = await appLogReportService.buildReport({
+      appId,
+      status,
+      tail,
+      redact: req.query.redaction !== 'none'
+    })
+    if (!report) {
+      res.status(404).json({ error: 'No log report available', app_id: appId })
+      return
+    }
+    res.json({
+      app_id: appId,
+      ref: buildPinokioRef({
+        host: currentPeerHost() || '127.0.0.1',
+        port: peerPort(),
+        scope: 'api',
+        id: appId
+      }),
+      source: buildSource(currentPeerHost(), true),
+      ...report
     })
   }))
 
