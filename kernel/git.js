@@ -1169,6 +1169,32 @@ class Git {
         }
       }
     }
+    const clone = (value) => {
+      if (typeof value !== "object" || value === null) return value
+      return JSON.parse(JSON.stringify(value))
+    }
+    const sameConfigValue = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+    const isCredentialSection = (section) => section === "credential" || section.startsWith('credential "')
+    const resetCredentialDefaults = () => {
+      const templateCredentialSections = Object.fromEntries(
+        Object.entries(templateConfig).filter(([section]) => isCredentialSection(section))
+      )
+
+      for (const section of Object.keys(config)) {
+        if (!isCredentialSection(section)) continue
+        if (!Object.prototype.hasOwnProperty.call(templateCredentialSections, section)) {
+          delete config[section]
+          dirty = true
+        }
+      }
+
+      for (const [section, tplSection] of Object.entries(templateCredentialSections)) {
+        if (!sameConfigValue(config[section], tplSection)) {
+          config[section] = clone(tplSection)
+          dirty = true
+        }
+      }
+    }
 
     for (const [section, tplSection] of Object.entries(templateConfig)) {
       if (typeof tplSection !== "object" || tplSection === null) continue
@@ -1196,6 +1222,8 @@ class Git {
       dirty = true
     }
 
+    resetCredentialDefaults()
+
     const githubCredentialSection = config['credential "https://github'] && config['credential "https://github']['com"']
     if (githubCredentialSection && typeof githubCredentialSection === "object") {
       if (!githubCredentialSection.provider) {
@@ -1203,7 +1231,7 @@ class Git {
         dirty = true
       }
       const helper = typeof githubCredentialSection.helper === "string" ? githubCredentialSection.helper : ""
-      if (!helper || /(^|\s|!)gh\s+auth\s+git-credential/i.test(helper)) {
+      if (!helper) {
         githubCredentialSection.helper = "manager"
         dirty = true
       }

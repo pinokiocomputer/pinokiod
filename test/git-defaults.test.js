@@ -1,11 +1,14 @@
 const assert = require('node:assert/strict')
+const { execFile } = require('node:child_process')
 const fs = require('node:fs/promises')
 const os = require('node:os')
 const path = require('node:path')
 const test = require('node:test')
+const { promisify } = require('node:util')
 const ini = require('ini')
 
 const KernelGit = require('../kernel/git')
+const execFileAsync = promisify(execFile)
 
 async function withTempHome(fn) {
   const homedir = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-git-defaults-'))
@@ -64,6 +67,56 @@ test('Git defaults migrate the legacy gh GitHub helper to Git Credential Manager
     assert.equal(githubCredentialSection(config).provider, 'github')
     assert.equal(config.user.name, 'custom')
     assert.equal(config.user.email, 'custom@example.test')
+  })
+})
+
+test('Git defaults reset credential sections to built-in defaults before Git reads config', async () => {
+  await withTempHome(async (homedir) => {
+    const staleHelpers = [
+      '!custom-helper auth git-credential',
+      '!gh auth git-credential',
+      '!gh.exe auth git-credential',
+      `!'${path.win32.join('Z:\\', 'Any Folder', 'bin', 'gh.exe')}' auth git-credential`,
+    ]
+
+    for (const [index, helper] of staleHelpers.entries()) {
+      const caseHome = path.join(homedir, `case-${index}`)
+      await fs.mkdir(caseHome)
+      const gitconfigPath = path.join(caseHome, 'gitconfig')
+      await fs.writeFile(gitconfigPath, [
+        '[credential "https://github.com"]',
+        `  helper = ${helper}`,
+        '  provider = github',
+        '[credential "https://gist.github.com"]',
+        `  helper = ${helper}`,
+        '[credential "https://enterprise.example"]',
+        `  helper = ${helper}`,
+        '[credential]',
+        `  helper = ${helper}`,
+        '  gitHubAuthModes = device',
+        '  namespace = stale',
+        '[user]',
+        '  name = custom',
+        '  email = custom@example.test',
+        '',
+      ].join('\n'))
+      const git = new KernelGit(createKernel(caseHome))
+
+      await git.ensureDefaults()
+
+      const content = await fs.readFile(gitconfigPath, 'utf8')
+      assert.doesNotMatch(content, /git-credential/i)
+      const { stdout } = await execFileAsync('git', ['config', '--file', gitconfigPath, '--list'])
+      assert.match(stdout, /credential\.helper=manager/)
+      assert.match(stdout, /credential\.githubauthmodes=oauth/)
+      assert.match(stdout, /credential\.namespace=pinokio/)
+      assert.match(stdout, /credential\.https:\/\/github\.com\.helper=manager/)
+      assert.doesNotMatch(stdout, /credential\.https:\/\/gist\.github\.com/)
+      assert.doesNotMatch(stdout, /credential\.https:\/\/enterprise\.example/)
+      const config = ini.parse(content)
+      assert.equal(config.user.name, 'custom')
+      assert.equal(config.user.email, 'custom@example.test')
+    }
   })
 })
 
