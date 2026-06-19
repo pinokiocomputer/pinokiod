@@ -1853,9 +1853,15 @@ body.dark .appcanvas_filler {
 }
 .appcanvas.vertical .appcanvas-resizer {
   display: flex;
-  flex: 0 0 0px;
+  flex: 0 0 8px;
+  width: 8px;
+  min-width: 8px;
+  margin-left: -4px;
+  margin-right: -4px;
   align-items: stretch;
   justify-content: center;
+  position: relative;
+  z-index: 3;
   cursor: col-resize;
   touch-action: none;
   outline: none;
