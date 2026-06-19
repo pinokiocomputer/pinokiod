@@ -1628,15 +1628,51 @@ body.dark .task-link-button.danger {
 }
 
 .setup-shell {
-  width: min(1120px, 100%);
+  width: min(1080px, 100%);
+}
+
+body.setup-page .task-shell-header {
+  padding-bottom: 16px;
+}
+
+body.setup-page .task-shell-header-main {
+  max-width: 820px;
+}
+
+body.setup-page .task-eyebrow {
+  color: var(--task-muted);
+  letter-spacing: 0;
+}
+
+body.setup-page .task-title {
+  font-size: clamp(24px, 2.4vw, 30px);
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+body.setup-page .task-description {
+  max-width: 76ch;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+body.setup-page .task-badge {
+  min-height: 22px;
+  border-radius: 7px;
+}
+
+body.setup-page .task-badge-warning {
+  border-color: color-mix(in srgb, var(--task-accent) 20%, var(--task-border));
+  background: color-mix(in srgb, var(--task-accent) 7%, var(--task-panel));
+  color: color-mix(in srgb, var(--task-accent) 58%, var(--task-text));
 }
 
 .setup-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 36px;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 32px;
   align-items: start;
-  padding-top: 18px;
+  padding-top: 16px;
 }
 
 .setup-requirements-section {
@@ -1646,23 +1682,23 @@ body.dark .task-link-button.danger {
 
 .setup-requirement-list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .setup-requirement-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
+  gap: 14px;
   align-items: center;
-  padding: 14px 16px;
+  padding: 11px 12px;
   border: 1px solid var(--task-border);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--task-panel) 97%, var(--task-soft));
 }
 
 .setup-requirement-row.needs-update {
-  border-color: color-mix(in srgb, var(--task-accent) 18%, var(--task-border-strong));
-  background: color-mix(in srgb, var(--task-accent) 8%, var(--task-panel));
+  border-color: var(--task-border-strong);
+  background: color-mix(in srgb, var(--task-panel) 95%, var(--task-soft));
 }
 
 .setup-requirement-copy {
@@ -1670,17 +1706,17 @@ body.dark .task-link-button.danger {
 }
 
 .setup-requirement-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--task-text);
   word-break: break-word;
 }
 
 .setup-requirement-detail {
-  margin-top: 4px;
+  margin-top: 3px;
   color: var(--task-muted);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.45;
 }
 
@@ -1688,50 +1724,63 @@ body.dark .task-link-button.danger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 30px;
-  padding: 0 11px;
+  gap: 6px;
+  min-height: 26px;
+  padding: 0 9px;
   border: 1px solid var(--task-border);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--task-panel) 88%, var(--task-soft));
+  border-radius: 7px;
+  background: transparent;
   color: var(--task-muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.01em;
   white-space: nowrap;
 }
 
+.setup-requirement-state i {
+  font-size: 10px;
+}
+
 .setup-requirement-row.is-installed .setup-requirement-state {
+  border-color: color-mix(in srgb, var(--task-border) 72%, transparent);
   color: var(--task-text);
 }
 
 .setup-requirement-row.needs-update .setup-requirement-state {
-  border-color: color-mix(in srgb, var(--task-accent) 24%, var(--task-border-strong));
-  background: color-mix(in srgb, var(--task-accent) 10%, var(--task-panel));
-  color: color-mix(in srgb, var(--task-accent) 70%, var(--task-text));
+  border-color: color-mix(in srgb, var(--task-accent) 22%, var(--task-border-strong));
+  background: color-mix(in srgb, var(--task-accent) 6%, var(--task-panel));
+  color: color-mix(in srgb, var(--task-accent) 56%, var(--task-text));
 }
 
 .setup-actions-column {
   position: sticky;
-  top: 18px;
+  top: 20px;
   align-self: start;
+  padding-left: 24px;
+  border-left: 1px solid var(--task-border);
 }
 
 .setup-action-card {
   margin: 0;
-  padding: 18px 0 0;
+  padding: 0;
   border-top: 0;
 }
 
 .setup-summary-grid {
-  margin-top: 2px;
+  margin-top: 4px;
+}
+
+.setup-summary-grid .task-meta-chip {
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
 }
 
 .setup-primary-button {
   width: 100%;
   min-height: 40px;
-  margin-top: 18px;
+  margin-top: 16px;
   font-size: 12px;
+  border-radius: 8px;
 }
 
 .setup-install-form {
@@ -1740,9 +1789,9 @@ body.dark .task-link-button.danger {
 
 .setup-secondary-actions {
   display: grid;
-  gap: 10px;
-  padding-top: 16px;
-  margin-top: 16px;
+  gap: 8px;
+  padding-top: 14px;
+  margin-top: 14px;
   border-top: 1px solid var(--task-border);
 }
 
@@ -1752,6 +1801,9 @@ body.dark .task-link-button.danger {
 
 .setup-secondary-actions .task-button {
   justify-content: flex-start;
+  min-height: 30px;
+  border-radius: 7px;
+  color: var(--task-muted);
 }
 
 .setup-reset-loading {
@@ -1782,26 +1834,26 @@ body.dark .task-link-button.danger {
   width: min(480px, 100%);
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
+  gap: 14px;
+  padding: 16px;
   border: 1px solid var(--task-border);
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
   box-sizing: border-box;
 }
 
 .setup-loading-icon {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--task-border);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--task-panel) 92%, var(--task-soft));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
   color: var(--task-accent);
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .setup-loading-copy {
@@ -3049,6 +3101,8 @@ body.dark .plugin-option .option-icon {
     top: 12px;
     order: -1;
     z-index: 2;
+    padding-left: 0;
+    border-left: 0;
   }
 
   .setup-action-card {
