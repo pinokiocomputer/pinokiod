@@ -3240,11 +3240,14 @@ document.addEventListener("DOMContentLoaded", () => {
     })
   }
 
+  /*
+  // Screen capture toolbar handling is disabled while the button is hidden.
   if (document.querySelector("#screenshot")) {
     document.querySelector("#screenshot").addEventListener("click", (e) => {
       screenshot()
     })
   }
+  */
   bindHistoryButton("#back", -1)
   bindHistoryButton("#forward", 1)
   if (document.querySelector("#refresh-page")) {

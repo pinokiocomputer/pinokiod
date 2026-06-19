@@ -500,7 +500,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   }
 
-  // Inspector handling
+  /*
+  // Inspector handling is disabled while the X-ray toolbar button is hidden.
   const inspectorButton = document.querySelector('#inspector');
   const isDesktop = agent === 'electron';
 
@@ -600,6 +601,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }, true);
   }
+  */
 
 
 });

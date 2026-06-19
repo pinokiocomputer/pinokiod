@@ -96,6 +96,48 @@ body.app-page header.navheader h1 > .flexible {
   flex: 0 0 0;
   min-width: 0;
 }
+body.app-page header.navheader .nav-labeled-action {
+  width: auto;
+  min-width: 0;
+  height: 28px;
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  line-height: 1;
+  text-transform: none;
+}
+body.app-page header.navheader .nav-labeled-action i {
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
+}
+body.app-page .ask-ai-brand-icon {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  background: currentColor;
+  -webkit-mask: url('/pinokio-mark.svg') center / contain no-repeat;
+  mask: url('/pinokio-mark.svg') center / contain no-repeat;
+}
+body.app-page header.navheader .nav-labeled-action .nav-action-label {
+  display: inline-block;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 500;
+}
+body.app-page header.navheader .nav-labeled-action.selected,
+body.app-page header.navheader .nav-labeled-action:hover,
+body.app-page header.navheader .nav-labeled-action:focus-visible {
+  background: var(--pinokio-sidebar-tab-active-bg);
+  color: var(--pinokio-sidebar-tab-active-color);
+}
 .resource-usage {
   position: relative;
   flex: 0 0 auto;
@@ -1332,6 +1374,15 @@ body.dark .ask-ai-drawer-empty {
 }
 body.dark .ask-ai-drawer-empty-title {
   color: rgba(248, 250, 252, 0.95);
+}
+.ask-ai-drawer-empty-subtitle {
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: -6px;
+  color: rgba(75, 85, 99, 0.78);
+}
+body.dark .ask-ai-drawer-empty-subtitle {
+  color: rgba(209, 213, 219, 0.68);
 }
 .ask-ai-drawer-search {
   display: flex;
@@ -6233,7 +6284,8 @@ header.navheader h1 {
     color: #64748b;
     text-decoration: none;
   }
-  .mobile-bottom-nav__button i {
+  .mobile-bottom-nav__button i,
+  .mobile-bottom-nav__button .ask-ai-brand-icon {
     font-size: 14px;
   }
   .mobile-bottom-nav__button.selected {
@@ -6703,8 +6755,10 @@ header.navheader h1 {
 <button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
 <button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
 <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<!-- Screen capture and X-ray mode are hidden for now.
 <button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
 <button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+-->
 <button class='btn2' id='menu-mobile' data-tippy-content="Tabs">
   <div><i class="fa-solid fa-list"></i></div>
 </button>
@@ -6748,6 +6802,36 @@ header.navheader h1 {
 </button>
 <% } %>
 <div class='flexible'></div>
+<% if (type === 'run') { %>
+<button
+  type='button'
+  id='ask-ai-tab'
+  class="btn2 nav-labeled-action"
+  data-static="ask-ai"
+  data-workspace="<%=name%>"
+  data-workspace-cwd="<%=path%>"
+  data-ask-ai-trigger="true"
+  data-tippy-content="Ask AI"
+  aria-label="Ask AI"
+  aria-expanded="false"
+  aria-controls="ask-ai-drawer">
+  <span class="ask-ai-brand-icon" aria-hidden="true"></span>
+  <span class="nav-action-label">Ask AI</span>
+</button>
+<% } %>
+<% if (registryEnabled) { %>
+<button
+  type='button'
+  id='community-toggle'
+  class="btn2 nav-labeled-action"
+  data-tippy-content="Project feed"
+  aria-label="Project feed"
+  aria-expanded="false"
+  aria-controls="community-drawer">
+  <i class="fa-solid fa-rss" aria-hidden="true"></i>
+  <span class="nav-action-label">Feed</span>
+</button>
+<% } %>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
@@ -6860,15 +6944,6 @@ header.navheader h1 {
         <% if (type === 'browse') { %>
           <%- include('./partials/fs_status') %>
         <% } %>
-        <% if (type === 'run') { %>
-          <button type='button' id='ask-ai-tab' class="btn header-item" data-static="ask-ai" data-workspace="<%=name%>" data-workspace-cwd="<%=path%>" data-ask-ai-trigger="true" data-tippy-content="Ask AI">
-            <div class='tab'>
-              <span class="menu-action-leading-icon ask-ai-brand-icon" aria-hidden="true"></span>
-              <div class='display'>Ask AI</div>
-              <div class='flexible'></div>
-            </div>
-          </button>
-        <% } %>
         <button type='button' id='logs-toggle' class="btn header-item" data-tippy-content="logs" aria-expanded="false" aria-controls="app-logs-drawer">
           <div class='tab'>
             <i class="fa-solid fa-laptop-code menu-action-leading-icon"></i>
@@ -6877,15 +6952,6 @@ header.navheader h1 {
             <span class='logs-new-badge hidden' id='logs-new-badge'>New</span>
           </div>
         </button>
-        <% if (registryEnabled) { %>
-          <button type='button' id='community-toggle' class="btn header-item" data-tippy-content="community">
-            <div class='tab'>
-              <i class="fa-solid fa-globe menu-action-leading-icon"></i>
-              <div class='display'>Community</div>
-              <div class='flexible'></div>
-            </div>
-          </button>
-        <% } %>
         <button type='button' id='sidebar-open-explorer' class="btn header-item" data-filepath="<%=path%>" data-tippy-content="Open in File Explorer">
           <div class='tab'>
             <i class="fa-solid fa-folder-open menu-action-leading-icon"></i>
@@ -7012,7 +7078,7 @@ header.navheader h1 {
         <div class='ask-ai-drawer-inner'>
           <div class='ask-ai-drawer-bar'>
             <div class='ask-ai-drawer-title'>
-              <i class="fa-solid fa-robot" aria-hidden="true"></i>
+              <span class="ask-ai-brand-icon" aria-hidden="true"></span>
               <span>Ask AI</span>
             </div>
             <div class='ask-ai-drawer-actions'>
@@ -7034,11 +7100,12 @@ header.navheader h1 {
             <div class='ask-ai-drawer-empty'>
               <div class='ask-ai-drawer-search'>
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                <input class='ask-ai-drawer-search-input' type='search' placeholder="Filter tools" autocomplete="off" spellcheck="false" aria-label="Filter Ask AI launch options">
+                <input class='ask-ai-drawer-search-input' type='search' placeholder="Search shells and plugins" autocomplete="off" spellcheck="false" aria-label="Search shells and plugins">
               </div>
-              <div class='ask-ai-drawer-empty-title'>Pick a shell or plugin to launch</div>
-              <div class='ask-ai-drawer-picker-list' role="list" aria-label="Ask AI launch options"></div>
-              <div class='ask-ai-drawer-picker-status muted'>Use the Ask AI button to load launch options.</div>
+              <div class='ask-ai-drawer-empty-title'>Ask an AI agent about this project</div>
+              <div class='ask-ai-drawer-empty-subtitle'>Choose the shell or plugin the agent should use.</div>
+              <div class='ask-ai-drawer-picker-list' role="list" aria-label="Ask AI shells and plugins"></div>
+              <div class='ask-ai-drawer-picker-status muted'>Choose a shell or plugin to start an agent.</div>
             </div>
             <iframe class='ask-ai-frame hidden' title="Panel" allow="fullscreen *;" allowfullscreen></iframe>
           </div>
@@ -7122,9 +7189,9 @@ header.navheader h1 {
         <div class='community-drawer-inner'>
           <div class='community-drawer-bar'>
             <div class='community-drawer-title'>
-              <button type="button" class="community-drawer-home" data-tippy-content="Community home" aria-label="Community home">
-                <i class="fa-solid fa-globe"></i>
-                <span>Community</span>
+              <button type="button" class="community-drawer-home" data-tippy-content="Project feed" aria-label="Project feed">
+                <i class="fa-solid fa-rss"></i>
+                <span>Feed</span>
               </button>
               <span class='community-drawer-status' data-state="offline" data-tippy-content="Offline" aria-label="Offline" role="img"></span>
             </div>
@@ -7135,7 +7202,7 @@ header.navheader h1 {
               <button type='button' class='btn2 community-drawer-forward' disabled data-tippy-content="Forward" aria-label="Forward">
                 <i class="fa-solid fa-chevron-right"></i>
               </button>
-              <button type='button' class='btn2 community-drawer-refresh' disabled data-tippy-content="Refresh" aria-label="Refresh community">
+              <button type='button' class='btn2 community-drawer-refresh' disabled data-tippy-content="Refresh" aria-label="Refresh feed">
                 <i class="fa-solid fa-rotate-right"></i>
               </button>
               <button type='button' class='btn2 community-drawer-toggle' data-tippy-content="Connect to Pinokio Network" aria-label="Connect to Pinokio Network">
@@ -7144,15 +7211,15 @@ header.navheader h1 {
               <button type='button' class='btn2 community-drawer-expand' data-tippy-content="Expand panel" aria-label="Expand panel" aria-pressed="false">
                 <i class="fa-solid fa-expand"></i>
               </button>
-              <button type='button' class='btn2 community-drawer-close' data-tippy-content="Close panel" aria-label="Close community panel">
+              <button type='button' class='btn2 community-drawer-close' data-tippy-content="Close panel" aria-label="Close feed panel">
                 <i class="fa-solid fa-xmark"></i>
               </button>
             </div>
           </div>
           <div class='community-drawer-location'>
-            <input class='community-drawer-location-input' type='text' value="" readonly aria-label="Community URL">
+            <input class='community-drawer-location-input' type='text' value="" readonly aria-label="Feed URL">
             <div class='community-drawer-location-overlay' aria-hidden="true"></div>
-            <textarea class='community-drawer-location-textarea' rows="1" readonly aria-label="Community URL"></textarea>
+            <textarea class='community-drawer-location-textarea' rows="1" readonly aria-label="Feed URL"></textarea>
           </div>
           <div class='community-drawer-body'>
             <div class='community-drawer-empty'>
@@ -7160,12 +7227,12 @@ header.navheader h1 {
                 <div class='community-drawer-empty-icon'>
                   <i class="fa-solid fa-plug-circle-xmark" aria-hidden="true"></i>
                 </div>
-                <div class='community-drawer-empty-title'>Load Community</div>
+                <div class='community-drawer-empty-title'>Load Feed</div>
               </div>
               <div class='community-drawer-empty-note muted'>Load https://pinokio.co in the panel (requires network)</div>
               <button type='button' class='btn community-drawer-connect'>Load</button>
             </div>
-            <iframe class='community-frame hidden' title="Community updates" allow="fullscreen *;" allowfullscreen></iframe>
+            <iframe class='community-frame hidden' title="Project feed" allow="fullscreen *;" allowfullscreen></iframe>
           </div>
         </div>
       </aside>
@@ -7227,8 +7294,8 @@ header.navheader h1 {
       </div>
     </div>
     <% if (registryEnabled) { %>
-    <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-community' data-mobile-proxy="#community-mode-toggle" data-mobile-close-menu="true" aria-pressed="false" aria-label="Community">
-      <i class="fa-solid fa-globe"></i>
+    <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-community' data-mobile-proxy="#community-mode-toggle" data-mobile-close-menu="true" aria-pressed="false" aria-label="Project feed">
+      <i class="fa-solid fa-rss"></i>
     </button>
     <% } %>
     <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-logs' data-mobile-proxy="#logs-toggle" data-mobile-close-menu="true" aria-pressed="false" aria-label="Logs">
@@ -7236,7 +7303,7 @@ header.navheader h1 {
     </button>
     <% if (type === 'run') { %>
     <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-ask-ai' data-mobile-proxy="#ask-ai-tab" data-mobile-close-menu="true" aria-pressed="false" aria-label="Ask AI">
-      <i class="fa-solid fa-robot"></i>
+      <span class="ask-ai-brand-icon" aria-hidden="true"></span>
     </button>
     <% } %>
   </nav>
@@ -15016,7 +15083,9 @@ document.addEventListener("DOMContentLoaded", () => {
     applyDrawerOpenState()
     if (askAiTrigger) {
       askAiTrigger.classList.remove("hidden")
+      askAiTrigger.classList.toggle("selected", open)
       askAiTrigger.setAttribute("aria-hidden", "false")
+      askAiTrigger.setAttribute("aria-expanded", open ? "true" : "false")
     }
     drawer.setAttribute("aria-hidden", open ? "false" : "true")
     if (resizer) {
@@ -15374,7 +15443,7 @@ document.addEventListener("DOMContentLoaded", () => {
     clearPickerList()
     const sourceTools = Array.isArray(tools) ? tools : []
     if (sourceTools.length === 0) {
-      setPickerStatus("No launch options available.")
+      setPickerStatus("No shells or plugins available.")
       return
     }
     const normalizedQuery = normalizePickerQuery(query)
@@ -15382,7 +15451,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ? sourceTools.filter((tool) => toolMatchesPickerQuery(tool, normalizedQuery))
       : sourceTools
     if (visibleTools.length === 0) {
-      setPickerStatus("No matches.")
+      setPickerStatus("No matching shells or plugins.")
       return
     }
     const groups = new Map()
@@ -15424,7 +15493,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     })
     if (!renderedCount) {
-      setPickerStatus("No launch options available.")
+      setPickerStatus("No shells or plugins available.")
       return
     }
     setPickerStatus("")
@@ -15480,7 +15549,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (searchInput) {
       searchInput.value = ""
     }
-    setPickerStatus("Loading launch options...")
+    setPickerStatus("Loading shells and plugins...")
     getAskAiTools(workspaceCwd).then((tools) => {
       if (requestId !== pickerRequestId) {
         return
@@ -15770,7 +15839,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setLocation("")
   setActionState(false)
   setEmptyState(true)
-  setPickerStatus("Use the Ask AI button to load launch options.")
+  setPickerStatus("Choose a shell or plugin to start an agent.")
   setOpen(false)
   window.PinokioAskAiDrawer = {
     openWithAgent,
@@ -16814,7 +16883,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       if (homeBtn) {
         homeBtn.disabled = false
-        setTooltip(homeBtn, "Community home")
+        setTooltip(homeBtn, "Project feed")
       }
       setNavDisabled(false)
       setToggleState(true)
