@@ -2859,59 +2859,86 @@ body.dark .swal2-title {
   background: rgba(0,0,0,0.8) !important;
   */
 }
+.swal2-container.pinokio-download-container.swal2-backdrop-show {
+  background: rgba(9, 11, 15, 0.34) !important;
+}
+body.dark .swal2-container.pinokio-download-container.swal2-backdrop-show {
+  background: rgba(0, 0, 0, 0.58) !important;
+}
 .swal2-popup.pinokio-download-modal {
-  border-radius: 14px !important;
-  padding: 18px !important;
-  background: #ffffff !important;
-  color: #0f172a !important;
-  border: 1px solid rgba(148, 163, 184, 0.2) !important;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18) !important;
+  --pinokio-download-bg: #ffffff;
+  --pinokio-download-control-bg: #ffffff;
+  --pinokio-download-text: #18181b;
+  --pinokio-download-muted: #71717a;
+  --pinokio-download-border: rgba(24, 24, 27, 0.12);
+  --pinokio-download-border-strong: rgba(24, 24, 27, 0.2);
+  --pinokio-download-chip-bg: rgba(24, 24, 27, 0.04);
+  --pinokio-download-primary-bg: #18181b;
+  --pinokio-download-primary-hover: #27272a;
+  --pinokio-download-primary-text: #ffffff;
+  --pinokio-download-focus: rgba(24, 24, 27, 0.14);
+  width: min(420px, calc(100vw - 32px)) !important;
+  border-radius: 8px !important;
+  padding: 20px !important;
+  background: var(--pinokio-download-bg) !important;
+  color: var(--pinokio-download-text) !important;
+  border: 1px solid var(--pinokio-download-border) !important;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18) !important;
 }
 body.dark .swal2-popup.pinokio-download-modal {
-  background: #0f172a !important;
-  color: #e2e8f0 !important;
-  border: 1px solid rgba(148, 163, 184, 0.24) !important;
-  box-shadow: 0 32px 90px rgba(2, 8, 23, 0.72) !important;
+  --pinokio-download-bg: #1b1c1d;
+  --pinokio-download-control-bg: rgba(255, 255, 255, 0.04);
+  --pinokio-download-text: rgba(250, 250, 250, 0.94);
+  --pinokio-download-muted: rgba(229, 231, 235, 0.62);
+  --pinokio-download-border: rgba(255, 255, 255, 0.1);
+  --pinokio-download-border-strong: rgba(255, 255, 255, 0.18);
+  --pinokio-download-chip-bg: rgba(255, 255, 255, 0.055);
+  --pinokio-download-primary-bg: rgba(250, 250, 250, 0.94);
+  --pinokio-download-primary-hover: #ffffff;
+  --pinokio-download-primary-text: #1b1c1d;
+  --pinokio-download-focus: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.42) !important;
 }
 .swal2-popup.pinokio-download-modal .swal2-title {
-  margin: 0 40px 6px 0 !important;
+  margin: 0 32px 8px 0 !important;
   padding: 0 !important;
   text-align: left !important;
-  font-size: 20px !important;
-  font-weight: 700 !important;
-  line-height: 1.2 !important;
-  letter-spacing: -0.02em !important;
-  color: #0f172a !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0 !important;
+  color: var(--pinokio-download-text) !important;
 }
-body.dark .swal2-popup.pinokio-download-modal .swal2-title {
-  color: #f8fafc !important;
-}
-.pinokio-download-html.swal2-html-container {
-  margin: 0 0 12px 0 !important;
+.swal2-popup.pinokio-download-modal .pinokio-download-html.swal2-html-container {
+  margin: 0 0 16px 0 !important;
   padding: 0 !important;
   text-align: left !important;
   font-size: 13px !important;
   line-height: 1.45 !important;
-  color: rgba(71, 85, 105, 0.84) !important;
+  color: var(--pinokio-download-muted) !important;
 }
-body.dark .pinokio-download-html.swal2-html-container {
-  color: rgba(148, 163, 184, 0.88) !important;
-}
-.pinokio-download-note {
+.swal2-popup.pinokio-download-modal .pinokio-download-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 0;
 }
-.pinokio-download-note code {
+.swal2-popup.pinokio-download-modal .pinokio-download-note code {
+  max-width: 100%;
+  min-width: 0;
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--pinokio-download-border);
+  background: var(--pinokio-download-chip-bg);
+  color: var(--pinokio-download-text);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.06);
-  color: inherit;
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-body.dark .pinokio-download-note code {
-  background: rgba(148, 163, 184, 0.16);
-}
-.pinokio-download-label.swal2-input-label {
+.swal2-popup.pinokio-download-modal .pinokio-download-label.swal2-input-label {
   display: block !important;
   width: 100% !important;
   margin: 0 0 6px 0 !important;
@@ -2919,77 +2946,76 @@ body.dark .pinokio-download-note code {
   font-size: 12px !important;
   font-weight: 600 !important;
   line-height: 1.3 !important;
-  color: rgba(15, 23, 42, 0.78) !important;
+  color: var(--pinokio-download-text) !important;
 }
-body.dark .pinokio-download-label.swal2-input-label {
-  color: rgba(241, 245, 249, 0.84) !important;
-}
-.pinokio-download-input.swal2-input {
+.swal2-popup.pinokio-download-modal .pinokio-download-input.swal2-input {
+  box-sizing: border-box !important;
   width: 100% !important;
-  margin: 0 !important;
-  height: 40px !important;
-  padding: 0 12px !important;
-  border-radius: 10px !important;
-  border: 1px solid rgba(148, 163, 184, 0.58) !important;
-  background: #ffffff !important;
-  color: #0f172a !important;
-  box-shadow: none !important;
-  font-size: 14px !important;
-  line-height: 1.2 !important;
-}
-.pinokio-download-input.swal2-input:focus {
-  border-color: rgba(59, 130, 246, 0.78) !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16) !important;
-}
-body.dark .pinokio-download-input.swal2-input {
-  border-color: rgba(148, 163, 184, 0.45) !important;
-  background: rgba(15, 23, 42, 0.65) !important;
-  color: rgba(248, 250, 252, 0.96) !important;
-}
-.pinokio-download-actions.swal2-actions {
-  width: 100% !important;
-  justify-content: flex-end !important;
-  gap: 8px !important;
-  margin-top: 14px !important;
-  padding: 0 !important;
-}
-.pinokio-download-actions.swal2-actions.swal2-loading {
-  justify-content: flex-end !important;
-  gap: 8px !important;
-}
-.pinokio-download-confirm.swal2-confirm,
-.pinokio-download-cancel.swal2-cancel {
-  min-width: 92px !important;
   height: 36px !important;
   margin: 0 !important;
-  padding: 0 14px !important;
-  border-radius: 10px !important;
+  padding: 0 10px !important;
+  border-radius: 7px !important;
+  border: 1px solid var(--pinokio-download-border-strong) !important;
+  background: var(--pinokio-download-control-bg) !important;
+  color: var(--pinokio-download-text) !important;
+  box-shadow: none !important;
   font-size: 13px !important;
-  font-weight: 650 !important;
+  line-height: 1.2 !important;
+}
+.swal2-popup.pinokio-download-modal .pinokio-download-input.swal2-input:focus {
+  border-color: var(--pinokio-download-text) !important;
+  box-shadow: 0 0 0 3px var(--pinokio-download-focus) !important;
+  outline: none !important;
+}
+.swal2-popup.pinokio-download-modal .pinokio-download-input.swal2-input::placeholder {
+  color: var(--pinokio-download-muted) !important;
+}
+.swal2-popup.pinokio-download-modal .pinokio-download-actions.swal2-actions {
+  width: 100% !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  margin-top: 16px !important;
+  padding: 0 !important;
+}
+.swal2-popup.pinokio-download-modal .pinokio-download-actions.swal2-actions.swal2-loading {
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+.swal2-popup.pinokio-download-modal .pinokio-download-confirm.swal2-confirm,
+.swal2-popup.pinokio-download-modal .pinokio-download-cancel.swal2-cancel {
+  min-width: 78px !important;
+  height: 32px !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  border-radius: 6px !important;
+  border: 1px solid var(--pinokio-download-border) !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  font-weight: 600 !important;
 }
 .swal2-popup.pinokio-download-modal .pinokio-download-confirm.swal2-confirm {
-  border: none !important;
-  background: royalblue !important;
-  color: #ffffff !important;
+  border-color: var(--pinokio-download-primary-bg) !important;
+  background: var(--pinokio-download-primary-bg) !important;
+  color: var(--pinokio-download-primary-text) !important;
 }
-.swal2-popup.pinokio-download-modal .pinokio-download-confirm.swal2-confirm:hover {
-  background: #315cd8 !important;
+.swal2-popup.pinokio-download-modal .pinokio-download-confirm.swal2-confirm:hover,
+.swal2-popup.pinokio-download-modal .pinokio-download-confirm.swal2-confirm:focus-visible {
+  border-color: var(--pinokio-download-primary-hover) !important;
+  background: var(--pinokio-download-primary-hover) !important;
+  color: var(--pinokio-download-primary-text) !important;
+  outline: none !important;
 }
 .swal2-popup.pinokio-download-modal .pinokio-download-cancel.swal2-cancel {
-  border: 1px solid rgba(148, 163, 184, 0.6) !important;
-  background: #ffffff !important;
-  color: #0f172a !important;
+  background: transparent !important;
+  color: var(--pinokio-download-muted) !important;
 }
-body.dark .swal2-popup.pinokio-download-modal .pinokio-download-cancel.swal2-cancel {
-  border-color: rgba(148, 163, 184, 0.52) !important;
-  background: rgba(15, 23, 42, 0.64) !important;
-  color: rgba(248, 250, 252, 0.96) !important;
-}
-.swal2-popup.pinokio-download-modal .pinokio-download-cancel.swal2-cancel:hover {
-  background: rgba(148, 163, 184, 0.12) !important;
-}
-body.dark .swal2-popup.pinokio-download-modal .pinokio-download-cancel.swal2-cancel:hover {
-  background: rgba(148, 163, 184, 0.18) !important;
+.swal2-popup.pinokio-download-modal .pinokio-download-cancel.swal2-cancel:hover,
+.swal2-popup.pinokio-download-modal .pinokio-download-cancel.swal2-cancel:focus-visible {
+  border-color: var(--pinokio-download-border-strong) !important;
+  background: var(--pinokio-download-chip-bg) !important;
+  color: var(--pinokio-download-text) !important;
+  outline: none !important;
 }
 .pinokio-install-inline-status {
   padding: 14px 18px;
@@ -3075,84 +3101,94 @@ body.dark .pinokio-install-inline-status.is-error {
 body.dark .pinokio-install-inline-status.is-error .pinokio-install-inline-status-detail {
   color: rgba(255, 223, 219, 0.84);
 }
-.pinokio-download-close.swal2-close {
+.swal2-popup.pinokio-download-modal .pinokio-download-close.swal2-close {
   position: absolute !important;
-  top: 14px !important;
-  right: 14px !important;
+  top: 12px !important;
+  right: 12px !important;
   width: 28px !important;
   height: 28px !important;
-  line-height: 28px !important;
+  line-height: 1 !important;
   margin: 0 !important;
+  border-radius: 6px !important;
+  color: var(--pinokio-download-muted) !important;
   font-size: 20px !important;
-  color: rgba(71, 85, 105, 0.7) !important;
-  border-radius: 999px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  transition: background 0.2s ease, color 0.2s ease !important;
+  transition: background-color 0.14s ease, color 0.14s ease !important;
 }
-.pinokio-download-close.swal2-close:hover {
-  background: rgba(148, 163, 184, 0.14) !important;
-  color: #0f172a !important;
+.swal2-popup.pinokio-download-modal .pinokio-download-close.swal2-close:hover,
+.swal2-popup.pinokio-download-modal .pinokio-download-close.swal2-close:focus-visible {
+  background: var(--pinokio-download-chip-bg) !important;
+  color: var(--pinokio-download-text) !important;
+  outline: none !important;
 }
-body.dark .pinokio-download-close.swal2-close {
-  color: rgba(226, 232, 240, 0.72) !important;
-}
-body.dark .pinokio-download-close.swal2-close:hover {
-  background: rgba(148, 163, 184, 0.16) !important;
-  color: #f8fafc !important;
-}
-.pinokio-download-validation.swal2-validation-message {
+.swal2-popup.pinokio-download-modal .pinokio-download-validation.swal2-validation-message {
   margin: 10px 0 0 0 !important;
-  padding: 10px 12px !important;
-  border-radius: 10px !important;
-  background: rgba(255, 66, 66, 0.1) !important;
-  border: 1px solid rgba(255, 66, 66, 0.18) !important;
-  border-left: 4px solid rgba(255, 66, 66, 0.5) !important;
-  color: rgba(15, 23, 42, 0.92) !important;
-  font-size: 13px !important;
+  padding: 9px 10px !important;
+  border-radius: 7px !important;
+  background: rgba(220, 38, 38, 0.08) !important;
+  border: 1px solid rgba(220, 38, 38, 0.18) !important;
+  color: #b91c1c !important;
+  font-size: 12px !important;
   line-height: 1.4 !important;
   justify-content: flex-start !important;
-  align-items: flex-start !important;
+  align-items: center !important;
+  text-align: left !important;
 }
-.pinokio-download-validation.swal2-validation-message::before {
+.swal2-popup.pinokio-download-modal .pinokio-download-validation.swal2-validation-message::before {
   display: none !important;
 }
-body.dark .pinokio-download-validation.swal2-validation-message {
-  background: rgba(255, 66, 66, 0.16) !important;
-  border-color: rgba(255, 66, 66, 0.24) !important;
-  border-left-color: rgba(255, 66, 66, 0.68) !important;
-  color: rgba(248, 250, 252, 0.94) !important;
+body.dark .swal2-popup.pinokio-download-modal .pinokio-download-validation.swal2-validation-message {
+  background: rgba(239, 68, 68, 0.13) !important;
+  border-color: rgba(248, 113, 113, 0.28) !important;
+  color: #fecaca !important;
 }
-.pinokio-download-loader.swal2-loader {
+.swal2-popup.pinokio-download-modal .pinokio-download-loader.swal2-loader {
   align-items: center !important;
   justify-content: center !important;
-  gap: 8px !important;
+  gap: 7px !important;
   width: auto !important;
-  height: 36px !important;
+  height: 32px !important;
   margin: 0 !important;
-  padding: 0 14px !important;
+  padding: 0 12px !important;
   animation: none !important;
-  border: none !important;
-  border-radius: 10px !important;
-  background: royalblue !important;
-  color: #ffffff !important;
+  border: 1px solid var(--pinokio-download-primary-bg) !important;
+  border-radius: 6px !important;
+  background: var(--pinokio-download-primary-bg) !important;
+  color: var(--pinokio-download-primary-text) !important;
 }
-.pinokio-download-actions.swal2-actions.swal2-loading .pinokio-download-loader.swal2-loader {
+.swal2-popup.pinokio-download-modal .pinokio-download-actions.swal2-actions.swal2-loading .pinokio-download-loader.swal2-loader {
   display: inline-flex !important;
 }
-.pinokio-download-loader-spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.34);
-  border-top-color: #ffffff;
+.swal2-popup.pinokio-download-modal .pinokio-download-loader-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid color-mix(in srgb, var(--pinokio-download-primary-text) 30%, transparent);
+  border-top-color: var(--pinokio-download-primary-text);
   border-radius: 50%;
   animation: pinokio-download-spin 0.8s linear infinite;
 }
-.pinokio-download-loader-text {
+.swal2-popup.pinokio-download-modal .pinokio-download-loader-text {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
+}
+@media (max-width: 520px) {
+  .swal2-popup.pinokio-download-modal {
+    width: calc(100vw - 24px) !important;
+    padding: 16px !important;
+  }
+  .swal2-popup.pinokio-download-modal .swal2-title {
+    margin-right: 30px !important;
+  }
+  .swal2-popup.pinokio-download-modal .pinokio-download-actions.swal2-actions {
+    flex-wrap: wrap !important;
+  }
+  .swal2-popup.pinokio-download-modal .pinokio-download-confirm.swal2-confirm,
+  .swal2-popup.pinokio-download-modal .pinokio-download-cancel.swal2-cancel {
+    flex: 1 1 118px !important;
+  }
 }
 @keyframes pinokio-download-spin {
   to {
@@ -5680,5 +5716,382 @@ body.dark .logs-viewer-output {
   .logs-viewer-controls {
     width: 100%;
     justify-content: space-between;
+  }
+}
+
+/* Minimal SweetAlert normalization for generic QR/form modals. */
+.swal2-popup.min-popup,
+.swal2-popup.min-popup2 {
+  width: min(360px, calc(100vw - 32px)) !important;
+  padding: 20px !important;
+  border: 1px solid rgba(24, 24, 27, 0.12) !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  color: #18181b !important;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.16) !important;
+}
+
+body.dark .swal2-popup.min-popup,
+body.dark .swal2-popup.min-popup2 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: #1b1c1d !important;
+  color: rgba(250, 250, 250, 0.94) !important;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.42) !important;
+}
+
+.swal2-title.min-title {
+  color: inherit !important;
+  font-size: 16px !important;
+  line-height: 1.25 !important;
+  font-weight: 600 !important;
+  margin: 0 0 12px !important;
+  padding: 0 !important;
+}
+
+.min-modal {
+  color: #71717a !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+
+body.dark .min-modal {
+  color: rgba(229, 231, 235, 0.62) !important;
+}
+
+.swal2-popup.min-popup a,
+.swal2-popup.min-popup2 a {
+  color: inherit !important;
+  text-decoration-color: rgba(82, 82, 91, 0.35);
+}
+
+.swal2-popup.min-popup img,
+.swal2-popup.min-popup2 img {
+  max-width: 180px;
+  border-radius: 6px;
+}
+
+.swal2-popup.pinokio-input-modal {
+  --pinokio-input-modal-surface: #ffffff;
+  --pinokio-input-modal-surface-muted: rgba(24, 24, 27, 0.03);
+  --pinokio-input-modal-border: rgba(24, 24, 27, 0.12);
+  --pinokio-input-modal-border-strong: rgba(24, 24, 27, 0.16);
+  --pinokio-input-modal-text: #18181b;
+  --pinokio-input-modal-title: #18181b;
+  --pinokio-input-modal-muted: #71717a;
+  --pinokio-input-modal-shadow: 0 18px 50px rgba(15, 23, 42, 0.16);
+  --pinokio-input-modal-focus-border: rgba(24, 24, 27, 0.42);
+  --pinokio-input-modal-focus-ring: rgba(24, 24, 27, 0.12);
+  border-radius: 8px !important;
+}
+
+body.dark .swal2-popup.pinokio-input-modal {
+  --pinokio-input-modal-surface: #1b1c1d;
+  --pinokio-input-modal-surface-muted: rgba(255, 255, 255, 0.04);
+  --pinokio-input-modal-border: rgba(255, 255, 255, 0.1);
+  --pinokio-input-modal-border-strong: rgba(255, 255, 255, 0.14);
+  --pinokio-input-modal-text: rgba(250, 250, 250, 0.94);
+  --pinokio-input-modal-title: rgba(250, 250, 250, 0.94);
+  --pinokio-input-modal-muted: rgba(229, 231, 235, 0.62);
+  --pinokio-input-modal-shadow: 0 24px 72px rgba(0, 0, 0, 0.42);
+  --pinokio-input-modal-focus-border: rgba(255, 255, 255, 0.38);
+  --pinokio-input-modal-focus-ring: rgba(255, 255, 255, 0.14);
+}
+
+.pinokio-input-modal-checkbox-input {
+  accent-color: var(--pinokio-input-modal-title) !important;
+}
+
+.swal2-popup.pinokio-input-modal .pinokio-input-modal-control {
+  border-color: var(--pinokio-input-modal-border-strong) !important;
+  background: var(--pinokio-input-modal-surface-muted) !important;
+  color: var(--pinokio-input-modal-text) !important;
+}
+
+.swal2-popup.pinokio-input-modal .pinokio-input-modal-control:focus {
+  border-color: var(--pinokio-input-modal-focus-border) !important;
+  background: var(--pinokio-input-modal-surface) !important;
+  box-shadow: 0 0 0 3px var(--pinokio-input-modal-focus-ring) !important;
+}
+
+.pinokio-input-modal-actions.swal2-actions .swal2-loader {
+  border-color: var(--pinokio-input-modal-title) transparent var(--pinokio-input-modal-title) transparent !important;
+}
+
+.pinokio-input-modal-confirm.swal2-confirm {
+  border-color: var(--pinokio-input-modal-title) !important;
+  background: var(--pinokio-input-modal-title) !important;
+  color: var(--pinokio-input-modal-surface) !important;
+}
+
+.pinokio-input-modal-confirm.swal2-confirm:hover,
+.pinokio-input-modal-confirm.swal2-confirm:focus-visible {
+  border-color: var(--pinokio-input-modal-text) !important;
+  background: var(--pinokio-input-modal-text) !important;
+  color: var(--pinokio-input-modal-surface) !important;
+  outline: none !important;
+}
+
+.pinokio-modern-close.swal2-close {
+  width: 28px !important;
+  height: 28px !important;
+  margin: 0 !important;
+  border-radius: 6px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: #71717a !important;
+  font-family: inherit !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+  box-shadow: none !important;
+}
+
+body.dark .pinokio-modern-close.swal2-close {
+  color: rgba(229, 231, 235, 0.58) !important;
+}
+
+.pinokio-modern-close.swal2-close:hover,
+.pinokio-modern-close.swal2-close:focus-visible {
+  background: rgba(24, 24, 27, 0.06) !important;
+  color: #18181b !important;
+  outline: none !important;
+}
+
+body.dark .pinokio-modern-close.swal2-close:hover,
+body.dark .pinokio-modern-close.swal2-close:focus-visible {
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: rgba(250, 250, 250, 0.94) !important;
+}
+
+/* Baseline for older SweetAlert dialogs that do not yet opt into a named modal class. */
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) {
+  width: min(520px, calc(100vw - 32px)) !important;
+  padding: 20px !important;
+  border: 1px solid rgba(24, 24, 27, 0.12) !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  color: #18181b !important;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.16) !important;
+}
+
+body.dark .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: #1b1c1d !important;
+  color: rgba(250, 250, 250, 0.94) !important;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.42) !important;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-title {
+  margin: 0 32px 12px 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+  color: inherit !important;
+  font-size: 16px !important;
+  line-height: 1.25 !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-title > div {
+  justify-content: flex-start !important;
+  padding: 0 !important;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-html-container {
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+  color: #71717a !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+
+body.dark .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-html-container {
+  color: rgba(229, 231, 235, 0.62) !important;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-close {
+  width: 28px !important;
+  height: 28px !important;
+  margin: 0 !important;
+  border-radius: 6px !important;
+  border: 1px solid transparent !important;
+  color: #71717a !important;
+  font-family: inherit !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-close:hover,
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-close:focus-visible {
+  background: rgba(24, 24, 27, 0.06) !important;
+  color: #18181b !important;
+  box-shadow: none !important;
+}
+
+body.dark .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-close {
+  color: rgba(229, 231, 235, 0.58) !important;
+}
+
+body.dark .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-close:hover,
+body.dark .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-close:focus-visible {
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: rgba(250, 250, 250, 0.94) !important;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-actions {
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  margin: 16px 0 0 !important;
+  padding: 0 !important;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-styled {
+  min-height: 32px !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  border-radius: 6px !important;
+  border: 1px solid rgba(24, 24, 27, 0.12) !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-confirm.swal2-styled {
+  border-color: #18181b !important;
+  background: #18181b !important;
+  color: #ffffff !important;
+}
+
+body.dark .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-confirm.swal2-styled {
+  border-color: rgba(250, 250, 250, 0.94) !important;
+  background: rgba(250, 250, 250, 0.94) !important;
+  color: #1b1c1d !important;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-cancel.swal2-styled {
+  border-color: rgba(24, 24, 27, 0.12) !important;
+  background: transparent !important;
+  color: #52525b !important;
+}
+
+body.dark .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-cancel.swal2-styled {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(229, 231, 235, 0.7) !important;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .folder-rows {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .folder-row {
+  display: grid;
+  gap: 6px;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .folder-row label {
+  padding: 0 !important;
+  color: inherit !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  font-weight: 600 !important;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .field-row label {
+  flex: 0 0 auto;
+  color: #71717a !important;
+  font-weight: 500 !important;
+}
+
+body.dark .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .field-row label {
+  color: rgba(229, 231, 235, 0.62) !important;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) input.swal2-input,
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) textarea.swal2-input,
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-textarea {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 8px 10px !important;
+  border: 1px solid rgba(24, 24, 27, 0.16) !important;
+  border-radius: 6px !important;
+  background: rgba(24, 24, 27, 0.03) !important;
+  color: #18181b !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) input.swal2-input {
+  height: 36px !important;
+}
+
+body.dark .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) input.swal2-input,
+body.dark .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) textarea.swal2-input,
+body.dark .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-textarea {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: rgba(250, 250, 250, 0.94) !important;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) input.swal2-input:focus,
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) textarea.swal2-input:focus,
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-textarea:focus {
+  border-color: rgba(24, 24, 27, 0.42) !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.12) !important;
+  outline: none !important;
+}
+
+body.dark .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) input.swal2-input:focus,
+body.dark .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) textarea.swal2-input:focus,
+body.dark .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-textarea:focus {
+  border-color: rgba(255, 255, 255, 0.38) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.14) !important;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .filepond-wrapper {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .avatar-field {
+  width: 100% !important;
+  height: auto !important;
+  margin: 0 !important;
+  min-width: 0;
+}
+
+.swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .filepond--root {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+@media (max-width: 560px) {
+  .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) {
+    padding: 16px !important;
+  }
+
+  .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .filepond-wrapper {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-modal):not(.pinokio-modern-modal):not(.pinokio-input-modal):not(.min-popup):not(.min-popup2):not(.backup-modal-shell) .swal2-styled {
+    width: 100%;
   }
 }

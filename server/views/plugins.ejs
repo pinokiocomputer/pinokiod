@@ -718,6 +718,143 @@ body.plugin-page .plugin-card .disclosure-indicator {
     display: none;
   }
 }
+
+/* Minimal modal normalization for plugin action dialogs. */
+:root {
+  --pinokio-modal-bg: #ffffff;
+  --pinokio-modal-text: #18181b;
+  --pinokio-modal-title-color: #18181b;
+  --pinokio-modal-subtitle: #71717a;
+  --pinokio-modal-border: rgba(24, 24, 27, 0.12);
+  --pinokio-modal-border-strong: rgba(24, 24, 27, 0.2);
+  --pinokio-modal-body-bg: rgba(24, 24, 27, 0.03);
+  --pinokio-modal-icon-bg: rgba(24, 24, 27, 0.04);
+  --pinokio-modal-icon-color: #52525b;
+  --pinokio-modal-primary-bg: #18181b;
+  --pinokio-modal-primary-hover: #27272a;
+  --pinokio-modal-primary-text: #ffffff;
+  --pinokio-modern-shadow: 0 18px 50px rgba(15, 23, 42, 0.16);
+}
+
+body.dark {
+  --pinokio-modal-bg: #1b1c1d;
+  --pinokio-modal-text: rgba(250, 250, 250, 0.94);
+  --pinokio-modal-title-color: rgba(250, 250, 250, 0.94);
+  --pinokio-modal-subtitle: rgba(229, 231, 235, 0.62);
+  --pinokio-modal-border: rgba(255, 255, 255, 0.1);
+  --pinokio-modal-border-strong: rgba(255, 255, 255, 0.18);
+  --pinokio-modal-body-bg: rgba(255, 255, 255, 0.04);
+  --pinokio-modal-icon-bg: rgba(255, 255, 255, 0.055);
+  --pinokio-modal-icon-color: rgba(229, 231, 235, 0.76);
+  --pinokio-modal-primary-bg: rgba(250, 250, 250, 0.94);
+  --pinokio-modal-primary-hover: #ffffff;
+  --pinokio-modal-primary-text: #1b1c1d;
+  --pinokio-modern-shadow: 0 24px 72px rgba(0, 0, 0, 0.42);
+}
+
+.pinokio-modern-modal.swal2-popup {
+  background: var(--pinokio-modal-bg) !important;
+  color: var(--pinokio-modal-text) !important;
+  border: 1px solid var(--pinokio-modal-border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--pinokio-modern-shadow) !important;
+}
+
+.pinokio-modern-close {
+  top: 12px !important;
+  right: 12px !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 6px !important;
+  color: var(--pinokio-modal-subtitle) !important;
+}
+
+.pinokio-modern-close:hover,
+.pinokio-modern-close:focus-visible {
+  background: var(--pinokio-modal-body-bg) !important;
+  color: var(--pinokio-modal-title-color) !important;
+  outline: none !important;
+}
+
+.pinokio-modal-surface {
+  background: var(--pinokio-modal-bg) !important;
+  color: var(--pinokio-modal-text) !important;
+  border-radius: 8px !important;
+}
+
+.pinokio-modal-header {
+  gap: 10px !important;
+  padding: 14px !important;
+}
+
+.pinokio-modal-icon {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 7px !important;
+  background: var(--pinokio-modal-icon-bg) !important;
+  color: var(--pinokio-modal-icon-color) !important;
+  font-size: 14px !important;
+}
+
+.pinokio-modal-title {
+  color: var(--pinokio-modal-title-color) !important;
+  font-size: 16px !important;
+  line-height: 1.25 !important;
+  font-weight: 600 !important;
+}
+
+.pinokio-modal-subtitle {
+  color: var(--pinokio-modal-subtitle) !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+}
+
+.pinokio-modal-body {
+  border-top: 1px solid var(--pinokio-modal-border) !important;
+  background: var(--pinokio-modal-body-bg) !important;
+}
+
+.pinokio-modal-footer {
+  border-top: 1px solid var(--pinokio-modal-border) !important;
+  background: var(--pinokio-modal-bg) !important;
+  padding: 12px 14px 14px !important;
+}
+
+.pinokio-publish-close-btn,
+.pinokio-modal-secondary-btn {
+  min-height: 32px !important;
+  padding: 0 12px !important;
+  border-radius: 6px !important;
+  border: 1px solid var(--pinokio-modal-border) !important;
+  background: transparent !important;
+  color: var(--pinokio-modal-text) !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+.pinokio-publish-close-btn:hover,
+.pinokio-modal-secondary-btn:hover,
+.pinokio-publish-close-btn:focus-visible,
+.pinokio-modal-secondary-btn:focus-visible {
+  border-color: var(--pinokio-modal-border-strong) !important;
+  background: var(--pinokio-modal-body-bg) !important;
+  color: var(--pinokio-modal-title-color) !important;
+  outline: none !important;
+}
+
+.pinokio-modal-footer--publish .pinokio-publish-close-btn {
+  border-color: var(--pinokio-modal-primary-bg) !important;
+  background: var(--pinokio-modal-primary-bg) !important;
+  color: var(--pinokio-modal-primary-text) !important;
+}
+
+.pinokio-modal-footer--publish .pinokio-publish-close-btn:hover,
+.pinokio-modal-footer--publish .pinokio-publish-close-btn:focus-visible {
+  border-color: var(--pinokio-modal-primary-hover) !important;
+  background: var(--pinokio-modal-primary-hover) !important;
+  color: var(--pinokio-modal-primary-text) !important;
+}
 </style>
 </head>
 <body class='<%=theme%> main-sidebar-page task-launcher-page task-page plugin-page' data-agent="<%=agent%>">

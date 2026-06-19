@@ -6699,6 +6699,416 @@ header.navheader h1 {
     flex: 1 1 auto;
   }
 }
+
+/* Minimal modal normalization: shared app SweetAlert and custom git shells. */
+:root {
+  --pinokio-modal-bg: #ffffff;
+  --pinokio-modal-surface-bg: #ffffff;
+  --pinokio-modal-text: #18181b;
+  --pinokio-modal-title-color: #18181b;
+  --pinokio-modal-subtitle-color: #71717a;
+  --pinokio-modal-border: rgba(24, 24, 27, 0.12);
+  --pinokio-modal-border-strong: rgba(24, 24, 27, 0.2);
+  --pinokio-modal-body-bg: rgba(24, 24, 27, 0.03);
+  --pinokio-modal-body-border: rgba(24, 24, 27, 0.1);
+  --pinokio-modal-body-iframe-bg: #ffffff;
+  --pinokio-modal-body-text-color: #3f3f46;
+  --pinokio-modal-label-color: #52525b;
+  --pinokio-modal-input-bg: #ffffff;
+  --pinokio-modal-input-border: rgba(24, 24, 27, 0.16);
+  --pinokio-modal-input-text: #18181b;
+  --pinokio-modal-input-focus-border: rgba(24, 24, 27, 0.42);
+  --pinokio-modal-input-focus-shadow: rgba(24, 24, 27, 0.12);
+  --pinokio-modal-checkbox-color: #52525b;
+  --pinokio-modal-icon-bg: rgba(24, 24, 27, 0.04);
+  --pinokio-modal-icon-color: #52525b;
+  --pinokio-modal-primary-bg: #18181b;
+  --pinokio-modal-primary-hover: #27272a;
+  --pinokio-modal-primary-text: #ffffff;
+  --pinokio-modal-secondary-bg: transparent;
+  --pinokio-modal-secondary-hover-bg: rgba(24, 24, 27, 0.06);
+  --pinokio-pill-bg: rgba(24, 24, 27, 0.05);
+  --pinokio-pill-text: #3f3f46;
+  --pinokio-history-empty-color: #71717a;
+  --pinokio-modern-shadow: 0 18px 50px rgba(15, 23, 42, 0.16);
+  --pinokio-modern-close-color: #71717a;
+  --pinokio-modern-close-hover-bg: rgba(24, 24, 27, 0.06);
+  --pinokio-modern-close-hover-color: #18181b;
+  --pinokio-modern-cancel-bg: transparent;
+  --pinokio-modern-cancel-color: #52525b;
+  --pinokio-modern-cancel-hover-bg: rgba(24, 24, 27, 0.06);
+  --pinokio-custom-commit-overlay-bg: rgba(9, 11, 15, 0.34);
+  --pinokio-custom-commit-modal-bg: #ffffff;
+  --pinokio-custom-commit-modal-text: #18181b;
+  --pinokio-custom-commit-border: rgba(24, 24, 27, 0.12);
+  --pinokio-custom-commit-header-bg: #ffffff;
+  --pinokio-custom-commit-close-color: #71717a;
+  --pinokio-custom-commit-close-hover-bg: rgba(24, 24, 27, 0.06);
+  --pinokio-custom-commit-close-hover-color: #18181b;
+  --pinokio-custom-commit-action-bg: transparent;
+  --pinokio-custom-commit-action-border: rgba(24, 24, 27, 0.16);
+  --pinokio-custom-commit-action-color: #18181b;
+  --pinokio-custom-commit-action-hover: rgba(24, 24, 27, 0.06);
+}
+
+body.dark {
+  --pinokio-modal-bg: #1b1c1d;
+  --pinokio-modal-surface-bg: #1b1c1d;
+  --pinokio-modal-text: rgba(250, 250, 250, 0.94);
+  --pinokio-modal-title-color: rgba(250, 250, 250, 0.94);
+  --pinokio-modal-subtitle-color: rgba(229, 231, 235, 0.62);
+  --pinokio-modal-border: rgba(255, 255, 255, 0.1);
+  --pinokio-modal-border-strong: rgba(255, 255, 255, 0.18);
+  --pinokio-modal-body-bg: rgba(255, 255, 255, 0.04);
+  --pinokio-modal-body-border: rgba(255, 255, 255, 0.09);
+  --pinokio-modal-body-iframe-bg: #161718;
+  --pinokio-modal-body-text-color: rgba(229, 231, 235, 0.78);
+  --pinokio-modal-label-color: rgba(229, 231, 235, 0.76);
+  --pinokio-modal-input-bg: rgba(255, 255, 255, 0.04);
+  --pinokio-modal-input-border: rgba(255, 255, 255, 0.14);
+  --pinokio-modal-input-text: rgba(250, 250, 250, 0.94);
+  --pinokio-modal-input-focus-border: rgba(255, 255, 255, 0.38);
+  --pinokio-modal-input-focus-shadow: rgba(255, 255, 255, 0.14);
+  --pinokio-modal-checkbox-color: rgba(229, 231, 235, 0.76);
+  --pinokio-modal-icon-bg: rgba(255, 255, 255, 0.055);
+  --pinokio-modal-icon-color: rgba(229, 231, 235, 0.76);
+  --pinokio-modal-primary-bg: rgba(250, 250, 250, 0.94);
+  --pinokio-modal-primary-hover: #ffffff;
+  --pinokio-modal-primary-text: #1b1c1d;
+  --pinokio-modal-secondary-hover-bg: rgba(255, 255, 255, 0.07);
+  --pinokio-pill-bg: rgba(255, 255, 255, 0.055);
+  --pinokio-pill-text: rgba(229, 231, 235, 0.76);
+  --pinokio-history-empty-color: rgba(229, 231, 235, 0.58);
+  --pinokio-modern-shadow: 0 24px 72px rgba(0, 0, 0, 0.42);
+  --pinokio-modern-close-color: rgba(229, 231, 235, 0.58);
+  --pinokio-modern-close-hover-bg: rgba(255, 255, 255, 0.07);
+  --pinokio-modern-close-hover-color: rgba(250, 250, 250, 0.94);
+  --pinokio-modern-cancel-bg: transparent;
+  --pinokio-modern-cancel-color: rgba(229, 231, 235, 0.7);
+  --pinokio-modern-cancel-hover-bg: rgba(255, 255, 255, 0.07);
+  --pinokio-custom-commit-overlay-bg: rgba(0, 0, 0, 0.58);
+  --pinokio-custom-commit-modal-bg: #1b1c1d;
+  --pinokio-custom-commit-modal-text: rgba(250, 250, 250, 0.94);
+  --pinokio-custom-commit-border: rgba(255, 255, 255, 0.1);
+  --pinokio-custom-commit-header-bg: #1b1c1d;
+  --pinokio-custom-commit-close-color: rgba(229, 231, 235, 0.58);
+  --pinokio-custom-commit-close-hover-bg: rgba(255, 255, 255, 0.07);
+  --pinokio-custom-commit-close-hover-color: rgba(250, 250, 250, 0.94);
+  --pinokio-custom-commit-action-bg: transparent;
+  --pinokio-custom-commit-action-border: rgba(255, 255, 255, 0.14);
+  --pinokio-custom-commit-action-color: rgba(250, 250, 250, 0.94);
+  --pinokio-custom-commit-action-hover: rgba(255, 255, 255, 0.07);
+}
+
+.pinokio-modern-modal.swal2-popup,
+.pinokio-no-changes-popup.swal2-popup {
+  background: var(--pinokio-modal-bg) !important;
+  color: var(--pinokio-modal-text) !important;
+  border: 1px solid var(--pinokio-modal-border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--pinokio-modern-shadow) !important;
+}
+
+.pinokio-no-changes-popup.swal2-popup {
+  max-width: 360px !important;
+  padding: 22px !important;
+}
+
+.pinokio-no-changes-popup .pinokio-no-changes-icon,
+.pinokio-github-login__icon,
+.pinokio-modal-icon {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 7px !important;
+  background: var(--pinokio-modal-icon-bg) !important;
+  color: var(--pinokio-modal-icon-color) !important;
+  font-size: 14px !important;
+}
+
+.pinokio-modal-icon--warning {
+  background: rgba(217, 119, 6, 0.1) !important;
+  color: #b45309 !important;
+}
+
+body.dark .pinokio-modal-icon--warning {
+  background: rgba(251, 191, 36, 0.12) !important;
+  color: #fbbf24 !important;
+}
+
+.pinokio-modern-close {
+  top: 12px !important;
+  right: 12px !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 6px !important;
+  color: var(--pinokio-modern-close-color) !important;
+  font-size: 18px !important;
+}
+
+.pinokio-modern-close:hover,
+.pinokio-modern-close:focus-visible {
+  background: var(--pinokio-modern-close-hover-bg) !important;
+  color: var(--pinokio-modern-close-hover-color) !important;
+  outline: none !important;
+}
+
+.pinokio-modern-confirm.swal2-confirm,
+.pinokio-no-changes-confirm.swal2-confirm,
+.pinokio-publish-close-btn,
+.pinokio-save-version-btn,
+.swal2-popup.pinokio-diff-modal .pinokio-save-version-btn,
+.swal2-popup.pinokio-history-modal .pinokio-save-version-btn,
+body.dark .swal2-popup.pinokio-diff-modal .pinokio-save-version-btn,
+body.dark .swal2-popup.pinokio-history-modal .pinokio-save-version-btn {
+  min-height: 32px !important;
+  padding: 0 12px !important;
+  border-radius: 6px !important;
+  border: 1px solid var(--pinokio-modal-primary-bg) !important;
+  background: var(--pinokio-modal-primary-bg) !important;
+  background-color: var(--pinokio-modal-primary-bg) !important;
+  color: var(--pinokio-modal-primary-text) !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+.pinokio-modern-confirm.swal2-confirm:hover,
+.pinokio-no-changes-confirm.swal2-confirm:hover,
+.pinokio-publish-close-btn:hover,
+.pinokio-save-version-btn:hover,
+.swal2-popup.pinokio-diff-modal .pinokio-save-version-btn:hover,
+.swal2-popup.pinokio-history-modal .pinokio-save-version-btn:hover,
+body.dark .swal2-popup.pinokio-diff-modal .pinokio-save-version-btn:hover,
+body.dark .swal2-popup.pinokio-history-modal .pinokio-save-version-btn:hover {
+  border-color: var(--pinokio-modal-primary-hover) !important;
+  background: var(--pinokio-modal-primary-hover) !important;
+  background-color: var(--pinokio-modal-primary-hover) !important;
+  color: var(--pinokio-modal-primary-text) !important;
+}
+
+.pinokio-save-version-btn:disabled,
+.swal2-popup.pinokio-diff-modal .pinokio-save-version-btn:disabled,
+.swal2-popup.pinokio-history-modal .pinokio-save-version-btn:disabled,
+body.dark .swal2-popup.pinokio-diff-modal .pinokio-save-version-btn:disabled,
+body.dark .swal2-popup.pinokio-history-modal .pinokio-save-version-btn:disabled {
+  border-color: var(--pinokio-modal-border) !important;
+  background: var(--pinokio-modal-body-bg) !important;
+  background-color: var(--pinokio-modal-body-bg) !important;
+  color: var(--pinokio-modal-subtitle-color) !important;
+}
+
+.pinokio-modern-cancel.swal2-cancel,
+.pinokio-modal-secondary-btn {
+  min-height: 32px !important;
+  margin-right: 8px !important;
+  padding: 0 12px !important;
+  border-radius: 6px !important;
+  border: 1px solid var(--pinokio-modal-border) !important;
+  background: var(--pinokio-modal-secondary-bg) !important;
+  color: var(--pinokio-modern-cancel-color) !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+.pinokio-modern-cancel.swal2-cancel:hover,
+.pinokio-modern-cancel.swal2-cancel:focus-visible,
+.pinokio-modal-secondary-btn:hover,
+.pinokio-modal-secondary-btn:focus-visible {
+  border-color: var(--pinokio-modal-border-strong) !important;
+  background: var(--pinokio-modern-cancel-hover-bg) !important;
+  color: var(--pinokio-modal-title-color) !important;
+  outline: none !important;
+}
+
+.pinokio-modal-surface {
+  padding: 0 !important;
+  gap: 0 !important;
+  color: var(--pinokio-modal-text) !important;
+}
+
+.pinokio-modal-header {
+  gap: 10px !important;
+  padding: 14px !important;
+  align-items: flex-start !important;
+}
+
+.pinokio-modal-heading {
+  gap: 3px !important;
+}
+
+.pinokio-modal-title,
+.pinokio-github-login__title,
+.pinokio-no-changes-popup .pinokio-no-changes-title {
+  color: var(--pinokio-modal-title-color) !important;
+  font-size: 16px !important;
+  line-height: 1.25 !important;
+  font-weight: 600 !important;
+}
+
+.pinokio-modal-subtitle,
+.pinokio-github-login__body,
+.pinokio-no-changes-popup .pinokio-no-changes-body,
+.pinokio-no-changes-popup .pinokio-no-changes-hint {
+  color: var(--pinokio-modal-subtitle-color) !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+}
+
+.pinokio-github-login {
+  padding: 24px 22px 20px !important;
+  gap: 10px !important;
+}
+
+.pinokio-modal-body {
+  border-top: 1px solid var(--pinokio-modal-body-border) !important;
+  background: var(--pinokio-modal-body-bg) !important;
+  color: var(--pinokio-modal-body-text-color) !important;
+  padding: 12px 14px !important;
+}
+
+.pinokio-modal-body--iframe,
+.pinokio-modal-body--diff {
+  padding: 0 !important;
+}
+
+.pinokio-modal-body--iframe iframe {
+  background: var(--pinokio-modal-body-iframe-bg) !important;
+}
+
+.pinokio-modal-footer {
+  gap: 8px !important;
+  padding: 12px 14px 14px !important;
+  border-top: 1px solid var(--pinokio-modal-body-border);
+  background: var(--pinokio-modal-bg);
+}
+
+.pinokio-modal-footer--commit {
+  padding-top: 10px !important;
+}
+
+.pinokio-modal-tab,
+.pinokio-history-inline-btn,
+.pinokio-history-latest-btn,
+.pinokio-git-commit-switch-btn,
+.pinokio-git-diff-open-file {
+  border: 1px solid var(--pinokio-modal-border) !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--pinokio-modal-body-text-color) !important;
+  box-shadow: none !important;
+}
+
+.pinokio-modal-tab:hover,
+.pinokio-modal-tab--active,
+.pinokio-history-inline-btn:hover,
+.pinokio-history-latest-btn:hover,
+.pinokio-git-commit-switch-btn:hover,
+.pinokio-git-diff-open-file:hover {
+  border-color: var(--pinokio-modal-border-strong) !important;
+  background: var(--pinokio-modal-secondary-hover-bg) !important;
+  color: var(--pinokio-modal-title-color) !important;
+  transform: none !important;
+}
+
+.pinokio-history-latest-banner,
+.pinokio-fork-item,
+.pinokio-git-commit-item,
+body.dark .pinokio-git-commit-item {
+  border: 1px solid var(--pinokio-modal-border) !important;
+  border-radius: 7px !important;
+  background: var(--pinokio-modal-body-bg) !important;
+  color: var(--pinokio-modal-body-text-color) !important;
+  box-shadow: none !important;
+}
+
+.pinokio-fork-help,
+.pinokio-fork-item-url,
+.pinokio-fork-name-input label,
+.pinokio-fork-org-input label,
+.pinokio-fork-org-hint,
+.pinokio-fork-dropdown-remote,
+.pinokio-publish-dropdown-remote,
+body.dark .pinokio-fork-dropdown-remote,
+body.dark .pinokio-publish-dropdown-remote {
+  color: var(--pinokio-modal-subtitle-color) !important;
+}
+
+.pinokio-pill {
+  border: 1px solid var(--pinokio-modal-border);
+  border-radius: 6px !important;
+  background: var(--pinokio-pill-bg) !important;
+  color: var(--pinokio-pill-text) !important;
+  padding: 3px 7px !important;
+}
+
+.pinokio-modal-input {
+  border-radius: 6px !important;
+  border: 1px solid var(--pinokio-modal-input-border) !important;
+  background: var(--pinokio-modal-input-bg) !important;
+  color: var(--pinokio-modal-input-text) !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+}
+
+.pinokio-modal-input:focus {
+  border-color: var(--pinokio-modal-input-focus-border) !important;
+  box-shadow: 0 0 0 3px var(--pinokio-modal-input-focus-shadow) !important;
+}
+
+.pinokio-modal-checkbox-row input[type="checkbox"] {
+  accent-color: var(--pinokio-modal-title-color) !important;
+}
+
+.pinokio-custom-commit-modal,
+.pinokio-custom-terminal-modal,
+body.dark .pinokio-custom-commit-modal,
+body.dark .pinokio-custom-terminal-modal {
+  background: var(--pinokio-custom-commit-modal-bg) !important;
+  color: var(--pinokio-custom-commit-modal-text) !important;
+  border: 1px solid var(--pinokio-custom-commit-border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--pinokio-modern-shadow) !important;
+}
+
+.pinokio-custom-commit-header,
+.pinokio-custom-terminal-header,
+body.dark .pinokio-custom-commit-header,
+body.dark .pinokio-custom-terminal-header {
+  background: var(--pinokio-custom-commit-header-bg) !important;
+  border-bottom: 1px solid var(--pinokio-custom-commit-border) !important;
+  padding: 14px 16px !important;
+}
+
+.pinokio-custom-commit-close,
+.pinokio-custom-terminal-close {
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+  color: var(--pinokio-custom-commit-close-color) !important;
+}
+
+.pinokio-custom-commit-close:hover,
+.pinokio-custom-terminal-close:hover {
+  background: var(--pinokio-custom-commit-close-hover-bg) !important;
+  color: var(--pinokio-custom-commit-close-hover-color) !important;
+}
+
+@media (max-width: 520px) {
+  .pinokio-modern-modal.swal2-popup,
+  .pinokio-no-changes-popup.swal2-popup {
+    width: calc(100vw - 24px) !important;
+  }
+
+  .pinokio-modal-header {
+    padding: 12px !important;
+  }
+
+  .pinokio-github-login {
+    padding: 20px 16px 16px !important;
+  }
+}
 </style>
 <link href="/app.css" rel="stylesheet"/>
 <link href="/browser-popout-surface.css" rel="stylesheet"/>

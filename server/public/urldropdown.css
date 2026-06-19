@@ -1825,3 +1825,287 @@ body.dark .host-badge {
 body.dark .host-arch {
   color: #a0aec0;
 }
+
+/* Minimal modal normalization for launcher and capture overlays. */
+.create-launcher-modal-overlay,
+.capture-modal-overlay {
+  background: rgba(9, 11, 15, 0.34);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+body.dark .create-launcher-modal-overlay,
+body.dark .capture-modal-overlay {
+  background: rgba(0, 0, 0, 0.58);
+}
+
+.create-launcher-modal,
+.capture-modal {
+  border: 1px solid rgba(24, 24, 27, 0.12) !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  color: #18181b !important;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.16) !important;
+}
+
+body.dark .create-launcher-modal,
+body.dark .capture-modal {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: #1b1c1d !important;
+  color: rgba(250, 250, 250, 0.94) !important;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.42) !important;
+}
+
+.create-launcher-modal .create-launcher-modal-header {
+  border-bottom-color: rgba(24, 24, 27, 0.1) !important;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-header {
+  border-bottom-color: rgba(255, 255, 255, 0.09) !important;
+}
+
+.create-launcher-modal h3,
+.capture-modal-title {
+  color: inherit !important;
+  font-size: 16px !important;
+  line-height: 1.25 !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+
+.create-launcher-modal .create-launcher-modal-description,
+.capture-modal-description {
+  color: #71717a !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-description,
+body.dark .capture-modal-description {
+  color: rgba(229, 231, 235, 0.62) !important;
+}
+
+.create-launcher-modal .create-launcher-modal-close {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 6px !important;
+  border-color: rgba(24, 24, 27, 0.12) !important;
+  background: transparent !important;
+  color: #71717a !important;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-close {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(229, 231, 235, 0.58) !important;
+}
+
+.create-launcher-modal .create-launcher-modal-close:hover,
+.create-launcher-modal .create-launcher-modal-close:focus-visible {
+  background: rgba(24, 24, 27, 0.06) !important;
+  color: #18181b !important;
+  outline: none !important;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-close:hover,
+body.dark .create-launcher-modal .create-launcher-modal-close:focus-visible {
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: rgba(250, 250, 250, 0.94) !important;
+}
+
+.create-launcher-modal .create-launcher-modal-input,
+.create-launcher-modal .create-launcher-modal-textarea,
+.create-launcher-modal .create-launcher-modal-template-input {
+  border-radius: 6px !important;
+  border-color: rgba(24, 24, 27, 0.16) !important;
+  background: #ffffff !important;
+  color: #18181b !important;
+  box-shadow: none !important;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-input,
+body.dark .create-launcher-modal .create-launcher-modal-textarea,
+body.dark .create-launcher-modal .create-launcher-modal-template-input {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: rgba(250, 250, 250, 0.94) !important;
+}
+
+.create-launcher-modal .create-launcher-modal-input:focus,
+.create-launcher-modal .create-launcher-modal-textarea:focus,
+.create-launcher-modal .create-launcher-modal-template-input:focus {
+  border-color: rgba(24, 24, 27, 0.42) !important;
+  box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.12) !important;
+  outline: none !important;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-input:focus,
+body.dark .create-launcher-modal .create-launcher-modal-textarea:focus,
+body.dark .create-launcher-modal .create-launcher-modal-template-input:focus {
+  border-color: rgba(255, 255, 255, 0.38) !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.14) !important;
+}
+
+.create-launcher-modal .create-launcher-modal-template,
+.create-launcher-modal .create-launcher-modal-tool,
+.create-launcher-modal .create-launcher-upload-dropzone,
+.create-launcher-modal .create-launcher-upload-item {
+  border-color: rgba(24, 24, 27, 0.1) !important;
+  background: rgba(24, 24, 27, 0.03) !important;
+  box-shadow: none !important;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-template,
+body.dark .create-launcher-modal .create-launcher-modal-tool,
+body.dark .create-launcher-modal .create-launcher-upload-dropzone,
+body.dark .create-launcher-modal .create-launcher-upload-item {
+  border-color: rgba(255, 255, 255, 0.09) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.create-launcher-modal .create-launcher-modal-tool:hover,
+.create-launcher-modal .create-launcher-modal-tool.selected,
+.create-launcher-modal .create-launcher-modal-tool:focus-within,
+body.dark .create-launcher-modal .create-launcher-modal-tool:hover,
+body.dark .create-launcher-modal .create-launcher-modal-tool.selected,
+body.dark .create-launcher-modal .create-launcher-modal-tool:focus-within {
+  border-color: rgba(24, 24, 27, 0.2) !important;
+  background: rgba(24, 24, 27, 0.06) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-tool:hover,
+body.dark .create-launcher-modal .create-launcher-modal-tool.selected,
+body.dark .create-launcher-modal .create-launcher-modal-tool:focus-within {
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+
+.create-launcher-modal .create-launcher-modal-tool::before,
+body.dark .create-launcher-modal .create-launcher-modal-tool::before {
+  border-color: rgba(24, 24, 27, 0.3) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-tool::before {
+  border-color: rgba(255, 255, 255, 0.32) !important;
+}
+
+.create-launcher-modal .create-launcher-modal-tool.selected::before {
+  border-color: #18181b !important;
+  background: #18181b !important;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-tool.selected::before {
+  border-color: rgba(250, 250, 250, 0.94) !important;
+  background: rgba(250, 250, 250, 0.94) !important;
+}
+
+.create-launcher-modal .create-launcher-modal-button,
+.capture-modal-button {
+  min-height: 32px !important;
+  padding: 0 12px !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  transform: none !important;
+}
+
+.create-launcher-modal .create-launcher-modal-button.confirm,
+.capture-modal-button.primary {
+  border: 1px solid #18181b !important;
+  background: #18181b !important;
+  color: #ffffff !important;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-button.confirm,
+body.dark .capture-modal-button.primary {
+  border-color: rgba(250, 250, 250, 0.94) !important;
+  background: rgba(250, 250, 250, 0.94) !important;
+  color: #1b1c1d !important;
+}
+
+.create-launcher-modal .create-launcher-modal-button.confirm:hover,
+.capture-modal-button.primary:hover {
+  border-color: #27272a !important;
+  background: #27272a !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-button.confirm:hover,
+body.dark .capture-modal-button.primary:hover {
+  border-color: #ffffff !important;
+  background: #ffffff !important;
+}
+
+.create-launcher-modal .create-launcher-modal-button.cancel,
+.capture-modal-button.secondary {
+  border: 1px solid rgba(24, 24, 27, 0.12) !important;
+  background: transparent !important;
+  color: #52525b !important;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-button.cancel,
+body.dark .capture-modal-button.secondary {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(229, 231, 235, 0.7) !important;
+}
+
+.create-launcher-modal .create-launcher-modal-button.cancel:hover,
+.capture-modal-button.secondary:hover {
+  border-color: rgba(24, 24, 27, 0.2) !important;
+  background: rgba(24, 24, 27, 0.06) !important;
+  color: #18181b !important;
+  box-shadow: none !important;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-button.cancel:hover,
+body.dark .capture-modal-button.secondary:hover {
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: rgba(250, 250, 250, 0.94) !important;
+}
+
+.create-launcher-modal .create-launcher-modal-button:focus-visible,
+.capture-modal-button:focus-visible {
+  outline: 2px solid rgba(24, 24, 27, 0.28) !important;
+  outline-offset: 2px !important;
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-button:focus-visible,
+body.dark .capture-modal-button:focus-visible {
+  outline-color: rgba(255, 255, 255, 0.28) !important;
+}
+
+.create-launcher-modal .create-launcher-upload-dropzone.dragover {
+  border-color: rgba(24, 24, 27, 0.28) !important;
+  background: rgba(24, 24, 27, 0.05) !important;
+}
+
+body.dark .create-launcher-modal .create-launcher-upload-dropzone.dragover {
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.create-launcher-modal .create-launcher-upload-remove {
+  color: #52525b !important;
+}
+
+body.dark .create-launcher-modal .create-launcher-upload-remove {
+  color: rgba(229, 231, 235, 0.7) !important;
+}
+
+.create-launcher-modal .create-launcher-modal-advanced,
+.create-launcher-modal .create-launcher-modal-bookmarklet {
+  color: #52525b !important;
+  text-decoration-color: rgba(82, 82, 91, 0.35);
+}
+
+body.dark .create-launcher-modal .create-launcher-modal-advanced,
+body.dark .create-launcher-modal .create-launcher-modal-bookmarklet {
+  color: rgba(229, 231, 235, 0.7) !important;
+  text-decoration-color: rgba(229, 231, 235, 0.28);
+}

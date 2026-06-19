@@ -445,24 +445,28 @@ class ScreenCaptureModal {
 .modal-overlay{position:fixed;inset:0;padding:24px;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;visibility:hidden;pointer-events:none;transition:opacity 160ms ease,visibility 0s linear 160ms;}
 .modal-overlay.is-visible{opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s;}
 @media (prefers-reduced-motion: reduce){.modal-overlay{transition:none;}.capture-modal{animation:none;}}
-.capture-modal-overlay{background:rgba(15,23,42,0.45);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);}
-.capture-modal{width:min(360px,calc(100% - 32px));padding:28px 26px;border-radius:18px;background:rgba(255,255,255,0.92);border:1px solid rgba(15,23,42,0.08);box-shadow:0 30px 80px rgba(15,23,42,0.35);display:flex;flex-direction:column;gap:18px;text-align:center;}
-body.dark .capture-modal{background:rgba(15,23,42,0.9);border-color:rgba(148,163,184,0.24);color:rgba(226,232,240,0.96);box-shadow:0 34px 88px rgba(2,6,20,0.82);}
-.capture-modal-title{font-size:20px;font-weight:600;letter-spacing:-0.01em;color:rgba(15,23,42,0.92);}
+.capture-modal-overlay{background:rgba(9,11,15,0.34);-webkit-backdrop-filter:none;backdrop-filter:none;}
+body.dark .capture-modal-overlay{background:rgba(0,0,0,0.58);}
+.capture-modal{width:min(360px,calc(100% - 32px));padding:20px;border-radius:8px;background:#fff;border:1px solid rgba(24,24,27,0.12);box-shadow:0 18px 50px rgba(15,23,42,0.16);display:flex;flex-direction:column;gap:14px;text-align:center;color:#18181b;}
+body.dark .capture-modal{background:#1b1c1d;border-color:rgba(255,255,255,0.1);color:rgba(250,250,250,0.94);box-shadow:0 24px 72px rgba(0,0,0,0.42);}
+.capture-modal-title{font-size:16px;line-height:1.25;font-weight:600;letter-spacing:0;color:inherit;}
 body.dark .capture-modal-title{color:inherit;}
-.capture-modal-description{font-size:14px;line-height:1.5;color:rgba(71,85,105,0.82);}
-body.dark .capture-modal-description{color:rgba(203,213,225,0.88);}
-.capture-modal-actions{display:flex;justify-content:center;gap:12px;}
-.capture-modal-button{padding:10px 20px;border-radius:999px;border:1px solid transparent;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.18s ease,color 0.18s ease,box-shadow 0.18s ease,transform 0.12s ease;}
-.capture-modal-button.primary{background:linear-gradient(135deg,rgba(127,91,243,0.95),rgba(84,63,196,0.95));color:#fff;box-shadow:0 16px 36px rgba(111,76,242,0.3);}
-.capture-modal-button.primary:hover{box-shadow:0 20px 42px rgba(111,76,242,0.38);transform:translateY(-1px);}
-.capture-modal-button.secondary{background:rgba(148,163,184,0.18);color:rgba(15,23,42,0.78);}
-.capture-modal-button.secondary:hover{background:rgba(148,163,184,0.28);box-shadow:0 12px 28px rgba(15,23,42,0.12);}
-body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color:rgba(226,232,240,0.92);}
+.capture-modal-description{font-size:12px;line-height:1.45;color:#71717a;}
+body.dark .capture-modal-description{color:rgba(229,231,235,0.62);}
+.capture-modal-actions{display:flex;justify-content:center;gap:8px;}
+.capture-modal-button{min-height:32px;padding:0 12px;border-radius:6px;border:1px solid transparent;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.14s ease,color 0.14s ease,border-color 0.14s ease;}
+.capture-modal-button.primary{background:#18181b;color:#fff;border-color:#18181b;box-shadow:none;}
+.capture-modal-button.primary:hover{background:#27272a;border-color:#27272a;box-shadow:none;transform:none;}
+body.dark .capture-modal-button.primary{background:rgba(250,250,250,0.94);border-color:rgba(250,250,250,0.94);color:#1b1c1d;}
+body.dark .capture-modal-button.primary:hover{background:#fff;border-color:#fff;}
+.capture-modal-button.secondary{background:transparent;color:#52525b;border-color:rgba(24,24,27,0.12);}
+.capture-modal-button.secondary:hover{background:rgba(24,24,27,0.06);border-color:rgba(24,24,27,0.2);box-shadow:none;color:#18181b;}
+body.dark .capture-modal-button.secondary{background:transparent;border-color:rgba(255,255,255,0.1);color:rgba(229,231,235,0.7);}
+body.dark .capture-modal-button.secondary:hover{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.18);color:rgba(250,250,250,0.94);}
 .capture-modal-button:active{transform:translateY(1px);}
-.capture-modal-button:focus-visible{outline:2px solid rgba(127,91,243,0.8);outline-offset:2px;}
+.capture-modal-button:focus-visible{outline:2px solid rgba(24,24,27,0.28);outline-offset:2px;}
 .modal-overlay.is-visible .capture-modal{animation:captureModalPop 160ms ease-out;}
-@media (max-width: 640px){.modal-overlay{padding:16px;}.capture-modal{width:calc(100% - 24px);padding:24px 20px;}.capture-modal-actions{flex-direction:column;}.capture-modal-button{width:100%;}}
+@media (max-width: 640px){.modal-overlay{padding:16px;}.capture-modal{width:calc(100% - 24px);padding:18px;}.capture-modal-actions{flex-direction:column;}.capture-modal-button{width:100%;}}
 @keyframes captureModalPop{from{opacity:0;transform:scale(0.97) translateY(12px);}to{opacity:1;transform:scale(1) translateY(0);}}
 `;
     document.head.appendChild(style);

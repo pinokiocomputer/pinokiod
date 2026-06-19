@@ -105,15 +105,15 @@ body.dark.connect-page.task-launcher-page::before {
 body.plugin-detail-page .swal2-popup.pinokio-modern-modal {
   padding: 0 !important;
   border: 1px solid var(--task-border) !important;
-  border-radius: 14px !important;
+  border-radius: 8px !important;
   background: var(--task-panel) !important;
-  box-shadow: 0 26px 72px rgba(15, 23, 42, 0.22) !important;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.16) !important;
   color: var(--task-text) !important;
   overflow: hidden !important;
 }
 
 body.dark.plugin-detail-page .swal2-popup.pinokio-modern-modal {
-  box-shadow: 0 30px 84px rgba(0, 0, 0, 0.46) !important;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.42) !important;
 }
 
 body.plugin-detail-page .swal2-popup.pinokio-modern-modal .swal2-html-container.pinokio-modern-html {
@@ -127,16 +127,16 @@ body.plugin-detail-page .swal2-popup.pinokio-modern-modal .swal2-html-container.
 }
 
 body.plugin-detail-page .pinokio-modern-close.swal2-close {
-  top: 14px !important;
-  right: 14px !important;
-  width: 36px;
-  height: 36px;
+  top: 12px !important;
+  right: 12px !important;
+  width: 28px;
+  height: 28px;
   margin: 0;
   border: 1px solid var(--task-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  border-radius: 6px;
+  background: transparent;
   color: var(--task-muted) !important;
-  font-size: 30px;
+  font-size: 22px;
   line-height: 1;
 }
 
@@ -156,23 +156,23 @@ body.plugin-detail-page .pinokio-modal-surface {
 body.plugin-detail-page .pinokio-modal-header {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 18px 20px 14px;
+  gap: 10px;
+  padding: 14px;
   border-bottom: 1px solid var(--task-border);
 }
 
 body.plugin-detail-page .pinokio-modal-icon {
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--task-border);
-  border-radius: 10px;
+  border-radius: 7px;
   background: color-mix(in srgb, var(--task-panel) 92%, var(--task-soft));
-  color: var(--task-accent);
-  font-size: 15px;
+  color: var(--task-muted);
+  font-size: 14px;
 }
 
 body.plugin-detail-page .pinokio-modal-heading {
@@ -183,9 +183,9 @@ body.plugin-detail-page .pinokio-modal-heading {
 }
 
 body.plugin-detail-page .pinokio-modal-title {
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.25;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--task-text);
 }
 
@@ -197,7 +197,7 @@ body.plugin-detail-page .pinokio-modal-subtitle {
 
 body.plugin-detail-page .pinokio-modal-body,
 body.plugin-detail-page .pinokio-modal-body--iframe {
-  padding: 16px 20px 20px;
+  padding: 12px 14px 14px;
   background: transparent;
 }
 
@@ -207,7 +207,7 @@ body.plugin-detail-page .pinokio-modal-body--iframe iframe {
   height: min(64vh, 540px);
   min-height: 360px;
   border: 1px solid var(--task-border);
-  border-radius: 12px;
+  border-radius: 7px;
   background: color-mix(in srgb, var(--task-panel) 90%, var(--task-soft));
 }
 

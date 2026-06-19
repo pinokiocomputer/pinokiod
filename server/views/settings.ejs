@@ -874,6 +874,103 @@ body.settings-page .task-shell-topline {
     gap: 8px;
   }
 }
+
+/* Minimal modal normalization for settings reminders. */
+.swal2-popup.custom-home-modal {
+  background: #ffffff !important;
+  color: #18181b !important;
+  border: 1px solid rgba(24, 24, 27, 0.12) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.16) !important;
+  padding: 18px !important;
+}
+
+body.dark .swal2-popup.custom-home-modal {
+  background: #1b1c1d !important;
+  color: rgba(250, 250, 250, 0.94) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.42) !important;
+}
+
+.swal2-popup.custom-home-modal .swal2-title {
+  color: inherit !important;
+  font-size: 16px !important;
+  line-height: 1.25 !important;
+  font-weight: 600 !important;
+  margin-bottom: 6px !important;
+}
+
+.swal2-popup.custom-home-modal .swal2-html-container {
+  color: #71717a !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+
+body.dark .swal2-popup.custom-home-modal .swal2-html-container {
+  color: rgba(229, 231, 235, 0.62) !important;
+}
+
+.swal2-popup.custom-home-modal .swal2-styled.swal2-confirm,
+.swal2-popup.custom-home-modal .swal2-styled.swal2-cancel {
+  min-height: 32px !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+.swal2-popup.custom-home-modal .swal2-styled.swal2-confirm {
+  border: 1px solid #18181b !important;
+  background: #18181b !important;
+  color: #ffffff !important;
+}
+
+.swal2-popup.custom-home-modal .swal2-styled.swal2-confirm:hover,
+.swal2-popup.custom-home-modal .swal2-styled.swal2-confirm:focus-visible {
+  border-color: #27272a !important;
+  background: #27272a !important;
+  outline: none !important;
+}
+
+body.dark .swal2-popup.custom-home-modal .swal2-styled.swal2-confirm {
+  border-color: rgba(250, 250, 250, 0.94) !important;
+  background: rgba(250, 250, 250, 0.94) !important;
+  color: #1b1c1d !important;
+}
+
+body.dark .swal2-popup.custom-home-modal .swal2-styled.swal2-confirm:hover,
+body.dark .swal2-popup.custom-home-modal .swal2-styled.swal2-confirm:focus-visible {
+  border-color: #ffffff !important;
+  background: #ffffff !important;
+}
+
+.swal2-popup.custom-home-modal .swal2-styled.swal2-cancel {
+  border: 1px solid rgba(24, 24, 27, 0.12) !important;
+  background: transparent !important;
+  color: #52525b !important;
+}
+
+.swal2-popup.custom-home-modal .swal2-styled.swal2-cancel:hover,
+.swal2-popup.custom-home-modal .swal2-styled.swal2-cancel:focus-visible {
+  border-color: rgba(24, 24, 27, 0.2) !important;
+  background: rgba(24, 24, 27, 0.06) !important;
+  color: #18181b !important;
+  outline: none !important;
+}
+
+body.dark .swal2-popup.custom-home-modal .swal2-styled.swal2-cancel {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(229, 231, 235, 0.7) !important;
+}
+
+body.dark .swal2-popup.custom-home-modal .swal2-styled.swal2-cancel:hover,
+body.dark .swal2-popup.custom-home-modal .swal2-styled.swal2-cancel:focus-visible {
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: rgba(250, 250, 250, 0.94) !important;
+}
 </style>
 <script src="/window_storage.js"></script>
 <script src="/popper.min.js"></script>
