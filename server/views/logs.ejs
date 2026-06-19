@@ -200,7 +200,7 @@
     <% } %>
   </div>
   <% if (!logsEmbedded) { %>
-    <%- include('partials/main_sidebar', { selected: 'logs' }) %>
+    <%- include('partials/main_sidebar', { selected: 'logs', showPeerAccess: false }) %>
   <% } %>
 </main>
 <script>

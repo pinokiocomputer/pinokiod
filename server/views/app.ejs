@@ -16362,6 +16362,16 @@ document.addEventListener("DOMContentLoaded", () => {
   if (toggle) {
     toggle.addEventListener("click", (event) => {
       event.preventDefault()
+      if (
+        window.PinokioIsLogsPageSelected &&
+        typeof window.PinokioIsLogsPageSelected === "function" &&
+        window.PinokioIsLogsPageSelected() &&
+        window.PinokioCloseLogsPage &&
+        typeof window.PinokioCloseLogsPage === "function"
+      ) {
+        window.PinokioCloseLogsPage()
+        return
+      }
       if (window.PinokioOpenLogsPage && typeof window.PinokioOpenLogsPage === "function") {
         window.PinokioOpenLogsPage({ view: "latest" })
         return
