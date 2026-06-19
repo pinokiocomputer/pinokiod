@@ -67,7 +67,11 @@ class Socket {
   }
   respond(response) {
     if (this.ws) {
-      this.ws.send(JSON.stringify(response))
+      if (response.constructor.name === "ArrayBuffer") {
+        this.ws.send(response)
+      } else {
+        this.ws.send(JSON.stringify(response))
+      }
     } else {
       throw new Error("socket not connected")
     }
@@ -87,10 +91,69 @@ class Socket {
         });
         this.ws.addEventListener('close', () => {
           console.log('Disconnected from WebSocket endpoint', { error: this.error, result: this.result });
+          if (typeof window !== 'undefined') {
+            const payload = { type: 'pinokio:socket-closed' }
+            let dispatched = false
+            if (typeof window.PinokioBroadcastMessage === 'function') {
+              try {
+                dispatched = window.PinokioBroadcastMessage(payload, '*', window)
+              } catch (err) {
+                console.debug('postMessage error', err)
+              }
+            }
+            if (!dispatched && window.parent && window.parent !== window) {
+              try {
+                window.parent.postMessage(payload, '*')
+              } catch (err) {
+                console.debug('postMessage error', err)
+              }
+            }
+          }
           resolve()
         });
       }
 
+    })
+  }
+  sendBinary(buffer) {
+    return new Promise((resolve, reject) => {
+      if (!buffer) {
+        resolve()
+        return
+      }
+      if (!this.ws) {
+        reject(new Error("socket not connected"))
+        return
+      }
+      const send = () => {
+        try {
+          this.ws.send(buffer)
+          resolve()
+        } catch (error) {
+          reject(error)
+        }
+      }
+      if (this.ws.readyState === WebSocket.OPEN) {
+        send()
+      } else if (this.ws.readyState === WebSocket.CONNECTING) {
+        let cleanup
+        const handleOpen = () => {
+          cleanup()
+          send()
+        }
+        const handleError = () => {
+          cleanup()
+          reject(new Error("socket connection failed"))
+        }
+        cleanup = () => {
+          this.ws.removeEventListener('open', handleOpen)
+          this.ws.removeEventListener('error', handleError)
+        }
+        this.ws.addEventListener('open', handleOpen)
+        this.ws.addEventListener('error', handleError)
+      } else {
+        reject(new Error("socket not ready"))
+      }
     })
   }
   emit(e) {

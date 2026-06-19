@@ -125,6 +125,15 @@ class VS {
 
   }
   async init() {
+    if (!this.kernel || this.kernel.platform !== "win32") {
+      this._env = {
+        MSVC_PATH: [],
+        BUILD_PATH: [],
+        CMAKE_PATH: [],
+        CL_PATH: [],
+      }
+      return
+    }
     if (this.kernel.platform === "win32") {
       /*
       {
@@ -151,12 +160,12 @@ class VS {
     }
   }
   env () {
-    if (this.kernel.platform === "win32") {
+    if (this.kernel && this.kernel.platform === "win32") {
       return this._env
     }
   }
   async installed() {
-    if (this.kernel.platform === "win32") {
+    if (this.kernel && this.kernel.platform === "win32") {
       await this.init()
       console.log("VS INSTALLED CHECK", this._env)
       return this._env.MSVC_PATH && this._env.MSVC_PATH.length > 0 && this._env.BUILD_PATH && this._env.BUILD_PATH.length > 0 && this._env.CMAKE_PATH && this._env.CMAKE_PATH.length > 0 && this._env.VCVARSALL_PATH && this._env.VCVARSALL_PATH.length > 0

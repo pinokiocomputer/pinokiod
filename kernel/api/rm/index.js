@@ -45,15 +45,16 @@ module.exports = async (req, ondata, kernel) => {
       }
     }
   */
+  let parent_id = req.parent.id || req.parent.path
 
   // set the local and global variables
   let types = ["local", "global"]
   for(let type of types) {
     let keys = req.params[type]
     if (keys) {
-      let old = kernel.memory[type][req.parent.path]
+      let old = kernel.memory[type][parent_id]
       old = rm(old, keys)
-      kernel.memory[type][req.parent.path] = old
+      kernel.memory[type][parent_id] = old
 
     }
   }

@@ -1,3 +1,4 @@
+/*
 aside .menu, aside .temp-menu, aside .footer, aside .grid-btns, aside .system, aside #new-tab {
   -webkit-app-region: no-drag !important;
   cursor: auto;
@@ -11,6 +12,7 @@ aside {
   -webkit-app-region: drag;
   padding: 25px 0px 0px !important;
 }
+*/
 .grabbable {
   cursor: grab;
   -webkit-app-region: drag;
@@ -19,12 +21,15 @@ aside {
   -webkit-app-region: no-drag !important;
   cursor: pointer;
 }
-.grabbable > h1 > * {
+.grabbable > h1 {
   -webkit-app-region: no-drag !important;
-  cursor: auto;
+  cursor: auto !important;
 }
 header.grabbable {
+/*
   padding: 32px 10px 0 !important;
+  padding: 26px 0px 0 !important;
+  */
 }
 /*
 header {

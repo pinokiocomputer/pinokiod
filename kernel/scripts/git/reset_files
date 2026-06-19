@@ -1,0 +1,21 @@
+{
+  "run": [{
+    "when": "{{args.untracked_paths && args.untracked_paths.length > 0}}",
+    "method": "shell.run",
+    "params": {
+      "path": "{{args.cwd}}",
+      "message": [
+        "git clean -f -- {{args.untracked_paths}}"
+      ]
+    }
+  }, {
+    "when": "{{args.tracked_paths && args.tracked_paths.length > 0}}",
+    "method": "shell.run",
+    "params": {
+      "path": "{{args.cwd}}",
+      "message": [
+        "git restore -- {{args.tracked_paths}}"
+      ]
+    }
+  }]
+}

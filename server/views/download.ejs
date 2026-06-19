@@ -16,27 +16,11 @@
 <style>
 html {
   scroll-behavior: smooth;
-  height: 100%;
-  overflow: hidden;
 }
 body.frozen {
   overflow: auto !important;
 }
 
-body {
-  height: 100%;
-  overflow: auto;
-  background: rgb(44, 29, 22);
-  display: flex;
-  flex-direction: column;
-}
-body {
-/*
-  background: white;
-  background: rgb(44, 29, 22);
-  */
-  background: var(--dark-bg);
-}
 .line2 {
   display: flex;
   align-items: center;
@@ -80,7 +64,6 @@ body {
   display: flex;
   align-items: flex-start;
   margin: 10px;
-  background: rgba(0,0,0,0.04);
 }
 .item img {
   width: 100px;
@@ -105,7 +88,17 @@ body {
 .timestamp {
   color: rgba(0,0,0,0.5);
 }
+/*
+@media only screen and (max-width: 800px) {
+  body {
+    display: flex !important;
+    flex-direction: row !important;
+  }
+}
+*/
 </style>
+<script src="/popper.min.js"></script>
+<script src="/tippy-bundle.umd.min.js"></script>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/noty.js"></script>
@@ -122,22 +115,34 @@ body {
 <script src="/report.js"></script>
 </head>
 <% if (install_required) { %>
-<body class='frozen <%=theme%>'>
+<body class='frozen <%=theme%>' data-agent="<%=agent%>">
 <% } else { %>
-<body class='<%=theme%>'>
+<body class='<%=theme%>' data-agent="<%=agent%>">
 <% } %>
 <header class='grabbable'>
 <h1>
-<a class='path' href="/"><%-logo%></a>
+<a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
+<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+  <div><i class="fa-solid fa-expand"></i></div>
+</button>
+<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
 <div class='flexible'></div>
-<div class='nav-btns'>
-  <button class='btn2' id='report'><div><i class="fa-solid fa-bug"></i></div><div>Report Bug</div></button>
-  <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
-  <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
-  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
-  <button id='new-window' title='open a new window' class='btn2'><i class="fa-solid fa-plus"></i></button>
-</div>
-</h1>
+<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+  <div><i class="fa-solid fa-table-columns"></i></div>
+</a>
+<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+</a>
+<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+  <div><i class="fa-solid fa-plus"></i></div>
+</button>
+<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+  <div><i class="fa-solid fa-xmark"></i></div>
+</button>
 </h1>
 </header>
 <% if (requirements_pending) { %>
@@ -189,7 +194,6 @@ body {
 <% } %>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
-  Reporter()
   <% if (error) { %>
     document.querySelector(".requirements .content").innerHTML = '<div class="loading"><i class="fa-solid fa-circle-exclamation"></i> <%=error%></div>'
   <% } %>
@@ -213,28 +217,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     location.href = location.href
   <% } else { %>
     <% if (!install_required) { %>
-      let term
-      const n = new N()
-      let socket = new Socket()
-      let url = "<%=query.uri%>"
-    //  let name = "0x" + url.split("").map(c => c.charCodeAt(0).toString(16).padStart(2, "0")).join("");
-      let name = await installname(url)
-      if (name) {
-        if (!term) term = createTerm()
-        let params = new URLSearchParams(location.search)
-        let entries = [...params.entries()]
-        let options;
-        if (entries.length > 0) {
-          options = {}
-          for(const [key, value] of entries) {
-            options[key] = value;
-          }
-        }
-        await install(name, url, term, socket, options)
-      } else {
-        alert("something went wrong")
-      }
-    <% } %>
+	      let term
+	      const n = new N()
+	      let socket = new Socket()
+	      let url = "<%=query.uri%>"
+	      let params = new URLSearchParams(location.search)
+	      let entries = [...params.entries()]
+	      let options;
+	      if (entries.length > 0) {
+	        options = {}
+	        for(const [key, value] of entries) {
+	          options[key] = value;
+	        }
+	      }
+	    //  let name = "0x" + url.split("").map(c => c.charCodeAt(0).toString(16).padStart(2, "0")).join("");
+	      let name = await installname(url, null, options)
+	      if (name) {
+	        if (!term) {
+	          <% if (theme === "dark") { %>
+	          term = await createTerm(xtermTheme.FrontEndDelight)
+	          <% } else { %>
+	          term = await createTerm(xtermTheme.Tomorrow)
+	          <% } %>
+	        }
+	        await install(name, url, term, socket, options)
+	      }
+	    <% } %>
   <% } %>
   if (document.querySelector("#del-bin")) {
     document.querySelector("#del-bin").addEventListener("click", async (e) => {

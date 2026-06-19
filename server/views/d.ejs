@@ -1,0 +1,1571 @@
+<html>
+<head>
+<title>Pinokio</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+main {
+  box-sizing: border-box;
+  padding: 0;
+  /*
+  flex-wrap: wrap;
+  */
+  /*
+  max-width: 800px;
+  padding: 30px 45px;
+  */
+  /*
+  justify-content: center;
+  */
+}
+.tab-content {
+  display: flex;
+  flex-wrap: wrap;
+  flex-grow: 1;
+  width: 100%;
+}
+.submenu.tab {
+  margin: 10px 0;
+}
+.tab {
+  width: 100%;
+  text-decoration: none;
+  display: flex;
+  font-size: 14px;
+  font-weight: bold;
+  color: black;
+  overflow: hidden;
+  box-sizing: border-box;
+  align-items: center;
+  min-width: 0;
+  gap: 10px;
+  padding: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  /*
+  margin-bottom: 10px;
+  background: rgba(0,0,0,0.05);
+  */
+}
+.tab:hover,
+.tab:focus-visible {
+  background: rgba(0, 0, 0, 0.1);
+}
+.tab:focus-visible {
+  outline: 2px solid royalblue;
+  outline-offset: 2px;
+}
+body.dark .tab {
+  color: white;
+  background: rgba(255,255,255,0.03);
+}
+body.dark .tab:hover,
+body.dark .tab:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+}
+.tab h2 {
+  margin: 0;
+  font-weight: normal;
+  font-size: 14px;
+}
+.tab-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tab-title {
+  min-width: 0;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.tab-subtitle {
+  min-width: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tab-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+  padding-inline-start: 6px;
+}
+.tab .col {
+  flex-grow: 1;
+  margin-left: 10px;
+}
+.tab i.img {
+  flex: 0 0 40px;
+  height: 40px;
+  width: 40px;
+  background: white;
+  color: black;
+  display: flex;
+  justify-content: center;
+  font-size: 20px;
+  align-items: center;
+  border-radius: 40px;
+}
+.tab img {
+  flex: 0 0 40px;
+  border-radius: 40px;
+  height: 40px;
+  width: 40px;
+  background: white;
+  object-fit: cover;
+}
+.tab .disclosure-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+  pointer-events: none;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+.tab:hover .disclosure-indicator,
+.tab:focus-visible .disclosure-indicator {
+  color: rgba(0, 0, 0, 0.7);
+  transform: translateX(2px);
+}
+.tab.is-starting {
+  cursor: wait;
+  opacity: 0.7;
+}
+.tab.is-starting .disclosure-indicator {
+  opacity: 0.85;
+}
+body.dark .tab .disclosure-indicator {
+  color: rgba(255, 255, 255, 0.4);
+}
+body.dark .tab:hover .disclosure-indicator,
+body.dark .tab:focus-visible .disclosure-indicator {
+  color: rgba(255, 255, 255, 0.9);
+}
+.tab-action-link {
+  border: none;
+  background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  color: rgba(0, 0, 0, 0.55);
+  padding: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.tab-action-link:hover,
+.tab-action-link:focus-visible {
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.85);
+}
+body.dark .tab-action-link {
+  color: rgba(255, 255, 255, 0.75);
+}
+body.dark .tab-action-link:hover,
+body.dark .tab-action-link:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.95);
+}
+/*
+body.dark .tab i {
+  background: rgba(0,0,0,0.1);
+  color: white;
+}
+.tab i {
+  width: 120px;
+  height: 120px;
+  font-size: 30px;
+  box-sizing: border-box;
+  text-align:center;
+  background: white;
+  color: black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+*/
+.menu-container {
+  align-items: flex-start;
+}
+/*
+body.dark .menu-container {
+  background: rgba(255,255,255,0.03);
+}
+*/
+.menu-container {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+.column-subtitle {
+  font-size: 12px;
+  opacity: 0.7;
+  padding: 8px 10px 0;
+  min-height: 2.8em;
+  line-height: 1.35;
+}
+body.dark .column-subtitle {
+  color: rgba(255, 255, 255, 0.75);
+}
+.column-subtitle-link {
+  display: inline;
+  font-size: inherit;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: rgba(0, 0, 0, 0.75);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  text-decoration-thickness: 1px;
+}
+.column-subtitle-link:hover,
+.column-subtitle-link:focus-visible {
+  color: rgba(0, 0, 0, 0.95);
+}
+body.dark .column-subtitle-link {
+  color: rgba(255, 255, 255, 0.8);
+}
+body.dark .column-subtitle-link:hover,
+body.dark .column-subtitle-link:focus-visible {
+  color: rgba(255, 255, 255, 0.98);
+}
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  align-items: start;
+}
+.menu-grid.menu-grid--triptych {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.menu-column {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  min-width: 0;
+}
+body.dark .menu-column {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.menu-column .tab-header {
+  background: rgba(0, 0, 0, 0.03);
+}
+body.dark .menu-column .tab-header {
+  background: rgba(255, 255, 255, 0.06);
+}
+.menu-column .tab-content {
+  padding-top: 4px;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+}
+.menu-column .tab-content .tab {
+  flex: 0 0 auto;
+}
+.terminal-shell-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.terminal-shell-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 10px 4px;
+  color: rgba(0, 0, 0, 0.72);
+}
+body.dark .terminal-shell-heading {
+  color: rgba(255, 255, 255, 0.82);
+}
+.terminal-shell-heading i.img {
+  flex: 0 0 40px;
+  height: 40px;
+  width: 40px;
+  background: white;
+  color: black;
+  display: flex;
+  justify-content: center;
+  font-size: 20px;
+  align-items: center;
+  border-radius: 40px;
+}
+.terminal-shell-heading img {
+  flex: 0 0 40px;
+  border-radius: 40px;
+  height: 40px;
+  width: 40px;
+  background: white;
+  object-fit: cover;
+}
+.terminal-shell-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: 20px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+}
+body.dark .terminal-shell-options {
+  border-left-color: rgba(255, 255, 255, 0.12);
+}
+.terminal-option-tab {
+  padding-left: 12px;
+}
+.terminal-shell-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  opacity: 0.72;
+  padding: 8px 10px 10px 12px;
+}
+@media (max-width: 920px) {
+  .menu-grid.menu-grid--triptych {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 700px) {
+  .menu-grid,
+  .menu-grid.menu-grid--triptych {
+    grid-template-columns: 1fr;
+  }
+}
+body.dark .tab-header {
+  background: rgba(255,255,255,0.04);
+}
+.tab-header {
+  font-weight: bold;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  background: rgba(0,0,0,0.04);
+}
+.container {
+  margin: 0;
+  padding: 0 !important;
+}
+.subtitle {
+  font-size: 12px;
+  opacity: 0.6;
+  padding: 2px 0;
+  font-weight: normal;
+}
+.btns {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  flex-shrink: 0;
+  /*
+  padding: 0 10px;
+  */
+}
+body.dark .btn {
+/*
+  background: rgba(255,255,255,0.08);
+  */
+  background: none;
+  color: white;
+  border: none;
+}
+.btn:hover {
+  color: royalblue;
+}
+.btn {
+  padding: 2px 10px;
+  background: none;
+  /*
+  background: rgba(0,0,0,0.08);
+  */
+  color: rgba(0,0,0,0.7);
+  /*
+  border: 1px solid rgba(0,0,0,0.4);
+  */
+  /*
+  border-radius: 30px;
+  */
+  /*
+  background: rgba(0,0,0,0.8);
+  */
+}
+.spec {
+  display: none;
+  width: 100%;
+  padding-bottom: 30px;
+}
+.spec .explain {
+  display: flex;
+  flex-direction: column;
+}
+.spec .explain h3 {
+  margin: 0 0 10px;
+}
+body.dark .spec .explain {
+  border-left: 5px solid rgba(255,255,255,0.04);
+}
+.spec .explain {
+  padding: 15px;
+  border-left: 5px solid rgba(0,0,0,0.04);
+  background: rgba(0,0,0,0.02);
+  margin: 20px 0;
+}
+.spec .explain ol {
+  margin: 0;
+  padding-inline-start: 20px;
+}
+.spec .explain li {
+  padding: 5px 0;
+}
+.spec textarea {
+  border: none;
+  padding: 10px;
+  margin: 5px 0 0 20px;
+  box-sizing: border-box;
+}
+body.dark .btn.run-btn {
+  background: black;
+}
+.btn.run-btn {
+  flex-grow: 1;
+  text-align: center;
+  background: black;
+  width: 50px;
+  padding: 10px;
+  border-radius: 0;
+  /*
+  background: royalblue !important;
+  */
+}
+.tab-header h3 {
+  margin: 0;
+  font-size: 14px;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+.tab-header h3 i {
+}
+header {
+  padding: 20px 0;
+  display: flex;
+  gap: 10px;
+  position: relative;
+  align-items: center;
+}
+header h1 {
+  font-size: 40px;
+  line-height: 40px;
+}
+.pulling {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+}
+.pulling i {
+/*
+  font-size: 20px;
+  */
+}
+.pulling .loading {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+}
+h4 {
+  margin: 0 0 5px;
+}
+body.dark form.search {
+  background: rgba(255,255,255,0.07);
+}
+form.search {
+  padding: 10px;
+  background: #F1F1F1;
+}
+form.search input[type=search] {
+  background: white;
+}
+body.dark .btn.file-open {
+  background: rgba(255,255,255,0.1) !important;
+}
+.btn.file-open {
+  background: black;
+  color: white;
+}
+body.dark #update-spec {
+  background: rgba(255,255,255,0.1) !important;
+  color: white;
+}
+#update-spec {
+  border: none;
+  padding: 10px;
+  margin: 10px 0 0 20px;
+  background: rgba(0,0,0,0.8);
+  color: white;
+}
+
+/* Compact one-column tool launcher. Keep the existing .tab/data-* contracts intact. */
+main {
+  padding: 0 16px 32px;
+}
+
+form.search {
+  width: 100%;
+  max-width: 1040px;
+  margin: 14px auto;
+  padding: 0;
+  background: transparent;
+}
+
+body.dark form.search {
+  background: transparent;
+}
+
+form.search input[type=search] {
+  width: 100%;
+  min-height: 42px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  color: rgba(0, 0, 0, 0.88);
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  outline: none;
+}
+
+form.search input[type=search]:focus {
+  border-color: rgba(29, 78, 216, 0.45);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+}
+
+body.dark form.search input[type=search] {
+  color: white;
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.menu-grid,
+.menu-grid.menu-grid--triptych {
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: none;
+  gap: 14px;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+main > .menu-container {
+  max-width: 1040px;
+  margin: 14px auto 0;
+}
+
+.menu-container,
+.menu-column {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+}
+
+body.dark .menu-container,
+body.dark .menu-column {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.tab-header,
+.menu-column .tab-header,
+body.dark .tab-header,
+body.dark .menu-column .tab-header {
+  padding: 14px 16px 8px;
+  background: transparent;
+  font-weight: 400;
+}
+
+.tab-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: rgba(0, 0, 0, 0.52);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 1;
+}
+
+.tab-header h3 i {
+  color: rgba(0, 0, 0, 0.44);
+}
+
+body.dark .tab-header h3 {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+body.dark .tab-header h3 i {
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.column-subtitle {
+  min-height: 0;
+  padding: 0 16px 12px;
+  color: rgba(0, 0, 0, 0.58);
+  font-size: 12px;
+  line-height: 1.35;
+  opacity: 1;
+}
+
+body.dark .column-subtitle {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.tab-content,
+.menu-column .tab-content {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 0;
+  min-width: 0;
+  padding-top: 0;
+}
+
+.tab {
+  min-height: 40px;
+  gap: 10px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 400;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.tab:hover,
+.tab:focus-visible {
+  background: rgba(0, 0, 0, 0.035);
+}
+
+.tab:focus-visible {
+  outline: 2px solid rgba(29, 78, 216, 0.75);
+  outline-offset: -2px;
+}
+
+.tab.selected {
+  background: rgba(0, 0, 0, 0.045);
+}
+
+body.dark .tab {
+  background: transparent;
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+body.dark .tab:hover,
+body.dark .tab:focus-visible,
+body.dark .tab.selected {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.tab h2 {
+  font-size: 13px;
+  font-weight: 450;
+}
+
+.tab-title {
+  line-height: 1.2;
+}
+
+.tab-subtitle {
+  line-height: 1.2;
+}
+
+.tab-copy {
+  gap: 0;
+}
+
+.subtitle {
+  color: rgba(0, 0, 0, 0.54);
+  font-size: 11px;
+  opacity: 1;
+}
+
+body.dark .subtitle {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.tab i.img,
+.tab img {
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.tab i.img {
+  font-size: 13px;
+}
+
+.tab-actions {
+  opacity: 0.68;
+  transition: opacity 0.16s ease;
+}
+
+.tab:hover .tab-actions,
+.tab:focus-visible .tab-actions,
+.tab.is-starting .tab-actions {
+  opacity: 1;
+}
+
+.tab-action-link {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+
+.tab .disclosure-indicator {
+  width: 20px;
+  height: 20px;
+  color: rgba(0, 0, 0, 0.34);
+}
+
+.tab:hover .disclosure-indicator,
+.tab:focus-visible .disclosure-indicator {
+  color: rgba(0, 0, 0, 0.66);
+}
+
+.terminal-shell-group {
+  gap: 0;
+}
+
+.terminal-shell-heading {
+  gap: 8px;
+  padding: 8px 14px 6px;
+  color: rgba(0, 0, 0, 0.48);
+}
+
+body.dark .terminal-shell-heading {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.terminal-shell-heading i.img,
+.terminal-shell-heading img {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.terminal-shell-heading i.img {
+  font-size: 12px;
+}
+
+.terminal-shell-heading .tab-title {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.terminal-shell-heading .tab-subtitle {
+  display: none;
+}
+
+.user-terminal--single .terminal-shell-heading {
+  display: none;
+}
+
+.terminal-shell-options {
+  gap: 0;
+  margin-left: 0;
+  padding-left: 0;
+  border-left: none;
+}
+
+body.dark .terminal-shell-options {
+  border-left: none;
+}
+
+.terminal-option-tab {
+  padding-left: 14px;
+}
+
+@media (max-width: 700px) {
+  main {
+    padding: 0 10px 24px;
+  }
+
+  .tab {
+    min-height: 40px;
+    padding-inline: 10px;
+  }
+
+  .tab i.img,
+  .tab img {
+    flex-basis: 26px;
+    width: 26px;
+    height: 26px;
+  }
+
+  .column-subtitle {
+    padding-inline: 14px;
+  }
+}
+</style>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+</head>
+<body class='<%=theme%>' data-agent="<%=agent%>">
+<main>
+<form class='search'>
+  <input type='search' class="flexible" placeholder='Filter tools'>
+</form>
+<!--
+<header>
+  <h1>Build</h1>
+  <div class='flexible'></div>
+  <a class='btn'  href="/plugins" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> Request a tool</a>
+  <a class='btn' id='git-pull'><i class="fa-solid fa-rotate"></i> Check for new tools</a>
+  <div class='pulling hidden'>
+    <div class='loading'>
+      <i class="fa-solid fa-circle-notch fa-spin"></i> refreshing...
+    </div>
+  </div>
+</header>
+-->
+<div class='spec'>
+  <div class='explain'>
+    <h3><i class="fa-regular fa-circle-check"></i> TODO</h3>
+    <ol>
+      <li><strong>Build manually:</strong> Open the project files and start building. <a class='btn file-open' data-filepath="<%=filepath%>"><i class="fa-solid fa-folder-open"></i> open project folder</a></li>
+      <li><strong>Build with AI:</strong> Click any of the below AI tools to instantly start building with AI.</li>
+    </ol>
+  </div>
+</div>
+
+  <%
+    let index = 0;
+    const userTerminal = dynamic && dynamic.length ? dynamic[0] : null;
+    const cliMenu = dynamic.find((item) => item && item.title === "Terminal Apps");
+    const ideMenu = dynamic.find((item) => item && item.title === "Desktop Apps");
+    const handled = new Set();
+    const primaryColumnCount = [userTerminal, cliMenu, ideMenu].filter((item) => item && item.menu && item.menu.length).length;
+    if (userTerminal) handled.add(userTerminal);
+    if (cliMenu) handled.add(cliMenu);
+    if (ideMenu) handled.add(ideMenu);
+    const remaining = dynamic.filter((item) => !handled.has(item));
+  %>
+
+  <div class='menu-grid <%= primaryColumnCount === 3 ? "menu-grid--triptych" : "" %>'>
+    <% if (userTerminal && userTerminal.menu && userTerminal.menu.length) { %>
+      <%- include('./partials/d_terminal_column', { userTerminal }) %>
+    <% } %>
+
+    <% if (cliMenu && cliMenu.menu && cliMenu.menu.length) { %>
+      <div class='menu-container menu-column cli-column'>
+        <div class='tab-header'>
+          <h3><i class='<%= cliMenu.icon %>'></i> <%= cliMenu.title %></h3>
+        </div>
+        <% if (cliMenu.subtitle || cliMenu.subtitle_link_href) { %>
+          <div class='column-subtitle'>
+            <% if (cliMenu.subtitle) { %>
+              <span><%= cliMenu.subtitle %></span><% if (cliMenu.subtitle_link_href && cliMenu.subtitle_link_label) { %> <% } %>
+            <% } %>
+            <% if (cliMenu.subtitle_link_href && cliMenu.subtitle_link_label) { %>
+              <a class='column-subtitle-link' href="<%= cliMenu.subtitle_link_href %>" target="_parent"><%= cliMenu.subtitle_link_label %></a>
+            <% } %>
+          </div>
+        <% } %>
+        <div class='tab-content'>
+          <% cliMenu.menu.forEach((i) => { %>
+            <div class='tab' role="button" tabindex="0" data-index="<%= index++ %>" data-target="@<%= i.href %>" data-href="<%= i.href %>">
+              <% if (i.image) { %>
+                <img src="<%= i.image %>">
+              <% } else if (i.icon) { %>
+                <i class="img <%= i.icon %>"></i>
+              <% } %>
+              <div class='tab-copy'>
+                <h2 class='tab-title'><%= i.title %></h2>
+                <% if (i.subtitle) { %>
+                  <div class='tab-subtitle subtitle'><%= i.subtitle %></div>
+                <% } %>
+              </div>
+              <div class='tab-actions'>
+                <button class="tab-action-link" type="button" data-plugin-settings="true" data-href="<%= i.href %>" title="Manage plugin" data-tippy-content="Manage plugin" aria-label="Manage plugin">
+                  <i class="fa-solid fa-gear"></i>
+                </button>
+                <div class='disclosure-indicator' aria-hidden="true">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    <% } %>
+
+    <% if (ideMenu && ideMenu.menu && ideMenu.menu.length) { %>
+      <div class='menu-container menu-column ide-column'>
+        <div class='tab-header'>
+          <h3><i class='<%= ideMenu.icon %>'></i> <%= ideMenu.title %></h3>
+        </div>
+        <% if (ideMenu.subtitle || ideMenu.subtitle_link_href) { %>
+          <div class='column-subtitle'>
+            <% if (ideMenu.subtitle) { %>
+              <span><%= ideMenu.subtitle %></span><% if (ideMenu.subtitle_link_href && ideMenu.subtitle_link_label) { %> <% } %>
+            <% } %>
+            <% if (ideMenu.subtitle_link_href && ideMenu.subtitle_link_label) { %>
+              <a class='column-subtitle-link' href="<%= ideMenu.subtitle_link_href %>" target="_parent"><%= ideMenu.subtitle_link_label %></a>
+            <% } %>
+          </div>
+        <% } %>
+        <div class='tab-content'>
+          <% ideMenu.menu.forEach((i) => { %>
+            <div class='tab' role="button" tabindex="0" data-index="<%= index++ %>" data-target="@<%= i.href %>" data-href="<%= i.href %>">
+              <% if (i.image) { %>
+                <img src="<%= i.image %>">
+              <% } else if (i.icon) { %>
+                <i class="img <%= i.icon %>"></i>
+              <% } %>
+              <div class='tab-copy'>
+                <h2 class='tab-title'><%= i.title %></h2>
+                <% if (i.subtitle) { %>
+                  <div class='tab-subtitle subtitle'><%= i.subtitle %></div>
+                <% } %>
+              </div>
+              <div class='tab-actions'>
+                <button class="tab-action-link" type="button" data-plugin-settings="true" data-href="<%= i.href %>" title="Manage plugin" data-tippy-content="Manage plugin" aria-label="Manage plugin">
+                  <i class="fa-solid fa-gear"></i>
+                </button>
+                <div class='disclosure-indicator' aria-hidden="true">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    <% } %>
+  </div>
+
+  <% remaining.forEach((item) => { %>
+    <% if (item.menu) { %>
+      <div class='menu-container'>
+        <div class='tab-header'>
+          <h3><i class='<%= item.icon %>'></i> <%= item.title %></h3>
+        </div>
+        <div class='tab-content'>
+          <% item.menu.forEach((i) => { %>
+            <div class='tab' role="button" tabindex="0" data-index="<%= index++ %>" data-target="@<%= i.href %>" data-href="<%= i.href %>">
+              <% if (i.image) { %>
+                <img src="<%= i.image %>">
+              <% } else if (i.icon) { %>
+                <i class="img <%= i.icon %>"></i>
+              <% } %>
+              <div class='tab-copy'>
+                <h2 class='tab-title'><%= i.title %></h2>
+                <% if (i.subtitle) { %>
+                  <div class='tab-subtitle subtitle'><%= i.subtitle %></div>
+                <% } %>
+              </div>
+              <div class='tab-actions'>
+                <button class="tab-action-link" type="button" data-plugin-settings="true" data-href="<%= i.href %>" title="Manage plugin" data-tippy-content="Manage plugin" aria-label="Manage plugin">
+                  <i class="fa-solid fa-gear"></i>
+                </button>
+                <div class='disclosure-indicator' aria-hidden="true">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    <% } else { %>
+      <div class='tab' data-index="<%= index++ %>">
+        <% if (item.image) { %>
+          <img src="<%= item.image %>">
+        <% } else if (item.icon) { %>
+          <i class="img <%= item.icon %>"></i>
+        <% } %>
+        <div class='col'>
+          <h2><%= item.title %></h2>
+          <% if (item.subtitle) { %>
+            <div class='subtitle'><%= item.subtitle %></div>
+          <% } %>
+          <div class='btns'>
+            <% if (item.link) { %>
+              <a class='btn' target="_blank" href="<%= item.link %>"><i class="fa-solid fa-circle-info"></i></a>
+            <% } %>
+            <a class='run-btn btn' href="<%= item.href %>"><i class="fa-solid <%= item.type === "Start" ? 'fa-play' : 'fa-rocket' %>"></i> <%= item.type === "Start" ? "Run" : item.type %></a>
+          </div>
+        </div>
+      </div>
+    <% } %>
+  <% }) %>
+  <% if (retry) { %>
+    <div class='requirements'>
+      <div class='content'>
+        <div class='loading'>
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+        </div>
+      </div>
+    </div>
+  <% } %>
+</main>
+<script>
+<% if (retry) { %>
+setTimeout(() => {
+  location.href = location.href
+}, 2000)
+<% } %>
+/*
+document.querySelector("#git-pull").addEventListener("click", (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  document.querySelector(".pulling").classList.remove("hidden")
+  document.querySelector("#git-pull").classList.add("hidden")
+  fetch("/plugin/update", {
+    method: "POST"
+  }).then((res) => {
+    return res.json()
+  }).then((res) => {
+    if (res.success) {
+      location.href = location.href
+    } else if(res.error) {
+      document.querySelector("#git-pull").classList.remove("hidden")
+      alert(res.error)
+    }
+  })
+})
+*/
+/*
+const resize = (textarea) => {
+  textarea.style.height = "";
+  textarea.style.height = textarea.scrollHeight + "px";
+}
+document.querySelector(".spec textarea").addEventListener("input", (e) => {
+  resize(e.target)
+})
+resize(document.querySelector(".spec textarea"))
+document.querySelector("#update-spec").addEventListener("click", (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  let filepath = document.querySelector(".file-open").getAttribute('data-filepath')
+  fetch("/plugin/update_spec", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      spec: document.querySelector(".spec textarea").value || "",
+      filepath: filepath
+    })
+  }).then((res) => {
+    return res.json()
+  }).then((res) => {
+    if (res.success) {
+      location.href = location.href
+    } else if(res.error) {
+      alert(res.error)
+    }
+  })
+})
+*/
+let list = []
+const rebuildTabList = () => {
+  list = []
+  document.querySelectorAll(".tab").forEach((el, index) => {
+    el.setAttribute("data-index", String(index))
+    list.push({
+      index,
+      text: el.textContent,
+      isTerminalOption: el.hasAttribute("data-terminal-option-tab"),
+    })
+  })
+}
+const search = (items, value) => {
+  let filtered = []
+  for(let i=0; i<items.length; i++) {
+    let item = items[i]
+    let re = new RegExp(value, "i")
+    if (re.test(item.text)) {
+      filtered.push({ item })
+    }
+  }
+  return filtered
+}
+
+let selectedIndex = -1
+let selectedBtnIndex = 0
+let filteredCount = list.length
+let filteredBtnsCount = 0
+
+const renderSearch = () => {
+  let target = document.querySelector("form input[type=search]")
+  const searching = target.value.trim().length > 0
+  let result
+  if (!searching) {
+    result = list.map((i, index) => {
+      return { item: i }
+    })
+  } else {
+    result = search(list, target.value)
+  }
+  let all = document.querySelectorAll(".tab")
+  for(let el of all) {
+    el.classList.add("hidden")
+    el.classList.remove("selected")
+  }
+  document.querySelectorAll(".terminal-shell-group").forEach((group) => {
+    const panel = group.querySelector("[data-terminal-options-panel]")
+    if (!panel) {
+      return
+    }
+    if (searching) {
+      panel.classList.add("hidden")
+    } else {
+      panel.classList.toggle("hidden", !group.classList.contains("is-expanded"))
+    }
+  })
+
+  filteredCount = result.length
+  for(let i=0; i<result.length; i++) {
+    let selector = result[i]
+    let el = document.querySelector(".tab[data-index='" + selector.item.index + "']")
+    el.classList.remove("hidden")
+    if (selector.item.isTerminalOption) {
+      const group = el.closest(".terminal-shell-group")
+      if (group) {
+        const shellTab = group.querySelector(".tab[data-terminal-group]")
+        if (shellTab) {
+          shellTab.classList.remove("hidden")
+        }
+        const panel = group.querySelector("[data-terminal-options-panel]")
+        if (panel) {
+          panel.classList.remove("hidden")
+        }
+      }
+    }
+    if (i === selectedIndex) {
+      el.classList.add("selected")
+    } else {
+      el.classList.remove("selected")
+    }
+  }
+  document.querySelectorAll(".terminal-shell-group").forEach((group) => {
+    const hasVisibleOptions = Array.from(group.querySelectorAll(".tab[data-href]")).some((tab) => {
+      return !tab.classList.contains("hidden")
+    })
+    group.classList.toggle("hidden", !hasVisibleOptions)
+  })
+}
+rebuildTabList()
+renderSearch()
+const workspaceCwd = (() => {
+  const node = document.querySelector(".file-open")
+  if (!node) {
+    return ""
+  }
+  const value = node.getAttribute("data-filepath")
+  return typeof value === "string" ? value.trim() : ""
+})()
+const generateSession = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
+const appendWorkspaceCwd = (value, cwd = workspaceCwd) => {
+  if (!value || typeof value !== "string" || !cwd) {
+    return value
+  }
+  const hasPrefix = value.startsWith("@")
+  const raw = hasPrefix ? value.slice(1) : value
+  try {
+    const parsed = new URL(raw, window.location.origin)
+    const isPluginLauncher = parsed.pathname.startsWith("/run/plugin/")
+      || parsed.pathname.startsWith("/pinokio/run/plugin/")
+      || (parsed.pathname.startsWith("/run/api/") && /\/pinokio\.js$/i.test(parsed.pathname))
+    if (parsed.origin !== window.location.origin || !isPluginLauncher) {
+      return value
+    }
+    if (!parsed.searchParams.has("cwd")) {
+      parsed.searchParams.set("cwd", cwd)
+    }
+    const next = `${parsed.pathname}${parsed.search}${parsed.hash}`
+    return hasPrefix ? `@${next}` : next
+  } catch (_) {
+    return value
+  }
+}
+const appendSessionParam = (value, session) => {
+  if (!value) return value
+  if (value.includes('session=')) {
+    return value
+  }
+  const delimiter = value.includes('?') ? '&' : '?'
+  return `${value}${delimiter}session=${session}`
+}
+const pluginInstallPreflightCache = new Map()
+const normalizePluginPathFromLaunchHref = (rawHref) => {
+  if (!rawHref || typeof rawHref !== "string") {
+    return ""
+  }
+  try {
+    const parsed = new URL(rawHref, window.location.origin)
+    if (parsed.origin !== window.location.origin) {
+      return ""
+    }
+    if (parsed.pathname.startsWith("/pinokio/run/plugin/")) {
+      return parsed.pathname
+    }
+    if (parsed.pathname.startsWith("/run/plugin/") || (parsed.pathname.startsWith("/run/api/") && /\/pinokio\.js$/i.test(parsed.pathname))) {
+      return parsed.pathname.replace(/^\/run/, "")
+    }
+  } catch (_) {}
+  return ""
+}
+const pluginInstallHrefFromState = (state, fallbackPath) => {
+  const detailUrl = state && typeof state.detailUrl === "string" && state.detailUrl
+    ? state.detailUrl
+    : `/plugin?path=${encodeURIComponent(fallbackPath)}`
+  try {
+    const parsed = new URL(detailUrl, window.location.origin)
+    parsed.searchParams.set("next", "install")
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch (_) {
+    const separator = detailUrl.includes("?") ? "&" : "?"
+    return `${detailUrl}${separator}next=install`
+  }
+}
+const getPluginInstallRedirect = async (rawHref) => {
+  const pluginPath = normalizePluginPathFromLaunchHref(rawHref)
+  if (!pluginPath) {
+    return ""
+  }
+  if (pluginInstallPreflightCache.has(pluginPath)) {
+    return pluginInstallPreflightCache.get(pluginPath)
+  }
+  let redirectHref = ""
+  try {
+    const response = await fetch(`/api/plugin/install-state?path=${encodeURIComponent(pluginPath)}`, {
+      cache: "no-store"
+    })
+    const state = await response.json().catch(() => ({}))
+    if (response.ok && state && state.ok && state.hasInstall && state.hasInstalledCheck && state.installed === false) {
+      redirectHref = pluginInstallHrefFromState(state, pluginPath)
+    }
+  } catch (_) {}
+  pluginInstallPreflightCache.set(pluginPath, redirectHref)
+  return redirectHref
+}
+const redirectToPluginInstallIfNeeded = async (rawHref) => {
+  const redirectHref = await getPluginInstallRedirect(rawHref)
+  if (!redirectHref) {
+    return false
+  }
+  window.top.location.href = redirectHref
+  return true
+}
+const pluginSettingsHrefFromLaunchHref = (rawHref) => {
+  const launchHref = appendWorkspaceCwd(rawHref || "")
+  const pluginPath = normalizePluginPathFromLaunchHref(launchHref)
+  if (!pluginPath) {
+    return ""
+  }
+  const parsed = new URL("/plugin", window.location.origin)
+  parsed.searchParams.set("path", pluginPath)
+  if (workspaceCwd) {
+    parsed.searchParams.set("cwd", workspaceCwd)
+  }
+  return `${parsed.pathname}${parsed.search}`
+}
+const START_ICON_HTML = '<i class="fa-solid fa-chevron-right"></i>'
+const STARTING_ICON_HTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
+const TERMINAL_GROUP_ICON_HTML = '<i class="fa-solid fa-chevron-right"></i>'
+const TERMINAL_GROUP_LOADING_HTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
+const setTabLaunchState = (tab, state) => {
+  if (!tab) return
+  const indicator = tab.querySelector('.disclosure-indicator')
+  if (indicator) {
+    indicator.innerHTML = state === 'starting' ? STARTING_ICON_HTML : START_ICON_HTML
+  }
+  if (state === 'starting') {
+    tab.classList.add('is-starting')
+  } else {
+    tab.classList.remove('is-starting')
+  }
+}
+const setTerminalGroupState = (tab, state) => {
+  if (!tab) {
+    return
+  }
+  const indicator = tab.querySelector('.disclosure-indicator')
+  if (indicator) {
+    indicator.innerHTML = state === 'loading' ? TERMINAL_GROUP_LOADING_HTML : TERMINAL_GROUP_ICON_HTML
+  }
+  if (state === 'loading') {
+    tab.classList.add('is-loading')
+  } else {
+    tab.classList.remove('is-loading')
+  }
+}
+const setTerminalGroupExpanded = (group, expanded) => {
+  if (!group) {
+    return
+  }
+  group.classList.toggle('is-expanded', expanded)
+  const panel = group.querySelector('[data-terminal-options-panel]')
+  if (panel) {
+    panel.classList.toggle('hidden', !expanded)
+  }
+}
+const toggleTerminalGroup = async (tab) => {
+  if (!tab) {
+    return
+  }
+  const group = tab.closest('.terminal-shell-group')
+  if (!group) {
+    return
+  }
+  const panel = group.querySelector('[data-terminal-options-panel]')
+  if (!panel) {
+    return
+  }
+  if (group.dataset.loaded === '1') {
+    setTerminalGroupExpanded(group, !group.classList.contains('is-expanded'))
+    rebuildTabList()
+    renderSearch()
+    return
+  }
+  if (group.dataset.loading === '1') {
+    return
+  }
+  const url = tab.dataset.optionsUrl
+  if (!url) {
+    return
+  }
+  group.dataset.loading = '1'
+  setTerminalGroupExpanded(group, true)
+  setTerminalGroupState(tab, 'loading')
+  panel.innerHTML = '<div class="terminal-shell-status"><i class="fa-solid fa-circle-notch fa-spin"></i><span>Loading shell options...</span></div>'
+  try {
+    const html = await fetch(url).then((res) => res.text())
+    if (!html || html.trim().length === 0) {
+      panel.innerHTML = '<div class="terminal-shell-status"><span>No shell options available.</span></div>'
+    } else {
+      panel.innerHTML = html
+      group.dataset.loaded = '1'
+    }
+  } catch (_) {
+    panel.innerHTML = '<div class="terminal-shell-status"><span>Unable to load shell options.</span></div>'
+  } finally {
+    delete group.dataset.loading
+    setTerminalGroupState(tab, 'idle')
+    rebuildTabList()
+    renderSearch()
+  }
+}
+const pendingLaunchTabs = new Map()
+const launchTab = async (tab) => {
+  if (!tab) {
+    return false
+  }
+
+  if (tab.classList.contains('is-starting')) {
+    return false
+  }
+
+  const baseHref = tab.dataset.href
+  const baseTarget = tab.dataset.target
+
+  if (!baseHref || !baseTarget) {
+    return false
+  }
+
+  const session = generateSession()
+  const href = appendSessionParam(appendWorkspaceCwd(baseHref), session)
+  const target = appendSessionParam(appendWorkspaceCwd(baseTarget), session)
+
+  if (await redirectToPluginInstallIfNeeded(href)) {
+    return true
+  }
+
+  pendingLaunchTabs.set(session, tab)
+  setTabLaunchState(tab, 'starting')
+
+  const labelNode = tab.querySelector('.tab-title')
+  const label = labelNode ? labelNode.textContent.trim() : ""
+
+  window.parent.postMessage({
+    launch: {
+      name: target,
+      href,
+      label
+    }
+  }, "*")
+
+  window.setTimeout(() => {
+    if (pendingLaunchTabs.get(session) === tab) {
+      pendingLaunchTabs.delete(session)
+      setTabLaunchState(tab, 'idle')
+    }
+  }, 1500)
+
+  return true
+}
+const extractSession = (value) => {
+  if (!value || typeof value !== 'string') {
+    return null
+  }
+  const match = value.match(/session=([^&]+)/)
+  return match ? match[1] : null
+}
+document.querySelector("form input[type=search]").addEventListener("input", (e) => {
+  selectedIndex = 0
+  selectedBtnIndex = 0
+  renderSearch()
+})
+document.querySelector("form input[type=search]").focus()
+document.addEventListener("click", async (e) => {
+  const settingsTarget = e.target.closest('[data-plugin-settings][data-href]')
+  if (settingsTarget) {
+    e.preventDefault()
+    e.stopPropagation()
+    const settingsHref = pluginSettingsHrefFromLaunchHref(settingsTarget.getAttribute('data-href') || '')
+    if (settingsHref) {
+      window.top.location.href = settingsHref
+    }
+    return
+  }
+
+  const infoTarget = e.target.closest('[data-doc-link][data-href]')
+  if (infoTarget) {
+    e.preventDefault()
+    e.stopPropagation()
+    window.open(infoTarget.getAttribute('data-href'), '_blank')
+    return
+  }
+
+  const groupTab = e.target.closest('.tab[data-terminal-group]')
+  if (groupTab) {
+    e.preventDefault()
+    e.stopPropagation()
+    toggleTerminalGroup(groupTab)
+    return
+  }
+
+  const tab = e.target.closest('.tab[data-href]')
+  if (!tab) {
+    return
+  }
+
+  if (await launchTab(tab)) {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+})
+
+document.addEventListener('keydown', async (e) => {
+  if (!['Enter', ' ', 'Spacebar'].includes(e.key)) {
+    return
+  }
+
+  const target = e.target
+  if (!(target instanceof HTMLElement)) {
+    return
+  }
+
+  const groupTab = target.closest('.tab[data-terminal-group]')
+  if (groupTab && groupTab === target) {
+    e.preventDefault()
+    e.stopPropagation()
+    toggleTerminalGroup(groupTab)
+    return
+  }
+
+  const tab = target.closest('.tab[data-href]')
+  if (!tab || tab !== target) {
+    return
+  }
+
+  const launched = await launchTab(tab)
+  if (launched) {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+})
+
+window.addEventListener('message', (event) => {
+  const data = event.data
+  if (!data || typeof data !== 'object') {
+    return
+  }
+
+  let session = null
+
+  if (typeof data.session === 'string') {
+    session = data.session
+  }
+
+  if (!session && typeof data.id === 'string') {
+    session = extractSession(data.id)
+  }
+
+  if (!session && data.data && typeof data.data.id === 'string') {
+    session = extractSession(data.data.id)
+  }
+
+  if (!session && data.launch && typeof data.launch.href === 'string') {
+    session = extractSession(data.launch.href)
+  }
+
+  if (!session && typeof data.href === 'string') {
+    session = extractSession(data.href)
+  }
+
+  if (session && pendingLaunchTabs.has(session)) {
+    const tab = pendingLaunchTabs.get(session)
+    pendingLaunchTabs.delete(session)
+    setTabLaunchState(tab, 'idle')
+    return
+  }
+
+  if (data.type === 'start' || data.type === 'result' || data.type === 'error' || data.type === 'disconnect') {
+    pendingLaunchTabs.forEach((tab) => {
+      setTabLaunchState(tab, 'idle')
+    })
+    pendingLaunchTabs.clear()
+  }
+})
+</script>
+</body>
+</html>

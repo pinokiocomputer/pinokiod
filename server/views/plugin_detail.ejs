@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= plugin.title %></title>
+  <link href="/css/fontawesome.min.css" rel="stylesheet">
+  <link href="/css/solid.min.css" rel="stylesheet">
+  <link href="/css/brands.min.css" rel="stylesheet">
+  <link href="/noty.css" rel="stylesheet">
+  <link href="/urldropdown.css" rel="stylesheet">
+  <link href="/style.css" rel="stylesheet">
+  <link href="/task-launcher.css" rel="stylesheet">
+  <% if (agent === "electron") { %>
+    <link href="/electron.css" rel="stylesheet"/>
+  <% } %>
+  <script src="/plugin-detail.js" defer></script>
+</head>
+<body class="<%= theme %> main-sidebar-page task-launcher-page task-page plugin-page plugin-detail-page" data-agent="<%= agent %>">
+  <% const currentPluginCwd = typeof pluginCwd === "string" ? pluginCwd : ""; %>
+  <%- include('partials/app_navheader', { agent }) %>
+  <main>
+    <div class="task-container">
+      <section class="task-shell">
+        <header class="task-shell-header">
+          <div class="task-shell-header-main">
+            <div class="task-shell-topline">
+              <p class="task-eyebrow">Plugins</p>
+            </div>
+            <div class="plugin-detail-title-row">
+              <% if (plugin.image) { %>
+                <img class="plugin-detail-title-art" src="<%= plugin.image %>" alt="<%= plugin.title %> icon">
+              <% } else if (plugin.icon) { %>
+                <div class="plugin-detail-title-art plugin-detail-title-art-icon" aria-hidden="true">
+                  <i class="<%= plugin.icon %>"></i>
+                </div>
+              <% } %>
+              <h1 class="task-title"><%= plugin.title %></h1>
+            </div>
+            <% if (plugin.description) { %>
+              <p class="task-description"><%= plugin.description %></p>
+            <% } %>
+            <% if (pluginUi.badges && pluginUi.badges.length) { %>
+              <div class="task-badge-row task-header-badges">
+                <% pluginUi.badges.forEach((badge) => { %>
+                  <span class="task-badge <%= badge.tone ? `task-badge-${badge.tone}` : '' %>"><%= badge.label %></span>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+          <div class="task-header-actions">
+            <a class="task-link-button" href="/plugins">
+              <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+              <span>Back</span>
+            </a>
+          </div>
+        </header>
+
+        <div class="task-shell-body">
+          <div class="task-detail-layout">
+            <div class="task-detail-main">
+              <section class="task-section plugin-detail-actions-section" data-plugin-actions-section>
+                <div class="task-section-head">
+                  <div>
+                    <h2 class="task-section-title">Actions</h2>
+                    <p class="task-section-subcopy"><%= pluginUi.launchSummary %>. Run the plugin or manage its setup from here.</p>
+                  </div>
+                </div>
+                <div class="plugin-detail-next-step-banner task-hidden" data-plugin-next-step-banner></div>
+                <div class="plugin-detail-action-grid">
+                  <% if (plugin.pluginPath) { %>
+                    <div class="plugin-detail-action-card" data-plugin-action-card="open">
+                      <div class="plugin-detail-action-copy">
+                        <div class="plugin-detail-action-label">Open in</div>
+                        <div class="plugin-detail-action-meta">Choose a project and launch this plugin there.</div>
+                      </div>
+                      <button class="task-button primary" type="button" data-plugin-open>
+                        <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+                        <span>Open in</span>
+                      </button>
+                    </div>
+                  <% } %>
+                  <div class="plugin-detail-action-card task-hidden" data-plugin-ai-permissions>
+                    <div class="plugin-detail-action-copy">
+                      <div class="plugin-detail-action-label">AI permissions</div>
+                      <div class="plugin-detail-action-meta">Clear saved access for <code data-plugin-ai-permission-path><%= currentPluginCwd %></code>.</div>
+                      <div class="task-inline-help" data-plugin-ai-permission-status></div>
+                    </div>
+                    <button class="task-button" type="button" data-plugin-ai-permission-clear>
+                      <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                      <span>Clear</span>
+                    </button>
+                  </div>
+                  <% if (plugin.hasInstall && plugin.pluginPath && plugin.installed !== true) { %>
+                    <div class="plugin-detail-action-card" data-plugin-action-card="install">
+                      <div class="plugin-detail-action-copy">
+                        <div class="plugin-detail-action-label">Install</div>
+                        <div class="plugin-detail-action-meta">Run the plugin installation flow.</div>
+                      </div>
+                      <button class="task-button" type="button" data-plugin-action="install">
+                        <i class="fa-solid fa-download" aria-hidden="true"></i>
+                        <span>Install</span>
+                      </button>
+                    </div>
+                  <% } %>
+                  <% if (plugin.hasUpdate && plugin.pluginPath && plugin.installed !== false) { %>
+                    <div class="plugin-detail-action-card" data-plugin-action-card="update">
+                      <div class="plugin-detail-action-copy">
+                        <div class="plugin-detail-action-label">Update</div>
+                        <div class="plugin-detail-action-meta">Pull the latest plugin-managed changes.</div>
+                      </div>
+                      <button class="task-button" type="button" data-plugin-action="update">
+                        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                        <span>Update</span>
+                      </button>
+                    </div>
+                  <% } %>
+                  <% if (plugin.hasUninstall && plugin.pluginPath && plugin.installed !== false) { %>
+                    <div class="plugin-detail-action-card" data-plugin-action-card="uninstall">
+                      <div class="plugin-detail-action-copy">
+                        <div class="plugin-detail-action-label">Uninstall</div>
+                        <div class="plugin-detail-action-meta">Remove this plugin's managed setup.</div>
+                      </div>
+                      <button class="task-button danger" type="button" data-plugin-action="uninstall">
+                        <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                        <span>Uninstall</span>
+                      </button>
+                    </div>
+                  <% } %>
+                  <% if (!plugin.pluginPath && !plugin.hasInstall && !plugin.hasUpdate && !plugin.hasUninstall) { %>
+                    <div class="task-empty-state">
+                      <p class="task-empty-copy">No direct actions are available for this plugin item yet.</p>
+                    </div>
+                  <% } %>
+                </div>
+              </section>
+
+              <% if (pluginUi.hasChanges) { %>
+                <section class="task-section">
+                  <div class="task-section-head">
+                    <div>
+                      <h2 class="task-section-title">Local changes</h2>
+                      <p class="task-section-subcopy"><%- pluginUi.localChangesCopy %></p>
+                    </div>
+                  </div>
+                  <div class="task-change-list">
+                    <% pluginUi.changePreview.forEach((change) => { %>
+                      <div class="task-change-row">
+                        <div class="task-change-copy">
+                          <div class="task-change-file"><%= change.file %></div>
+                          <div class="task-change-status"><%= change.status %></div>
+                        </div>
+                      </div>
+                    <% }) %>
+                  </div>
+                  <% if (pluginUi.extraChangeCount > 0) { %>
+                    <p class="task-inline-help">+ <%= pluginUi.extraChangeCount %> more change<%= pluginUi.extraChangeCount === 1 ? "" : "s" %></p>
+                  <% } %>
+                </section>
+              <% } %>
+            </div>
+
+            <aside class="task-share-section task-detail-sidebar">
+              <div class="task-section-head">
+                <h2 class="task-section-title">Plugin status</h2>
+              </div>
+              <div class="task-side-stack">
+                <div class="task-meta-row task-meta-row-compact">
+                  <div class="task-meta-chip">
+                    <span class="task-meta-chip-label"><%= pluginUi.sourceLabel %></span>
+                    <span class="task-meta-chip-value"><%= pluginUi.sourceValue %></span>
+                  </div>
+                  <div class="task-meta-chip">
+                    <span class="task-meta-chip-label"><%= pluginUi.statusLabel %></span>
+                    <span class="task-meta-chip-value"><%= pluginUi.statusValue %></span>
+                  </div>
+                </div>
+                <div class="task-actions task-detail-status-actions">
+                  <% if (pluginUi.canOpenFolder) { %>
+                    <button class="task-button" type="button" data-filepath="<%= shareState.dir %>">
+                      <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
+                      <span>Open folder</span>
+                    </button>
+                  <% } %>
+                  <% if (plugin.link) { %>
+                    <a class="task-link-button" href="<%= plugin.link %>" target="_blank" rel="noopener noreferrer">
+                      <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                      <span>Website</span>
+                    </a>
+                  <% } %>
+                </div>
+              </div>
+
+              <section class="task-side-group">
+                <div class="task-section-head">
+                  <h2 class="task-section-title"><%= pluginUi.githubPanelTitle %></h2>
+                  <div class="task-section-note" data-plugin-share-note></div>
+                </div>
+                <% if (pluginUi.canManageSource) { %>
+                  <div class="task-share-next-step-main">
+                    <h3 class="task-share-next-step-title" data-plugin-share-next-title></h3>
+                    <p class="task-share-next-step-copy" data-plugin-share-next-copy></p>
+                    <div class="task-actions" data-plugin-share-next-actions></div>
+                  </div>
+                  <form class="task-share-inline-create task-hidden" data-plugin-share-create-form>
+                    <div class="task-inline-fields">
+                      <label class="task-field">
+                        <span class="task-label">Repository name</span>
+                        <input class="task-input" type="text" data-plugin-share-repo-name placeholder="plugin-repo">
+                      </label>
+                      <label class="task-field task-field-tight">
+                        <span class="task-label">Visibility</span>
+                        <select class="task-select" data-plugin-share-visibility>
+                          <option value="public">Public</option>
+                          <option value="private">Private</option>
+                        </select>
+                      </label>
+                      <div class="task-actions task-share-inline-create-actions">
+                        <button class="task-button" type="button" data-plugin-share-create-cancel>Cancel</button>
+                        <button class="task-button primary" type="submit">
+                          <i class="fa-brands fa-github" aria-hidden="true"></i>
+                          <span>Continue</span>
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                  <div class="task-actions plugin-share-static-actions">
+                    <a class="task-link-button <%= shareState.remoteWebUrl ? '' : 'task-hidden' %>" href="<%= shareState.remoteWebUrl || '#' %>" target="_blank" rel="noopener noreferrer" data-plugin-share-remote-link>
+                      <i class="fa-brands fa-github" aria-hidden="true"></i>
+                      <span>View on GitHub</span>
+                    </a>
+                    <button class="task-button" type="button" data-plugin-share-refresh>
+                      <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                      <span>Check again</span>
+                    </button>
+                  </div>
+                  <p class="task-help-copy" data-plugin-share-copy></p>
+                  <div class="task-share-feedback" data-plugin-share-feedback hidden></div>
+                <% } else if (pluginUi.isManagedSource) { %>
+                  <div class="task-share-next-step-main">
+                    <p class="task-share-next-step-copy"><%- pluginUi.githubPanelCopy %></p>
+                  </div>
+                <% } else { %>
+                  <div class="task-share-next-step-main">
+                    <p class="task-share-next-step-copy"><%- pluginUi.githubPanelCopy %></p>
+                  </div>
+                <% } %>
+              </section>
+            </aside>
+          </div>
+        </div>
+      </section>
+    </div>
+    <%- include('partials/main_sidebar', { selected: 'plugins' }) %>
+  </main>
+
+  <div class="task-share-overlay task-hidden" data-plugin-share-overlay>
+    <div class="task-share-overlay-backdrop" data-plugin-share-overlay-close></div>
+    <section class="task-share-overlay-panel" role="dialog" aria-modal="true" aria-labelledby="plugin-share-overlay-title">
+      <header class="task-share-overlay-header">
+        <div>
+          <p class="task-eyebrow">GitHub Flow</p>
+          <h2 id="plugin-share-overlay-title" class="task-share-overlay-title" data-plugin-share-overlay-title>Publish</h2>
+          <p class="task-share-overlay-copy" data-plugin-share-overlay-copy>Finish the GitHub flow in this panel, then click Done, check again.</p>
+        </div>
+        <button class="task-button icon-only" type="button" data-plugin-share-overlay-close aria-label="Close">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </header>
+      <div class="task-share-overlay-frame-wrap">
+        <iframe class="task-share-overlay-frame" src="about:blank" allow="fullscreen *;" allowfullscreen data-plugin-share-overlay-frame></iframe>
+      </div>
+      <footer class="task-share-overlay-footer">
+        <button class="task-button" type="button" data-plugin-share-overlay-close>Not yet</button>
+        <button class="task-button primary" type="button" data-plugin-share-overlay-refresh>
+          <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+          <span>Done, check again</span>
+        </button>
+      </footer>
+    </section>
+  </div>
+
+  <script id="plugin-detail-bootstrap" type="application/json"><%- JSON.stringify({
+    plugin: {
+      title: plugin.title,
+      description: plugin.description || "",
+      link: plugin.link || "",
+      pluginPath: plugin.pluginPath || "",
+      cwd: currentPluginCwd,
+      extraParams: Array.isArray(plugin.extraParams) ? plugin.extraParams : [],
+      defaultCwd: plugin.defaultCwd || "",
+      hasInstall: !!plugin.hasInstall,
+      hasUninstall: !!plugin.hasUninstall,
+      hasUpdate: !!plugin.hasUpdate,
+      hasInstalledCheck: !!plugin.hasInstalledCheck,
+      installed: typeof plugin.installed === "boolean" ? plugin.installed : null,
+      category: plugin.category || "cli"
+    },
+    share: shareState,
+    apps,
+    stateUrl: plugin.pluginPath ? `/plugin/share/state?path=${encodeURIComponent(plugin.pluginPath)}` : ""
+  }).replace(/</g, '\\u003c') %></script>
+  <%- include('partials/app_common_scripts') %>
+  <script src="/opener.js"></script>
+</body>
+</html>

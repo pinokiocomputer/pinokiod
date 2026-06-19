@@ -1,9 +1,172 @@
 const path = require('path')
 const portfinder = require('portfinder-cp')
-const os = require('os')
 const fs = require('fs')
 const Util = require('./util')
-const platform = os.platform()
+const ManagedSkills = require('./managed_skills')
+const TEMP_ENV_KEYS = ["TMP", "TEMP", "TMPDIR", "PIP_TMPDIR"]
+const CACHE_ENV_KEYS = ["UV_CACHE_DIR", "PIP_CACHE_DIR"]
+const CACHE_PREFLIGHT_KEYS = TEMP_ENV_KEYS.concat(CACHE_ENV_KEYS)
+
+const formatCachePreflightError = (error) => {
+  if (!error) {
+    return ""
+  }
+  const parts = []
+  if (error.code) {
+    parts.push(`code=${error.code}`)
+  }
+  if (typeof error.errno !== "undefined") {
+    parts.push(`errno=${error.errno}`)
+  }
+  if (error.syscall) {
+    parts.push(`syscall=${error.syscall}`)
+  }
+  if (error.path) {
+    parts.push(`path=${error.path}`)
+  }
+  if (error.dest) {
+    parts.push(`dest=${error.dest}`)
+  }
+  if (error.message) {
+    parts.push(`message=${error.message}`)
+  }
+  return parts.join(" ")
+}
+
+const logCachePreflight = (message) => {
+  console.log(`[Pinokio cache preflight] ${message}`)
+}
+
+const probeCacheDir = async (dirPath) => {
+  const probeDir = path.resolve(
+    dirPath,
+    `.pinokio-cache-probe-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  )
+  const probeFile = path.resolve(probeDir, "probe.tmp")
+  const renamedFile = path.resolve(probeDir, "probe-renamed.tmp")
+  const steps = [
+    ["create probe directory", () => fs.promises.mkdir(probeDir, { recursive: false })],
+    ["write probe file", () => fs.promises.writeFile(probeFile, "pinokio")],
+    ["append probe file", () => fs.promises.appendFile(probeFile, "-cache-probe")],
+    ["rename probe file", () => fs.promises.rename(probeFile, renamedFile)],
+    ["delete probe file", () => fs.promises.unlink(renamedFile)],
+    ["remove probe directory", () => fs.promises.rmdir(probeDir)]
+  ]
+
+  for (const [step, run] of steps) {
+    try {
+      await run()
+    } catch (error) {
+      await fs.promises.rm(probeDir, { recursive: true, force: true }).catch(() => {})
+      return { ok: false, step, error }
+    }
+  }
+  return { ok: true }
+}
+
+const managedCacheEnvDefaults = () => {
+  const defaults = {}
+  for (const key of CACHE_PREFLIGHT_KEYS) {
+    defaults[key] = `./cache/${key}`
+  }
+  return defaults
+}
+
+const ensureCachePreflightDir = async (key, targetPath) => {
+  logCachePreflight(`${key}: target=${targetPath}`)
+  try {
+    await fs.promises.mkdir(targetPath, { recursive: true })
+    logCachePreflight(`${key}: mkdir ok`)
+  } catch (error) {
+    logCachePreflight(`${key}: mkdir failed ${formatCachePreflightError(error)}`)
+  }
+
+  const firstProbe = await probeCacheDir(targetPath)
+  if (firstProbe.ok) {
+    logCachePreflight(`${key}: probe ok`)
+    return { key, path: targetPath, repaired: false, ok: true }
+  }
+
+  logCachePreflight(`${key}: probe failed step="${firstProbe.step}" ${formatCachePreflightError(firstProbe.error)}`)
+  logCachePreflight(`${key}: repair delete start path=${targetPath}`)
+
+  try {
+    await fs.promises.rm(targetPath, { recursive: true, force: true })
+    logCachePreflight(`${key}: repair delete ok`)
+  } catch (error) {
+    logCachePreflight(`${key}: repair delete failed ${formatCachePreflightError(error)}`)
+    return { key, path: targetPath, repaired: false, ok: false, step: "repair delete", error }
+  }
+
+  try {
+    await fs.promises.mkdir(targetPath, { recursive: true })
+    logCachePreflight(`${key}: repair mkdir ok`)
+  } catch (error) {
+    logCachePreflight(`${key}: repair mkdir failed ${formatCachePreflightError(error)}`)
+    return { key, path: targetPath, repaired: true, ok: false, step: "repair mkdir", error }
+  }
+
+  const secondProbe = await probeCacheDir(targetPath)
+  if (secondProbe.ok) {
+    logCachePreflight(`${key}: repair probe ok`)
+    return { key, path: targetPath, repaired: true, ok: true }
+  }
+
+  logCachePreflight(`${key}: repair probe failed step="${secondProbe.step}" ${formatCachePreflightError(secondProbe.error)}`)
+  return { key, path: targetPath, repaired: true, ok: false, step: secondProbe.step, error: secondProbe.error }
+}
+
+const ensurePinokioCacheDirs = async (kernel, options = {}) => {
+  if (!kernel || !kernel.homedir) {
+    return {}
+  }
+  const throwOnFailure = !!options.throwOnFailure
+  const root = path.resolve(kernel.homedir)
+  const cacheRoot = path.resolve(root, "cache")
+  const envPath = path.resolve(root, "ENVIRONMENT")
+  const defaults = managedCacheEnvDefaults()
+  logCachePreflight(`start root=${root}`)
+  await Util.update_env(envPath, defaults)
+  logCachePreflight(`ENVIRONMENT updated keys=${CACHE_PREFLIGHT_KEYS.join(",")}`)
+  try {
+    await fs.promises.mkdir(cacheRoot, { recursive: true })
+    logCachePreflight(`cache root mkdir ok path=${cacheRoot}`)
+  } catch (error) {
+    logCachePreflight(`cache root mkdir failed path=${cacheRoot} ${formatCachePreflightError(error)}`)
+  }
+
+  if (process.platform === "darwin") await fs.promises.writeFile(path.resolve(root, ".metadata_never_index"), "", { flag: "a" }).catch(() => {})
+
+  const errors = []
+  const results = []
+
+  for (const key of CACHE_PREFLIGHT_KEYS) {
+    const targetPath = path.resolve(cacheRoot, key)
+    const result = await ensureCachePreflightDir(key, targetPath)
+    results.push(result)
+    if (!result.ok) {
+      errors.push(result)
+    }
+  }
+
+  if (errors.length > 0) {
+    kernel.cacheDirErrors = errors
+    const message = errors
+      .map((error) => `${error.key}: ${error.path} (${error.step || "unknown"} ${formatCachePreflightError(error.error)})`)
+      .join(", ")
+    logCachePreflight(`failed ${message}`)
+    if (throwOnFailure) {
+      throw new Error(`Pinokio could not create writable cache directories: ${message}`)
+    }
+  } else {
+    kernel.cacheDirErrors = []
+    logCachePreflight(`complete ok checked=${results.length} repaired=${results.filter((result) => result.repaired).length}`)
+  }
+
+  kernel.cacheDirPreflight = results
+  const env = await get(root, kernel)
+  return { env, errors, results }
+}
 const ENVS = async () => {
 //  const primary_port = 80
 //  const secondary_port = 42000
@@ -299,7 +462,7 @@ const ENVS = async () => {
 //}
 
 // type := system|app
-const ENV = async (type, homedir) => {
+const ENV = async (type, homedir, kernel) => {
   const envs = await ENVS()
   let filtered_envs = []
   let irrelevant_keys = []
@@ -310,9 +473,6 @@ const ENV = async (type, homedir) => {
       irrelevant_keys.push(e.key)
     }
   }
-
-  console.log({ filtered_envs, irrelevant_keys })
-
 //  let filtered_envs = envs.filter((e) => {
 //    return e.type.includes(type)
 //  })
@@ -337,35 +497,27 @@ const ENV = async (type, homedir) => {
     //  if e.key exists on system env, use that
     //  if e.key does NOT exist on system env, use from the hardcoded default option
     if (type === 'app') {
-      system_env = await get_raw(homedir)
+      system_env = await get_raw(homedir, kernel)
       if (e.key in system_env) {
-        console.log(`original ${e.key}=${val}`)
         val = system_env[e.key]
-        console.log(`inherited from system_env: ${e.key}=${val}`)
         keys.add(e.key)
       }
     }
 
     let kv = `${e.key}=${val}`
-    console.log("kv", kv)
     lines.push(comment+kv)
   }
 
   // In case of type: app, inherit any other custom ENVIRONMENT variable not yet included
-  console.log({ irrelevant_keys })
   if (type === "app" && system_env) {
     for(let key in system_env) {
       if (!keys.has(key)) {
         // the key has not been processed, need to add to the lines
         if (irrelevant_keys.includes(key)) {
-          // if the key was explicitly stated to be not included, skip
-          console.log("irrelevant key", key)
         } else {
-          console.log("relevant key", key)
           let val = system_env[key]
           let kv = `${key}=${val}`
           lines.push(kv)
-          console.log(`inherited custom environment key from system_env: ${kv}`)
         }
       }
     }
@@ -373,8 +525,8 @@ const ENV = async (type, homedir) => {
 
   return lines.join("\n")
 }
-const init_folders = async (homedir) => {
-  const current_env = await get(homedir)
+const init_folders = async (homedir, kernel) => {
+  const current_env = await get(homedir, kernel)
   for(let key in current_env) {
     let val = current_env[key]
 
@@ -396,8 +548,8 @@ const init_folders = async (homedir) => {
 // Get the actual environment variable at specific path
 const get2 = async (filepath, kernel) => {
   let api_path = Util.api_path(filepath, kernel)
-  let default_env = await get(kernel.homedir)
-  let api_env = await get(api_path)
+  let default_env = await get(kernel.homedir, kernel)
+  let api_env = await get(api_path, kernel)
   let process_env = kernel.envs || process.env
   let current_env = Object.assign({}, process_env, default_env, api_env)
   for(let key in current_env) {
@@ -412,8 +564,10 @@ const get2 = async (filepath, kernel) => {
 // return env object
 // 1. if the value starts with ./ => convert to absolute path
 // 2. if the value is empty => don't return the kv pair for that value
-const get = async (homedir) => {
-  const env_path = path.resolve(homedir, "ENVIRONMENT")
+const get = async (homedir, kernel) => {
+  const got_root = await get_root({ path: homedir }, kernel)
+  const root = got_root.root
+  const env_path = path.resolve(root, "ENVIRONMENT")
   const current_env = await Util.parse_env(env_path)
   for(let key in current_env) {
     let val = current_env[key]
@@ -428,8 +582,10 @@ const get = async (homedir) => {
   return current_env
 }
 
-const get_raw = async (homedir) => {
-  const env_path = path.resolve(homedir, "ENVIRONMENT")
+const get_raw = async (homedir, kernel) => {
+  const got_root = await get_root({ path: homedir }, kernel)
+  const root = got_root.root
+  const env_path = path.resolve(root, "ENVIRONMENT")
   const current_env = await Util.parse_env(env_path)
   for(let key in current_env) {
     let val = current_env[key]
@@ -439,4 +595,340 @@ const get_raw = async (homedir) => {
   }
   return current_env
 }
-module.exports = { ENV, get, get2, init_folders }
+
+const requirements = async (script, cwd, kernel) => {
+  let pre_items = []
+  let requires_instantiation = false
+  if (script) {
+    let pre
+    if (Array.isArray(script.pre)) {
+      pre = script.pre
+    } else if (Array.isArray(script.env)) {
+      pre = script.env
+    }
+    if (pre) {
+      let env = await get2(cwd, kernel)
+      for(let item of pre) {
+        if (!item || typeof item !== "object") {
+          continue
+        }
+        let env_key
+        if (typeof item.env === "string" && item.env) {
+          env_key = item.env
+        } else if (typeof item.key === "string" && item.key) {
+          env_key = item.key
+          item.env = item.key
+        }
+        if (env_key) {
+          // if index is not set, use 0 as default (for key)
+          if (!item.index) {
+            item.index = 0
+          }
+          if (typeof item.host === "string" && item.host.trim()) {
+            const host = item.host.trim()
+            let parsedHost = ""
+            try {
+              const hasProtocol = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(host);
+              const url = new URL(hasProtocol ? host : `https://${host}`);
+              parsedHost = url.host
+            } catch (e) {
+              item.host = ""
+            }
+            if (parsedHost) {
+              item.host = parsedHost
+              item.val = await kernel.kv.get(item.host, item.index)
+            }
+          } else {
+            item.host = ""
+          }
+          if (env[env_key]) {
+            item.val = env[env_key]
+          } else {
+            if (item.default) {
+              item.val = item.default
+            }
+            requires_instantiation = true
+          }
+          pre_items.push(item)
+        }
+      }
+    }
+  }
+  return { items: pre_items, requires_instantiation }
+}
+const get_root = async (options, kernel) => {
+  let root
+  let relpath
+  if (options.path) {
+    let primary_path = path.resolve(options.path, "pinokio")
+    let primary_exists = await kernel.exists(primary_path)
+    if (primary_exists) {
+      root = primary_path
+      relpath = "pinokio"
+    } else {
+      root = options.path
+      relpath = ""
+    }
+  } else if (options.name) {
+    let primary_path = kernel.path("api", options.name, "pinokio")
+    let primary_exists = await kernel.exists(primary_path)
+    if (primary_exists) {
+      root = primary_path
+      relpath = "pinokio"
+    } else {
+      root = kernel.path("api", options.name)
+      relpath = ""
+    }
+  }
+  return { root, relpath }
+}
+const init = async (options, kernel) => {
+  /*
+  options = {
+    name,
+    no_inherit
+  }
+  */
+  // check if pinokio folder exists
+  // 1. if it exists, it's pinokio/ENVIRONMENT
+  // 2. if not, it's ENVIRONMENT
+  let relpath, root
+  if (options.name) {
+    let got_root = await get_root(options, kernel)
+    relpath = got_root.relpath
+    root = got_root.root
+  } else {
+    root = kernel.homedir
+  }
+  const homeRoot = path.resolve(kernel.homedir)
+  const isHomeRoot = path.resolve(root) === homeRoot
+  const writeFileIfChanged = async (targetPath, content) => {
+    let shouldWrite = true
+    try {
+      const existingContent = await fs.promises.readFile(targetPath, "utf8")
+      shouldWrite = existingContent !== content
+    } catch (error) {
+      if (!(error && error.code === "ENOENT")) {
+        throw error
+      }
+    }
+
+    if (shouldWrite) {
+      await fs.promises.writeFile(targetPath, content, "utf8")
+    }
+  }
+  const backupFileIfChanged = async (targetPath, desiredContent) => {
+    let existingContent
+    try {
+      existingContent = await fs.promises.readFile(targetPath, "utf8")
+    } catch (error) {
+      if (error && error.code === "ENOENT") {
+        return
+      }
+      throw error
+    }
+    if (existingContent === desiredContent) {
+      return
+    }
+    const backupPath = `${targetPath}.pinokio.backup`
+    try {
+      await fs.promises.access(backupPath, fs.constants.F_OK)
+      return
+    } catch (error) {
+      if (!(error && error.code === "ENOENT")) {
+        throw error
+      }
+    }
+    await fs.promises.copyFile(targetPath, backupPath)
+  }
+  let current = path.resolve(root, "ENVIRONMENT")
+  let exists = await kernel.exists(current)
+  if (exists) {
+    // if ENVIRONMENT already exists, don't do anything
+  } else {
+    // if ENVIRONMENT doesn't exist, need to create one
+    // 1. if _ENVIRONMENT exists, create ENVIRONMENT by appending _ENVIRONMENT to ENVIRONMENT
+    // 2. if _ENVIRONMENT doesn't exist, just write ENVIRONMENT
+    // if _ENVIRONMENT exists, 
+
+    let root_exists = await kernel.exists(root)
+    if (!root_exists) {
+      await fs.promises.mkdir(root, { recursive: true }).catch((e) => { })
+    }
+
+    let _environment = path.resolve(root, "_ENVIRONMENT")
+    let _exists = await kernel.exists(_environment)
+    if (options && options.no_inherit) {
+      if (_exists) {
+        let _environmentStr = await fs.promises.readFile(_environment, "utf8")
+        await fs.promises.writeFile(current, _environmentStr)
+      }
+    } else {
+      let content = await ENV("app", kernel.homedir, kernel)
+      if (_exists) {
+        let _environmentStr = await fs.promises.readFile(_environment, "utf8")
+        await fs.promises.writeFile(current, _environmentStr + "\n\n\n" + content)
+      } else {
+        await fs.promises.writeFile(current, content)
+      }
+    }
+  }
+
+  const agentTemplatePath = kernel.path("prototype/system/AGENTS.md")
+  const agentTemplateExists = await kernel.exists(agentTemplatePath)
+  if (agentTemplateExists) {
+    const agentFiles = [
+      "AGENTS.md",
+      "CLAUDE.md",
+      "GEMINI.md",
+      "QWEN.md",
+      ".windsurfrules",
+      ".cursorrules",
+      ".clinerules"
+    ]
+    const structure_path = kernel.path("prototype/system/structure/clone")
+    const structure_content = await fs.promises.readFile(structure_path, "utf-8")
+    const proto_path = kernel.path("prototype")
+    const home_path = kernel.homedir
+    const rendered_recipe = await kernel.renderFile(agentTemplatePath, {
+      structure: structure_content,
+      examples: kernel.path("prototype/system/examples"),
+      browser_logs: kernel.path("logs/browser.log"),
+      PINOKIO_DOCUMENTATION: kernel.path("prototype/PINOKIO.md"),
+      PTERM_DOCUMENTATION: kernel.path("prototype/PTERM.md"),
+      app_root: root,
+      proto_path,
+      home_path,
+    })
+    if (isHomeRoot) {
+      const soulPath = path.resolve(root, "SOUL.md")
+      let soulExists = await kernel.exists(soulPath)
+      if (!soulExists) {
+        for (const filename of agentFiles) {
+          const destination = path.resolve(root, filename)
+          await backupFileIfChanged(destination, rendered_recipe)
+        }
+        await fs.promises.writeFile(soulPath, "", "utf8")
+        soulExists = true
+      }
+      let renderedOutput = rendered_recipe
+      if (soulExists) {
+        const soulContent = await fs.promises.readFile(soulPath, "utf8")
+        const soulBody = soulContent.trim()
+        if (soulBody.length > 0) {
+          const soulWrapper = [
+            "## User Soul",
+            "",
+            "The following instructions come from `SOUL.md`.",
+            "",
+            "If this section conflicts with the general Pinokio defaults earlier in this document, follow this section.",
+            "",
+            "If there is no conflict, follow both.",
+          ].join("\n")
+          const separator = rendered_recipe.endsWith("\n") ? "\n" : "\n\n"
+          renderedOutput = `${rendered_recipe}${separator}${soulWrapper}\n\n${soulBody}\n`
+        }
+      }
+      for (const filename of agentFiles) {
+        const destination = path.resolve(root, filename)
+        await writeFileIfChanged(destination, renderedOutput)
+      }
+    } else {
+      for (const filename of agentFiles) {
+        const destination = path.resolve(root, filename)
+        const destinationExists = await kernel.exists(destination)
+        if (!destinationExists) {
+          await fs.promises.writeFile(destination, rendered_recipe)
+        }
+      }
+    }
+    const geminiIgnorePath = path.resolve(root, ".geminiignore")
+    const geminiIgnoreContent = `ENVIRONMENT
+!/logs
+!/GEMINI.md
+!/SPEC.md
+!/app
+!${kernel.homedir}`
+    let shouldWriteGeminiIgnore = false
+    try {
+      const existingGeminiIgnore = await fs.promises.readFile(geminiIgnorePath, "utf8")
+      if (existingGeminiIgnore !== geminiIgnoreContent) {
+        shouldWriteGeminiIgnore = true
+      }
+    } catch (error) {
+      if (error && error.code === "ENOENT") {
+        shouldWriteGeminiIgnore = true
+      } else {
+        throw error
+      }
+    }
+    if (shouldWriteGeminiIgnore) {
+      await fs.promises.writeFile(geminiIgnorePath, geminiIgnoreContent)
+    }
+  }
+
+  // Keep Pinokio-managed skills in sync for the home root.
+  if (isHomeRoot) {
+    try {
+      await ManagedSkills.syncManagedSkills(kernel)
+    } catch (error) {
+      console.warn("[managed skills] Failed to sync managed skills", error)
+    }
+  }
+
+  const gitDir = path.resolve(root, ".git")
+  const gitDirExists = await kernel.exists(gitDir)
+  if (gitDirExists) {
+    const excludePath = path.resolve(gitDir, "info/exclude")
+    await fs.promises.mkdir(path.dirname(excludePath), { recursive: true })
+
+    let excludeContent = ""
+    try {
+      excludeContent = await fs.promises.readFile(excludePath, "utf8")
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        throw error
+      }
+    }
+
+    const existingEntries = new Set(
+      excludeContent
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+    )
+
+    const entriesToEnsure = [
+      "ENVIRONMENT",
+//      ".*",
+//      "~*",
+      "/.pinokio-temp",
+      "/logs",
+      "/cache",
+      "/AGENTS.md",
+      "/CLAUDE.md",
+      "/GEMINI.md",
+      "/QWEN.md",
+      "/.geminiignore",
+      ".clinerules",
+      ".cursorrules",
+      ".windsurfrules"
+    ]
+
+    const missingEntries = entriesToEnsure.filter(entry => !existingEntries.has(entry))
+    if (missingEntries.length > 0) {
+      let appendContent = ""
+      if (excludeContent.length > 0 && !excludeContent.endsWith("\n")) {
+        appendContent += "\n"
+      }
+      appendContent += missingEntries.join("\n") + "\n"
+      await fs.promises.appendFile(excludePath, appendContent)
+    }
+  }
+  return {
+    relpath,
+    root_path: root,
+    env_path: current
+  }
+}
+module.exports = { ENV, get, get2, init_folders, ensurePinokioCacheDirs, requirements, init, get_root  }

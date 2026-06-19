@@ -1,0 +1,87 @@
+<%
+const homeRunApp = typeof app !== "undefined" ? app : null
+const escapeAttr = (value) => String(value ?? "")
+  .replace(/&/g, "&amp;")
+  .replace(/"/g, "&quot;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+const stripHtml = (value) => String(value ?? "")
+  .replace(/<[^>]*>/g, " ")
+  .replace(/\s+/g, " ")
+  .trim()
+const buildHomeSelectionPayload = (menuItem, index) => {
+  const dataFilepath = (menuItem.fs || menuItem.command) ? (menuItem.href || "") : ""
+  const payload = {
+    target: menuItem.target || "",
+    hrefAttr: menuItem.href || "",
+    dataIndex: String(index),
+    dataMode: menuItem.mode || "",
+    dataTargetFull: menuItem.target_full || "",
+    dataShell: menuItem.shell_id || "",
+    dataScript: menuItem.script_id || "",
+    dataAction: menuItem.action ? JSON.stringify(menuItem.action) : "",
+    dataRun: menuItem.run && typeof menuItem.run === "string" ? menuItem.run : "",
+    dataCommand: menuItem.command || "",
+    dataFilepath,
+    textValue: stripHtml(menuItem.btn)
+  }
+  Object.keys(payload).forEach((key) => {
+    if (!payload[key]) {
+      delete payload[key]
+    }
+  })
+  return payload
+}
+const buildHomeSelectionUrl = (menuItem, index) => {
+  const base = homeRunApp && homeRunApp.browser_url ? homeRunApp.browser_url : ""
+  if (!base) {
+    return menuItem.href || "#"
+  }
+  const hashIndex = base.indexOf("#")
+  const path = hashIndex >= 0 ? base.slice(0, hashIndex) : base
+  const hash = hashIndex >= 0 ? base.slice(hashIndex) : ""
+  const params = new URLSearchParams({
+    pinokio_home_select: JSON.stringify(buildHomeSelectionPayload(menuItem, index))
+  }).toString()
+  const separator = path.includes("?") ? "&" : "?"
+  return `${path}${separator}${params}${hash}`
+}
+%>
+<% menu.forEach((item, index) => { %>
+  <% if (item && item.menu) { %>
+    <details class='home-run-menu-group' open>
+      <summary class='home-run-menu-summary'>
+        <span class='home-run-menu-label'><%- item.btn %></span>
+        <i class='fa-solid fa-chevron-down' aria-hidden='true'></i>
+      </summary>
+      <div class='home-run-menu-children'>
+        <%- include('./home_run_menu', { menu: item.menu, app: homeRunApp }) %>
+      </div>
+    </details>
+  <% } else if (item && item.btn) { %>
+    <% const openUrl = buildHomeSelectionUrl(item, index) %>
+    <div class='home-run-menu-row <%= item.running ? "is-running" : "" %>'>
+      <a
+        class='home-run-command'
+        href='<%= openUrl %>'
+        <% if (item.confirm) { %>data-confirm="<%- escapeAttr(item.confirm) %>"<% } %>
+      >
+        <span class='home-run-menu-label'><%- item.btn %></span>
+        <% if (item.running) { %><span class='home-run-menu-status'>Running</span><% } %>
+        <i class='fa-solid fa-chevron-right' aria-hidden='true'></i>
+      </a>
+      <% if (item.running) { %>
+        <button
+          type='button'
+          class='home-run-stop'
+          title='Stop'
+          <% if (item.shell_id) { %>data-shell-id='<%= item.shell_id %>'<% } %>
+          <% if (item.script_id) { %>data-script-id='<%= item.script_id %>'<% } %>
+          <% if (item.href) { %>data-href='<%= item.href %>'<% } %>
+        >
+          <i class='fa-solid fa-stop' aria-hidden='true'></i>
+        </button>
+      <% } %>
+    </div>
+  <% } %>
+<% }) %>

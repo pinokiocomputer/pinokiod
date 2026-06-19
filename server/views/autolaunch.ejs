@@ -1,0 +1,917 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<link href="/task-launcher.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+body.autolaunch-page .task-container {
+  padding: 20px 28px 32px;
+}
+body.autolaunch-page .task-shell {
+  width: min(1140px, 100%);
+  margin: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  backdrop-filter: none;
+}
+body.autolaunch-page .task-shell-header {
+  padding-bottom: 18px;
+}
+body.autolaunch-page .task-shell-body {
+  padding: 0 28px 28px;
+}
+body.autolaunch-page .task-shell-header-main {
+  max-width: 720px;
+}
+body.autolaunch-page .task-description {
+  max-width: 70ch;
+}
+body.autolaunch-page .autolaunch-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+body.autolaunch-page .autolaunch-summary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  box-sizing: border-box;
+  padding: 0 9px;
+  border: 1px solid var(--task-border);
+  border-radius: 999px;
+  color: var(--task-muted);
+  font-size: 11px;
+  line-height: 1;
+}
+body.autolaunch-page .autolaunch-summary-item strong {
+  color: var(--task-text);
+  font-weight: 700;
+}
+body.autolaunch-page .task-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+body.autolaunch-page .autolaunch-root {
+  padding-top: 18px;
+}
+body.autolaunch-page .autolaunch-toolbar {
+  margin: 0 0 14px;
+}
+body.autolaunch-page .autolaunch-search-field {
+  width: min(420px, 100%);
+  min-height: 32px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--task-border-strong);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--task-panel) 98%, white);
+  color: var(--task-muted);
+}
+body.dark.autolaunch-page .autolaunch-search-field {
+  background: color-mix(in srgb, var(--task-panel) 95%, black);
+}
+body.autolaunch-page .autolaunch-search-field input,
+body.autolaunch-page .autolaunch-manual input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--task-text);
+  font: inherit;
+  font-size: 13px;
+}
+body.autolaunch-page .autolaunch-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+body.autolaunch-page .autolaunch-apps,
+body.autolaunch-page .autolaunch-detail {
+  border: 1px solid var(--task-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+  overflow: hidden;
+}
+body.autolaunch-page .autolaunch-apps {
+  position: sticky;
+  top: 18px;
+  max-height: calc(100vh - 160px);
+  display: flex;
+  flex-direction: column;
+}
+body.autolaunch-page .autolaunch-app-list {
+  overflow: auto;
+  padding: 0;
+}
+body.autolaunch-page .autolaunch-app-row {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--task-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--task-text);
+  padding: 9px 12px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+  transition: background 140ms ease, box-shadow 140ms ease;
+}
+body.autolaunch-page .autolaunch-app-row:last-child {
+  border-bottom: 0;
+}
+body.autolaunch-page .autolaunch-app-row:hover,
+body.autolaunch-page .autolaunch-app-row.selected {
+  background: color-mix(in srgb, var(--task-soft) 68%, transparent);
+}
+body.autolaunch-page .autolaunch-app-row.selected {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--task-accent) 34%, transparent);
+}
+body.autolaunch-page .autolaunch-app-row img,
+body.autolaunch-page .autolaunch-detail-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: color-mix(in srgb, var(--task-soft) 70%, transparent);
+}
+body.autolaunch-page .autolaunch-detail-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+}
+body.autolaunch-page .autolaunch-app-name {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.autolaunch-page .autolaunch-app-meta {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+body.autolaunch-page .autolaunch-app-path,
+body.autolaunch-page .autolaunch-app-folder,
+body.autolaunch-page .autolaunch-app-script,
+body.autolaunch-page .autolaunch-current,
+body.autolaunch-page .autolaunch-script-path {
+  color: var(--task-muted);
+  font-size: 11px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.autolaunch-page .autolaunch-app-folder {
+  direction: rtl;
+  text-align: left;
+  unicode-bidi: plaintext;
+}
+body.autolaunch-page .autolaunch-app-script {
+  font-size: 10px;
+}
+body.autolaunch-page .autolaunch-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 20px;
+  box-sizing: border-box;
+  border: 1px solid var(--task-border);
+  border-radius: 999px;
+  padding: 0 7px;
+  color: var(--task-muted);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+body.autolaunch-page .autolaunch-pill.on {
+  border-color: color-mix(in srgb, #22c55e 28%, transparent);
+  background: color-mix(in srgb, #22c55e 12%, var(--task-panel));
+  color: #166534;
+}
+body.dark.autolaunch-page .autolaunch-pill.on {
+  color: #86efac;
+}
+body.autolaunch-page .autolaunch-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 78px;
+  min-height: 28px;
+  box-sizing: border-box;
+  padding: 0 8px;
+  border: 1px solid var(--task-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+  color: var(--task-muted);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+body.autolaunch-page .autolaunch-switch:hover {
+  background: color-mix(in srgb, var(--task-soft) 76%, var(--task-panel));
+  color: var(--task-text);
+}
+body.autolaunch-page .autolaunch-switch[aria-checked="true"] {
+  border-color: color-mix(in srgb, #22c55e 30%, transparent);
+  background: color-mix(in srgb, #22c55e 12%, var(--task-panel));
+  color: #166534;
+}
+body.dark.autolaunch-page .autolaunch-switch[aria-checked="true"] {
+  color: #86efac;
+}
+body.autolaunch-page .autolaunch-switch:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+body.autolaunch-page .autolaunch-switch-track {
+  position: relative;
+  width: 30px;
+  height: 16px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--task-muted) 24%, transparent);
+  transition: background 140ms ease;
+}
+body.autolaunch-page .autolaunch-switch[aria-checked="true"] .autolaunch-switch-track {
+  background: color-mix(in srgb, #22c55e 52%, transparent);
+}
+body.autolaunch-page .autolaunch-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--task-panel);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+  transition: transform 140ms ease;
+}
+body.autolaunch-page .autolaunch-switch[aria-checked="true"] .autolaunch-switch-thumb {
+  transform: translateX(14px);
+}
+body.autolaunch-page .autolaunch-switch-label {
+  min-width: 18px;
+  text-align: left;
+}
+body.autolaunch-page .autolaunch-detail {
+  min-height: 480px;
+}
+body.autolaunch-page .autolaunch-detail-header {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--task-border);
+}
+body.autolaunch-page .autolaunch-detail-title {
+  margin: 0;
+  color: var(--task-text);
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+body.autolaunch-page .autolaunch-section {
+  padding: 16px;
+  border-top: 1px solid var(--task-border);
+}
+body.autolaunch-page .autolaunch-detail-header + .autolaunch-section {
+  border-top: 0;
+}
+body.autolaunch-page .autolaunch-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+body.autolaunch-page .autolaunch-section-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--task-text);
+}
+body.autolaunch-page .autolaunch-section-note {
+  color: var(--task-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: right;
+}
+body.autolaunch-page .autolaunch-script-list {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--task-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--task-panel) 98%, var(--task-soft));
+}
+body.autolaunch-page .autolaunch-script-option {
+  border: 0;
+  border-bottom: 1px solid var(--task-border);
+  border-radius: 0;
+  padding: 9px 10px;
+  display: grid;
+  grid-template-columns: 16px 26px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  cursor: pointer;
+  background: transparent;
+  transition: background 140ms ease;
+}
+body.autolaunch-page .autolaunch-script-option:last-child {
+  border-bottom: 0;
+}
+body.autolaunch-page .autolaunch-script-option:hover,
+body.autolaunch-page .autolaunch-script-option.selected {
+  background: color-mix(in srgb, var(--task-accent) 8%, transparent);
+}
+body.autolaunch-page .autolaunch-script-option input {
+  margin: 0;
+}
+body.autolaunch-page .autolaunch-script-option i {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--task-accent) 10%, transparent);
+  color: var(--task-accent);
+  font-size: 12px;
+}
+body.autolaunch-page .autolaunch-script-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--task-text);
+}
+body.autolaunch-page .autolaunch-script-title span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.autolaunch-page .autolaunch-tag {
+  border-radius: 999px;
+  padding: 2px 6px 3px;
+  background: color-mix(in srgb, var(--task-accent) 12%, transparent);
+  color: var(--task-accent);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1;
+}
+body.autolaunch-page .autolaunch-manual {
+  padding: 16px;
+  border-top: 1px solid var(--task-border);
+}
+body.autolaunch-page .autolaunch-manual-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+body.autolaunch-page .autolaunch-manual input {
+  flex: 1 1 auto;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--task-border-strong);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--task-panel) 98%, white);
+}
+body.dark.autolaunch-page .autolaunch-manual input {
+  background: color-mix(in srgb, var(--task-panel) 95%, black);
+}
+body.autolaunch-page .autolaunch-feedback {
+  min-height: 16px;
+  margin-top: 7px;
+  color: var(--task-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+body.autolaunch-page .autolaunch-empty,
+body.autolaunch-page .autolaunch-loading {
+  padding: 16px;
+  border: 1px dashed var(--task-border);
+  border-radius: 8px;
+  color: var(--task-muted);
+  font-size: 13px;
+}
+body.autolaunch-page .autolaunch-detail > .autolaunch-empty {
+  margin: 16px;
+}
+body.autolaunch-page .autolaunch-loading i {
+  margin-right: 6px;
+}
+@media only screen and (max-width: 820px) {
+  body.autolaunch-page .task-shell-header,
+  body.autolaunch-page .task-shell-body {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  body.autolaunch-page .autolaunch-summary {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  body.autolaunch-page .autolaunch-manual-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  body.autolaunch-page .autolaunch-layout {
+    grid-template-columns: 1fr;
+  }
+  body.autolaunch-page .autolaunch-apps {
+    position: relative;
+    top: auto;
+    max-height: 360px;
+  }
+  body.autolaunch-page .autolaunch-detail-header {
+    grid-template-columns: 46px minmax(0, 1fr);
+  }
+  body.autolaunch-page .autolaunch-detail-header .autolaunch-switch {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+@media only screen and (max-width: 560px) {
+  body.autolaunch-page .task-container {
+    padding: 16px 14px 24px;
+  }
+  body.autolaunch-page .task-shell-body {
+    padding-bottom: 22px;
+  }
+}
+</style>
+</head>
+<body class='<%=theme%> main-sidebar-page task-launcher-page task-page autolaunch-page' data-agent="<%=agent%>">
+<%- include('partials/app_navheader', { agent }) %>
+<main>
+  <div class="task-container">
+    <section class="task-shell autolaunch-shell">
+      <header class="task-shell-header">
+        <div class="task-shell-header-main">
+          <p class="task-eyebrow">Autolaunch</p>
+          <h1 class="task-title">Startup scripts</h1>
+          <p class="task-description">Choose which installed app script runs when Pinokio starts. Script choices load when you select an app.</p>
+        </div>
+        <div class="task-header-actions autolaunch-summary">
+          <span class="autolaunch-summary-item"><strong data-enabled-count><%= enabledCount %></strong> enabled</span>
+          <span class="autolaunch-summary-item"><strong data-app-count><%= apps.length %></strong> apps</span>
+          <button type="button" class="task-button danger" data-disable-all <%= enabledCount ? '' : 'disabled' %>>
+            <i class="fa-solid fa-power-off"></i>
+            Disable all
+          </button>
+        </div>
+      </header>
+
+      <div class="task-shell-body autolaunch-shell-body">
+        <section class="task-section autolaunch-root">
+          <div class="task-section-head">
+            <div>
+              <h2 class="task-section-title">Installed apps</h2>
+              <p class="task-section-subcopy">Apps with autolaunch enabled appear first. Changes take effect the next time Pinokio starts.</p>
+            </div>
+          </div>
+          <div class="autolaunch-toolbar">
+            <label class="autolaunch-search-field">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input type="search" placeholder="Search apps" data-app-search autocomplete="off">
+            </label>
+          </div>
+          <div class="autolaunch-layout">
+            <aside class="autolaunch-apps" aria-label="Installed apps">
+              <div class="autolaunch-app-list" data-app-list></div>
+            </aside>
+
+            <section class="autolaunch-detail" data-detail>
+              <div class="autolaunch-empty">Select an app to configure its startup script.</div>
+            </section>
+          </div>
+        </section>
+      </div>
+    </section>
+  </div>
+  <%- include('partials/main_sidebar', { selected: 'autolaunch' }) %>
+</main>
+<%- include('partials/app_common_scripts') %>
+<script>
+let autolaunchApps = <%- appsJson %>;
+let selectedAppId = "";
+let selectedScript = "";
+let candidateState = null;
+let savingAutolaunch = false;
+
+const appListEl = document.querySelector("[data-app-list]");
+const searchEl = document.querySelector("[data-app-search]");
+const detailEl = document.querySelector("[data-detail]");
+const enabledCountEl = document.querySelector("[data-enabled-count]");
+const appCountEl = document.querySelector("[data-app-count]");
+const disableAllButton = document.querySelector("[data-disable-all]");
+
+const escapeHtml = (value) => String(value || "")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#39;");
+
+const formatAppFolderPath = (app) => {
+  const raw = String((app && (app.workspace_path || app.launcher_path || app.id)) || "").replace(/\\/g, "/");
+  if (!raw) return "";
+  const pinokioApiMatch = raw.match(/\/pinokio\/api\/(.+)$/i);
+  if (pinokioApiMatch && pinokioApiMatch[1]) {
+    return `~/pinokio/api/${pinokioApiMatch[1]}`;
+  }
+  return raw.replace(/^\/Users\/[^/]+/, "~");
+};
+
+const currentApp = () => autolaunchApps.find((app) => app.id === selectedAppId) || null;
+const enabledCount = () => autolaunchApps.filter((app) => app.autolaunch_enabled).length;
+const compareApps = (a, b) => {
+  const enabledDelta = Number(!!b.autolaunch_enabled) - Number(!!a.autolaunch_enabled);
+  if (enabledDelta !== 0) return enabledDelta;
+  const aTitle = a.title || a.name || a.id || "";
+  const bTitle = b.title || b.name || b.id || "";
+  return aTitle.localeCompare(bTitle, undefined, { sensitivity: "base", numeric: true }) ||
+    String(a.id || "").localeCompare(String(b.id || ""), undefined, { sensitivity: "base", numeric: true });
+};
+const orderedApps = () => autolaunchApps.slice().sort(compareApps);
+
+const updateStats = () => {
+  enabledCountEl.textContent = String(enabledCount());
+  appCountEl.textContent = String(autolaunchApps.length);
+  disableAllButton.disabled = enabledCount() === 0;
+};
+
+const setFeedback = (message, isError = false) => {
+  const feedback = detailEl.querySelector("[data-feedback]");
+  if (!feedback) return;
+  feedback.textContent = message || "";
+  feedback.style.color = isError ? "#b42318" : "";
+};
+
+const syncAppState = (updatedApp) => {
+  if (!updatedApp || !updatedApp.id) return;
+  autolaunchApps = autolaunchApps.map((app) => app.id === updatedApp.id ? updatedApp : app);
+  updateStats();
+  renderAppList();
+};
+
+const setDetailBusy = (busy) => {
+  detailEl.querySelectorAll("[data-autolaunch-switch], [data-apply-manual]").forEach((control) => {
+    control.disabled = !!busy;
+  });
+};
+
+const renderAppList = () => {
+  const query = (searchEl.value || "").trim().toLowerCase();
+  const visible = orderedApps().filter((app) => {
+    const haystack = `${app.title || ""} ${app.id || ""} ${app.description || ""} ${app.workspace_path || ""} ${app.launcher_path || ""}`.toLowerCase();
+    return !query || haystack.includes(query);
+  });
+  appListEl.innerHTML = "";
+  if (visible.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "autolaunch-empty";
+    empty.textContent = "No apps match that search.";
+    appListEl.appendChild(empty);
+    return;
+  }
+  visible.forEach((app) => {
+    const folderPath = formatAppFolderPath(app);
+    const fullFolderPath = app.workspace_path || app.launcher_path || folderPath;
+    const scriptLine = app.autolaunch_enabled && app.autolaunch
+      ? `<div class="autolaunch-app-script">Runs ${escapeHtml(app.autolaunch)}</div>`
+      : "";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `autolaunch-app-row${app.id === selectedAppId ? " selected" : ""}`;
+    button.dataset.appId = app.id;
+    button.innerHTML = `
+      <img src="${escapeHtml(app.icon || "/pinokio-black.png")}" alt="" onerror="this.onerror=null; this.src='/pinokio-black.png'">
+      <div class="autolaunch-app-meta">
+        <div class="autolaunch-app-name">${escapeHtml(app.title || app.id)}</div>
+        <div class="autolaunch-app-folder" title="${escapeHtml(fullFolderPath)}">${escapeHtml(folderPath)}</div>
+        ${scriptLine}
+      </div>
+      <span class="autolaunch-pill ${app.autolaunch_enabled ? "on" : ""}">${app.autolaunch_enabled ? "ON" : "OFF"}</span>
+    `;
+    button.addEventListener("click", () => selectApp(app.id));
+    appListEl.appendChild(button);
+  });
+};
+
+const renderDetailShell = (app, bodyHtml) => {
+  const checked = app.autolaunch_enabled ? "true" : "false";
+  const label = app.autolaunch_enabled ? "ON" : "OFF";
+  detailEl.innerHTML = `
+    <div class="autolaunch-detail-header">
+      <img class="autolaunch-detail-icon" src="${escapeHtml(app.icon || "/pinokio-black.png")}" alt="" onerror="this.onerror=null; this.src='/pinokio-black.png'">
+      <div>
+        <h2 class="autolaunch-detail-title">${escapeHtml(app.title || app.id)}</h2>
+        <div class="autolaunch-current">${escapeHtml(app.workspace_path || app.id)}</div>
+      </div>
+      <button type="button" class="autolaunch-switch" role="switch" aria-checked="${checked}" data-autolaunch-switch ${savingAutolaunch ? "disabled" : ""}>
+        <span class="autolaunch-switch-track" aria-hidden="true"><span class="autolaunch-switch-thumb"></span></span>
+        <span class="autolaunch-switch-label">${label}</span>
+      </button>
+    </div>
+    ${bodyHtml}
+  `;
+};
+
+const renderLoading = (app) => {
+  renderDetailShell(app, `
+    <div class="autolaunch-section">
+      <div class="autolaunch-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading script choices...</div>
+    </div>
+  `);
+};
+
+const renderScriptSection = (title, note, candidates) => {
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    return "";
+  }
+  const rows = candidates.map((candidate) => {
+    const checked = candidate.script === selectedScript ? "checked" : "";
+    const selected = candidate.script === selectedScript ? " selected" : "";
+    const icon = candidate.icon || "fa-regular fa-file-code";
+    const tags = [
+      candidate.menu_default ? '<span class="autolaunch-tag">Default</span>' : "",
+      candidate.has_params ? '<span class="autolaunch-tag">Params ignored</span>' : ""
+    ].filter(Boolean).join("");
+    const group = candidate.group ? `<div class="autolaunch-script-path">${escapeHtml(candidate.group)}</div>` : "";
+    return `
+      <label class="autolaunch-script-option${selected}">
+        <input type="radio" name="autolaunch-script" value="${escapeHtml(candidate.script)}" ${checked}>
+        <i class="${escapeHtml(icon)}"></i>
+        <div>
+          <div class="autolaunch-script-title"><span>${escapeHtml(candidate.label)}</span>${tags}</div>
+          <div class="autolaunch-script-path">${escapeHtml(candidate.script)}</div>
+          ${group}
+        </div>
+      </label>
+    `;
+  }).join("");
+  return `
+    <div class="autolaunch-section">
+      <div class="autolaunch-section-header">
+        <h3 class="autolaunch-section-title">${escapeHtml(title)}</h3>
+        <span class="autolaunch-section-note">${escapeHtml(note)}</span>
+      </div>
+      <div class="autolaunch-script-list">${rows}</div>
+    </div>
+  `;
+};
+
+const chooseInitialScript = (data) => {
+  const all = [].concat(data.menu || [], data.other || []);
+  if (data.current) {
+    return data.current;
+  }
+  const defaultCandidate = all.find((candidate) => candidate.menu_default);
+  if (defaultCandidate) {
+    return defaultCandidate.script;
+  }
+  return all.length > 0 ? all[0].script : (data.current || "");
+};
+
+const bindDetailControls = () => {
+  detailEl.querySelectorAll("input[name='autolaunch-script']").forEach((input) => {
+    input.addEventListener("change", () => {
+      selectedScript = input.value;
+      const manual = detailEl.querySelector("[data-manual-script]");
+      if (manual) manual.value = selectedScript;
+      renderCandidates();
+      const app = currentApp();
+      if (app && app.autolaunch_enabled) {
+        saveScript(selectedScript);
+      }
+    });
+  });
+  const toggle = detailEl.querySelector("[data-autolaunch-switch]");
+  if (toggle) toggle.addEventListener("click", toggleAutolaunch);
+  const manual = detailEl.querySelector("[data-manual-script]");
+  if (manual) {
+    manual.addEventListener("input", () => {
+      selectedScript = manual.value.trim();
+      setFeedback("");
+      const applyManual = detailEl.querySelector("[data-apply-manual]");
+      if (applyManual) applyManual.disabled = !selectedScript || savingAutolaunch;
+      detailEl.querySelectorAll("input[name='autolaunch-script']").forEach((input) => {
+        input.checked = input.value === selectedScript;
+      });
+      detailEl.querySelectorAll(".autolaunch-script-option").forEach((option) => {
+        const input = option.querySelector("input");
+        option.classList.toggle("selected", !!input && input.checked);
+      });
+    });
+    manual.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        saveSelectedScript();
+      }
+    });
+  }
+  const applyManual = detailEl.querySelector("[data-apply-manual]");
+  if (applyManual) applyManual.addEventListener("click", saveSelectedScript);
+};
+
+const renderCandidates = () => {
+  const app = currentApp();
+  if (!app || !candidateState) return;
+  const hasCandidates = (candidateState.menu && candidateState.menu.length) || (candidateState.other && candidateState.other.length);
+  const currentValue = candidateState.current || "";
+  renderDetailShell(app, `
+    <div class="autolaunch-section">
+      <div class="autolaunch-section-header">
+        <h3 class="autolaunch-section-title">Current</h3>
+        <span class="autolaunch-section-note">Takes effect next time Pinokio starts</span>
+      </div>
+      <div class="autolaunch-current">${escapeHtml(currentValue || "OFF")}</div>
+      <div class="autolaunch-feedback" data-feedback></div>
+    </div>
+    ${hasCandidates ? "" : '<div class="autolaunch-section"><div class="autolaunch-empty">No local scripts were found for this app.</div></div>'}
+    ${renderScriptSection("Menu scripts", "From pinokio.js", candidateState.menu || [])}
+    ${renderScriptSection("Other local scripts", "Advanced", candidateState.other || [])}
+    <div class="autolaunch-manual">
+      <div class="autolaunch-section-header">
+        <h3 class="autolaunch-section-title">Manual relative path</h3>
+        <span class="autolaunch-section-note">Advanced</span>
+      </div>
+      <div class="autolaunch-manual-row">
+        <input type="text" data-manual-script value="${escapeHtml(selectedScript)}" placeholder="start.js">
+        <button type="button" class="task-button" data-apply-manual ${selectedScript ? "" : "disabled"}>
+          <i class="fa-solid fa-check"></i>
+          Apply
+        </button>
+      </div>
+    </div>
+  `);
+  bindDetailControls();
+};
+
+const toggleAutolaunch = () => {
+  const app = currentApp();
+  if (!app || savingAutolaunch) return;
+  if (app.autolaunch_enabled) {
+    saveScript("");
+    return;
+  }
+  const manual = detailEl.querySelector("[data-manual-script]");
+  const script = manual && manual.value.trim() ? manual.value.trim() : selectedScript;
+  if (!script) {
+    setFeedback("Choose a script first.", true);
+    return;
+  }
+  selectedScript = script;
+  saveScript(script);
+};
+
+const loadCandidates = async (appId) => {
+  const app = currentApp();
+  if (!app) return;
+  candidateState = null;
+  selectedScript = "";
+  renderLoading(app);
+  try {
+    const response = await fetch(`/autolaunch/candidates?app=${encodeURIComponent(appId)}`, {
+      headers: { "Accept": "application/json" }
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Failed to load script choices.");
+    }
+    candidateState = data;
+    syncAppState(data.app);
+    selectedScript = chooseInitialScript(data);
+    renderCandidates();
+  } catch (error) {
+    renderDetailShell(app, `
+      <div class="autolaunch-section">
+        <div class="autolaunch-empty">${escapeHtml(error && error.message ? error.message : "Failed to load script choices.")}</div>
+      </div>
+    `);
+  }
+};
+
+const selectApp = (appId) => {
+  selectedAppId = appId;
+  renderAppList();
+  loadCandidates(appId);
+};
+
+const saveScript = async (script) => {
+  const app = currentApp();
+  if (!app || savingAutolaunch) return;
+  savingAutolaunch = true;
+  setDetailBusy(true);
+  setFeedback(script ? "Saving..." : "Disabling...");
+  try {
+    const response = await fetch("/autolaunch", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        app: app.id,
+        script
+      })
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Failed to save autolaunch.");
+    }
+    syncAppState(data.app);
+    if (candidateState) {
+      candidateState.current = data.app.autolaunch || "";
+    }
+    selectedScript = data.app.autolaunch || selectedScript;
+    renderCandidates();
+    setFeedback(data.app.autolaunch_enabled ? "Saved." : "Disabled.");
+  } catch (error) {
+    setFeedback(error && error.message ? error.message : "Failed to save autolaunch.", true);
+  } finally {
+    savingAutolaunch = false;
+    setDetailBusy(false);
+  }
+};
+
+const saveSelectedScript = () => {
+  const manual = detailEl.querySelector("[data-manual-script]");
+  const script = manual ? manual.value.trim() : selectedScript;
+  if (!script) {
+    setFeedback("Choose a script first.", true);
+    return;
+  }
+  saveScript(script);
+};
+
+const disableAll = async () => {
+  if (!window.confirm("Disable autolaunch for every installed app?")) {
+    return;
+  }
+  disableAllButton.disabled = true;
+  try {
+    const response = await fetch("/autolaunch/disable-all", {
+      method: "POST",
+      headers: { "Accept": "application/json" }
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Failed to disable autolaunch.");
+    }
+    autolaunchApps = data.apps || autolaunchApps.map((app) => ({ ...app, autolaunch: "", autolaunch_enabled: false }));
+    updateStats();
+    renderAppList();
+    if (selectedAppId) {
+      loadCandidates(selectedAppId);
+    }
+  } catch (error) {
+    window.alert(error && error.message ? error.message : "Failed to disable autolaunch.");
+    updateStats();
+  }
+};
+
+searchEl.addEventListener("input", renderAppList);
+disableAllButton.addEventListener("click", disableAll);
+
+updateStats();
+renderAppList();
+const firstApp = orderedApps()[0];
+if (firstApp) {
+  selectApp(firstApp.id);
+}
+</script>
+</body>
+</html>

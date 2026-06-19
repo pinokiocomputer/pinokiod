@@ -1,0 +1,273 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+body.frozen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+#table > table {
+  border-left: 2px solid black;
+  padding-left: 5px;
+  margin: 10px 0;
+}
+.highlight {
+  background: yellow;
+  width: 100px;
+}
+th {
+  background: rgba(0,0,0,0.1);
+  padding: 10px;
+  font-size: 12px;
+}
+td {
+  font-size: 12px;
+  padding: 10px;
+}
+td.val {
+  background: rgba(0,0,0,0.06);
+}
+td.key {
+  background: rgba(0,0,0,0.1);
+}
+.button {
+  cursor: pointer; 
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+.button:hover {
+  
+}
+  main {
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 600px;
+    padding: 20px;
+    margin: 0 auto;
+  }
+
+header .btn {
+  font-family: Sans-serif;
+  display: block;
+  margin-left: 10px;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: normal;
+  padding: 5px 10px;
+}
+.disabled {
+  opacity: 0.7;
+}
+body.dark .env-item input[type=text] {
+  background: white;
+}
+.env-item input[type=text] {
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+  border: none;
+  background: rgba(0,0,100, 0.1);
+}
+body.dark .env-item label {
+  color: cornflowerblue;
+}
+.env-item label {
+  color: royalblue;
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  font-size: 18px;
+}
+.env-item.highlighted {
+  border: 5px solid red;
+}
+.env-item {
+/*
+  padding-top: 10px;
+  padding-bottom: 30px;
+  */
+  padding: 10px;
+  margin-bottom: 20px;
+}
+body.dark .comment {
+  border-left: 2px solid white;
+}
+.comment {
+  opacity: 0.8;
+  border-left: 2px solid black;
+  padding-left: 10px;
+}
+body.dark #save {
+  background: rgba(255,255,255,0.06);
+}
+#save {
+  width: 200px;
+  border-radius: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 14px;
+  font-weight: bold;
+}
+a#customize {
+  text-decoration: underline;
+  cursor: pointer;
+}
+.e {
+  padding: 10px 0;
+}
+#editor {
+  padding: 20px 0;
+}
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+body {
+  display: block;
+}
+.card {
+  text-align: center;
+/*
+  display: flex;
+  */
+  align-items: center;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.card img {
+  width: 100px;
+  border-radius: 10px;
+}
+.card .description {
+  opacity: 0.8;
+}
+.card .title {
+  font-weight: bold;
+  font-size: 20px;
+}
+.card .col {
+  padding-left: 10px;
+}
+h1 {
+  font-size: 50px;
+  padding-bottom: 20px;
+}
+footer {
+  background: none;
+  padding: 0;
+  text-align: right;
+  display: flex;
+  margin: 10px 0 20px 0;
+}
+footer .btn {
+  margin-left: 10px;
+  display: inline-block;
+  -webkit-appearance: button;
+  -moz-appearance: button;
+  appearance: button;
+
+}
+footer .btn.go-home {
+  margin-left: 0px;
+}
+.btn.home-button {
+  background: none !important;
+  margin: 0 !important;
+  font-size: 16px !important;
+}
+#editor {
+  height: auto;
+}
+.env-title {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+.env-description {
+  margin-bottom: 10px;
+}
+.warning {
+  padding: 10px;
+  margin: 10px 0 20px;
+  border-left: 5px solid rgba(0,0,0,0.1);
+}
+.warning a {
+  text-decoration: none;
+  color: royalblue;
+}
+.auto {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+</style>
+</head>
+<body class='<%=theme%> center' data-agent="<%=agent%>">
+<main>
+  <div>
+    <div class='card'>
+      <img src="<%=image%>" onerror="this.src='/pinokio-black.png'"/>
+      <div class='title'><%=name%></div>
+      <% if (launchable) { %>
+        <% if (link) { %>
+          <a href="<%=link%>" id='save' class='btn'>
+            <span class='save'><i class="fa-solid fa-play"></i> Launch</span>
+          </a>
+        <% } %>
+        <div class='auto'>
+          <input type='checkbox' <%=autolaunch ? 'checked' : ''%> id='autolaunch' />
+          <label for='autolaunch'>automatically launch</label>
+        </div>
+      <% } else { %>
+        <h1>Offline</h1>
+        <div><%=url%> is not running.</div>
+      <% } %>
+      <div class='message'></div>
+    </div>
+  </div>
+</main>
+<script>
+let checkbox = document.querySelector("#autolaunch")
+let save = document.querySelector("#save")
+document.querySelector("#autolaunch").addEventListener("change", (e) => {
+  console.log({ checked: checkbox.checked })
+  let url = new URL(save.href)
+  if (checkbox.checked) {
+    url.searchParams.set("autolaunch", "1")
+  } else {
+    url.searchParams.set("autolaunch", "0")
+  }
+  save.href = url.toString()
+})
+console.log({ checked: checkbox.checked })
+<% if (autolaunch) { %>
+document.querySelector(".message").innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> launching...`
+setTimeout(() => {
+  if (checkbox.checked) {
+    document.querySelector("#save").click()
+  } else {
+    document.querySelector(".message").innerHTML = ""
+  }
+}, 2000)
+<% } %>
+</script>
+</body>
+</html>

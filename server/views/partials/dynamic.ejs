@@ -1,0 +1,61 @@
+<% dynamic.forEach((item, index) => { %>
+  <% if (item.menu) { %>
+    <div class='nested-menu <%=item.display || ""%>'>
+      <div class='btn header-item frame-link reveal'>
+        <div class='tab'><%-item.btn%></div>
+        <div class='loader'><i class="fa-solid fa-angle-down"></i><i class="fa-solid fa-angle-up hidden"></i></div>
+      </div>
+      <div class='submenu'>
+        <%- include('./menu', { menu: item.menu }) %>
+      </div>
+    </div>
+  <% } else { %>
+    <% if (item.btn) { %>
+      <% if (item.action) { %>
+        <div <%=item.default ? 'data-default' : ''%> data-action="<%=JSON.stringify(item.action)%>" class='btn header-item frame-link <%=item.display || ""%>'>
+          <div class='tab'><%-item.btn%></div>
+        </div>
+      <% } else if (item.run && typeof item.run === 'string') { %>
+        <div data-run="<%=item.run%>" data-cwd="<%=item.cwd%>" class='btn header-item frame-link <%=item.display || ""%>'>
+          <div class='tab'><%-item.btn%></div>
+        </div>
+      <% } else if (item.command) { %>
+        <div data-command="<%=item.command%>" data-filepath="<%=item.href%>" class='btn header-item frame-link <%=item.display || ""%>'>
+          <div class='tab'><%-item.btn%></div>
+        </div>
+      <% } else if (item.fs) { %>
+        <div data-filepath="<%=item.href%>" class='btn header-item frame-link <%=item.display || ""%>'>
+          <div class='tab'><%-item.btn%></div>
+        </div>
+      <% } else if (item.target === "_blank" || item.popout) { %>
+        <a <%=item.default ? 'data-default' : ''%> data-confirm="<%=item.confirm%>" data-index="<%=index+4%>" target="<%=item.target%>" data-mode="<%=item.mode%>" href="<%=item.href%>" class='btn header-item frame-link <%=item.display || ""%>'<% if (item.popout) { %> data-popout-browser="true"<% } %><%- item.target_full ? ` data-target-full=${JSON.stringify(item.target_full)}` : '' %><%- item.project_slug ? ` data-project-slug=${JSON.stringify(item.project_slug)}` : '' %>>
+          <div class='tab'><%-item.btn%></div>
+          <% if (!item.popout) { %>
+            <div class='loader'>
+              <i class="fa-solid fa-up-right-from-square"></i>
+            </div>
+          <% } %>
+        </a>
+      <% } else { %>
+        <a <%=item.default ? 'data-default' : ''%> data-confirm="<%=item.confirm%>" data-index="<%=index+4%>" target="<%=item.target%>" data-mode="<%=item.mode%>" href="<%=item.href%>" class='btn header-item frame-link <%=item.display || ""%>'<%- item.target_full ? ` data-target-full=${JSON.stringify(item.target_full)}` : '' %> <%=item.shell_id ? `data-shell=${item.shell_id}` : ""%> <%=item.script_id ? `data-script=${item.script_id}` : ''%><%- item.project_slug ? ` data-project-slug=${JSON.stringify(item.project_slug)}` : '' %>>
+          <% if (item.running) { %>
+            <i class="fa-solid fa-circle"></i>
+          <% } %>
+          <div class='tab'><%-item.btn%></div>
+          <% if (item.running) { %>
+            <% if (item.online) { %>
+              <div class='loader shutdown online'>
+              </div>
+            <% } else { %>
+              <div class='loader shutdown'>
+                <i class="fa-solid fa-stop"></i>
+              </div>
+            <% } %>
+          <% } else { %>
+            <i class="fa-solid fa-angle-right"></i>
+          <% } %>
+        </a>
+      <% } %>
+    <% } %>
+  <% } %>
+<% }) %>

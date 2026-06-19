@@ -6,6 +6,7 @@ info.path(...args)
 */
 const path = require('path')
 const fs = require("fs")
+const Util = require('./util')
 class Info {
   constructor(kernel) {
     this.kernel = kernel
@@ -26,6 +27,14 @@ class Info {
       Error.prepareStackTrace = _prepareStackTrace;
     }
   }
+  async venv(_cwd) {
+    let cwd = _cwd || this.cwd()
+    let venv = await Util.find_venv(cwd)
+    return venv
+  }
+  cwd() {
+    return path.dirname(this.caller())
+  }
   caller () {
     return this.callsites()[2].getFileName()
   }
@@ -40,22 +49,59 @@ class Info {
   running(...args) {
     let cwd = path.dirname(this.caller())
     let resolved_path = path.resolve(cwd, ...args)
-    return this.kernel.api.running[resolved_path]
+    return this.kernel.status(resolved_path)
   }
   exists(...args) {
     let cwd = path.dirname(this.caller())
     let resolved_path = path.resolve(cwd, ...args)
-    return fs.existsSync(resolved_path)
+    let exists = fs.existsSync(resolved_path)
+    return exists ? exists: false
   }
   local(...args) {
     let cwd = path.dirname(this.caller())
     let resolved_path = path.resolve(cwd, ...args)
-    return this.kernel.memory.local[resolved_path] || {}
+    return this.kernel.scopedMemoryEntry(this.kernel.memory.local, resolved_path) || {}
   }
   global(...args) {
     let cwd = path.dirname(this.caller())
     let resolved_path = path.resolve(cwd, ...args)
-    return this.kernel.memory.global[resolved_path] || {}
+    return this.kernel.scopedMemoryEntry(this.kernel.memory.global, resolved_path) || {}
+  }
+  scriptsByApi() {
+    if (!this.kernel || !this.kernel.memory || !this.kernel.memory.local) {
+      return {}
+    }
+
+    const apiRoot = this.kernel.path("api")
+    const scriptsByApi = {}
+
+    for (const [id, localVariables] of Object.entries(this.kernel.memory.local)) {
+      if (!id) continue
+
+      const scriptPath = id.split("?")[0]
+      if (!scriptPath || !this.isSubpath(apiRoot, scriptPath)) continue
+
+      const apiName = Util.api_name(scriptPath, this.kernel)
+      if (!apiName || apiName === '.' || apiName.startsWith('..')) continue
+
+      if (!scriptsByApi[apiName]) {
+        scriptsByApi[apiName] = []
+      }
+
+      scriptsByApi[apiName].push({
+        uri: scriptPath,
+        local: localVariables || {}
+      })
+    }
+
+    return scriptsByApi
+  }
+  isSubpath(parent, child) {
+    if (!parent || !child) {
+      return false
+    }
+    const relative = path.relative(parent, child)
+    return !!relative && !relative.startsWith('..') && !path.isAbsolute(relative)
   }
 }
 

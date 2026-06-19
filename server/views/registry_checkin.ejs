@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        background: #f5f5f5;
+        color: #0f172a;
+      }
+      .card {
+        background: white;
+        padding: 32px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+        max-width: 520px;
+        width: calc(100% - 32px);
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 22px;
+      }
+      .meta {
+        font-size: 13px;
+        color: #64748b;
+        margin-bottom: 16px;
+        word-break: break-all;
+      }
+      .status {
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: #eef2ff;
+        color: #1e3a8a;
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
+      .status.error {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .status.ok {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .picker {
+        display: none;
+        margin-bottom: 16px;
+      }
+      .picker.visible {
+        display: block;
+      }
+      .picker-list {
+        display: grid;
+        gap: 8px;
+      }
+      .picker-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #f8fafc;
+        cursor: pointer;
+      }
+      .picker-item input {
+        margin: 0;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        border: none;
+        border-radius: 8px;
+        padding: 10px 16px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .btn-primary {
+        background: #2563eb;
+        color: white;
+      }
+      .btn-secondary {
+        background: #e2e8f0;
+        color: #0f172a;
+      }
+      .link {
+        display: inline-block;
+        margin-top: 12px;
+        color: #2563eb;
+        text-decoration: none;
+        font-size: 14px;
+      }
+      .link:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Check-in to Registry</h1>
+      <div class="meta" id="repo">Loading...</div>
+      <div class="status" id="status">Preparing check-in...</div>
+
+      <div class="picker" id="picker">
+        <div style="font-weight: 600; margin-bottom: 8px;">Choose an install</div>
+        <div class="picker-list" id="picker-list"></div>
+      </div>
+
+      <div class="actions" id="actions">
+        <button class="btn btn-primary" id="picker-submit" type="button">Check in</button>
+        <button class="btn btn-secondary" id="picker-cancel" type="button">Cancel</button>
+      </div>
+
+      <% if (returnUrl) { %>
+        <a class="link" id="return-link" href="<%= returnUrl %>">Return to registry</a>
+      <% } else { %>
+        <a class="link" href="/">Go back to Pinokio</a>
+      <% } %>
+    </div>
+
+    <script>
+      const data = <%- dataJson %>;
+      const registryOverride = data.registryOverride || null;
+      const repoEl = document.getElementById('repo');
+      const statusEl = document.getElementById('status');
+      const pickerEl = document.getElementById('picker');
+      const listEl = document.getElementById('picker-list');
+      const actionsEl = document.getElementById('actions');
+      const submitBtn = document.getElementById('picker-submit');
+      const cancelBtn = document.getElementById('picker-cancel');
+      if (actionsEl) actionsEl.style.display = 'none';
+
+      const setStatus = (text, kind) => {
+        statusEl.textContent = text;
+        statusEl.className = 'status' + (kind ? ' ' + kind : '');
+      };
+
+      const redirectToReturn = (params) => {
+        if (!data.returnUrl) {
+          setStatus('Missing return URL. Please go back manually.', 'error');
+          return;
+        }
+        try {
+          const u = new URL(data.returnUrl);
+          Object.entries(params || {}).forEach(([key, value]) => {
+            if (value == null || value === '') return;
+            u.searchParams.set(key, String(value));
+          });
+          window.location.href = u.toString();
+        } catch (err) {
+          setStatus('Invalid return URL. Please go back manually.', 'error');
+        }
+      };
+
+      const buildSuccessUrl = (hash) => {
+        if (!data.successUrl || !hash) return null;
+        const replaced = data.successUrl.replace(/__HASH__/g, encodeURIComponent(hash));
+        try {
+          const u = new URL(replaced);
+          if (u.protocol === 'http:' || u.protocol === 'https:') return u.toString();
+        } catch (err) {}
+        return null;
+      };
+
+      const token = (() => {
+        const hash = window.location.hash ? window.location.hash.slice(1) : '';
+        if (!hash) return '';
+        const params = new URLSearchParams(hash);
+        return params.get('token') || '';
+      })();
+      if (token) {
+        try {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        } catch (err) {}
+      }
+
+      const candidates = Array.isArray(data.candidates) ? data.candidates : [];
+      const repoLabel = data.repoUrl ? `Repo: ${data.repoUrl}` : 'Missing repo URL';
+      if (repoEl) repoEl.textContent = repoLabel;
+
+      if (!token) {
+        setStatus('Missing check-in token. Return to the registry and try again.', 'error');
+      } else if (!data.repoUrl) {
+        setStatus('Missing repo URL. Return to the registry and try again.', 'error');
+      } else if (!data.returnUrl) {
+        setStatus('Missing return URL. Return to the registry and try again.', 'error');
+      } else if (!data.registryEnabled) {
+        redirectToReturn({ error: 'not_enabled' });
+      } else if (!candidates.length) {
+        redirectToReturn({ error: 'not_installed' });
+      } else if (candidates.length === 1) {
+        const entry = candidates[0];
+        runCheckin(entry.folder);
+      } else {
+        setStatus('Multiple installs found. Choose one to check in.', '');
+        pickerEl.classList.add('visible');
+        if (actionsEl) actionsEl.style.display = 'flex';
+        candidates.forEach((entry, idx) => {
+          const label = document.createElement('label');
+          label.className = 'picker-item';
+          const input = document.createElement('input');
+          input.type = 'radio';
+          input.name = 'workspace';
+          input.value = entry.folder;
+          if (idx === 0) input.checked = true;
+          const span = document.createElement('span');
+          span.textContent = entry.folder;
+          label.appendChild(input);
+          label.appendChild(span);
+          listEl.appendChild(label);
+        });
+      }
+
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+          redirectToReturn({ error: 'cancelled' });
+        });
+      }
+
+      if (submitBtn) {
+        submitBtn.addEventListener('click', () => {
+          const selected = document.querySelector('input[name="workspace"]:checked');
+          const folder = selected && selected.value ? selected.value : '';
+          if (!folder) {
+            setStatus('Select a folder to continue.', 'error');
+            return;
+          }
+          runCheckin(folder);
+        });
+      }
+
+      async function runCheckin(folder) {
+        if (!folder) {
+          setStatus('Missing folder selection.', 'error');
+          return;
+        }
+        if (!token) {
+          setStatus('Missing check-in token. Return to the registry and try again.', 'error');
+          return;
+        }
+        setStatus('Creating checkpoint...', '');
+        if (submitBtn) submitBtn.disabled = true;
+        if (cancelBtn) cancelBtn.disabled = true;
+        try {
+          const qs = new URLSearchParams({ workspace: folder, publish: '1' });
+          if (registryOverride) qs.set('registry', registryOverride);
+          const res = await fetch(`/checkpoints/snapshot?${qs.toString()}`, {
+            method: 'POST',
+            headers: { 'Accept': 'application/json', 'X-Registry-Token': token }
+          });
+          const payload = res.ok ? await res.json().catch(() => null) : null;
+          if (!payload || !payload.ok) {
+            redirectToReturn({ error: 'snapshot_failed' });
+            return;
+          }
+          const publish = payload.publish || null;
+          if (publish && publish.ok) {
+            const hash = publish.hash || (payload.created && payload.created.hash) || '';
+            const successUrl = buildSuccessUrl(hash);
+            if (successUrl) {
+              window.location.href = successUrl;
+              return;
+            }
+            redirectToReturn({ ok: '1', hash });
+            return;
+          }
+          if (publish && publish.code === 'missing_token') {
+            redirectToReturn({ error: 'missing_token' });
+            return;
+          }
+          if (publish && publish.code === 'invalid_token') {
+            redirectToReturn({ error: 'invalid_token' });
+            return;
+          }
+          if (publish && publish.code === 'error') {
+            redirectToReturn({ error: 'publish_failed', message: publish.error || '' });
+            return;
+          }
+          redirectToReturn({ error: 'not_enabled' });
+        } catch (err) {
+          const msg = err && err.message ? err.message : 'Publish failed';
+          redirectToReturn({ error: 'publish_failed', message: msg });
+        }
+      }
+    </script>
+  </body>
+</html>

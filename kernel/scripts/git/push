@@ -1,0 +1,12 @@
+{
+  "run": [{
+    "method": "shell.run",
+    "params": {
+      "chain": "*",
+      "path": "{{args.cwd}}",
+      "message": [
+        "git push -u origin"
+      ]
+    }
+  }]
+}

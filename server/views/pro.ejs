@@ -1,0 +1,387 @@
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<script src="/hotkeys.min.js"></script>
+<script src="/ace/ace.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-inline-bridge.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/xterm-addon-search.js"></script>
+<script src="/xterm-addon-search-bar.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/Socket.js"></script>
+<script src="/resizeSync.js"></script>
+<script src="/terminal-settings.js"></script>
+<script src="/pinokio-touch.js"></script>
+<script src="/common.js"></script>
+<script src="/he.js"></script>
+<script src="/opener.js"></script>
+<!--
+<script src="/nav.js"></script>
+-->
+<script src="/autoexpand.js"></script>
+<script src="/modalinput.js"></script>
+<script src="/simplemodal.js"></script>
+<script src="/waitmodal.js"></script>
+<script src="/notifyinput.js"></script>
+<script src="/report.js"></script>
+<script src="/mark.min.js"></script>
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/style.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<!--
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+-->
+
+
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+.stopped-btn {
+  background: silver;
+}
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+#table > table {
+  border-left: 2px solid black;
+  padding-left: 5px;
+  margin: 10px 0;
+}
+.highlight {
+  background: yellow;
+  width: 100px;
+}
+th {
+  background: rgba(0,0,0,0.1);
+  padding: 10px;
+  font-size: 12px;
+}
+td {
+  font-size: 12px;
+  padding: 10px;
+}
+td.val {
+  background: rgba(0,0,0,0.06);
+}
+td.key {
+  background: rgba(0,0,0,0.1);
+}
+.button {
+  cursor: pointer; 
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+header {
+  position: relative;
+  padding: 10px 0;
+}
+.button:hover {
+  
+}
+.terminal {
+  box-sizing: border-box;
+}
+.xterm .xterm-viewport {
+  width: initial !important;
+}
+.navheader3 {
+  padding: 10px;
+}
+.navheader {
+  padding-bottom: 0;
+}
+.navheader h1 {
+  align-items: center;
+}
+/*
+.navheader {
+  background: var(--dark-bg);
+}
+*/
+/*
+.btn {
+  background: royalblue;
+}
+*/
+#del-bin {
+  color: royalblue;
+  cursor: pointer;
+  font-weight: bold;
+  padding: 0 5px;
+  text-decoration: underline;
+}
+body.frozen {
+  overflow: auto !important;
+}
+.terminal-container {
+  padding: 0;
+}
+#status-window {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  /*
+  flex-grow: 1;
+  text-align: right;
+  */
+  padding: 0 10px;
+}
+#status-window strong {
+  color: royalblue;
+}
+#status-window b {
+  color: black;
+  font-weight: normal;
+}
+body.dark #status-window b {
+  color: white;
+}
+#progress-window {
+  flex-shrink: 0;
+  width: 100px;
+  background: #eee;
+  height: 15px;
+  /*
+  border-radius: 5px;
+  */
+  overflow: hidden;
+}
+#progress-bar {
+  width: 0%;
+  height: 100%;
+  background: royalblue;
+  transition: width 0.2s;
+}
+</style>
+<link href="/terminal.css" rel="stylesheet"/>
+</head>
+<body class='<%=theme%>' data-agent="<%=agent%>">
+  <% if (target === "_top") { %>
+    <header class='navheader grabbable'>
+  <% } else { %>
+    <header class='navheader2'>
+  <% } %>
+    <h1>
+      <% if (target === "_top") { %>
+      <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
+      <% } %>
+      <div class='hidden btn run play-btn'>
+        <span class='play'><i class="fa-solid fa-play"></i> Run</span>
+      </div>
+      <div class='hidden btn run starting-btn'>
+        <span class='starting'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
+      </div>
+      <div class='hidden btn run stop-btn'>
+        <span class='stop'><i class="fa-solid fa-stop"></i> Stop</span>
+      </div>
+      <div class='hidden btn stopped-btn'>
+        <span class='stopped'><i class="fa-solid fa-hand"></i> Stopped</span>
+      </div>
+      <div id='status-window'></div>
+      <div id='progress-window' class='hidden'><div id='progress-bar'></div></div>
+    </h1>
+  </header>
+  <div class='terminal-container'>
+    <div id='terminal'></div>
+  </div>
+  <footer><b>Ready</b></footer>
+<script>
+let shell_id
+let socket = new Socket()
+const resizeSync = window.PinokioResizeSync.create({
+  socket,
+  getShellId: () => shell_id
+})
+const createTerm = async (_theme) => {
+  const theme = Object.assign({ }, _theme, {
+    selectionBackground: "red",
+    selectionForeground: "white"
+  })
+  <% if (theme !== "dark") { %>
+    theme.foreground = "black"
+  <% } %>
+  let config = {
+    scrollback: 9999999,
+    fontSize: 12,
+    fontFamily: 'monospace',
+    theme,
+  }
+  let res = await fetch("/xterm_config").then((res) => {
+    return res.json()
+  })
+  if (res && res.config) {
+    config = res.config
+  }
+  const baseConfig = Object.assign({}, config)
+  if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.applyToConfig === 'function') {
+    config = window.PinokioTerminalSettings.applyToConfig(config)
+  }
+  const term = new Terminal(config)
+  if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.register === 'function') {
+    window.PinokioTerminalSettings.register(term, { baseConfig })
+  }
+  term.open(document.querySelector("#terminal"))
+  const terminalContainer = document.querySelector("#terminal")
+  window.PinokioTouch.bindTerminalFocus(term, terminalContainer)
+
+  term.attachCustomKeyEventHandler(event => {
+    if (event.ctrlKey && event.key === 'c' && term.hasSelection()) {
+      return false;
+    }
+    if (event.ctrlKey && event.key === 'v' && this._options.pasteWithCtrlV) {
+      return false;
+    }
+    return true;
+  });
+
+  fitAddon = new FitAddon.FitAddon();
+  term.loadAddon(fitAddon);
+  <% if (agent === "electron") { %>
+    term.loadAddon(new WebLinksAddon.WebLinksAddon((event, uri) => {
+      window.open(uri, "_blank", "browser")
+    }))
+  <% } else { %>
+    term.loadAddon(new WebLinksAddon.WebLinksAddon());
+  <% } %>
+  fitAddon.fit();
+  resizeSync.updateTerm(term, fitAddon, socket)
+
+  term.onData((data) => {
+    console.log({ key: data, shell_id })
+    if (socket && shell_id) {
+      socket.run({
+        key: data,
+        id: shell_id
+      })
+    }
+  });
+
+  let observer = new ResizeObserver(() => {
+    fitAddon.fit()
+    resizeSync.sendResize(term.cols, term.rows)
+  });
+  observer.observe(document.body)
+
+  term.focus()
+  console.log(`Resized to ${term.cols}x${term.rows}`);
+  return term
+}
+
+async function displayResults(config) {
+  <% if (theme === "dark") { %>
+  let term = await createTerm(xtermTheme.FrontEndDelight)
+  <% } else { %>
+  let term = await createTerm(xtermTheme.Tomorrow)
+  <% } %>
+  const write = (text) => {
+    if (text !== "\u0007") {
+      term.write(text)
+    }
+  }
+  resizeSync.reset()
+  socket.run({
+    id: "kernel.proto.create",
+    method: "kernel.proto.create",
+    cwd: config.cwd,
+    client: {
+      cols: term.cols,
+      rows: term.rows,
+    },
+    params: config
+  }, async (packet) => {
+    console.log('packet', packet)
+    if (packet.type === 'start') {
+      document.querySelector(".play-btn").classList.add("hidden")
+      document.querySelector(".starting-btn").classList.add("hidden")
+      document.querySelector(".stop-btn").classList.remove("hidden")
+    } else if (packet.type === "result") {
+      if (packet.data.success) {
+        location.href = packet.data.success
+      } else if (packet.data.error) {
+        alert(packet.data.error)
+        location.href = location.href
+      }
+    } else if (packet.type === "stream") {
+      // set the current shell id
+      const previousShellId = shell_id
+      if (packet.data.id) {
+        shell_id = packet.data.id
+      }
+      if (!previousShellId && shell_id) {
+        resizeSync.sendInitial()
+      }
+      if (packet.data.raw) {
+        write(packet.data.raw)
+      } else if (packet.data.json) {
+        write(JSON.stringify(packet.data.json).replace(/\n/g, "\r\n"))
+        write("\r\n")
+      } else if (packet.data.json2) {
+        write(JSON.stringify(packet.data.json2, null, 2).replace(/\n/g, "\r\n"))
+        write("\r\n")
+      }
+//      document.querySelector("#end").scrollIntoView({ behavior: 'smooth' });
+    } else if (packet.type === 'disconnect') {
+      term.write("\r\nDisconnected...\r\n")
+      socket.close()
+      resizeSync.reset()
+    } else if (packet.type === 'connect') {
+      if (packet.data) {
+        if (packet.data.shell) {
+          shell_id = packet.data.shell
+        }
+        resizeSync.sendInitial()
+        if (packet.data.state) {
+          write(packet.data.state)
+        }
+      }
+    } else if (packet.type === 'resize') {
+      resizeSync.handleResizePacket(packet)
+    }
+  }).then((res) => {
+    console.log("Ended", res)
+  })
+}
+const url = new URL(window.location.href);
+const searchParams = url.searchParams;
+let cwd = searchParams.get("cwd")
+let name = searchParams.get("name")
+let tool = searchParams.get("tool")
+let aiPrompt = searchParams.get("message")
+let uploadToken = searchParams.get("uploadToken")
+displayResults({
+  cwd: "<%-JSON.stringify(cwd).slice(1, -1)%>",
+  name: name,
+  startType: "new",
+  projectType: "default",
+  aiPrompt,
+  tool,
+  uploadToken
+})
+</script>
+</body>
+</html>

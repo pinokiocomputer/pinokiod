@@ -2,17 +2,37 @@ const os = require('os')
 const _ = require('lodash')
 const fs = require('fs')
 const set = require("./api/set")
+const Util = require('./util')
 const {
   glob
 } = require('glob')
 
 const path = require('path')
 const Shell = require("./shell")
+const { detect: detectBracketedPasteSupport } = require('./bracketed_paste_detector')
 class Shells {
   constructor(kernel) {
     this.kernel = kernel
     this.shells = []
+    this.bracketedPasteDetections = new Map()
 
+  }
+  resolveShellExecutable(shellName) {
+    if (typeof shellName !== "string") {
+      return shellName
+    }
+    const trimmed = shellName.trim()
+    if (!trimmed || path.isAbsolute(trimmed)) {
+      return trimmed
+    }
+    if (trimmed.includes("/") || trimmed.includes("\\")) {
+      return trimmed
+    }
+    const resolved = this.kernel.which(trimmed)
+    if (resolved) {
+      return resolved
+    }
+    return trimmed
   }
   /*
   params := {
@@ -35,15 +55,17 @@ class Shells {
     } else {
       m = "ls"
     }
-    let response = await sh.start({
-      message: m,
+    await sh.init_env({
       env: this.kernel.bin.envs({}),
-      conda: {
-        skip: true
-      }
-    }, async (stream) => {
-      process.stdout.write(stream.raw)
     })
+
+    await this.ensureBracketedPasteSupport(sh.shell)
+    if (this.kernel.bracketedPasteSupport) {
+      const cached = this.kernel.bracketedPasteSupport[(sh.shell || '').toLowerCase()]
+      if (typeof cached === 'boolean') {
+        sh.supportsBracketedPaste = cached
+      }
+    }
 
     this.kernel.envs = sh.env
     // also set the uppercase variables if they're not set
@@ -55,21 +77,130 @@ class Shells {
     }
 
   }
+  info() {
+    return this.shells.map((s) => {
+      return {
+        EOL: s.EOL,
+        shell: s.shell,
+        args: s.args,
+        cols: s.cols,
+        rows: s.rows,
+        id: s.id,
+        group: s.group,
+        start_time: s.start_time,
+        path: s.path,
+        source_message: s.source_message,
+        cmd: s.cmd,
+        done: s.done,
+        state: s.state
+      }
+    })
+  }
+  isPathWithin(parentPath, childPath) {
+    if (!parentPath || !childPath) {
+      return false
+    }
+    const relative = path.relative(parentPath, childPath)
+    if (!relative) {
+      return true
+    }
+    return !relative.startsWith("..") && !path.isAbsolute(relative)
+  }
+  resourceRootsByWorkspace(apiRoot) {
+    if (typeof apiRoot !== "string" || !apiRoot) {
+      return new Map()
+    }
+    const groups = new Map()
+    const normalizedApiRoot = path.resolve(apiRoot)
+    for (const shell of this.shells) {
+      if (!shell || shell.done || !shell.ptyProcess || !shell.ptyProcess.pid) {
+        continue
+      }
+      const shellPath = typeof shell.path === "string" && shell.path ? path.resolve(shell.path) : ""
+      if (!shellPath || !this.isPathWithin(normalizedApiRoot, shellPath)) {
+        continue
+      }
+      const relative = path.relative(normalizedApiRoot, shellPath)
+      const workspaceName = relative.split(path.sep).filter(Boolean)[0]
+      if (!workspaceName) {
+        continue
+      }
+      if (!groups.has(workspaceName)) {
+        groups.set(workspaceName, [])
+      }
+      groups.get(workspaceName).push({
+        id: shell.id,
+        group: shell.group,
+        path: shellPath,
+        pid: shell.ptyProcess.pid
+      })
+    }
+    return groups
+  }
+  async ensureBracketedPasteSupport(shellName) {
+    if (!shellName) {
+      return
+    }
+    const lower = (shellName || '').toLowerCase()
+    if (!lower) {
+      return
+    }
+    if (!this.kernel.bracketedPasteSupport) {
+      this.kernel.bracketedPasteSupport = {}
+    }
+    if (Object.prototype.hasOwnProperty.call(this.kernel.bracketedPasteSupport, lower)) {
+      return this.kernel.bracketedPasteSupport[lower]
+    }
+    if (this.bracketedPasteDetections.has(lower)) {
+      return this.bracketedPasteDetections.get(lower)
+    }
+    const fallback = !(lower.includes('cmd.exe') || lower === 'cmd' || lower.includes('powershell') || lower.includes('pwsh'))
+    const detectionPromise = detectBracketedPasteSupport(shellName, this.kernel.platform || os.platform())
+      .then((support) => {
+        const value = typeof support === 'boolean' ? support : fallback
+        this.kernel.bracketedPasteSupport[lower] = value
+        return value
+      })
+      .catch((error) => {
+        console.warn('[shells.ensureBracketedPasteSupport] detection failed', {
+          shell: shellName,
+          error: error && error.message ? error.message : error
+        })
+        this.kernel.bracketedPasteSupport[lower] = fallback
+        return fallback
+      })
+      .finally(() => {
+        this.bracketedPasteDetections.delete(lower)
+      })
+    this.bracketedPasteDetections.set(lower, detectionPromise)
+    return detectionPromise
+  }
   async launch(params, options, ondata) {
     // if array, duplicate the action
     if (Array.isArray(params.message)) {
-      let res
-      for(let i=0; i<params.message.length; i++) {
-        let message = params.message[i]
-        let params_dup = Object.assign({}, params) 
-        params_dup.message = message
-        res = await this._launch(params_dup, options, ondata)
-        // if there's an error, immediately return with the error
-        if (res.error) {
-          return res
+      if (params.chain) {
+        // if "chain" attribute exists,
+        // run commands in the same session
+        let res = await this._launch(params, options, ondata)
+        return res
+      } else {
+        // if "chain" attribute Does not exist (Default),
+        // launch separate shells
+        let res
+        for(let i=0; i<params.message.length; i++) {
+          let message = params.message[i]
+          if (message) {
+            let params_dup = Object.assign({}, params) 
+            params_dup.message = message
+            res = await this._launch(params_dup, options, ondata)
+            // if there's an error, immediately return with the error
+            if (res.error) {
+              return res
+            }
+          }
         }
+        return res
       }
-      return res
     } else {
       let res = await this._launch(params, options, ondata)
       return res
@@ -79,18 +210,219 @@ class Shells {
     // iterate through all the envs
     params.env = this.kernel.bin.envs(params.env)
 
+    // set $parent for scripts stored globally but run locally (git, prototype, plugin, etc)
+    if (params.path && !params.$parent) {
+      params.$parent = {
+        path: params.path
+      }
+    }
+
     let exec_path = (params.path ? params.path : ".")                         // use the current path if not specified
-    let cwd = (options && options.cwd ? options.cwd : this.kernel.homedir)   // if cwd exists, use it. Otherwise the cwd is pinokio home folder (~/pinokio)              
+    let cwd = (options && options.cwd ? options.cwd : this.kernel.homedir)   // if cwd exists, use it. Otherwise the cwd is pinokio home folder (~/pinokio)
     params.path = this.kernel.api.resolvePath(cwd, exec_path)
+
+    // If this shell runs under ~/pinokio/api/<workspace>, remember the workspace
+    // and the current set of known git repo roots so we can detect new repos
+    // created by this step and pin them to recorded commits.
+    let workspaceName
+    let workspaceRoot
+    let beforeDirs
+    if (params.path && this.kernel && this.kernel.path) {
+      const apiRoot = this.kernel.path("api")
+      const rel = path.relative(apiRoot, params.path)
+      if (rel && !rel.startsWith("..") && !path.isAbsolute(rel)) {
+        const segments = rel.split(path.sep).filter(Boolean)
+        if (segments.length > 0) {
+          workspaceName = segments[0]
+          workspaceRoot = this.kernel.path("api", workspaceName)
+          beforeDirs = new Set(this.kernel.git.dirs)
+        }
+      }
+    }
+    const parentMeta = params.$parent || null
+    const getParentRunningKey = () => {
+      if (!parentMeta) {
+        return null
+      }
+      if (parentMeta.id) {
+        return parentMeta.id
+      }
+      if (!parentMeta.path || typeof parentMeta.path !== "string") {
+        return null
+      }
+      const ext = path.extname(parentMeta.path).toLowerCase()
+      const looksLikeScript = ext === ".js" || ext === ".json"
+      const hasRequestMetadata = !!(parentMeta.uri || parentMeta.body || parentMeta.action)
+      if (!looksLikeScript || !hasRequestMetadata) {
+        return null
+      }
+      return parentMeta.path
+    }
+    const queueTriggerAction = async (action, eventMatch) => {
+      if (!action) {
+        return
+      }
+      if (!parentMeta || !parentMeta.path) {
+        throw new Error(`unable to trigger "${action}" without a parent script`)
+      }
+
+      const runningKey = getParentRunningKey()
+      if (runningKey && !this.kernel.api.running[runningKey]) {
+        return
+      }
+
+      let triggerScript = parentMeta.body
+      let triggerCwd = parentMeta.cwd
+      if (!triggerScript || !Array.isArray(triggerScript[action])) {
+        const resolved = await this.kernel.api.resolveScript(parentMeta.path)
+        triggerScript = resolved.script
+        if (!triggerCwd) {
+          triggerCwd = resolved.cwd
+        }
+      }
+
+      const triggerSteps = (triggerScript && Array.isArray(triggerScript[action])) ? triggerScript[action] : null
+      if (!triggerSteps || triggerSteps.length === 0) {
+        throw new Error(`missing or invalid attribute: ${action}`)
+      }
+
+      const request = {
+        id: parentMeta.id,
+        uri: parentMeta.uri,
+        path: parentMeta.path,
+        git: parentMeta.git,
+        cwd: triggerCwd || parentMeta.cwd,
+        origin: parentMeta.origin,
+        caller: parentMeta.caller,
+        client: parentMeta.client,
+        action
+      }
+      const input = {
+        event: eventMatch,
+        trigger: action
+      }
+
+      this.kernel.api.queue(
+        request,
+        triggerSteps[0],
+        input,
+        0,
+        triggerSteps.length,
+        triggerCwd || parentMeta.cwd,
+        parentMeta.args
+      )
+    }
+
+    if (params.shell) {
+      // Resolve bare command names before probing/launching so Windows can find bundled bash reliably.
+      params.shell = this.resolveShellExecutable(params.shell)
+    }
+    const isParentRequestActive = () => {
+      const runningKey = getParentRunningKey()
+      if (!runningKey) {
+        return true
+      }
+      return !!this.kernel.api.running[runningKey]
+    }
+    if (!isParentRequestActive()) {
+      return ""
+    }
+    const plannedShell = params.shell || (this.kernel.platform === 'win32' ? 'cmd.exe' : 'bash')
+    await this.ensureBracketedPasteSupport(plannedShell)
     let sh = new Shell(this.kernel)
-    if (options) params.group = options.group  // set group
+    if (options) {
+      params.group = options.group  // set group
+      params.$title = options.title
+    }
 
     let m
+    let matched_index
+    const onceHandlers = new Set()
+    const handlerLastMatchEnd = new Map()
+    let liveEventBuffer = ""
+    let liveEventOffset = 0
+    let liveEventAnsiCarry = ""
+    let liveEventHandlersClosed = false
+
+    // Keep cross-chunk event matching, but normalize terminal styling away first.
+    // Preserve line boundaries so later shell banners cannot fuse onto prior matches.
+    const findLiveEventCarryIndex = (value = "") => {
+      if (!value) {
+        return value.length
+      }
+      const escIndex = value.lastIndexOf("\u001b")
+      const csiIndex = value.lastIndexOf("\u009b")
+      const start = Math.max(escIndex, csiIndex)
+      if (start === -1) {
+        return value.length
+      }
+      if (value[start] === "\u009b") {
+        for (let i = start + 1; i < value.length; i++) {
+          const code = value.charCodeAt(i)
+          if (code >= 0x40 && code <= 0x7e) {
+            return value.length
+          }
+        }
+        return start
+      }
+      if (start === value.length - 1) {
+        return start
+      }
+      const marker = value[start + 1]
+      if (marker === "[") {
+        for (let i = start + 2; i < value.length; i++) {
+          const code = value.charCodeAt(i)
+          if (code >= 0x40 && code <= 0x7e) {
+            return value.length
+          }
+        }
+        return start
+      }
+      if (marker === "]" || "PX^_".includes(marker)) {
+        for (let i = start + 2; i < value.length; i++) {
+          const ch = value[i]
+          if (ch === "\u0007") {
+            return value.length
+          }
+          if (ch === "\u001b") {
+            if (i + 1 >= value.length) {
+              return start
+            }
+            if (value[i + 1] === "\\") {
+              return value.length
+            }
+          }
+        }
+        return start
+      }
+      return value.length
+    }
+    const normalizeLiveEventChunk = (chunk) => {
+      if (typeof chunk !== "string" || chunk.length === 0) {
+        return ""
+      }
+      let combined = liveEventAnsiCarry + chunk
+      liveEventAnsiCarry = ""
+      const carryIndex = findLiveEventCarryIndex(combined)
+      if (carryIndex < combined.length) {
+        liveEventAnsiCarry = combined.slice(carryIndex)
+        combined = combined.slice(0, carryIndex)
+      }
+      if (combined.length === 0) {
+        return ""
+      }
+      return sh.stripAnsi(combined)
+        .replaceAll(/\r\n/g, "\n")
+        .replaceAll(/\r/g, "\n")
+    }
 
     // if error doesn't exist, add default "error:" event
     if (!params.on) {
       params.on = []
     }
+
+    let monitor = structuredClone(params.on)
+
     // default error
     const defaultHandlers = [{
       event: "/error:/i",
@@ -103,6 +435,11 @@ class Shells {
       break: false
     }]
     params.on = params.on.concat(defaultHandlers)
+
+    if (!isParentRequestActive()) {
+      return ""
+    }
+
     let response = await sh.start(params, async (stream) => {
       /*
         {
@@ -111,46 +448,130 @@ class Shells {
             message,
             on: [{
               event: <regex>,
-              <done|kill|debug>: true
-            }],
+              done: true|false,
+              kill: true|false,
+              trigger: <alternate script action>,
+              once: true|false,
+              debug: true|false,
+              notify: {
+                title,
+                sound,
+                message,
+                image
+              }
+            }]
           }
         }
       */
-      if (params.on && Array.isArray(params.on)) {
-        for(let handler of params.on) {
-          // regexify
-          //let matches = /^\/([^\/]+)\/([dgimsuy]*)$/.exec(handler.event)
-          if (handler.event) {
-            let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
-            if (!/g/.test(matches[2])) {
-              matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
+      try {
+        const normalizedChunk = normalizeLiveEventChunk(stream.raw)
+        if (normalizedChunk.length > 0) {
+          liveEventBuffer = (liveEventBuffer + normalizedChunk).slice(-300)
+          liveEventOffset += normalizedChunk.length
+        }
+        const liveEventBufferStart = Math.max(0, liveEventOffset - liveEventBuffer.length)
+        if (!liveEventHandlersClosed && params.on && Array.isArray(params.on)) {
+          for(let i=0; i<params.on.length; i++) {
+            let handler = params.on[i]
+            if (handler.once && onceHandlers.has(i)) {
+              continue
             }
-            let re = new RegExp(matches[1], matches[2])
-            if (stream.cleaned) {
-              let line = stream.cleaned.replaceAll(/[\r\n]/g, "")
-              //let rendered_event = [...stream.cleaned.matchAll(re)]
-
-
-              let rendered_event = [...line.matchAll(re)]
-              // 3. if the rendered expression is truthy, run the "run" script
-              if (rendered_event.length > 0) {
-                stream.matches = rendered_event
-                if (handler.kill) {
-                  m = rendered_event[0]
-                  sh.kill()
+            // regexify
+            //let matches = /^\/([^\/]+)\/([dgimsuy]*)$/.exec(handler.event)
+            if (handler.event) {
+              if (handler.notify) {
+                // notify is a special case. check by line
+                let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
+                if (!/g/.test(matches[2])) {
+                  matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
                 }
-                if (handler.done) {
-                  m = rendered_event[0]
-                  sh.continue()
+                let re = new RegExp(matches[1], matches[2])
+                let test = re.exec(sh.monitor)
+                if (test && test.length > 0) {
+                  if (handler.once) {
+                    onceHandlers.add(i)
+                  }
+                  // reset monitor
+                  sh.monitor = ""
+                  let params = this.kernel.template.render(handler.notify, { event: test })
+                  if (params.image) {
+                    params.contentImage = path.resolve(req.cwd, params.image)
+                  }
+                  Util.push(params)
+                }
+              } else {
+                let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
+                if (!/g/.test(matches[2])) {
+                  matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
+                }
+                let re = new RegExp(matches[1], matches[2])
+                if (liveEventBuffer.length > 0) {
+                  const lastHandledEnd = handlerLastMatchEnd.get(i) || 0
+                  let rendered_event = [...liveEventBuffer.matchAll(re)].filter((match) => {
+                    const absoluteEnd = liveEventBufferStart + match.index + match[0].length
+                    return absoluteEnd > lastHandledEnd
+                  })
+                  // 3. if the rendered expression is truthy, run the "run" script
+                  if (rendered_event.length > 0) {
+                    if (handler.once) {
+                      onceHandlers.add(i)
+                    }
+                    const lastMatch = rendered_event[rendered_event.length - 1]
+                    handlerLastMatchEnd.set(i, liveEventBufferStart + lastMatch.index + lastMatch[0].length)
+                    const triggerAction = typeof handler.trigger === "string" ? handler.trigger.trim() : ""
+                    const shouldCaptureEvent =
+                      handler.break !== false
+                      || handler.done
+                      || handler.kill
+                      || !!triggerAction
+                    if (shouldCaptureEvent) {
+                      stream.matches = rendered_event
+                      m = rendered_event[0]
+                      matched_index = i
+                    }
+                    if (triggerAction) {
+                      queueTriggerAction(triggerAction, rendered_event[0]).catch((e) => {
+                        console.log("Trigger error", e)
+                        if (ondata) {
+                          ondata({ raw: (e && e.stack) ? e.stack : String(e) })
+                        }
+                      })
+                    }
+                    if (handler.kill) {
+                      sh.kill()
+                      liveEventHandlersClosed = true
+                      break
+                    }
+                    if (handler.done) {
+                      sh.continue()
+                      liveEventHandlersClosed = true
+                      break
+                    }
+                  }
                 }
               }
             }
           }
         }
+        if (ondata) {
+          ondata(stream)
+        }
+      } catch (e) {
+        console.log("Capture error", e)
+        ondata({ raw: e.stack })
+        sh.mute = true
+        sh.kill()
       }
-      ondata(stream)
     })
-
+    // If this shell ran under a workspace, rescan git repos for that workspace.
+    // Snapshots are now always user-initiated via the backups UI; here we only
+    // pin new repos to specific commits when this run was started from a
+    // snapshot restore.
+    if (workspaceRoot && beforeDirs) {
+      try {
+        await this.kernel.git.restoreNewReposForActiveSnapshot(workspaceName, workspaceRoot, beforeDirs)
+      } catch (_) {}
+    }
     /*
       {
         method: "shell.run",
@@ -218,6 +639,36 @@ class Shells {
     }
 
 
+    if (ondata) {
+      if (m) {
+        ondata({ raw: `\r\n\r\n===================================================\r\n` })
+        //ondata({ raw: `# event handlers\r\n` })
+        //ondata({
+        //  raw: JSON.stringify(monitor, null, 2).replace(/\n/g, "\r\n") + "\r\n\r\n"
+        //})
+        ////for(let handler of monitor) {
+        ////  let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
+        ////  if (!/g/.test(matches[2])) {
+        ////    matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
+        ////  }
+        ////  let re = new RegExp(matches[1], matches[2])
+        ////  ondata({ raw: `- ${re}\r\n` })
+        ////}
+        //ondata({ raw: `# matched event handler\r\n` })
+        //ondata({
+        //  raw: JSON.stringify(monitor[matched_index], null, 2).replace(/\n/g, "\r\n") + "\r\n\r\n"
+        //})
+        ondata({
+          raw: `# input.event\r\n`
+        })
+        ondata({
+          raw: JSON.stringify(m, null, 2).replace(/\n/g, "\r\n")
+        })
+        ondata({ raw: `\r\n===================================================\r\n\r\n` })
+      }
+    }
+
+
     if (errors.size > 0) {
       // try replacing the shortest pattern from the text one by one and narrow down the errors
       // so it doesn't accidently contain a very long match
@@ -259,6 +710,21 @@ class Shells {
     let response = await this.send(params, ondata)
     return response
   }
+  resize(params) {
+    /*
+      params := {
+        "id": <shell id>,
+        "resize": {
+          "cols": <cols>,
+          "rows": <rows>,
+        }
+      }
+    */
+    let session = this.get(params.id)
+    if (session) {
+      session.resize(params.resize)
+    }
+  }
   emit(params) {
     /*
       params := {
@@ -268,7 +734,20 @@ class Shells {
     */
     let session = this.get(params.id)
     if (session) {
-      session.emit(params.emit)
+      if (params.paste) {
+        const payload = params.emit != null ? String(params.emit) : ''
+        if (session.supportsBracketedPaste !== false) {
+          //session.emit("\x1b[?2004h\x1b[200~" + params.emit+ "\x1b[201~")
+          session.emit("\x1b[200~" + payload + "\x1b[201~")
+        } else {
+          session.emit(payload)
+        }
+      } else {
+        session.emit(params.emit)
+      }
+      return true
+    } else {
+      return false
     }
   }
   async send(params, ondata, enter) {
@@ -288,7 +767,9 @@ class Shells {
         // if the stream includes "prompt": true, don't emit the event since that event is only for
         // handling listeners
         if (!stream.prompt) {
-          ondata(stream)
+          if (ondata) {
+            ondata(stream)
+          }
         }
         if (params.on) {
           for(let handler of params.on) {
@@ -350,18 +831,33 @@ class Shells {
   stop (request, message) {
     return this.kill(request, message)
   }
-  reset() {
+  reset(cb) {
     let info = this.shells.map((s) => {
       return { id: s.id, group: s.group, cmd: s.cmd }
     })
-    if (this.shells) {
+    if (this.shells && this.shells.length > 0) {
       let shells = []
       for(let i=0; i<this.shells.length; i++) {
         shells.push(this.shells[i])
       }
+      let count = 0
       for(let shell of shells) {
         console.log("[Kill Shell]", { id: shell.id, group: shell.group, cmd: shell.cmd })
-        shell.kill("", true)
+        if (cb) {
+          shell.kill("", true, () => {
+            count++
+            if (count >= shells.length) {
+              cb()
+            }
+          })
+        } else {
+          shell.kill("", true)
+        }
+      }
+    } else {
+      console.log("no shells running")
+      if (cb) {
+        cb()
       }
     }
   }
@@ -373,6 +869,7 @@ class Shells {
     *  - Kill by group ID
     *    request = { group } 
     */
+
     if (request.id) {
 
       let shells = []
@@ -387,6 +884,7 @@ class Shells {
         }
       }
     } else if (request.group) {
+//      console.log("kill group", this.shells)
       // kill all shells for the scriptpath
       let shells = []
       for(let i=0; i<this.shells.length; i++) {
@@ -450,6 +948,9 @@ class Shells {
       let found = this.shells.filter((shell) => {
         return shell.group === group
       })
+      return found
+    } else if (request.filter) {
+      let found = this.shells.filter(request.filter)
       return found
     }
   }

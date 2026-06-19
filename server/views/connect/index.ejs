@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%=name%> OAuth</title>
+    <link href="/xterm.min.css" rel="stylesheet" />
+    <link href="/css/fontawesome.min.css" rel="stylesheet">
+    <link href="/css/solid.min.css" rel="stylesheet">
+    <link href="/css/regular.min.css" rel="stylesheet">
+    <link href="/css/brands.min.css" rel="stylesheet">
+    <link href="/markdown.css" rel="stylesheet"/>
+    <link href="/noty.css" rel="stylesheet"/>
+    <link href="/style.css" rel="stylesheet"/>
+    <% if (agent === "electron") { %>
+      <link href="/electron.css" rel="stylesheet"/>
+    <% } %>
+    <style>
+        body[data-page="connect"] {
+            --connect-body-bg: #f8fafc;
+            --connect-text: #0f172a;
+            --connect-heading: #1f2937;
+            --connect-card-bg: #ffffff;
+            --connect-card-border: rgba(15, 23, 42, 0.08);
+            --connect-card-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
+            --connect-user-info-bg: #f0f9ff;
+            --connect-user-info-border: #3b82f6;
+            --connect-status-success-bg: #d1fae5;
+            --connect-status-success-text: #065f46;
+            --connect-status-error-bg: #fee2e2;
+            --connect-status-error-text: #991b1b;
+            --connect-status-warning-bg: #fef3c7;
+            --connect-status-warning-text: #92400e;
+            --connect-loader-overlay: rgba(248, 250, 252, 0.95);
+            --connect-loader-text: #374151;
+            --connect-loader-border: #6b7280;
+            --connect-btn-bg: #000000;
+            --connect-btn-hover-bg: #111827;
+            --connect-btn-text: #ffffff;
+            --connect-secondary-btn-bg: #6b7280;
+            --connect-secondary-btn-hover: #4b5563;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--connect-body-bg);
+            color: var(--connect-text);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color-scheme: light;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body[data-page="connect"] {
+                --connect-body-bg: #010617;
+                --connect-text: #e2e8f0;
+                --connect-heading: #f8fafc;
+                --connect-card-bg: #0f172a;
+                --connect-card-border: rgba(148, 163, 184, 0.2);
+                --connect-card-shadow: 0 25px 35px rgba(0, 0, 0, 0.65);
+                --connect-user-info-bg: rgba(59, 130, 246, 0.12);
+                --connect-user-info-border: #60a5fa;
+                --connect-status-success-bg: rgba(16, 185, 129, 0.18);
+                --connect-status-success-text: #6ee7b7;
+                --connect-status-error-bg: rgba(248, 113, 113, 0.16);
+                --connect-status-error-text: #fecaca;
+                --connect-status-warning-bg: rgba(251, 191, 36, 0.16);
+                --connect-status-warning-text: #fde68a;
+                --connect-loader-overlay: rgba(2, 6, 23, 0.9);
+                --connect-loader-text: #e2e8f0;
+                --connect-loader-border: rgba(148, 163, 184, 0.7);
+                --connect-btn-bg: #ff6b35;
+                --connect-btn-hover-bg: #e75a2a;
+                --connect-btn-text: #ffffff;
+                --connect-secondary-btn-bg: #475569;
+                --connect-secondary-btn-hover: #334155;
+                color-scheme: dark;
+            }
+        }
+
+        body.dark[data-page="connect"] {
+            --connect-body-bg: #010617;
+            --connect-text: #e2e8f0;
+            --connect-heading: #f8fafc;
+            --connect-card-bg: #0f172a;
+            --connect-card-border: rgba(148, 163, 184, 0.2);
+            --connect-card-shadow: 0 25px 35px rgba(0, 0, 0, 0.65);
+            --connect-user-info-bg: rgba(59, 130, 246, 0.12);
+            --connect-user-info-border: #60a5fa;
+            --connect-status-success-bg: rgba(16, 185, 129, 0.18);
+            --connect-status-success-text: #6ee7b7;
+            --connect-status-error-bg: rgba(248, 113, 113, 0.16);
+            --connect-status-error-text: #fecaca;
+            --connect-status-warning-bg: rgba(251, 191, 36, 0.16);
+            --connect-status-warning-text: #fde68a;
+            --connect-loader-overlay: rgba(2, 6, 23, 0.9);
+            --connect-loader-text: #e2e8f0;
+            --connect-loader-border: rgba(148, 163, 184, 0.7);
+            --connect-btn-bg: #ff6b35;
+            --connect-btn-hover-bg: #e75a2a;
+            --connect-btn-text: #ffffff;
+            --connect-secondary-btn-bg: #475569;
+            --connect-secondary-btn-hover: #334155;
+            color-scheme: dark;
+        }
+
+        body[data-page="connect"] main.connect-page-shell {
+            flex: 1 1 auto;
+            padding: 24px 20px 48px;
+            box-sizing: border-box;
+        }
+
+        body[data-page="connect"] .container {
+            background: var(--connect-card-bg);
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: var(--connect-card-shadow);
+            border: 1px solid var(--connect-card-border);
+            color: var(--connect-text);
+        }
+
+        body[data-page="connect"] header.head h1 {
+            text-transform: capitalize;
+            color: var(--connect-heading);
+            margin: 0;
+            font-size: 40px;
+            margin-top: 10px;
+        }
+
+        body[data-page="connect"] .btn {
+            text-decoration: none;
+            display: inline-flex;
+            justify-content: center;
+            background: var(--connect-btn-bg);
+            width: 100%;
+            color: var(--connect-btn-text);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            box-sizing: border-box;
+            text-align: center;
+            transition: background 0.2s ease;
+        }
+
+        body[data-page="connect"] .btn:hover {
+            background: var(--connect-btn-hover-bg);
+        }
+
+        body[data-page="connect"] .btn.secondary {
+            background: var(--connect-secondary-btn-bg);
+        }
+
+        body[data-page="connect"] .btn.secondary:hover {
+            background: var(--connect-secondary-btn-hover);
+        }
+
+        body[data-page="connect"] #user-details {
+          margin-bottom: 20px;
+        }
+
+        body[data-page="connect"] .user-info {
+            background: var(--connect-user-info-bg);
+            padding: 15px;
+            border-left: 4px solid var(--connect-user-info-border);
+        }
+
+        body[data-page="connect"] #login-section p {
+          padding: 5px 0;
+        }
+
+        body[data-page="connect"] .user-info h3 {
+          margin: 0 0 10px;
+          font-size: 30px;
+          color: var(--connect-heading);
+        }
+
+        body[data-page="connect"] .status {
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 6px;
+            font-weight: 500;
+            background: var(--connect-status-warning-bg);
+            color: var(--connect-status-warning-text);
+        }
+
+        body[data-page="connect"] .status.success { background: var(--connect-status-success-bg); color: var(--connect-status-success-text); }
+        body[data-page="connect"] .status.error { background: var(--connect-status-error-bg); color: var(--connect-status-error-text); }
+        body[data-page="connect"] .status.warning { background: var(--connect-status-warning-bg); color: var(--connect-status-warning-text); }
+
+        body[data-page="connect"] .hidden { display: none; }
+
+        body[data-page="connect"] .loader-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: var(--connect-loader-overlay);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          z-index: 999;
+        }
+
+        body[data-page="connect"] .loader-overlay.hidden {
+          display: none;
+        }
+
+        body[data-page="connect"] .loader-spinner {
+          width: 48px;
+          height: 48px;
+          border: 4px solid rgba(229, 231, 235, 0.4);
+          border-top: 4px solid #ff6b35;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        body[data-page="connect"] .loader-message {
+          font-size: 16px;
+          color: var(--connect-loader-text);
+          text-align: center;
+        }
+
+        body[data-page="connect"] .loader-cancel {
+          background: transparent;
+          border: 1px solid var(--connect-loader-border);
+          color: var(--connect-loader-text);
+          padding: 8px 16px;
+          border-radius: 6px;
+          cursor: pointer;
+        }
+
+        body[data-page="connect"] .profile {
+          width: 400px;
+          display: flex;
+          gap: 10px;
+          font-size: 14px;
+          box-sizing: border-box;
+          color: var(--connect-text);
+        }
+
+        body[data-page="connect"] .profile img {
+          width: 100px;
+          flex-shrink: 0;
+          border-radius: 8px;
+          border: 1px solid rgba(148, 163, 184, 0.4);
+        }
+
+        body[data-page="connect"] .profile td {
+          font-size: 14px;
+          padding: 0 10px 0 0;
+        }
+
+        body[data-page="connect"] header {
+          text-align: center;
+          letter-spacing: -1px;
+          color: var(--connect-text);
+        }
+
+        body[data-page="connect"] header.head {
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 16px 50px 36px;
+          text-align: center;
+        }
+
+        body[data-page="connect"] header.head h1 {
+          justify-content: center;
+        }
+
+        body[data-page="connect"] .logos {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 10px;
+          font-size: 30px;
+        }
+
+        body[data-page="connect"] .logo {
+          height: 40px;
+          font-size: 40px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        body[data-page="connect"] p {
+          margin: 5px 0;
+          font-size: 14px;
+        }
+    </style>
+<script src="/popper.min.js"></script>
+<script src="/tippy-bundle.umd.min.js"></script>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/nav.js"></script>
+</head>
+<body class='<%=theme%>' data-agent="<%=agent%>" data-page="connect">
+    <%- include('../partials/app_navheader', { agent }) %>
+    <main class="connect-page-shell">
+      <header class='head'>
+        <div class='logos'>
+          <img class='logo' src="/pinokio-black.png"/>
+          <div>+</div>
+          <% if (name === "huggingface") { %>
+            <div class='logo'>🤗</div>
+          <% } else if (name === "x") { %>
+            <i class="logo fa-brands fa-square-x-twitter"></i>
+          <% } else if (name === "pinokio") { %>
+            <img class='logo' src="/pinokio-black.png"/>
+          <% } %>
+        </div>
+        <h1><%=name%> Connect</h1>
+      </header>
+      <div class="container">
+        <div id="status" class="status hidden">
+        </div>
+
+        <div id="login-section" class="hidden">
+          <p>Click below to authenticate with <%=name%>:</p>
+          <button class="btn" id="login-button">Login</button>
+        </div>
+
+        <div id="http-section" class="hidden">
+          <p>Click below to open the secure connection flow:</p>
+          <button class='btn' id="get-started-button">Get started</button>
+        </div>
+
+        <div id="user-section" class="hidden">
+            <div class="user-info">
+                <h3>Logged In</h3>
+                <div id="user-details"></div>
+                <button class="btn secondary" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+      </div>
+    </main>
+
+    <div id="connect-loader" class="loader-overlay hidden">
+      <div class="loader-spinner"></div>
+      <div id="loader-message" class="loader-message">Connecting...</div>
+      <button id="loader-cancel" class="loader-cancel hidden">Cancel</button>
+    </div>
+
+    <script>
+        const CONNECT_NAME = "<%=name%>"
+        const CONNECT_AGENT = document.body.getAttribute('data-agent') || 'web'
+        const isSecureConnectContext = <%= protocol === "https" ? 'true' : 'false' %>
+        const statusElement = document.getElementById('status')
+        const loaderElement = document.getElementById('connect-loader')
+        const loaderMessageElement = document.getElementById('loader-message')
+        const loaderCancelButton = document.getElementById('loader-cancel')
+        const loginSection = document.getElementById('login-section')
+        const loginButton = document.getElementById('login-button')
+        const httpSection = document.getElementById('http-section')
+        const userSection = document.getElementById('user-section')
+        const userDetailsElement = document.getElementById('user-details')
+        const CONNECT_PROFILE_URL = `/connect/${CONNECT_NAME}/profile`
+        const CONNECT_LOGOUT_URL = `/connect/${CONNECT_NAME}/logout`
+        let loaderCancelHandler = null
+
+        function setStatus(message, type = 'warning') {
+            if (!statusElement) return
+            if (type === 'hidden') {
+                statusElement.textContent = message || ''
+                statusElement.className = 'status hidden'
+                return
+            }
+            statusElement.textContent = message
+            statusElement.className = `status ${type}`
+            statusElement.classList.remove('hidden')
+        }
+
+        function showLoader(message = 'Connecting...', options = {}) {
+            if (!loaderElement) return
+            loaderElement.classList.remove('hidden')
+            if (loaderMessageElement) {
+                loaderMessageElement.textContent = message
+            }
+            if (loaderCancelButton) {
+                if (options.cancellable) {
+                    loaderCancelHandler = typeof options.onCancel === 'function' ? options.onCancel : null
+                    loaderCancelButton.classList.remove('hidden')
+                    loaderCancelButton.onclick = () => {
+                        if (loaderCancelHandler) {
+                            loaderCancelHandler()
+                        } else {
+                            hideLoader()
+                        }
+                    }
+                } else {
+                    loaderCancelButton.classList.add('hidden')
+                    loaderCancelButton.onclick = null
+                    loaderCancelHandler = null
+                }
+            }
+        }
+
+        function hideLoader() {
+            if (!loaderElement) return
+            loaderElement.classList.add('hidden')
+            if (loaderCancelButton) {
+                loaderCancelButton.classList.add('hidden')
+                loaderCancelButton.onclick = null
+            }
+            loaderCancelHandler = null
+        }
+
+        function configureInitialView() {
+            if (isSecureConnectContext) {
+                if (loginSection) {
+                    loginSection.classList.remove('hidden')
+                }
+                if (httpSection) {
+                    httpSection.classList.add('hidden')
+                }
+                setStatus('Checking authentication status...', 'warning')
+            } else {
+                if (loginSection) {
+                    loginSection.classList.add('hidden')
+                }
+                if (httpSection) {
+                    httpSection.classList.remove('hidden')
+                }
+                setStatus('', 'hidden')
+            }
+        }
+
+        async function ensureValidToken() {
+            try {
+                const res = await fetch(`/connect/${CONNECT_NAME}/keys`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                })
+                const json = await res.json()
+                if (json && json.access_token && !json.error) {
+                    return json.access_token
+                }
+                return null
+            } catch (err) {
+                console.error('Failed to check connect status', err)
+                return null
+            }
+        }
+
+        async function fetchUserInfo(existingToken) {
+            try {
+                const token = existingToken || await ensureValidToken()
+                if (!token) {
+                    return false
+                }
+                await displayUserInfo()
+                return true
+            } catch (err) {
+                console.error('Failed to fetch user info', err)
+                setStatus('Failed to fetch user info: ' + err.message, 'error')
+                hideLoader()
+                return false
+            }
+        }
+
+        async function displayUserInfo() {
+            if (!userSection || !userDetailsElement) {
+                return
+            }
+            const res = await fetch(CONNECT_PROFILE_URL)
+            if (!res.ok) {
+                throw new Error('Profile fetch failed')
+            }
+            const profile = await res.json()
+            const rows = profile.items.map((row) => {
+                return `<tr><td>${row.key}</td><td>${row.val}</td></tr>`
+            }).join("")
+            userDetailsElement.innerHTML = `<div class="profile">
+              <img src="${profile.image}">
+              <div class='profile-column'>
+                <table>${rows}</table>
+              </div>
+            </div>`
+            if (loginSection) {
+                loginSection.classList.add('hidden')
+            }
+            if (httpSection) {
+                httpSection.classList.add('hidden')
+            }
+            userSection.classList.remove('hidden')
+            setStatus('', 'hidden')
+            hideLoader()
+        }
+
+        async function logout() {
+            try {
+                showLoader('Disconnecting...', { cancellable: false })
+                const res = await fetch(CONNECT_LOGOUT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                })
+                await res.json()
+                setStatus('Logged out', 'warning')
+            } catch (err) {
+                console.error('Failed to logout', err)
+                setStatus('Failed to logout: ' + err.message, 'error')
+            } finally {
+                hideLoader()
+                if (userSection) {
+                    userSection.classList.add('hidden')
+                }
+                configureInitialView()
+            }
+        }
+
+        configureInitialView()
+
+        if (loginButton) {
+            loginButton.addEventListener('click', () => {
+                if (typeof window.startOAuthLogin === 'function') {
+                    window.startOAuthLogin()
+                }
+            })
+        }
+
+        window.ensureValidToken = ensureValidToken
+        window.fetchUserInfo = fetchUserInfo
+        window.logout = logout
+        window.startOAuthLogin = () => {
+            console.warn('Login flow not available in this context')
+        }
+    </script>
+
+    <script>
+        if (isSecureConnectContext) {
+
+        // Configuration
+
+        const CLIENT_ID = "<%=config.CLIENT_ID%>"
+        const REDIRECT_URI = "<%=config.REDIRECT_URI%>"
+        const OAUTH_URL = "<%=config.OAUTH_URL%>"
+        const TOKEN_URL = "<%=config.TOKEN_URL%>"
+        const PROFILE_URL = "<%=config.PROFILE_URL%>"
+        const SCOPE = "<%=config.SCOPE%>"
+        const name = "<%=name%>"
+        const SECURE_CONNECT_POLL_INTERVAL = 2000
+        const SECURE_CONNECT_TIMEOUT = 120000
+        let secureConnectPollTimer = null
+        let secureConnectTimeoutHandle = null
+
+        function generateRandomString(length) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // PKCE functions
+        function generateCodeVerifier() {
+            const array = new Uint8Array(32);
+            crypto.getRandomValues(array);
+            return base64URLEncode(array);
+        }
+
+        async function generateCodeChallenge(verifier) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(verifier);
+            const digest = await crypto.subtle.digest('SHA-256', data);
+            return base64URLEncode(new Uint8Array(digest));
+        }
+
+        function base64URLEncode(array) {
+            return btoa(String.fromCharCode.apply(null, array))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
+        }
+
+        // OAuth functions
+        async function login() {
+            try {
+                // Clear existing data
+                localStorage.removeItem('oauth_state');
+                localStorage.removeItem('code_verifier');
+                
+                // Generate PKCE parameters
+                const state = generateRandomString(32);
+                const codeVerifier = generateCodeVerifier();
+                const codeChallenge = await generateCodeChallenge(codeVerifier);
+                
+                // Store for later
+                localStorage.setItem('oauth_state', state);
+                localStorage.setItem('code_verifier', codeVerifier);
+                
+                // Build auth URL
+                const params = new URLSearchParams({
+                    client_id: CLIENT_ID,
+                    redirect_uri: REDIRECT_URI,
+                    response_type: 'code',
+                    scope: SCOPE,
+                    state: state,
+                    code_challenge: codeChallenge,
+                    code_challenge_method: 'S256'
+                });
+                
+                const authUrl = OAUTH_URL + '?' + params.toString();
+
+                if (CONNECT_AGENT === 'electron') {
+                    startSecureConnectPolling();
+                    setStatus(`Continue the ${name} login in your browser.`, 'warning');
+                    try {
+                        window.open(authUrl, '_blank', 'browser');
+                    } catch (openError) {
+                        hideLoader();
+                        setStatus(`Could not open the browser. Please open ${authUrl} manually.`, 'error');
+                        return;
+                    }
+                    return;
+                }
+
+                showLoader('Connecting...');
+                setStatus(`Redirecting to ${name}...`, 'warning');
+                window.location.href = authUrl;
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                hideLoader();
+                setStatus('Failed to start login', 'error');
+            }
+        }
+
+        function stopSecureConnectPolling(message = '', type = 'warning') {
+            if (secureConnectPollTimer) {
+                clearInterval(secureConnectPollTimer);
+                secureConnectPollTimer = null;
+            }
+            if (secureConnectTimeoutHandle) {
+                clearTimeout(secureConnectTimeoutHandle);
+                secureConnectTimeoutHandle = null;
+            }
+            if (message) {
+                hideLoader();
+                setStatus(message, type);
+            }
+        }
+
+        async function pollSecureConnectStatus() {
+            const token = await ensureValidToken();
+            if (!token) {
+                return false;
+            }
+            stopSecureConnectPolling();
+            localStorage.removeItem('oauth_state');
+            localStorage.removeItem('code_verifier');
+            await fetchUserInfo(token);
+            setStatus('Connected.', 'success');
+            return true;
+        }
+
+        function startSecureConnectPolling() {
+            stopSecureConnectPolling();
+            showLoader('Waiting for authentication in the browser...', {
+                cancellable: true,
+                onCancel: () => stopSecureConnectPolling('Connection cancelled.', 'warning')
+            });
+            setStatus(`Waiting for ${name} authentication to finish...`, 'warning');
+            pollSecureConnectStatus();
+            secureConnectPollTimer = setInterval(pollSecureConnectStatus, SECURE_CONNECT_POLL_INTERVAL);
+            secureConnectTimeoutHandle = setTimeout(() => {
+                stopSecureConnectPolling('Timed out waiting for the browser login to finish. Please try again.', 'error');
+            }, SECURE_CONNECT_TIMEOUT);
+        }
+
+        async function handleOAuthCallback(code) {
+            showLoader('Finishing connection...');
+            try {
+                // Verify state
+                const urlParams = new URLSearchParams(window.location.search);
+                const returnedState = urlParams.get('state');
+                const storedState = localStorage.getItem('oauth_state');
+                
+                if (returnedState !== storedState) {
+                    throw new Error('Invalid state parameter');
+                }
+                
+                // Get code verifier
+                const codeVerifier = localStorage.getItem('code_verifier');
+                if (!codeVerifier) {
+                    throw new Error('Code verifier not found');
+                }
+
+                const res = await fetch(`/connect/${name}/login`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    client_id: CLIENT_ID,
+                    code: code,
+                    redirect_uri: REDIRECT_URI,
+                    grant_type: 'authorization_code',
+                    code_verifier: codeVerifier
+                  })
+                });
+                const response = await res.json();
+                console.log('Token response:', response)
+                // Store tokens
+                if (response.access_token) {
+                    stopSecureConnectPolling();
+                    // Cleanup
+                    localStorage.removeItem('oauth_state');
+                    localStorage.removeItem('code_verifier');
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    
+                    // Get user info
+                    await fetchUserInfo();
+                    setStatus('Connection complete. Refreshing...', 'success');
+                    window.location.reload();
+                } else {
+                    throw new Error('No access token received');
+                }
+                
+            } catch (error) {
+                console.error('OAuth callback error:', error);
+                hideLoader();
+                setStatus('Authentication failed: ' + error.message, 'error');
+            }
+        }
+
+        // Utility function for making authenticated API calls with automatic refresh
+        async function makeAuthenticatedRequest(url, options = {}) {
+            const token = await ensureValidToken();
+            if (!token) {
+                throw new Error('No valid token available');
+            }
+            
+            return fetch(url, {
+                ...options,
+                headers: {
+                    ...options.headers,
+                    'Authorization': 'Bearer ' + token
+                }
+            });
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const error = urlParams.get('error');
+            
+            if (error) {
+                setStatus('OAuth error: ' + error, 'error');
+                return;
+            }
+            
+            if (code) {
+                await handleOAuthCallback(code);
+                return;
+            }
+
+            // Check existing session with automatic refresh
+            const token = await ensureValidToken();
+            if (token) {
+                await fetchUserInfo(token);
+            } else if (CONNECT_AGENT === 'electron' && localStorage.getItem('oauth_state')) {
+                startSecureConnectPolling();
+            } else {
+                setStatus('Not authenticated', 'warning');
+            }
+        });
+
+        // Export makeAuthenticatedRequest for external use
+        window.makeAuthenticatedRequest = makeAuthenticatedRequest;
+        window.ensureValidToken = ensureValidToken;
+        window.startOAuthLogin = login;
+        }
+    </script>
+
+    <script>
+        if (!isSecureConnectContext) {
+        const SECURE_CONNECT_URL = 'https://pinokio.localhost/connect/<%=name%>'
+        const CONNECT_POLL_INTERVAL = 4000
+        const CONNECT_TIMEOUT = 120000
+        let connectPollTimer = null
+        let connectTimeoutHandle = null
+
+        function stopConnectPolling(message, type = 'warning') {
+            if (connectPollTimer) {
+                clearInterval(connectPollTimer)
+                connectPollTimer = null
+            }
+            if (connectTimeoutHandle) {
+                clearTimeout(connectTimeoutHandle)
+                connectTimeoutHandle = null
+            }
+            hideLoader()
+            if (message) {
+                setStatus(message, type)
+            }
+        }
+
+        async function pollConnectStatus() {
+            const token = await ensureValidToken()
+            if (token) {
+                if (connectPollTimer) {
+                    clearInterval(connectPollTimer)
+                    connectPollTimer = null
+                }
+                if (connectTimeoutHandle) {
+                    clearTimeout(connectTimeoutHandle)
+                    connectTimeoutHandle = null
+                }
+                await fetchUserInfo(token)
+                setStatus('Connected.', 'success')
+            }
+        }
+
+        function startHttpConnect() {
+            stopConnectPolling()
+            showLoader(`Connecting... Complete the login in the ${CONNECT_AGENT === 'electron' ? 'browser' : 'secure window'}.`, {
+                cancellable: true,
+                onCancel: () => stopConnectPolling('Connection cancelled.', 'warning')
+            })
+            setStatus('Waiting for connection...', 'warning')
+            window.open(SECURE_CONNECT_URL, '_blank', 'browser')
+            pollConnectStatus()
+            connectPollTimer = setInterval(pollConnectStatus, CONNECT_POLL_INTERVAL)
+            connectTimeoutHandle = setTimeout(() => {
+                stopConnectPolling('Timed out waiting for connection. Please try again.', 'error')
+            }, CONNECT_TIMEOUT)
+        }
+
+        const getStartedButton = document.getElementById('get-started-button')
+        if (getStartedButton) {
+            getStartedButton.addEventListener('click', startHttpConnect)
+        }
+
+        window.addEventListener('load', async () => {
+            const token = await ensureValidToken()
+            if (token) {
+                await fetchUserInfo(token)
+            }
+        })
+        }
+    </script>
+</body>
+</html>

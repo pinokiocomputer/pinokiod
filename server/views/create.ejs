@@ -1,0 +1,63 @@
+<html>
+<head>
+<title>Create Launcher</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet" />
+<link href="/css/solid.min.css" rel="stylesheet" />
+<link href="/css/regular.min.css" rel="stylesheet" />
+<link href="/css/brands.min.css" rel="stylesheet" />
+<link href="/markdown.css" rel="stylesheet" />
+<link href="/noty.css" rel="stylesheet" />
+<link href="/style.css" rel="stylesheet" />
+<link href="/urldropdown.css" rel="stylesheet" />
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet" />
+<% } %>
+</head>
+<body class="<%= theme %>" data-agent="<%= agent %>">
+<header class="navheader grabbable">
+<h1>
+<a class="home" href="/home"><img class="icon" src="/pinokio-black.png" /></a>
+</h1>
+</header>
+<main>
+  <div class="container create-page">
+    <div id="create-page-root" class="create-page-root" aria-live="polite"></div>
+  </div>
+</main>
+<script src="/Socket.js"></script>
+<script src="/urldropdown.js"></script>
+<script src="/create-launcher.js"></script>
+<script src="/common.js"></script>
+<script>
+(function() {
+  const defaults = <%- JSON.stringify(defaults || {}) %>;
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof initUrlDropdown === 'function') {
+      initUrlDropdown({ clearBehavior: 'empty' });
+    }
+    let mounted = false;
+    const mount = () => {
+      if (mounted) {
+        return;
+      }
+      if (window.CreateLauncher && typeof window.CreateLauncher.mountPage === 'function') {
+        const root = document.getElementById('create-page-root');
+        window.CreateLauncher.mountPage(root, defaults);
+        mounted = true;
+      }
+    };
+    if (window.CreateLauncher) {
+      mount();
+    } else {
+      window.addEventListener('CreateLauncherReady', mount, { once: true });
+      // Fallback: try again after a tick in case the script loads without emitting
+      setTimeout(mount, 0);
+    }
+  });
+})();
+</script>
+</body>
+</html>

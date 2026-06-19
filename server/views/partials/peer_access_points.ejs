@@ -1,0 +1,27 @@
+<%
+  const accessPoints = Array.isArray(peer_access_points) ? peer_access_points : []
+  const hasAccessPoints = accessPoints.length > 0
+%>
+<% if (hasAccessPoints) { %>
+  <% accessPoints.forEach((point) => { %>
+    <% if (!point || !point.url) { return } %>
+    <% const qrSrc = point.qr || (`/qr?data=${encodeURIComponent(point.url)}&s=4&m=0`) %>
+    <div class="qr">
+      <a href="<%= point.url %>" target="_blank" style="text-decoration:none; color:inherit; display:block;">
+        <img src="<%= qrSrc %>" alt="Open <%= point.url %>" style="width:128px; height:128px; image-rendering: pixelated;"/>
+        <div class='caption'>
+          Scan to open<% if (point.scope_label) { %> (<%= point.scope_label %>)<% } %>
+        </div>
+        <div class='caption' style='font-size:10px; opacity:0.7;'><%= point.url %></div>
+      </a>
+    </div>
+  <% }) %>
+<% } else if (typeof peer_qr !== 'undefined' && peer_qr) { %>
+  <div class='qr'>
+    <a href="<%=peer_url%>" target="_blank" style="text-decoration:none; color:inherit; display:block;">
+      <img src="<%=peer_qr%>" alt="Open <%=peer_url%>" style="width:128px; height:128px; image-rendering: pixelated;"/>
+      <div class='caption'>Scan to open</div>
+      <div class='caption' style='font-size:10px; opacity:0.7;'><%=peer_url%></div>
+    </a>
+  </div>
+<% } %>

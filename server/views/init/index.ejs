@@ -1,0 +1,2778 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/filepond.min.css" rel="stylesheet" />
+<link href="/filepond-plugin-image-preview.min.css" rel="stylesheet" />
+<link href="/filepond-plugin-image-edit.min.css" rel="stylesheet" />
+<link href="/urldropdown.css" rel="stylesheet" />
+<link href="/style.css" rel="stylesheet"/>
+<link href="/terminal.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+#terminal-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top:0;
+  right:0;
+  left:0;
+  bottom:0;
+  z-index: 100000000;
+}
+body.dark #terminal2 {
+  border: 4px solid rgba(255,255,255,0.1);
+}
+#terminal2 {
+  width: 80%;
+  height: 80%;
+  border: 4px solid rgba(0,0,0,0.1);
+}
+#create-button {
+  width: 100%;
+  background: royalblue !important;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+}
+#bootstrap-form {
+  padding: 20px;
+  flex-grow: 1;
+  background: rgba(0,0,100,0.04);
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+  border-bottom-left-radius: 10px;
+
+}
+body.dark #bootstrap-form {
+  background: rgba(255,255,255,0.06);
+}
+img.appicon {
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+  border-radius: 4px;
+  background: white;
+}
+.explain {
+  margin-bottom: 10px;
+  opacity: 0.7;
+}
+.explain .well {
+  margin-top: 20px;
+  background: rgba(0,0,0,0.04);
+  /*
+  border-left: 5px solid rgba(0,0,0,0.1);
+  */
+  padding: 20px;
+}
+.explain ol {
+  padding-inline-start: 15px;
+}
+.container {
+/*
+    max-width: 800px;
+    */
+    /*
+    margin: 0 auto;
+    padding: 2rem;
+    */
+
+}
+img.logo2 {
+  height: 50px;
+  width: 50px;
+  vertical-align: middle;
+}
+h1, h2, h3, h4 {
+  letter-spacing: -1px;
+  font-size: 30px;
+  font-weight: lighter;
+}
+h4 {
+  font-size: 15px;
+  letter-spacing: 0px;
+  margin-bottom: 5px;
+  margin-top: 10px;
+}
+
+h2 {
+  font-size: 30px;
+}
+h1 {
+  letter-spacing: 0px;
+  font-size:40px;
+  padding-bottom: 20px;
+}
+
+body.dark blockquote {
+    border-left: 10px solid white;
+}
+blockquote {
+    text-transform: uppercase;
+    /*
+    */
+
+    padding-left: 5px;
+    border-left: 10px solid black;
+    font-size: 16px;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.progress-bar {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.progress-bar .step {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 1rem;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+body.dark .progress-bar .step.active {
+    background: rgba(255,255,255,0.1);
+}
+.progress-bar .step.active {
+    background: rgba(0,0,0,0.1);
+    color: silver;
+}
+
+.progress-bar .step.completed {
+    background-color: #000000;
+    color: #ffffff;
+}
+
+.step-content {
+    display: none;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.step-content.active {
+    display: block;
+}
+
+.step-content h2 {
+    margin-bottom: 10px;
+}
+
+/* Tab Styles */
+.tab-container {
+    display: flex;
+}
+
+/* Section labels (non-clickable) */
+.category-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px;
+}
+body.dark .category-label { color: rgba(255,255,255,0.8); }
+
+.tab-nav {
+  flex-shrink: 0;
+    /*
+    display: flex;
+    border-bottom: 2px solid rgba(0,0,0,0.1);
+    margin: 0 0 30px 0;
+    */
+}
+
+/*
+body.dark .tab-nav {
+    border-bottom: 2px solid rgba(255,255,255,0.1);
+}
+
+*/
+.tab-button h5 {
+  font-size: 12px;
+  width:  100%;
+}
+.tab-button {
+    word-break: break-word;
+/*
+    display: block;
+    */
+    display: flex;
+    flex-direction: column;
+    width: 250px !important;
+    gap: 5px;
+    padding: 8px 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(0,0,0,0.6);
+    transition: all 0.3s ease;
+    width: 100%;
+    margin-left: 10px;
+    text-align: left;
+    /*
+
+    border-bottom: 2px solid rgba(0,0,0,0.1);
+    */
+}
+.tab-button .col {
+  display: block;
+}
+/*
+.tab-button i {
+  padding: 5px;
+}
+*/
+
+body.dark .tab-button {
+  color: rgba(255,255,255,0.5);
+}
+
+.tab-button:hover {
+    color: rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.02);
+}
+
+body.dark .tab-button:hover {
+    color: rgba(255,255,255,0.8);
+    background: rgba(255,255,255,0.02);
+}
+
+.tab-button.active {
+    color: #000;
+    background: rgba(0,0,100,0.04);
+    /*
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+    */
+    /*
+    background: rgba(0,0,0,0.02);
+    */
+}
+
+body.dark .tab-button.active {
+    background: rgba(255,255,255,0.06);
+    color: white;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+}
+.row i {
+  font-size: 14px;
+  padding-right: 10px;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/*
+.radio-group {
+    margin-bottom: 1.5rem;
+}
+*/
+
+/*
+body.dark .radio-group label {
+    background: rgba(0,0,0,0.3);
+}
+*/
+body.dark .radio-group label {
+    background: rgba(0,0,0,0.2);
+}
+.radio-group label {
+    border-radius: 2px;
+    background: white;
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/*
+.radio-group label:hover {
+    background-color: #f0f0f0;
+}
+*/
+
+.radio-group label input[type="radio"] {
+    margin-right: 0.5rem;
+}
+
+.radio-group label span {
+    font-size: 14px;
+    /*
+    font-weight: lighter;
+    */
+    margin-left: 5px;
+    font-weight: bold;
+    flex: 1;
+}
+
+.radio-group label .description {
+    opacity: 0.7;
+    margin-left: 0.5rem;
+    /*
+    width: 350px;
+    text-align: right;
+    */
+}
+
+.checkbox-group {
+  margin: 10px 0;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    /*
+    margin-bottom: 5px;
+    padding: 4px 0;
+    */
+    padding: 10px;
+}
+
+.checkbox-group label input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+body.dark .conditional-options {
+    background: rgba(255,255,255,0.03);
+}
+.conditional-options {
+    margin: 20px 0;
+    padding: 1rem;
+    background: rgba(0,0,0,0.04);
+    /*
+    border: 1px solid #000000;
+    */
+    display: none;
+}
+#step-1 .radio-group {
+  display: flex;
+}
+#step-1 .radio-group label:hover {
+  color: royalblue;
+}
+#step-1 .radio-group label .description {
+  margin: 0;
+}
+#step-1 .radio-group label .col {
+  flex-grow: 1;
+}
+#step-1 .radio-group label {
+  display: flex;
+  padding: 30px;
+  text-align: left;
+}
+#step-1 .radio-group label i {
+  padding-right: 15px;
+  display: block;
+  font-size: 40px;
+}
+#step-1 .radio-group input[type=radio] {
+  display: none;
+}
+#step-1 .radio-group label span {
+  margin: 0;
+  font-size: 20px;
+}
+
+/*
+.conditional-options .radio-group label, .conditional-options .checkbox-group label {
+  background: none !important;
+}
+*/
+
+.conditional-options.show {
+    display: block;
+}
+
+/*
+.conditional-options h3 {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.conditional-options h4 {
+    margin-bottom: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+}
+*/
+
+
+body.dark textarea, body.dark input[type="url"],  body.dark input[type="text"], body.dark input[type="number"] {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+textarea, input[type="url"], input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid rgba(0,0,0,0.1);
+    font-family: inherit;
+    background: white;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+textarea:focus, input[type="url"]:focus, input[type="text"]:focus, input[type="number"]:focus {
+    outline: none;
+}
+
+.git-url-input {
+    margin-bottom: 1.5rem;
+}
+
+.git-url-input label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.button-group {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+}
+
+/*
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: 1px solid #000000;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+*/
+
+
+.results {
+    display: none;
+    padding: 2rem;
+    border: 1px solid #000000;
+}
+
+.results.show {
+    display: block;
+}
+
+.results h2 {
+    margin-bottom: 1rem;
+}
+
+#config-output {
+    padding: 1rem;
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.online {
+  width: 10px;
+  height: 10px;
+  background: yellowgreen;
+  border-radius: 10px;
+}
+#menu {
+  display: flex;
+}
+#menu i {
+  display: block;
+}
+#menu img {
+  display: none;
+  height: 30px;
+  object-fit: contain;
+  /*
+  border-radius: 20px
+  */
+}
+#menu.margin {
+/*
+  padding: 5px;
+  */
+}
+#menu.margin i {
+  display: none;
+}
+#menu.margin img {
+  display: block;
+}
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+body {
+  display: flex;
+  flex-direction: column;
+}
+.menu {
+  overflow: auto;
+}
+body.dark .m {
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.m {
+  border-top: 1px solid rgba(0,0,0,0.04);
+}
+.container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  margin: 0 auto;
+  padding: 20px;
+}
+body aside {
+/*
+  background: var(--light-bg);
+  */
+  border-right: 1px solid rgba(0,0,0,0.04);
+  height: 100%;
+}
+body.dark aside {
+  background: var(--dark-bg);
+  border-right: 1px solid rgba(255,255,255,0.04);
+}
+aside {
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+  overflow: auto;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+main {
+  flex-grow: 1;
+  min-height: 0;
+  display: flex;
+  /*
+  background: rgba(0,0,100,0.04);
+  height: 100%;
+  */
+}
+main iframe[name^=http] {
+  background: white;
+}
+main iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+/*
+.header-item.indent {
+  padding-left: 23px !important;
+}
+*/
+.header-item {
+  /*
+  display: block;
+  */
+  display: flex;
+  font-size: 12px;
+  text-decoration: none;
+  align-items: center;
+  border-radius: 0;
+  cursor: pointer;
+}
+.header-item.selected {
+}
+.header-item .btn2 {
+  margin: 0;
+  border: none;
+  /*
+  color: var(--light-color);
+  */
+}
+body.dark .header-item .btn2 {
+/*
+  color: var(--darkt-color);
+  */
+}
+.bar .btn2 i {
+  display: block;
+  margin-right: 5px;
+}
+.header-item > * {
+  display: block;
+}
+.header-item i {
+  font-size: 20px !important;
+  width: 20px !important;
+  padding: 10px;
+}
+.header-item img {
+/*
+  width: 60px;
+  */
+  height: 80px;
+  width: 80px;
+  /*
+  border-radius: 10px;
+  */
+  object-fit: contain;
+  display: inline-block;
+  /*
+  border-radius: 30px;
+  */
+}
+body.dark .header-item.btn {
+/*
+  color: white;
+  */
+  color: var(--dark-color);
+}
+.header-item.btn {
+  padding: 8px;
+  background: none !important;
+  color: var(--light-color);
+}
+.logo {
+  font-size: 20px;
+  padding: 20px;
+}
+body .logo {
+  color: var(--light-color);
+}
+body.dark .logo {
+  color: var(--dark-btn-color);
+  /*
+  color: white;
+  */
+}
+body #new-window {
+  color: var(--light-color);
+}
+body.dark #new-window {
+  color: var(--dark-btn-color);
+  /*
+  color: white;
+  */
+}
+/*
+.dark .app-info {
+  background: rgba(255,255,255,0.04);
+}
+*/
+.app-info-card img {
+  padding: 10px;
+}
+.app-info {
+
+/*
+  display: flex;
+  */
+  box-sizing: border-box;
+  text-align: center;;
+  font-weight: bold;
+  align-items: center;
+  /*
+  background: rgba(0,0,0,0.04);
+  */
+}
+.folderbuttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0px;
+}
+.app-info-edit {
+  text-decoration: none;
+  color: black;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+/*
+.dark .app-info-edit {
+  border-top: 1px solid rgba(255,255,255,0.2);
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+*/
+.dark .app-info-edit:hover {
+  background: rgba(0,0,0,0.2);
+}
+.app-info-edit:hover{
+  background: rgba(0,0,0,0.05);
+}
+.app-info-edit i{
+  display: block;
+}
+.app-info-edit, .app-info-copy {
+  font-weight: normal;
+
+  /*
+  border-radius: 20px;
+  */
+  font-size: 12px;
+  padding: 15px 5px;
+  /*
+  margin: 10px 20px 0;
+  */
+}
+.app-info-card {
+/*
+  padding: 10px !important;
+  */
+  display: flex;
+}
+body.dark .btn {
+  background: rgba(255,255,255,0.05) !important;
+}
+.app-info .btn {
+  width: 100%;
+  box-sizing: border-box;
+}
+body.dark .app-info .mode-section {
+  background: rgba(0,0,0,0.4);
+}
+.app-info .mode-section {
+  background: rgba(0,0,0,0.06);
+  padding: 20px;
+  box-sizing: border-box;
+  width: 100%;
+  text-align: left;
+}
+.app-info .mode-section .desc {
+  font-weight: normal;
+  opacity: 0.7;
+}
+.app-info .mode-section h3 {
+  font-size: 18px;
+  line-height: 26px;
+  margin: 0;
+}
+body.dark .app-info .mode-section .btn {
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.app-info .mode-section .btn {
+  margin-top: 10px;
+  text-align: center;
+}
+.app-info-card > * {
+/*
+  padding: 5px;
+  */
+  color: var(--light-color);
+  text-decoration: none;
+  box-sizing: border-box;
+}
+body.dark .app-info-card > * {
+  color: var(--dark-color);
+}
+.app-info-title {
+  padding: 15px 0;
+}
+.footer {
+/*
+  display: flex;
+  */
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.footer > * {
+  padding: 10px !important;
+  display: block;
+  box-sizing: border-box;
+  font-size: 12px !important;
+  text-align: center;
+}
+.footer i {
+  margin: 0 !important;
+  padding: 5px;
+}
+.footer a {
+  font-size: 14px;
+}
+body .footer {
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+body.dark .footer {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+body.dark .header-item.cursor {
+  background: rgba(0,0,0, 0.2) !important;
+}
+.header-item.cursor {
+  background: rgba(0,0,100, 0.03) !important;
+/*
+  border-left: 5px solid gold;
+  */
+}
+.frame-link {
+  cursor: pointer;
+}
+body .frame-link.selected {
+/*
+  border-right: 10px solid gold;
+  */
+  background: black !important;
+  color: white;
+  /*
+  background: rgba(0,0,100,0.06) !important;
+  */
+}
+.frame-link.selected .del {
+  color: white;
+}
+body.dark .frame-link.selected {
+  background: rgba(0,0,0,0.7) !important;
+}
+.frame-link .loader {
+/*
+  padding: 5px;
+  */
+}
+.loader .btn:hover {
+  color: royalblue;
+  border-color: royalblue;
+}
+.loader .btn {
+  padding: 4px 8px;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+.frame-link .tab {
+  flex-grow: 1;
+  /*
+  width: 100%;
+  */
+  word-break: break-word;
+  /*
+  margin-right: 10px;
+  */
+}
+.frame-link .tab .flexible {
+  min-width: 5px;
+}
+.frame-link .tab .display {
+  word-break: break-word;
+}
+body.dark .grid-btns {
+  border-top: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.grid-btns {
+  border-top: 1px solid rgba(0,0,0,0.04);
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  /*
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(1, 1fr);
+  */
+  box-sizing: border-box;
+}
+.grid-btns .btn2 {
+  padding: 10px 10px;
+  color: var(--light-color);
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 11px;
+}
+body.dark .grid-btns .btn2 {
+/*
+  color: white;
+  */
+  color: var(--dark-btn-color);
+}
+.footer {
+  width: 100%;
+}
+.tab {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  padding-right: 10px;
+}
+.label i {
+  margin-right: 10px;
+}
+/*
+.tab i {
+  margin-right: 10px;
+  font-size: 12px;
+  width: 12px;
+}
+*/
+.menu-item-image {
+  width: 30px !important;
+  height: 30px !important;
+  padding: 5px;
+  border-radius: 40px;
+  margin-right: 10px;
+  background: white;
+}
+.temp-menu {
+/*
+  border-top: 1px solid rgba(0,0,0,0.1);
+  */
+}
+.temp-menu .del i {
+  margin: 0;
+}
+#delete {
+  color: brown;
+}
+body .footer {
+}
+body.dark nav {
+/*
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  */
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+/*
+.container:hover nav {
+  display: block;
+}
+*/
+nav {
+/*
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.4s ease-out;
+  display: none;
+  */
+
+  background: white;
+  /*
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  */
+  /*
+  padding: 5px;
+  */
+  padding: 0;
+  cursor: grab !important;
+  -webkit-app-region: drag !important;
+  /*
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  */
+  border-top: 1px solid rgba(0,0,0,0.04);
+  box-sizing: border-box;
+}
+body.dark nav .btn2 {
+  border-right: 1px solid rgba(255,255,255,0.04);
+}
+nav .btn2 {
+  padding: 15px;
+  font-size: 12px;
+  /*
+  width: 70px;
+  */
+  box-sizing: border-box;
+  border-right: 1px solid rgba(0,0,0,0.04);
+  border-radius: 0;
+  text-transform: lowercase;
+  flex-shrink: 0;
+
+  display: flex;
+  /*
+  flex-direction: column;
+  */
+  justify-content: center;
+  align-items: center;
+}
+nav .logo {
+  font-size: 14px;
+  padding: 10px;
+}
+.error-message .btn i {
+  margin-right: 10px;
+}
+.error-message .btn {
+  margin-top: 20px;
+  align-items: center;
+  display: flex;
+  letter-spacing: 0px;
+  background: black;
+  color: yellow;
+  font-size: 20px;
+  padding: 10px 30px;
+}
+.error-message {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  background: yellow !important;
+  flex-grow: 1;
+  padding: 0 50px;
+  font-size: 40px;
+  line-height: 40px;
+  color: black;
+  letter-spacing: -2px;
+}
+body.dark #location {
+  color: white;
+  background: rgba(255,255,255,0.03);
+}
+#location {
+  background: rgba(0,0,0,0.04);
+  padding: 10px;
+  margin: 0 10px;
+  font-size: 12px;
+  font-family: verdana;
+  box-sizing: border-box;
+  flex-grow: 1;
+  border: none;
+  outline: none;
+}
+.bar {
+  -webkit-app-region: no-drag !important;
+  cursor: auto;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  flex-wrap: wrap;
+}
+body.dark .header-item.cursor.header-top {
+  background: none !important;
+}
+.header-item.cursor.header-top {
+  background: none !important;
+}
+.header-item.header-top {
+  display: block;
+}
+#new-tab:hover {
+  background: rgba(0,0,0,0.06) !important;
+  color: rgb(200,0,0) !important;
+}
+
+#new-tab {
+  cursor: pointer !important;
+  justify-content: center;
+  /*
+  border-top: 1px solid rgba(0,0,0,0.04);
+  */
+}
+
+body.dark #new-tab {
+/*
+  border-top: 1px solid rgba(255,255,255,0.04);
+  */
+}
+/*
+body.dark .submenu {
+  border-left: 1px solid rgba(255,255,255,0.3);
+}
+.submenu {
+  border-left: 1px solid black;
+  margin-left: 15px;
+  box-sizing: border-box;
+}
+*/
+#menu-mobile {
+  display: none;
+}
+.tabmenu .label {
+  padding: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: bold;
+}
+.disk-usage {
+  flex-grow: 1;
+  text-align: right;
+  font-weight: bold;
+}
+.disk-usage i {
+  margin-right: 5px;
+  font-size: 16px !important;
+}
+
+.custom-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none; /* Let clicks fall through to FilePond */
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.5);
+  z-index: 5;
+}
+.appcanvas {
+  overflow: auto;
+  display: flex;
+  flex-grow: 1;
+  border-top: 1px solid rgba(0, 0,0 ,0.04);
+}
+body.dark .appcanvas {
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.bubble {
+  position: relative;
+  background: rgba(0,0,0,0.1);
+  color: #333;
+  border-radius: 10px;
+  padding: 10px 15px;
+  font-size: 14px;
+  flex-grow: 1;
+  line-height: 1.4;
+  margin: 0 10px;
+  font-weight: bold;
+}
+/* Left-side tail */
+.bubble::before {
+  content: "";
+  position: absolute;
+  top: 10px; /* Vertical alignment of the tail */
+  left: -20px; /* Positioning outside the bubble */
+  border-width: 10px;
+  border-style: solid;
+  border-color: transparent rgba(0,0,0,0.1) transparent transparent;
+}
+body.dark .bubble {
+  background: rgba(0,0,0,0.4);
+  color: white;
+}
+body.dark .bubble:before {
+  border-color: transparent rgba(0,0,0,0.4) transparent transparent;
+}
+.ai-prompt-section {
+  display: flex;
+}
+
+.ai-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.ai-tab:hover {
+  color: royalblue;
+}
+body.dark .ai-tab {
+  color: silver;
+}
+.ai-tab {
+  color: gray;
+  cursor: pointer;
+  padding: 10px 20px;
+  font-size: 14px;
+  width: 200px;
+}
+body.dark .ai-tab.selected {
+  background: rgba(0,0,0,0.1);
+  color: white;
+}
+.ai-tab.selected {
+  color: black;
+  background: white;
+  border-top-left-radius: 20px;
+  border-bottom-left-radius: 20px;
+  font-weight: bold;
+}
+body.dark .ai-tab-content.selected {
+  background: rgba(0,0,0,0.1);
+}
+.ai-tab-content.selected {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: white;
+}
+.ai-tab-content .ai-input {
+  background: white !important;
+  color: black !important;
+}
+.ai-tab-content {
+  min-height: 300px;
+  border-top-right-radius: 20px;
+  border-bottom-right-radius: 20px;
+  display: none; 
+  padding: 20px;
+}
+.ai-container {
+  flex-grow: 1;
+}
+.ai-container h1 {
+  padding: 0;
+  font-size: 30px;
+  /*
+  font-weight: lighter;
+  text-align: center;
+  */
+  font-weight: bold;
+  letter-spacing: -1px;
+}
+.md-desc {
+/*
+  padding-left: 10px;
+  border-left: 10px solid white;
+  */
+}
+
+
+@media only screen and (max-width: 480px) {
+  nav .btn2 {
+    width: auto !important;
+    min-width: 40px;
+    border-right: none;
+    flex-direction: column;
+  }
+  .app-info {
+    display: flex;
+    padding: 10px;
+  }
+  .app-info img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .header-item {
+    font-size: 16px;
+  }
+  aside.active {
+    width: 100%;
+    z-index: 10000000;
+  }
+  aside:not(.active) {
+    display: none;
+  }
+  .container {
+    display: none;
+  }
+  .container.active {
+    display: block;
+    position: absolute;
+    z-index: 10000000;
+    width: 100%;
+    height: 100%;
+  }
+  /*
+  .grid-btns {
+    display: none;
+  }
+  */
+  #menu {
+    display: none;
+  }
+  #menu-mobile {
+    display: flex;
+  }
+}
+.xterm .xterm-viewport {
+  width: initial !important;
+}
+.command-fields {
+  background: rgba(0,0,0,0.04);
+  padding: 20px;
+  margin: 20px 0;
+}
+body.dark .command-fields {
+  background: rgba(0,0,0,0.3);
+}
+.header-description {
+  display: flex;
+  align-items: center;
+  /*
+  background: rgba(0,0,0,0.8);
+  color: white;
+  */
+  margin-bottom: 20px;
+}
+.address-section {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+#address-result {
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 16px;
+  padding: 10px;
+  padding: 50px 0;
+  background: rgba(0,0,0,0.04);
+  margin-top: 20px;
+}
+#remote-address, #local-address {
+  text-align: center;
+  font-size: 20px;
+  flex-grow: 1;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.ace-editor {
+  width: 100%;
+  height: 120px;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+}
+aside {
+  width: 200px;
+  display: block;
+  flex-shrink: 0;
+}
+body.dark aside .tab:hover, aside .tab:hover {
+  color: royalblue !important;
+  opacity: 1;
+}
+aside .tab i {
+  width: 20px;
+  text-align: center;
+}
+body.dark aside .tab {
+  color: white;
+}
+aside .tab.hidden {
+  padding: 0;
+}
+aside .tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: black;
+  text-decoration: none;
+  padding: 10px;
+  font-size: 12px;
+  opacity: 0.5;
+  border-left: 10px solid transparent;
+}
+body.dark aside .tab.selected {
+
+  color: white;
+  /*
+  border-left: 10px solid white;
+  */
+}
+aside .tab.selected {
+/*
+  border-left: 10px solid black;
+  */
+  font-weight: bold;
+  opacity: 1;
+}
+
+body.dark .ace-editor {
+  border: 1px solid rgba(255,255,255,0.1);
+}
+/*
+@media only screen and (max-width: 800px) {
+  body {
+    display: flex !important;
+    flex-direction: row !important;
+  }
+}
+*/
+@media only screen and (max-width: 600px) {
+  aside {
+    width: unset;
+    flex-shrink: 0;
+  }
+  aside {
+    padding: 0 10px;
+  }
+  aside .tab.submenu {
+    padding: 10px;
+  }
+  aside .tab i {
+    width: 100%;
+  }
+  aside .tab .caption {
+    display: none;
+  }
+  aside .tab {
+    margin: 0;
+    padding: 10px;
+    border-left: none;
+  }
+  aside .btn-tab {
+    flex-direction: column;
+    padding: 10px 0;
+  }
+  aside .btn-tab .btn {
+    display: flex;
+    justify-content: center;
+  }
+  aside .btn-tab .btn .caption {
+    display: none; 
+  }
+  header .flexible {
+    min-width: unset;
+  }
+  .tab-button {
+    width: unset !important;
+    margin: 0;
+  }
+  .tab-button i {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 0;
+  }
+  .category-label {
+    text-align: center;
+  }
+  .tab-nav {
+    flex-shrink: unset;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .tab-nav .row div {
+    display: none;
+  }
+}
+@media only screen and (max-width: 480px) {
+  .btn2 {
+    padding: 5px;
+    font-size: 11px;
+  }
+  .nav-btns {
+    flex-grow: 1;
+    justify-content: center;
+    padding: 0;
+  }
+}
+</style>
+<link href="/app.css" rel="stylesheet"/>
+<link href="/xterm.min.css" rel="stylesheet" />
+<script src="/hotkeys.min.js"></script>
+<script src="/window_storage.js"></script>
+<script src="/ace/ace.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/nav.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/report.js"></script>
+<script src="/normalize.js"></script>
+<script src="/Socket.js"></script>
+<script src="/resizeSync.js"></script>
+<script src="/terminal-settings.js"></script>
+<script src="/pinokio-touch.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-inline-bridge.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/xterm-addon-search.js"></script>
+<script src="/xterm-addon-search-bar.js"></script>
+<script src="/popper.min.js"></script>
+<script src="/tippy-bundle.umd.min.js"></script>
+<script src="/filepond-plugin-file-validate-type.min.js"></script>
+<script src="/filepond-plugin-image-exif-orientation.min.js"></script>
+<script src="/filepond-plugin-image-preview.min.js"></script>
+<script src="/filepond-plugin-image-edit.min.js"></script>
+<script src="/filepond-plugin-image-crop.min.js"></script>
+<script src="/filepond-plugin-image-resize.min.js"></script>
+<script src="/filepond-plugin-image-transform.min.js"></script>
+<script src="/filepond.min.js"></script>
+<script src="/fseditor.js"></script>
+</head>
+<body class='<%=theme%>' data-platform="<%=platform%>" data-agent="<%=agent%>">
+<header class='navheader grabbable'>
+<h1>
+<a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
+<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+  <div><i class="fa-solid fa-expand"></i></div>
+</button>
+<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+<div class='flexible'></div>
+<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+  <div><i class="fa-solid fa-table-columns"></i></div>
+</a>
+<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+</a>
+<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+  <div><i class="fa-solid fa-plus"></i></div>
+</button>
+<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+  <div><i class="fa-solid fa-xmark"></i></div>
+</button>
+</h1>
+</header>
+<main>
+  <div class="container">
+      <div class="tab-container">
+        <div class="tab-nav">
+          <div class='category-label'>Create a new project</div>
+          <!-- Create category subtabs -->
+          <button type="button" class="tab-button active" data-tab="launcher">
+            <div class='row'>
+              <i class="fa-solid fa-cloud-arrow-down"></i>
+              <div><h5>1-Click Launcher</h5></div>
+            </div>
+          </button>
+          <button type="button" class="tab-button" data-tab="cli">
+            <div class='row'>
+              <i class="fa-solid fa-desktop"></i>
+              <div><h5>Terminal App Launcher</h5></div>
+            </div>
+          </button>
+          <button type="button" class="tab-button" data-tab="project">
+            <div class='row'>
+              <i class="fa-regular fa-pen-to-square"></i>
+              <div><h5>Create a New App</h5></div>
+            </div>
+          </button>
+          <div class='category-label'>Import an existing project</div>
+          <!-- Import category subtabs -->
+          <button type="button" class="tab-button" data-tab="import-copy">
+            <div class='row'>
+              <i class="fa-solid fa-clone"></i>
+              <div><h5>Import</h5></div>
+            </div>
+          </button>
+          <button type="button" class="tab-button" data-tab="import-link">
+            <div class='row'>
+              <i class="fa-solid fa-link"></i>
+              <div><h5>Link</h5></div>
+            </div>
+          </button>
+          <button type="button" class="tab-button" data-tab="import-clone">
+            <div class='row'>
+              <i class="fa-solid fa-download"></i>
+              <div><h5>Download</h5></div>
+            </div>
+          </button>
+          <div class='category-label'>Create a web domain</div>
+          <button type="button" class="tab-button" data-tab="dns">
+            <div class='row'>
+              <i class="fa-solid fa-link"></i>
+              <div><h5>Web Domain</h5></div>
+            </div>
+          </button>
+        </div>
+
+        <form id="bootstrap-form">
+            <!-- Launcher Tab -->
+            <div class="tab-content active" id="launcher-tab">
+            <!--
+                <h2>Create a 1-Click Launcher</h2>
+                -->
+                <div class="header-description">
+                  <img class='logo2' src="/pinokio-black.png"/>
+                  <div class='bubble'>Create a launcher for any open source project cloned from git.</div>
+                </div>
+                <div class="git-url-input">
+                    <blockquote>Git URL</blockquote>
+                    <div class='explain'>Enter a git repository URL to clone from.</div>
+                    <input type="url" name="gitUrl" id="gitUrl" placeholder="example: https://github.com/username/repository.git">
+                </div>
+
+                <div class="project-options">
+                    <blockquote>Type</blockquote>
+                    <div class='explain'>If you want to decide later, just choose "universal launcher".</div>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="projectType" value="nodejs">
+                            <img class='appicon' src="/asset/prototype/system/nodejs/icon.png"/>
+                            <span>Node.js Launcher</span>
+                            <p class="description">install and launch a Node.js project.</p>
+                        </label>
+                        <label>
+                            <input type="radio" name="projectType" value="python">
+                            <img class='appicon' src="/asset/prototype/system/python/icon.png"/>
+                            <span>Python Launcher</span>
+                            <p class='description'>install and launch a Python project.</p>
+                        </label>
+                        <label>
+                            <input type="radio" name="projectType" value="empty">
+                            <img class='appicon' src="/asset/prototype/system/empty/icon.png"/>
+                            <span>Universal Launcher</span>
+                            <p class='description'>Build a launcher for any Git repository.</p>
+                        </label>
+                    </div>
+
+                    <div class='command-fields conditional-options' id="clone-command-fields">
+                      <!-- Additional Fields for Clone Mode -->
+                      <div class="git-url-input">
+                          <blockquote>Install Command (Leave empty to decide later)</blockquote>
+                          <div id="cloneInstallCommand" class="ace-editor" data-name="cloneInstallCommand" data-placeholder="Install commands (one per line)"></div>
+                          <div class="checkbox-group">
+                              <label>
+                                  <input type="checkbox" name="allowInstallUserInput" value="true">
+                                  <span>Allow user input for install commands</span>
+                              </label>
+                          </div>
+                      </div>
+
+                      <div class="git-url-input">
+                          <blockquote>Start Command (Leave empty to decide later)</blockquote>
+                          <div id="cloneStartCommand" class="ace-editor" data-name="cloneStartCommand" data-placeholder="Start commands (one per line)"></div>
+                          <div class="checkbox-group">
+                              <label>
+                                  <input type="checkbox" name="allowStartUserInput" value="true">
+                                  <span>Allow user input for start commands</span>
+                              </label>
+                          </div>
+                      </div>
+                    </div>
+
+                    <!-- Python Options for Clone -->
+                    <div id="python-options-clone" class="conditional-options">
+                        <h3>Python Options</h3>
+                        <div class="checkbox-group">
+                            <label>
+                                <input type="checkbox" name="pythonOptions" value="torch">
+                                <span>Torch</span>
+                            </label>
+                            <label>
+                                <input type="checkbox" name="pythonOptions" value="xformers">
+                                <span>Xformers</span>
+                            </label>
+                            <label>
+                                <input type="checkbox" name="pythonOptions" value="triton">
+                                <span>Triton</span>
+                            </label>
+                            <label>
+                                <input type="checkbox" name="pythonOptions" value="sageattention">
+                                <span>SageAttention</span>
+                            </label>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- CLI Tab -->
+            <div class="tab-content" id="cli-tab">
+                <div class="header-description">
+                  <img class='logo2' src="/pinokio-black.png"/>
+                  <div class='bubble'>Run any terminal app in the browser.</div>
+                </div>
+                <blockquote>Type</blockquote>
+                <div class='explain'>Single-command apps vs. Installable apps.</div>
+                <div class="project-options">
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="cliType" value="instant">
+                            <img class='appicon' src="/asset/prototype/system/cli/icon.png"/>
+                            <span>Instant Command</span>
+                            <p class="description">npx, uvx, etc.</p>
+                        </label>
+                        <label>
+                            <input type="radio" name="cliType" value="installable">
+                            <img class='appicon' src="/asset/prototype/system/cli/icon.png"/>
+                            <span>Installable CLI App</span>
+                            <p class="description">CLI apps that require installation</p>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Instant CLI Options -->
+                <div id="instant-cli-options" class="conditional-options">
+                    <blockquote>Launch Command</blockquote>
+                    <input type="text" name="launchCommand" placeholder="e.g., npx create-react-app">
+                </div>
+
+                <!-- Installable CLI Options -->
+                <div id="installable-cli-options" class="conditional-options">
+                    <blockquote>Install Command</blockquote>
+                    <div id="installCommand" class="ace-editor" data-name="installCommand" data-placeholder="Install commands (one per line)"></div>
+                    <blockquote>Launch Command</blockquote>
+                    <div id="installableLaunchCommand" class="ace-editor" data-name="installableLaunchCommand" data-placeholder="Launch commands (one per line)"></div>
+                </div>
+
+                <!-- Virtual Environment Option -->
+                <div id="venv-option" class="conditional-options">
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" name="useVenv" value="true">
+                            <span>Use virtual environment (venv)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <!-- Import: Copy Tab -->
+            <div class="tab-content" id="import-copy-tab">
+                <div class="header-description">
+                  <img class='logo2' src="/pinokio-black.png"/>
+                  <div class='bubble'>Import an external folder into Pinokio</div>
+                </div>
+                <div class="git-url-input">
+                    <blockquote>Folder Path</blockquote>
+                    <input id='importCopy' type="text" name="importPath" placeholder="folder path">
+                </div>
+                <input type="hidden" name="importTypeCopy" value="copy" />
+            </div>
+
+            <!-- Import: Link Tab -->
+            <div class="tab-content" id="import-link-tab">
+                <div class="header-description">
+                  <img class='logo2' src="/pinokio-black.png"/>
+                  <div class='bubble'>Create a symbolic link to an external folder</div>
+                </div>
+                <div class="git-url-input">
+                    <blockquote>Folder Path</blockquote>
+                    <input id='importLink' type="text" name="importPath" placeholder="folder path">
+                </div>
+                <input type="hidden" name="importTypeLink" value="link" />
+            </div>
+
+            <!-- Import: Download (Clone) Tab -->
+            <div class="tab-content" id="import-clone-tab">
+                <div class="header-description">
+                  <img class='logo2' src="/pinokio-black.png"/>
+                  <div class='bubble'>Download a project by cloning its Git repository</div>
+                </div>
+                <div class="git-url-input">
+                    <blockquote>Git URL</blockquote>
+                    <input type="url" id="importDownload" name="importDownload" placeholder="example: https://github.com/username/repository.git">
+                </div>
+            </div>
+
+            
+
+
+            <!-- Project Tab -->
+            <div class="tab-content" id="project-tab">
+                <div class="header-description">
+                  <img class='logo2' src="/pinokio-black.png"/>
+                  <div class='bubble'>Set up a new project with a built-in 1-click launcher.</div>
+                </div>
+                <!--
+                <blockquote>Type</blockquote>
+                <div class='explain'>Set up a new 1-click launcher project.</div>
+                -->
+                <div class="project-options">
+                    <div class="radio-group">
+                        <!--
+                        <label>
+                            <input type="radio" name="projectType" value="documentation">
+                            <img class='appicon' src="/asset/prototype/system/documentation/icon.png"/>
+                            <span>Documentation</span>
+                        </label>
+
+                        <div id="documentation-options" class="conditional-options">
+                            <div class="radio-group">
+                                <label>
+                                    <input type="radio" name="docType" value="local">
+                                    <span>Documentation from Local Project</span>
+                                </label>
+                                <div id="local-doc-options" class="conditional-options">
+                                    <h4>Local Project Path</h4>
+                                    <input type="text" name="localDocPath" placeholder="e.g., /home/user/my-project" id='local'>
+                                </div>
+
+                                <label>
+                                    <input type="radio" name="docType" value="remote">
+                                    <span>Documentation from Remote Git Repository</span>
+                                </label>
+                                <div id="remote-doc-options" class="conditional-options">
+                                    <h4>Remote Git Repository URL</h4>
+                                    <input type="text" name="remoteDocUrl" placeholder="e.g., https://github.com/user/repo.git">
+                                </div>
+                            </div>
+                        </div>
+                        -->
+                        <label>
+                            <input type="radio" name="projectType" value="nodejs">
+                            <img class='appicon' src="/asset/prototype/system/nodejs/icon.png"/>
+                            <span>Node.js starter</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="projectType" value="python">
+                            <img class='appicon' src="/asset/prototype/system/python/icon.png"/>
+                            <span>Python starter</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="projectType" value="empty">
+                            <img class='appicon' src="/asset/prototype/system/empty/icon.png"/>
+                            <span>Empty starter</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="projectType" value="blank">
+                            <img class='appicon' src="/asset/prototype/system/empty/icon.png"/>
+                            <span>Empty folder</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="projectType" value="ai">
+                            <img class='appicon' src="/asset/prototype/system/cli/icon.png"/>
+                            <span>Initialize using AI</span>
+                        </label>
+
+                    </div>
+
+
+                    <!-- Python Options -->
+                    <div id="python-options" class="conditional-options">
+                        <h3>Python Options</h3>
+                        <div class="checkbox-group">
+                            <label>
+                                <input type="checkbox" name="pythonOptions" value="torch">
+                                <span>Torch</span>
+                            </label>
+                            <label>
+                                <input type="checkbox" name="pythonOptions" value="xformers">
+                                <span>Xformers</span>
+                            </label>
+                            <label>
+                                <input type="checkbox" name="pythonOptions" value="triton">
+                                <span>Triton</span>
+                            </label>
+                            <label>
+                                <input type="checkbox" name="pythonOptions" value="sageattention">
+                                <span>SageAttention</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Options under New Project -->
+                <div id="ai-options" class="conditional-options">
+                  <div class="header-description">
+                    <img class='logo2' src="/pinokio-black.png"/>
+                    <div class='bubble'>Use AI prompts to build a 1-click launcher</div>
+                  </div>
+                  <div class="ai-prompt-section">
+                    <div class='ai-tabs'>
+                      <% ai.forEach((item, i) => { %>
+                        <div data-title="<%=item.title%>" class='ai-tab <%=i===0 ? "selected" : ""%>'><%=item.title%></div>
+                      <% }) %>
+                    </div>
+                    <div class='ai-container'>
+                      <% ai.forEach((item, i) => { %>
+                        <div data-meta="<%=JSON.stringify(item.data)%>" class='ai-tab-content <%=i===0 ? "selected" : ""%>' data-title="<%=item.title%>">
+                          <h1><%=item.title%></h1>
+                          <div class='md-desc'><%=item.description%></div>
+                          <% Object.keys(item.meta).forEach((key) => { %>
+                            <% if (!key.startsWith(".")) { %>
+                              <input class='ai-input' type='text' placeholder='<%=item.meta[key]%>' name='<%=key%>'>
+                            <% } %>
+                          <% }) %>
+                          <% if (item.placeholder) { %>
+                            <textarea placeholder="<%=item.placeholder%>"><%=item.content%></textarea>
+                          <% } else { %>
+                            <textarea placeholder="<%=item.description%>"><%=item.content%></textarea>
+                          <% } %>
+                          <pre class='hidden'><%=item.content%></pre>
+                        </div>
+                      <% }) %>
+                    </div>
+                    <textarea class='hidden' id='aiPrompt' data-name="aiPrompt" data-placeholder="Describe what you want to build..." placeholder="What do you want to build?"></textarea>
+                  </div>
+                </div>
+
+            </div>
+
+            <!-- Instant HTTPS Tab -->
+            <div class="tab-content" id="dns-tab">
+                <div class="header-description">
+                  <img class='logo2' src="/pinokio-black.png"/>
+                  <div class='bubble'>Instantly get domain names for any localhost server running on your machine. Just enter the port number and the domain you want.</div>
+                </div>
+                <div class='address-section'>
+                  <input type='text' placeholder="domain name" id='dns_name'>
+                  <input type='number' placeholder="port number" id='dns_port'>
+                </div>
+                <div id='address-result'>
+                </div>
+            </div>
+
+            <div class="button-group" style="margin-top: 2rem;">
+                <button type="submit" class="btn btn-success" id="create-button">Create Launcher</button>
+            </div>
+        </form>
+      </div>
+      <div id='end'></div>
+  </div>
+<%- include('../partials/main_sidebar', { selected: 'home' }) %>
+</main>
+<div id='terminal-container' class='hidden'>
+  <div id='terminal2'></div>
+</div>
+<script>
+let shell_id
+let socket = new Socket()
+const resizeSync = window.PinokioResizeSync.create({
+  socket,
+  getShellId: () => shell_id
+})
+const resizeAITextarea = () => {
+  let textarea = document.querySelector(".ai-container .ai-tab-content.selected textarea")
+  textarea.style.height = "";
+  textarea.style.height = textarea.scrollHeight + "px";
+}
+const refreshAddress = () => {
+  let port = document.querySelector("#dns_port").value
+  let name = document.querySelector("#dns_name").value
+  document.querySelector("#address-result").innerHTML = `<div>https://${name || '[NAME]'}.localhost</div><i class="fa-solid fa-arrow-right"></i></div><div>http://localhost:${port || '[PORT]'}</div>`
+  return {
+    dns_name: name,
+    dns_port: port,
+  }
+}
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tabs and categories
+    initializeTabs();
+    refreshAddress()
+
+    document.querySelector("#dns_port").addEventListener("input", (e) => {
+      refreshAddress()
+    })
+    document.querySelector("#dns_name").addEventListener("input", (e) => {
+      refreshAddress()
+    })
+
+    document.querySelector(".ai-tabs").addEventListener("click", (e) => {
+      if (e.target.classList.contains("ai-tab")) {
+        document.querySelectorAll(".ai-tab").forEach((el) => {
+          el.classList.remove('selected')
+        })
+        e.target.classList.add("selected")
+        document.querySelectorAll(`.ai-tab-content`).forEach((el) => {
+          el.classList.remove("selected")
+        })
+        let title = e.target.getAttribute("data-title")
+        document.querySelector(`.ai-tab-content[data-title="${title}"]`).classList.add('selected')
+        resizeAITextarea()
+      }
+    })
+    document.querySelectorAll(".ai-tab-content").forEach((tab) => {
+      tab.addEventListener("input", (e) => {
+        if (e.target.classList.contains("ai-input")) {
+          let name = e.target.name
+          // get all values from all ai-input and replace
+          let els = e.target.closest(".ai-tab-content").querySelectorAll(".ai-input")
+          let vals = {}
+          let pre = e.target.closest(".ai-tab-content").querySelector("pre")
+          let textarea = e.target.closest(".ai-tab-content").querySelector("textarea")
+          resizeAITextarea()
+          let md = pre.textContent
+          for(let el of els) {
+            let pattern = `{{${el.name}}}`
+            md = md.replaceAll(pattern, el.value)
+          }
+          textarea.value = md
+          document.querySelector("#aiPrompt").value = md
+          console.log("MD", md)
+        }
+      })
+    })
+
+    // Show default subtab
+    showTab('launcher');
+
+    // Add tab click handlers
+    const tabButtons = document.querySelectorAll('.tab-button');
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const tabName = button.getAttribute('data-tab');
+            showTab(tabName);
+        });
+    });
+
+    const projectTypeRadios = document.querySelectorAll('input[name="projectType"]');
+    projectTypeRadios.forEach(radio => {
+        radio.addEventListener('change', handleProjectTypeChange);
+    });
+
+    // File pickers for import tabs
+    document.querySelectorAll('#importCopy, #importLink').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        let socket = new Socket()
+        socket.run({
+          method: "kernel.bin.filepicker",
+          params: { title: "Select a path", type: "folder" }
+        }, async (packet) => {
+          if (packet.type === "result") {
+            if (packet.data.paths.length > 0) {
+              let p = packet.data.paths[0]
+              e.target.value = p
+            }
+          }
+        }).then((res) => { console.log("Ended", res) })
+      })
+    })
+
+    const cliTypeRadios = document.querySelectorAll('input[name="cliType"]');
+    cliTypeRadios.forEach(radio => {
+        radio.addEventListener('change', handleCliTypeChange);
+    });
+
+    const docTypeRadios = document.querySelectorAll('input[name="docType"]');
+    docTypeRadios.forEach(radio => {
+        radio.addEventListener('change', handleDocTypeChange);
+    });
+
+    // Form submission
+    document.getElementById('bootstrap-form').addEventListener('submit', handleSubmit);
+
+// Removed old single import picker; using per-tab pickers above
+
+    // Initialize Ace editors
+    initializeAceEditors();
+});
+
+// Global Ace editors object
+const aceEditors = {};
+
+function initializeAceEditors() {
+    document.querySelectorAll('.ace-editor').forEach(editorDiv => {
+        const editorId = editorDiv.id;
+        const editor = ace.edit(editorId);
+        
+        // Configure editor
+        editor.setTheme('ace/theme/textmate');
+        editor.session.setMode('ace/mode/sh');
+        editor.setOptions({
+            fontSize: '12px',
+            showLineNumbers: true,
+            showGutter: true,
+            wrap: true,
+            autoScrollEditorIntoView: true,
+            maxLines: 20,
+            minLines: 3,
+            showPrintMargin: false
+        });
+        
+        editor.session.insert({ row: editor.session.getLength(), column: 0 }, "\n\n");
+        editor.session.getUndoManager().reset();
+        editor.clearSelection();
+        editor.moveCursorTo(0, 0);
+        
+        // Set placeholder
+        const placeholder = editorDiv.dataset.placeholder;
+        if (placeholder) {
+            editor.setOptions({
+                placeholder: placeholder
+            });
+        }
+        
+        // Store editor reference
+        aceEditors[editorId] = editor;
+        
+        // Handle theme changes
+        if (document.body.classList.contains('dark')) {
+            editor.setTheme('ace/theme/monokai');
+        }
+    });
+}
+
+function initializeTabs() {
+    // Initialize tab functionality
+}
+
+// removed showCategory; all subtabs are always visible under labels
+
+function showTab(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Remove active class from all tab buttons
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(`${tabName}-tab`).classList.add('active');
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    
+    // Update create button text
+    const createButton = document.getElementById('create-button');
+    createButton.textContent = 'Create'
+    /*
+    if (tabName === 'launcher') {
+        createButton.textContent = 'Create Launcher';
+    } else if (tabName === 'cli') {
+        createButton.textContent = 'Create CLI Launcher';
+    } else {
+        createButton.textContent = 'Create Project';
+    }
+    */
+    
+    // Clear form selections when switching tabs
+    document.querySelectorAll('input[name="projectType"]').forEach(radio => {
+        radio.checked = false;
+    });
+    document.querySelectorAll('input[name="cliType"]').forEach(radio => {
+        radio.checked = false;
+    });
+    
+    // Hide all conditional options
+    hideAllConditionalOptions();
+    
+    // Clear Git URL when switching away from launcher tab
+    if (tabName !== 'launcher') {
+        document.getElementById('gitUrl').value = '';
+    }
+    
+    // Clear CLI inputs
+    if (tabName !== 'cli') {
+        clearCliInputs();
+    }
+
+    // Resize AI textarea if AI option visible
+    const aiSelected = document.querySelector('input[name="projectType"][value="ai"]')?.checked
+    if (tabName === 'project' && aiSelected) resizeAITextarea()
+
+}
+
+function hideAllConditionalOptions() {
+    document.getElementById('python-options').classList.remove('show');
+    document.getElementById('python-options-clone').classList.remove('show');
+    document.getElementById('instant-cli-options').classList.remove('show');
+    document.getElementById('installable-cli-options').classList.remove('show');
+    document.getElementById('venv-option').classList.remove('show');
+    document.getElementById('clone-command-fields').classList.remove('show');
+    const ai = document.getElementById('ai-options');
+    if (ai) ai.classList.remove('show');
+//    document.getElementById('documentation-options').classList.remove('show');
+//    document.getElementById('local-doc-options').classList.remove('show');
+//    document.getElementById('remote-doc-options').classList.remove('show');
+}
+
+function handleProjectTypeChange(event) {
+    const projectType = event.target.value;
+    const activeTab = document.querySelector('.tab-content.active').id;
+    const isLauncher = activeTab === 'launcher-tab';
+    const isCli = activeTab === 'cli-tab';
+
+    // Hide all conditional options first
+    hideAllConditionalOptions();
+
+    // Clear all checkboxes and radio buttons
+    document.querySelectorAll('input[name="pythonOptions"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.querySelectorAll('input[name="cliType"]').forEach(radio => {
+        radio.checked = false;
+    });
+    document.querySelectorAll('input[name="docType"]').forEach(radio => {
+        radio.checked = false;
+    });
+
+    // Clear CLI input fields
+    clearCliInputs();
+
+    // Show clone command fields when a project type is selected in launcher mode (but not for CLI)
+    if (isLauncher && projectType !== 'cli') {
+        document.getElementById('clone-command-fields').classList.add('show');
+        updateCloneDefaults(projectType);
+    }
+
+    // Show appropriate options based on project type
+    if (projectType === 'python') {
+        if (isLauncher) {
+            document.getElementById('python-options-clone').classList.add('show');
+        } else {
+            document.getElementById('python-options').classList.add('show');
+        }
+    } else if (projectType === 'ai') {
+        const ai = document.getElementById('ai-options');
+        if (ai) {
+          ai.classList.add('show');
+          setTimeout(resizeAITextarea, 0);
+        }
+    } else if (projectType === 'documentation') {
+//        document.getElementById('documentation-options').classList.add('show');
+    }
+}
+
+// Add CLI type change handler
+function handleCliTypeChange(event) {
+    const cliType = event.target.value;
+
+    // Hide all CLI sub-options first
+    document.getElementById('instant-cli-options').classList.remove('show');
+    document.getElementById('installable-cli-options').classList.remove('show');
+    document.getElementById('venv-option').classList.remove('show');
+
+    // Clear CLI input fields
+    clearCliInputs();
+
+    // Show appropriate CLI options
+    if (cliType === 'instant') {
+        document.getElementById('instant-cli-options').classList.add('show');
+    } else if (cliType === 'installable') {
+        document.getElementById('installable-cli-options').classList.add('show');
+        document.getElementById('venv-option').classList.add('show');
+        // Re-initialize editors that just became visible
+        setTimeout(() => {
+            if (aceEditors['installCommand']) {
+                aceEditors['installCommand'].session.insert({ row: aceEditors['installCommand'].session.getLength(), column: 0 }, "\n\n");
+                aceEditors['installCommand'].session.getUndoManager().reset();
+                aceEditors['installCommand'].clearSelection();
+                aceEditors['installCommand'].moveCursorTo(0, 0);
+                aceEditors['installCommand'].resize();
+                aceEditors['installCommand'].renderer.updateFull();
+            }
+            if (aceEditors['installableLaunchCommand']) {
+                aceEditors['installableLaunchCommand'].session.insert({ row: aceEditors['installableLaunchCommand'].session.getLength(), column: 0 }, "\n\n");
+                aceEditors['installableLaunchCommand'].session.getUndoManager().reset();
+                aceEditors['installableLaunchCommand'].clearSelection();
+                aceEditors['installableLaunchCommand'].moveCursorTo(0, 0);
+                aceEditors['installableLaunchCommand'].resize();
+                aceEditors['installableLaunchCommand'].renderer.updateFull();
+            }
+        }, 50);
+    }
+}
+
+
+function clearCliInputs() {
+    // Clear regular inputs
+    document.querySelectorAll('input[name="launchCommand"]').forEach(input => {
+        input.value = '';
+    });
+    
+    // Clear Ace editors
+    if (aceEditors['installableLaunchCommand']) {
+        aceEditors['installableLaunchCommand'].setValue('');
+    }
+    if (aceEditors['installCommand']) {
+        aceEditors['installCommand'].setValue('');
+    }
+    
+    document.querySelector('input[name="useVenv"]').checked = false;
+}
+
+function handleCliTypeChange(event) {
+    const cliType = event.target.value;
+
+    // Hide all CLI sub-options first
+    document.getElementById('instant-cli-options').classList.remove('show');
+    document.getElementById('installable-cli-options').classList.remove('show');
+
+    // Clear CLI input fields
+    clearCliInputs();
+
+    // Show appropriate CLI options
+    if (cliType === 'instant') {
+        document.getElementById('instant-cli-options').classList.add('show');
+    } else if (cliType === 'installable') {
+        document.getElementById('installable-cli-options').classList.add('show');
+        // Re-initialize editors that just became visible
+        setTimeout(() => {
+            if (aceEditors['installCommand']) {
+                aceEditors['installCommand'].session.insert({ row: aceEditors['installCommand'].session.getLength(), column: 0 }, "\n\n");
+                aceEditors['installCommand'].session.getUndoManager().reset();
+                aceEditors['installCommand'].clearSelection();
+                aceEditors['installCommand'].moveCursorTo(0, 0);
+                aceEditors['installCommand'].resize();
+                aceEditors['installCommand'].renderer.updateFull();
+            }
+            if (aceEditors['installableLaunchCommand']) {
+                aceEditors['installableLaunchCommand'].session.insert({ row: aceEditors['installableLaunchCommand'].session.getLength(), column: 0 }, "\n\n");
+                aceEditors['installableLaunchCommand'].session.getUndoManager().reset();
+                aceEditors['installableLaunchCommand'].clearSelection();
+                aceEditors['installableLaunchCommand'].moveCursorTo(0, 0);
+                aceEditors['installableLaunchCommand'].resize();
+                aceEditors['installableLaunchCommand'].renderer.updateFull();
+            }
+        }, 50);
+    }
+}
+
+function updateCloneDefaults(projectType) {
+    // Use Ace editor setValue() method instead of .value
+    const installCommandEditor = aceEditors['cloneInstallCommand'];
+    const startCommandEditor = aceEditors['cloneStartCommand'];
+
+    if (installCommandEditor && startCommandEditor) {
+        if (projectType === 'nodejs') {
+            installCommandEditor.setValue('npm install');
+            startCommandEditor.setValue('npm start');
+        } else if (projectType === 'python') {
+            installCommandEditor.setValue('uv pip install -r requirements.txt');
+            startCommandEditor.setValue('python app.py');
+        } else if (projectType === 'empty') {
+            // Clear fields for "Use AI" category
+            installCommandEditor.setValue('');
+            startCommandEditor.setValue('');
+        }
+        
+        // Clear selection and move cursor to end for better UX
+        installCommandEditor.clearSelection();
+        startCommandEditor.clearSelection();
+    }
+}
+
+function handleDocTypeChange(event) {
+    const docType = event.target.value;
+
+    // Hide all documentation sub-options first
+//    document.getElementById('local-doc-options').classList.remove('show');
+//    document.getElementById('remote-doc-options').classList.remove('show');
+
+    // Clear documentation input fields
+    document.querySelector('input[name="localDocPath"]').value = '';
+    document.querySelector('input[name="remoteDocUrl"]').value = '';
+
+    // Show appropriate documentation options
+    if (docType === 'local') {
+//        document.getElementById('local-doc-options').classList.add('show');
+    } else if (docType === 'remote') {
+//        document.getElementById('remote-doc-options').classList.add('show');
+    }
+}
+
+function validateForm() {
+    const activeTab = document.querySelector('.tab-content.active').id;
+    const isLauncher = activeTab === 'launcher-tab';
+    const isCli = activeTab === 'cli-tab';
+    const isDNS = activeTab === 'dns-tab';
+    const isImportCopy = activeTab === 'import-copy-tab';
+    const isImportLink = activeTab === 'import-link-tab';
+    const isImportClone = activeTab === 'import-clone-tab';
+    const isImport = isImportCopy || isImportLink || isImportClone;
+    
+    // Validate Git URL for launcher tab
+    if (isLauncher) {
+        const gitUrl = document.getElementById('gitUrl').value.trim();
+        if (!gitUrl) {
+            alert('Please enter a Git repository URL.');
+            return false;
+        }
+        
+        const projectType = document.querySelector('input[name="projectType"]:checked');
+        if (!projectType) {
+            alert('Please select a project type.');
+            return false;
+        }
+    }
+    
+    // Validate CLI tab
+    if (isCli) {
+        const cliType = document.querySelector('input[name="cliType"]:checked');
+        if (!cliType) {
+            alert('Please select a CLI type.');
+            return false;
+        }
+        
+        if (cliType.value === 'instant') {
+            const launchCommand = document.querySelector('input[name="launchCommand"]').value.trim();
+            if (!launchCommand) {
+                alert('Please enter a launch command.');
+                return false;
+            }
+        } else if (cliType.value === 'installable') {
+            const installCommand = aceEditors['installCommand'] ? aceEditors['installCommand'].getValue().trim() : '';
+            const launchCommand = aceEditors['installableLaunchCommand'] ? aceEditors['installableLaunchCommand'].getValue().trim() : '';
+            if (!installCommand) {
+                alert('Please enter at least one install command.');
+                return false;
+            }
+            if (!launchCommand) {
+                alert('Please enter at least one launch command.');
+                return false;
+            }
+        }
+    }
+    
+    if (isImportCopy || isImportLink) {
+        const importPath = (isImportCopy ? document.getElementById('importCopy') : document.getElementById('importLink')).value.trim();
+        if (!importPath) {
+            alert('Please enter a folder to import');
+            return false;
+        }
+    }
+    if (isImportClone) {
+        const gitUrl = document.getElementById('importDownload').value.trim();
+        if (!gitUrl) {
+            alert('Please enter a Git repository URL.');
+            return false;
+        }
+    }
+    
+    // Validate project tab
+    if (!isLauncher && !isCli && !isDNS && !isImport) {
+        const projectType = document.querySelector('input[name="projectType"]:checked');
+        if (!projectType) {
+            alert('Please select a project type.');
+            return false;
+        }
+        
+        // Validate Documentation options
+        if (projectType.value === 'documentation') {
+            const docType = document.querySelector('input[name="docType"]:checked');
+            if (!docType) {
+                alert('Please select a documentation source.');
+                return false;
+            }
+            
+            if (docType.value === 'local') {
+                const localDocPath = document.querySelector('input[name="localDocPath"]').value.trim();
+                if (!localDocPath) {
+                    alert('Please enter a local project path.');
+                    return false;
+                }
+            } else if (docType.value === 'remote') {
+                const remoteDocUrl = document.querySelector('input[name="remoteDocUrl"]').value.trim();
+                if (!remoteDocUrl) {
+                    alert('Please enter a remote Git repository URL.');
+                    return false;
+                }
+            }
+        }
+    }
+    
+    return true;
+}
+
+function handleSubmit(event) {
+    event.preventDefault();
+    const activeTab = document.querySelector('.tab-content.active').id;
+
+    let aiTab = document.querySelector(".ai-tab-content.selected textarea")
+    let aiMeta = null
+    if (aiTab && aiTab.value) {
+      document.querySelector("#aiPrompt").value = aiTab.value
+      let ai_meta_str = aiTab.closest(".ai-tab-content").getAttribute("data-meta")
+      if (ai_meta_str) {
+        aiMeta = JSON.parse(ai_meta_str)
+      }
+    }
+    console.log({ aiMeta })
+
+    const isDNS = activeTab === 'dns-tab';
+    let name
+    let dnsPort
+    if (isDNS) {
+      let res = refreshAddress()
+      name = res.dns_name
+      dnsPort = res.dns_port
+      if (!name) {
+          return; // User cancelled or entered empty name
+      }
+      if (!dnsPort) {
+          return; // User cancelled or entered empty name
+      }
+    }
+
+    if (!validateForm()) {
+        return;
+    }
+
+    // Prompt for folder name
+    if (!name) {
+      name = prompt('Enter a folder name to create:');
+      if (!name) {
+          return; // User cancelled or entered empty name
+      }
+    }
+    
+    name = name.trim();
+    if (!name) {
+        alert('Please enter a valid folder name.');
+        return;
+    }
+    
+    if (name.includes(' ')) {
+        alert('No spaces allowed in folder names.');
+        return;
+    }
+
+    const formData = new FormData(event.target);
+    const isLauncher = activeTab === 'launcher-tab';
+    const isCli = activeTab === 'cli-tab';
+    const isImportCopy = activeTab === 'import-copy-tab';
+    const isImportLink = activeTab === 'import-link-tab';
+    const isImportClone = activeTab === 'import-clone-tab';
+    const isImport = isImportCopy || isImportLink || isImportClone;
+    const isProject = activeTab === 'project-tab';
+    const gitUrl = isLauncher ? formData.get('gitUrl').trim() : '';
+    let importPath
+    let importType
+    if (isImportCopy) {
+      importType = "copy"
+      importPath = document.getElementById("importCopy").value || ""
+    } else if (isImportLink) {
+      importType = "link"
+      importPath = document.getElementById("importLink").value || ""
+    } else if (isImportClone) {
+      importType = "download"
+      importPath = document.getElementById("importDownload").value || ""
+    }
+
+    // Get values from Ace editors and clean them
+    const cloneInstallCommandText = aceEditors['cloneInstallCommand'] ? aceEditors['cloneInstallCommand'].getValue().trim() : '';
+    const cloneStartCommandText = aceEditors['cloneStartCommand'] ? aceEditors['cloneStartCommand'].getValue().trim() : '';
+    const installCommandText = aceEditors['installCommand'] ? aceEditors['installCommand'].getValue().trim() : '';
+    const installableLaunchCommandText = aceEditors['installableLaunchCommand'] ? aceEditors['installableLaunchCommand'].getValue().trim() : '';
+    
+    // Only get AI prompt text if Quick Create tab is active
+//    const aiPromptText = isQuickCreate && aceEditors['aiPrompt'] ? aceEditors['aiPrompt'].getValue().trim() : '';
+    const isAI = isProject && formData.get('projectType') === 'ai';
+    const aiPromptText = isAI && document.querySelector("#aiPrompt") ? document.querySelector("#aiPrompt").value.trim() : '';
+
+    // Set startType and projectType based on active tab
+    let startType, projectType;
+
+    if (isLauncher) {
+        startType = 'clone';
+        projectType = formData.get('projectType');
+    } else if (isCli) {
+        startType = 'new';
+        projectType = 'cli';
+    } else if (isAI) {
+        startType = 'new';
+        projectType = 'ai';
+    } else if (isDNS) {
+        startType = 'new'
+        projectType = 'dns'
+    } else if (isImportCopy || isImportLink || isImportClone) {
+        startType = 'new'
+        projectType = 'import'
+    } else {
+        startType = 'new';
+        projectType = formData.get('projectType');
+    }
+
+    // For CLI category, map the projectType to cliType for backwards compatibility
+    let mappedProjectType = projectType;
+    let cliType = formData.get('cliType');
+
+    if (projectType === 'cli') {
+        // When CLI is selected as projectType, cliType determines the actual type
+        mappedProjectType = 'cli';
+    }
+
+    const config = {
+        name,
+        startType: startType,
+        projectType: mappedProjectType,
+        gitUrl: gitUrl,
+        cloneInstallCommand: cloneInstallCommandText ? cloneInstallCommandText.split('\n').filter(line => line.trim() !== '') : [],
+        cloneStartCommand: cloneStartCommandText ? cloneStartCommandText.split('\n').filter(line => line.trim() !== '') : [],
+        allowInstallUserInput: formData.get('allowInstallUserInput'),
+        allowStartUserInput: formData.get('allowStartUserInput'),
+        pythonOptions: formData.getAll('pythonOptions'),
+        cliType: cliType,
+        launchCommand: formData.get('launchCommand'),
+        installableLaunchCommand: installableLaunchCommandText ? installableLaunchCommandText.split('\n').filter(line => line.trim() !== '') : [],
+        installCommand: installCommandText ? installCommandText.split('\n').filter(line => line.trim() !== '') : [],
+        useVenv: formData.get('useVenv'),
+        docType: formData.get('docType'),
+        localDocPath: formData.get('localDocPath'),
+        remoteDocUrl: formData.get('remoteDocUrl'),
+        aiPrompt: aiPromptText,
+        aiMeta,
+        dnsPort,
+        importType,
+        importPath,
+    };
+    displayResults(config);
+}
+const createTerm = async (_theme) => {
+  //const theme = Object.assign({ }, xtermTheme.Terminal_Basic, {
+  const theme = Object.assign({ }, _theme, {
+    selectionBackground: "red",
+    selectionForeground: "white"
+  })
+  <% if (theme !== "dark") { %>
+    theme.foreground = "black"
+  <% } %>
+  let config = {
+    scrollback: 9999999,
+    fontSize: 12,
+    fontFamily: 'monospace',
+    theme,
+  }
+  let res = await fetch("/xterm_config").then((res) => {
+    return res.json()
+  })
+  if (res && res.config) {
+    config = res.config
+  }
+  const baseConfig = Object.assign({}, config)
+  if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.applyToConfig === 'function') {
+    config = window.PinokioTerminalSettings.applyToConfig(config)
+  }
+  const term = new Terminal(config)
+  if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.register === 'function') {
+    window.PinokioTerminalSettings.register(term, { baseConfig })
+  }
+  term.open(document.querySelector("#terminal2"))
+  const terminalContainer = document.querySelector("#terminal2")
+  window.PinokioTouch.bindTerminalFocus(term, terminalContainer)
+  document.querySelector("#terminal-container").classList.remove("hidden")
+
+  term.attachCustomKeyEventHandler(event => {
+    if (event.ctrlKey && event.key === 'c' && term.hasSelection()) {
+      return false;
+    }
+    if (event.ctrlKey && event.key === 'v' && this._options.pasteWithCtrlV) {
+      return false;
+    }
+    return true;
+  });
+
+  fitAddon = new FitAddon.FitAddon();
+  term.loadAddon(fitAddon);
+  <% if (agent === "electron") { %>
+    term.loadAddon(new WebLinksAddon.WebLinksAddon((event, uri) => {
+      window.open(uri, "_blank", "browser")
+    }))
+  <% } else { %>
+    term.loadAddon(new WebLinksAddon.WebLinksAddon());
+  <% } %>
+  fitAddon.fit();
+  resizeSync.updateTerm(term, fitAddon, socket)
+
+  term.onData((data) => {
+    console.log({ key: data, shell_id })
+    if (socket && shell_id) {
+      socket.run({
+        key: data,
+        id: shell_id
+      })
+    }
+  });
+
+  let observer = new ResizeObserver(() => {
+    fitAddon.fit()
+    resizeSync.sendResize(term.cols, term.rows)
+  });
+  observer.observe(document.body)
+
+  term.focus()
+  console.log(`Resized to ${term.cols}x${term.rows}`);
+  return term
+}
+
+async function displayResults(config) {
+  <% if (theme === "dark") { %>
+  let term = await createTerm(xtermTheme.FrontEndDelight)
+  <% } else { %>
+  let term = await createTerm(xtermTheme.Tomorrow)
+  <% } %>
+  const write = (text) => {
+    if (text !== "\u0007") {
+      term.write(text)
+    }
+  }
+  resizeSync.reset()
+  socket.run({
+    id: "kernel.proto.create",
+    method: "kernel.proto.create",
+    cwd: "<%-JSON.stringify(cwd).slice(1, -1)%>",
+    client: {
+      cols: term.cols,
+      rows: term.rows,
+    },
+//    name: "<%=name%>",
+    params: config
+  }, async (packet) => {
+    console.log('packet', packet)
+    if (packet.type === 'start') {
+      document.querySelector(".play-btn").classList.add("hidden")
+      document.querySelector(".starting-btn").classList.add("hidden")
+      document.querySelector(".stop-btn").classList.remove("hidden")
+    } else if (packet.type === "result") {
+      if (packet.data.success) {
+        location.href = packet.data.success
+      } else if (packet.data.error) {
+        alert(packet.data.error)
+        location.href = location.href
+      }
+    } else if (packet.type === "stream") {
+      // set the current shell id
+      if (packet.data.id) {
+        if (!shell_id) {
+          shell_id = packet.data.id
+          resizeSync.sendInitial()
+        } else {
+          shell_id = packet.data.id
+        }
+      }
+      if (packet.data.raw) {
+        write(packet.data.raw)
+      } else if (packet.data.json) {
+        write(JSON.stringify(packet.data.json).replace(/\n/g, "\r\n"))
+        write("\r\n")
+      } else if (packet.data.json2) {
+        write(JSON.stringify(packet.data.json2, null, 2).replace(/\n/g, "\r\n"))
+        write("\r\n")
+      }
+      document.querySelector("#end").scrollIntoView({ behavior: 'smooth' });
+    } else if (packet.type === 'disconnect') {
+      term.write("\r\nDisconnected...\r\n")
+      socket.close()
+      resizeSync.reset()
+    } else if (packet.type === 'connect') {
+      if (packet.data) {
+        if (packet.data.shell) {
+          if (!shell_id) {
+            shell_id = packet.data.shell
+            resizeSync.sendInitial()
+          } else {
+            shell_id = packet.data.shell
+          }
+        }
+        if (packet.data.state) {
+          write(packet.data.state)
+        }
+      }
+    } else if (packet.type === 'resize') {
+      resizeSync.handleResizePacket(packet)
+    }
+  }).then((res) => {
+    console.log("Ended", res)
+  })
+}
+
+</script>
+</body>
+</html>

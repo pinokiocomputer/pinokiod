@@ -1,0 +1,747 @@
+<html>
+<head>
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link rel="stylesheet" href="/tom-select.css">
+<script src="/tom-select.complete.min.js""></script>
+<script src="/hotkeys.min.js"></script>
+<script src="/opener.js"></script>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+@font-face {
+  font-family: 'RobotoMono';
+  src: url('/RobotoMono-Regular.ttf') format(truetype);
+  font-weight: normal;
+  font-style: normal;
+}
+.container {
+  padding: 20px;
+  max-width: 800px;
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family: Sans-serif;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.changes .diffs .btn {
+  margin-left: 5px !important;
+  background: royalblue;
+}
+aside {
+  width: 200px;
+  flex-shrink: 0;
+  overflow: auto;
+  border-right: 1px solid rgba(0,0,0,0.04);
+}
+body.dark aside .item, body.dark .log .item {
+  color: white;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+body.dark aside .item.selected, body.dark .log .item.selected {
+  background: rgba(255,255,255,0.04);
+  border-left: 4px solid white;
+}
+aside .item.selected, .log .item.selected {
+  background: rgba(0,0,200,0.04);
+  border-left: 4px solid black;
+}
+aside .item, .log .item {
+  cursor: pointer;
+  overflow-wrap: break-word;
+  display: block;
+  text-decoration: none;
+  padding: 6px;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+.log .item .timestamp {
+  color: silver;
+  font-size: 12px;
+  margin-top: 5px;
+}
+.log .item .author {
+  color: silver;
+  font-size: 12px;
+}
+.hidden {
+  display: none !important;
+}
+.item .switch {
+  padding: 5px 10px;
+  margin: 10px 0 0px;
+  background: royalblue;
+  display: block;
+  text-align: center;
+}
+body.dark .log , body.dark aside {
+  border-right: 1px solid rgba(255,255,255,0.04);
+}
+.log {
+  border-right: 1px solid rgba(0,0,0,0.04);
+  flex-shrink: 0;
+  width: 250px;
+  overflow: auto;
+}
+body.dark .git-info {
+  color: white;
+}
+.git-pub {
+  color: silver;
+  font-weight: bold;
+}
+body.dark nav {
+  background: rgba(0,0,0,0.3);
+}
+nav {
+  padding: 10px 10px 0;
+  display: flex;
+  align-items: center;
+  background: rgba(0,0,0,0.04);
+}
+body.dark nav a.btn, nav a.btn {
+  background: royalblue;
+  padding: 5px 10px;
+}
+nav a {
+  display: block;
+  color: royalblue;
+  text-decoration: none;
+}
+label {
+  display: block;
+  padding: 10px;
+}
+nav label {
+  display: block;
+  padding: 10px;
+}
+main {
+  display: flex;
+  overflow: auto;
+  scroll-behavior: smooth;
+  flex-grow: 1;
+}
+main iframe {
+  width: 100%;
+  height: 500px;
+}
+main img {
+  width: 100%;
+}
+main h2 i {
+  font-size: 14px;
+  margin-right: 5px;
+}
+main h2 {
+  text-transform: uppercase;
+  text-align: center;
+  padding: 10px;
+  margin: 0;
+  font-size: 12px;
+  backdrop-filter: blur(16px);
+  position: sticky;
+  top: 0;
+}
+/*
+body.dark .changes {
+  color: white;
+}
+*/
+/*
+.git-browser {
+  overflow: auto;
+  height: 100%;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+.git-nav {
+  padding: 10px;
+  box-sizing: border-box;
+}
+.git-chrome {
+  flex-grow: 1;
+  display: flex;
+}
+*/
+.changes {
+  flex-grow: 1;
+  overflow: auto;
+  height: 100%;
+}
+pre.l {
+/*
+  white-space: pre-wrap;
+  font-family: monospace;
+  */
+  padding: 0 10px;
+  border-left: 4px solid transparent;
+}
+.added    { background: #e6ffed; border-color: green; }
+.removed  { background: #ffeef0; border-color: red; }
+
+
+.diff-line {
+  display: flex;
+  white-space: pre-wrap;
+  font-family: "RobotoMono", monospace;
+  line-height: 1.4;
+}
+
+.lnum {
+  width: 3em;
+  flex-shrink: 0;
+  text-align: right;
+  padding-right: 0.5em;
+  color: #999;
+}
+
+.lnum.old {
+  border-right: 1px solid #ccc;
+}
+
+.lnum.new {
+  border-right: 1px solid #ccc;
+}
+
+.code {
+  min-width: 0;
+  overflow-wrap: break-word;
+
+  flex: 1;
+  padding-left: 0.5em;
+}
+.binary-notice {
+  padding: 100px 0;
+  text-align: center;
+  background: #f0f0f0;
+  font-family: monospace;
+  color: #555;
+}
+.message {
+  display: inline-block;
+  overflow-wrap: break-word;
+  display: block;
+  padding: 5px 0;
+}
+.badge {
+  display: inline-block;
+  padding: 5px 8px;
+  border-radius: 2px;
+  background: black;
+  color: white;
+  margin-right: 5px;
+}
+.diff-block {
+  background: rgba(0, 0, 0, 0.04);
+  overflow: auto;
+}
+body.dark h2 {
+  color: white;
+}
+main h3 {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  background: white;
+  color: black;
+  padding: 10px;
+  font-size: 14px;
+}
+body.dark .chunk {
+  border: 3px solid white;
+}
+.chunk {
+  border: 3px solid rgba(0,0,0,0.04);
+  margin-bottom: 3px;
+}
+.filler {
+  height: 100%;
+}
+.chunk.selected, body.dark .chunk.selected {
+  border: 3px solid royalblue;
+}
+
+.add    { background: #e6ffed; color: green; }
+.del    { background: #ffeef0; color: red; }
+.context { background: #f8f8f8; }
+
+.changes .btn {
+  padding: 5px 15px;
+  margin: 0;
+}
+.btn {
+  margin-left: 5px;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  border-radius: 3px;
+  background: black;
+  color: white;
+  font-size: 12px;
+  display: inline-block;
+}
+body.dark .empty {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+.empty {
+  text-align: center;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  opacity: 0.5;
+  background: rgba(0,0,0,0.04);
+}
+.flexible {
+  flex-grow: 1;
+}
+.aside-header {
+  padding: 10px;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.2) transparent;
+}
+
+/* Chrome, Edge, and Safari */
+*::-webkit-scrollbar {
+  width: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: none;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(0,0,0,0.2);
+  border-radius: 30px;
+  border: 7px solid rgba(0,0,0,0.2);
+}
+
+body.dark * {
+  scrollbar-color: rgba(255,255,255,0.3) transparent;
+}
+body.dark *::-webkit-scrollbar-thumb {
+  background-color: rgba(255,255,255,0.3);
+  border: 7px solid rgba(255,255,255,0.3);
+}
+/*
+.item[data-ref='HEAD'] {
+  background: rgba(100,200,0,0.1) !important;
+  color: forestgreen !important;
+  padding: 12px 6px;
+}
+*/
+#term {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 1000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+  background-color: rgba(0, 0, 0, 0.2);
+}
+#term iframe {
+  /*
+  width: 100%;
+  height: 100%;
+  */
+  border: none;
+  width: 80%;
+  height: 80%;
+
+  padding: 10px 20px;
+  /*
+  border-radius: 12px;
+  */
+  backdrop-filter: blur(2px);
+}
+.branches {
+  margin: 5px 0;
+  display: flex;
+  align-items: stretch;
+}
+/*
+body.dark .branches .label {
+  background: rgba(0,0,0,0.4);
+}
+*/
+.branches .label {
+  padding: 5px 10px;
+  border-radius: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background: #efefef;
+  color: #777;
+  border: none;
+}
+.branches .btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.branches .btn {
+  background: royalblue;
+  padding: 2px 10px;
+}
+.branches .btn i {
+  margin-right: 5px;
+}
+body.dark .git-header {
+  background: rgba(0,0,0,0.3);
+  color: white;
+}
+.git-header i {
+  margin-right: 5px;
+}
+.git-header {
+  font-weight: bold;
+  background: rgba(0,0,0,0.04);
+  display: flex;
+  align-items: center;
+  padding: 10px;
+}
+.git-frame {
+  display: flex;
+  flex-grow: 1;
+}
+.git-container {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+.ts-control {
+  border-radius: 0;
+  padding: 5px 10px;
+}
+.ts-wrapper {
+  max-width: 400px;
+  width: 100%;
+}
+.ts-dropdown {
+  background: white !important;
+}
+.ts-wrapper:not(.form-control,.form-select).single .ts-control {
+background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
+background-position: right .75rem center;
+  background-repeat: no-repeat;
+  background-size: 16px 12px;
+}
+body.dark .change-count {
+  background: white;
+  color: black;
+}
+.change-count {
+  padding: 0 7px;
+  border-radius: 10px;
+  margin-left: 3px;
+  background: black;
+  color: white;
+}
+.reset-header{
+  padding: 10px;
+}
+#reset-head {
+  padding: 5px 10px;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  background: royalblue;
+}
+
+</style>
+</head>
+<body class='<%=theme%>' data-platform="<%=platform%>" data-agent="<%=agent%>">
+<nav>
+  <div class='git-info flexible'>
+    <% if (remote) { %>
+      <div class='git-pub'>
+        <a href="<%=remote%>" target="_blank"><%=remote%></a>
+      </div>
+    <% } else { %>
+      <div class='git-pub'>Not published</div>
+    <% } %>
+    <div class='branches'>
+      <div class='label'>Current Version</div>
+      <select autocomplete="off">
+      <% branches.forEach((b) => { %>
+        <option <%=b.selected ? 'selected' : ''%> value="/run/scripts/git/checkout.json?cwd=<%=encodeURIComponent(dir)%>&commit=<%=b.branch%>&callback_target=parent&callback=$location.href"><%=b.branch%></option>
+      <% }) %>
+      </select>
+      <% if (remote) { %>
+        <% if (connected) { %>
+          <a data-href="/run/scripts/git/push.json?cwd=<%=encodeURIComponent(dir)%>&callback_target=parent&callback==$location.href" class='btn'><i class="fa-brands fa-github"></i> Publish</a>
+        <% } else { %>
+          <a class='btn' href="/github" data-redirect="/github"><i class="fa-brands fa-github"></i> Publish to GitHub</a>
+        <% } %>
+        <a data-href="/run/scripts/git/commit.json?cwd=<%=encodeURIComponent(dir)%>&callback_target=parent&callback=$location.href" class='btn'><i class="fa-solid fa-floppy-disk"></i> Save</a>
+      <% } else { %>
+        <% if (connected) { %>
+          <a data-href="/run/scripts/git/create.json?cwd=<%=encodeURIComponent(dir)%>&callback_target=parent&callback==$location.href" class='btn'><i class="fa-brands fa-github"></i> Publish</a>
+        <% } else { %>
+          <a class='btn' href="/github" data-redirect="/github"><i class="fa-brands fa-github"></i> Create on GitHub</a>
+        <% } %>
+        <a data-href="/run/scripts/git/commit.json?cwd=<%=encodeURIComponent(dir)%>&callback_target=parent&callback=$location.href" class='btn'><i class="fa-solid fa-floppy-disk"></i> Save</a>
+      <% } %>
+    </div>
+  </div>
+</nav>
+<main>
+  <div class='log'>
+    <div class='git-header'><i class="fa-solid fa-clock-rotate-left"></i> History</div>
+    <div class='item <%=ref === "HEAD" ? "selected": ""%>' data-ref="<%=ref%>" data-href="/gitcommit/HEAD/<%=path%>">
+      <div class='msg'><i class="fa-solid fa-pencil"></i> current version</div>
+      <div class='timestamp'>now</div>
+      <!--
+      <a target="terminal" class='btn hidden switch' href="/run/scripts/git/checkout.json?cwd=<%=encodeURIComponent(dir)%>&commit=HEAD&callback_target=parent&callback=$location.href">
+        <i class='fa-solid fa-clock-rotate-left'></i> Switch to this version
+      </a>
+      -->
+    </div>
+    <% log.forEach((item) => { %>
+      <div class='item <%=item.oid === ref ? "selected" : ""%>' data-ref="<%=item.oid%>" data-href="/gitcommit/<%=item.oid%>/<%=path%>">
+        <div class='msg'><i class="fa-solid fa-circle-check"></i> <%=item.commit.message%></div>
+        <div class='timestamp'><%=new Date(item.commit.author.timestamp * 1000).toLocaleString()%></div>
+        <div class='author'><%=item.commit.author.name%></div>
+        <a target="terminal" class='btn hidden switch' href="/run/scripts/git/checkout.json?cwd=<%=encodeURIComponent(dir)%>&commit=<%=item.oid%>&callback_target=parent&callback=$location.href">
+          <i class='fa-solid fa-clock-rotate-left'></i> Switch to this version
+        </a>
+      </div>
+    <% }) %>
+  </div>
+  <div class='git-container'>
+    <div class='git-version git-header'></div>
+    <div class='git-frame'>
+      <aside>
+        <div class='content'</div>
+      </aside>
+      <div class='changes'>
+        <div class='content'></div>
+      </div>
+    </div>
+  </div>
+</main>
+<div id='term' class='hidden'>
+  <iframe name='terminal' allow="fullscreen *;" allowfullscreen></iframe>
+</div>
+<script>
+new TomSelect("select", {
+  onChange: (val) => {
+    document.querySelector("#term").classList.remove("hidden")
+    window.open(val, "terminal")
+  }
+})
+
+const selectRef = (el) => {
+  let href = el.getAttribute("data-href")
+  let ref = el.getAttribute("data-ref")
+  document.querySelector(".git-version").innerHTML = `<div><i class="fa-solid fa-folder-tree"></i> Changed files <span class='change-count'></span></div><div class='flexible'></div><i class="fa-solid fa-code-commit"></i> version: ${ref}`
+
+  if (el.querySelector(".switch")) {
+    document.querySelectorAll(".log .btn").forEach((e) => {
+      e.classList.add("hidden")
+    })
+    el.querySelector(".switch").classList.remove("hidden")
+  }
+
+  document.querySelector("aside").setAttribute("data-ref", ref)
+
+  fetch(href).then((res) => {
+    return res.json()
+  }).then((res) => {
+    if (res.changes && res.changes.length > 0) {
+      document.querySelector(".change-count").innerHTML = res.changes.length
+      document.querySelector("aside .content").innerHTML = res.changes.map(({ file, status, binary, diff, webpath, ref, path }) => {
+        //return `<a class='item' data-selector="${file}" data-href="/gitdiff/${ref}/${path}"><span class='badge'>${status}</span><span class='message'>${file}</span></a>`
+        return `<a class='item' data-selector="${file}" data-href="/gitdiff/${ref}/${path}"><span class='message'>${file}</span></a>`
+      }).join("")
+    } else {
+      document.querySelector(".change-count").innerHTML = 0
+      document.querySelector("aside .content").innerHTML = `<div class='empty'>no unsaved changes</div>`
+    }
+  })
+}
+selectRef(document.querySelector(".log .item.selected"))
+
+
+document.querySelector(".git-info").addEventListener("click", (e) => {
+  let href = e.target.getAttribute("data-href")
+  if (!href) {
+    let el = e.target.closest("[data-href]")
+    if (el) {
+      href = el.getAttribute("data-href")
+    }
+  }
+  if (href) {
+    document.querySelector("#term").classList.remove("hidden")
+    window.open(href, "terminal")
+  }
+})
+document.querySelector("nav").addEventListener("click", (e) => {
+  let redirect = e.target.getAttribute("data-redirect")
+  let redirect_url
+  if (redirect) {
+    redirect_url = e.target.href
+  } else {
+    let el = e.target.closest("[data-redirect]")
+    if (el) {
+      redirect_url = el.href
+    }
+  }
+  if (redirect_url) {
+    e.preventDefault()
+    e.stopPropagation()
+    const c = confirm("Please connect with GitHub first")
+    if (c) {
+      open_url(redirect_url, "_blank")
+    } else {
+    }
+  } else {
+  }
+})
+document.querySelector("#term").addEventListener("click", (e) => {
+  e.target.classList.add("hidden")
+})
+document.querySelector(".log").addEventListener("click", (e) => {
+  let target
+
+  if (e.target.classList.contains("switch")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".switch")
+  }
+
+  if (target) {
+    document.querySelector("#term").classList.remove("hidden")
+    return
+  }
+
+
+  if (e.target.classList.contains("item")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".item")
+  }
+
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    document.querySelectorAll(".log .item").forEach((el) => {
+      el.classList.remove("selected")
+    })
+    target.classList.add("selected")
+    selectRef(target)
+  }
+})
+document.querySelector(".changes").addEventListener("click", (e) => {
+  let href = e.target.getAttribute("data-href")
+  if (!href) {
+    let el = e.target.closest("[data-href]")
+    if (el) {
+      href = el.getAttribute("data-href")
+    }
+  }
+  if (href) {
+    let c = confirm("are you sure? this will reset the file to the previous version.")
+    if (c) {
+      document.querySelector("#term").classList.remove("hidden")
+      window.open(href, "terminal")
+    }
+  }
+})
+document.querySelector("aside").addEventListener("click", (e) => {
+  let target
+  if (e.target.classList.contains("item")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".item")
+  }
+  if (target) {
+    document.querySelectorAll("aside .item").forEach((el) => {
+      el.classList.remove("selected")
+    })
+    target.classList.add("selected")
+
+
+
+//    let selector = e.target.getAttribute("data-selector")
+//    console.log({ selector })
+//    document.querySelectorAll(".chunk").forEach((el) => {
+//      el.classList.remove("selected")
+//    })
+//    document.querySelector(`[data-selection='${selector}']`).classList.add("selected")
+
+    let href = target.getAttribute("data-href")
+
+    let ref = document.querySelector("aside").getAttribute("data-ref")
+
+    fetch(href).then((res) => {
+      return res.json()
+    }).then((res) => {
+      if (res.binary) {
+        document.querySelector(".changes .content").innerHTML = `<div class="diffs">
+          <h3>
+            <div class='flexible'>${res.file}</div>
+            <a data-href="/run/scripts/git/reset_file.json?path=${encodeURIComponent(res.path)}&cwd=${encodeURIComponent("<%=dir%>")}&callback_target=parent&callback=$location.href" class='btn ${ref === "HEAD" ? "" : "hidden"}'>
+              <i class="fa-solid fa-arrow-rotate-left"></i> Reset
+            </a>
+            <a class='btn' data-filepath="${res.path}">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open
+            </a>
+          </h3>
+          <div class="binary-notice">[Binary file]</div>
+        </div>`
+      } else {
+        document.querySelector(".changes .content").innerHTML = `<div class="diffs">
+          <h3>
+            <div class='flexible'>${res.file}</div>
+            <a data-href="/run/scripts/git/reset_file.json?path=${encodeURIComponent(res.path)}&cwd=${encodeURIComponent("<%=dir%>")}&callback_target=parent&callback=$location.href" class='btn ${ref === "HEAD" ? "" : "hidden"}'>
+              <i class="fa-solid fa-arrow-rotate-left"></i> Reset
+            </a>
+            <a class='btn' data-filepath="${res.path}">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open
+            </a>
+          </h3>
+        <div class="diff-block">` + res.diff.map(({ line, lineOld, lineNew, type }) => {
+          return `<div class="diff-line ${type}">
+            <span class="lnum old">${lineOld !== '' ? lineOld : ''}</span>
+            <span class="lnum new">${lineNew !== '' ? lineNew : ''}</span>
+            <span class="code">${(type === 'add' ? '+ ' : type === 'del' ? '- ' : '  ') + line}</span>
+          </div>`
+        }).join("") + '</div></div>'
+      }
+    })
+  }
+})
+window.addEventListener('message', (event) => {
+  if (event.data) {
+    if (event.data.callback) {
+      if (event.data.callback.startsWith("$")) {
+        location.href = eval(event.data.callback.slice(1))
+      } else {
+        location.href = event.data.callback
+      }
+    }
+  }
+})
+</script>
+</body>
+</html>

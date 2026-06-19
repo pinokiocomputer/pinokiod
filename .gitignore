@@ -1,7 +1,7 @@
 node_modules
 .DS_Store
 .env
+.*
 .clinic
 log.txt
-script/pinokio.json
 __pycache__

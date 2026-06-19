@@ -1,0 +1,369 @@
+<html>
+<head>
+<style>
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+body.single {
+  display: block;
+}
+body {
+  display: grid;
+  grid-template-rows: var(--row0, 1fr) 6px var(--row1, 1fr);
+  gap: 0px;
+  position: relative;
+}
+body iframe {
+  border: none;
+  width: 100%;
+  height: 100%;
+}
+/* Splitter (gutter) styles */
+body.dark {
+  background: #1B1C1D;
+}
+body.dark .gutter {
+  background: #222;
+}
+.gutter {
+  background: whitesmoke;
+  cursor: row-resize;
+  position: relative;
+}
+body.resizing, .gutter:hover {
+  cursor: row-resize;
+}
+body.resizing {
+  user-select: none;
+}
+body[data-agent='electron'] {
+  padding-top: 26px;
+  box-sizing: border-box;
+}
+/* Visible handle */
+.gutter::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 4px;
+  border-radius: 2px;
+  /*
+  background: #bdbdbd;
+  */
+}
+.gutter:hover::before, body.resizing .gutter::before { background: #9e9e9e; }
+.gutter:focus { outline: none; box-shadow: inset 0 0 0 2px #90caf9; }
+</style>
+<script src="/window_storage.js"></script>
+</head>
+<body class='<%=theme%>' data-agent="<%=agent%>">
+<iframe id='row0' data-src="<%= originSrc || '/home' %>" allow="fullscreen *;" allowfullscreen></iframe>
+<div id="gutter" class="gutter" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Resize panels" aria-valuemin="120" aria-valuemax="0" aria-valuenow="0"></div>
+<iframe id='row1' data-src="<%= targetSrc || originSrc || '/home' %>" allow="fullscreen *;" allowfullscreen></iframe>
+
+<script>
+  if (window !== window.top) {
+    document.body.removeAttribute("data-agent")
+  }
+  (function() {
+    const gutter = document.getElementById('gutter');
+    const topPane = document.getElementById('row0');
+    const bottomPane = document.getElementById('row1');
+    const body = document.body;
+    const GUTTER = gutter ? gutter.getBoundingClientRect().height || 6 : 6;
+    const MIN = 120; // minimum height for each pane in px
+
+    // Stable instance path for recursive panes
+    // Prefer parent-assigned iframe name; fallback to window.name; else 'root' for top-level
+    const PATH = (window.frameElement && window.frameElement.name) || window.name || 'root';
+    if (!window.name) { try { window.name = PATH; } catch(_) {} }
+    // Assign deterministic names to child panes before loading
+    topPane.name = `${PATH}.0`;
+    bottomPane.name = `${PATH}.1`;
+
+    const splitKey = `splitRatio:${PATH}`;
+    const KEY_STEP = 20;
+    const KEY_STEP_BIG = 100;
+    const urlKeyFor = (paneName) => `paneUrl:${paneName}`;
+
+    function setRows(topPx) {
+      console.log("setRows", topPx)
+      document.body.style.gridTemplateRows = `${topPx}px ${GUTTER}px 1fr`;
+    }
+
+    function computeTotal() {
+      const bodyRect = body.getBoundingClientRect();
+      return bodyRect.height - GUTTER;
+    }
+
+    function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
+
+    function updateAria(topPx, total) {
+      if (!gutter) return;
+      gutter.setAttribute('aria-valuemin', String(MIN));
+      gutter.setAttribute('aria-valuemax', String(Math.max(MIN, total - MIN)));
+      gutter.setAttribute('aria-valuenow', String(Math.max(MIN, Math.min(total - MIN, Math.round(topPx)))));
+    }
+
+    function saveRatioFromTopPx(topPx) {
+      const total = computeTotal();
+      if (total > 0) {
+        const ratio = clamp(topPx / total, 0, 1);
+        windowStorage.setItem(splitKey, String(ratio));
+      }
+    }
+
+    function applyFromRatio(ratio) {
+      console.log("applyFromRatio", ratio)
+      const total = computeTotal();
+      let topPx = clamp(Math.round(total * ratio), MIN, total - MIN);
+      setRows(topPx);
+      updateAria(topPx, total);
+    }
+
+    // --- Per-window URL persistence with deterministic pane paths ---
+    function restorePaneURL(pane) {
+      const key = urlKeyFor(pane.name);
+      try {
+        const saved = windowStorage.getItem(key);
+        const fallback = pane.getAttribute('data-src') || pane.getAttribute('src') || '';
+        const target = (saved && typeof saved === 'string') ? saved : fallback;
+        if (target && pane.src !== target) pane.src = target;
+      } catch (_) { /* ignore */ }
+    }
+
+    function attachSameOriginRouteHooks(pane) {
+      const key = urlKeyFor(pane.name);
+      try {
+        const cw = pane.contentWindow;
+        if (!cw) return;
+        const notify = () => {
+          windowStorage.setItem(key, cw.location.href);
+        };
+        // Hook SPA navigations
+        const _ps = cw.history.pushState;
+        cw.history.pushState = function() { const r = _ps.apply(this, arguments); notify(); return r; };
+        const _rs = cw.history.replaceState;
+        cw.history.replaceState = function() { const r = _rs.apply(this, arguments); notify(); return r; };
+        cw.addEventListener('popstate', notify);
+        cw.addEventListener('hashchange', notify);
+        if (cw.document?.readyState === 'loading') cw.document.addEventListener('DOMContentLoaded', notify, { once: true });
+        else notify();
+      } catch (err) {
+        // Cross-origin: fall back to saving src only
+        windowStorage.setItem(key, pane.src);
+      }
+    }
+
+    function onPaneLoadFactory(pane) {
+      return function onPaneLoad() {
+        attachSameOriginRouteHooks(pane);
+      };
+    }
+
+    // Overlay to avoid iframe stealing events in Chrome
+    function createOverlay() {
+      const el = document.createElement('div');
+      el.style.position = 'fixed';
+      el.style.inset = '0';
+      el.style.cursor = 'row-resize';
+      el.style.zIndex = '2147483647';
+      el.style.background = 'transparent';
+      return el;
+    }
+
+    let startY = 0;
+    let startTop = 0;
+    let total = 0;
+    let overlay = null;
+
+    function refreshLayout (splitKey) {
+      let val = windowStorage.getItem(splitKey)
+      let id = splitKey.replace("splitRatio:", "")
+      console.log({ id, val })
+      if (val === "1" || val === "0") {
+        if (val === "1") {
+          id_to_hide = id + ".1"
+        } else if (val === "0") {
+          id_to_hide = id + ".0"
+        }
+        const el = document.querySelector(`iframe[name='${id_to_hide}']`)
+        el.remove()
+        if (document.querySelector("#gutter")) {
+          document.querySelector("#gutter").remove()
+        }
+        let existing_iframe = document.querySelector("iframe")
+        if (existing_iframe) {
+          document.body.classList.add("single")
+        } else {
+          if (window.parent) {
+            // if all child iframes have been removed, remove self
+            window.parent.postMessage({
+              e: "close"
+            }, "*")
+          } else {
+            // if this is the top window, everything has been removed, so just redirect to home
+            location.href = "/home"
+          }
+        }
+      }
+    }
+
+
+    function onPointerMove(e) {
+      const delta = e.clientY - startY;
+      let newTop = startTop + delta;
+      newTop = Math.max(MIN, Math.min(total - MIN, newTop));
+      setRows(newTop);
+      updateAria(newTop, total);
+    }
+
+    function endDrag(e) {
+      if (gutter && e && e.pointerId != null && gutter.hasPointerCapture?.(e.pointerId)) {
+        try { gutter.releasePointerCapture(e.pointerId); } catch (_) {}
+      }
+      window.removeEventListener('pointermove', onPointerMove, true);
+      window.removeEventListener('pointerup', endDrag, true);
+      window.removeEventListener('pointercancel', endDrag, true);
+      if (overlay) {
+        overlay.remove();
+        overlay = null;
+      }
+      body.classList.remove('resizing');
+      // Persist position as ratio
+      try {
+        const topRect = topPane.getBoundingClientRect();
+        saveRatioFromTopPx(topRect.height);
+      } catch (_) {}
+    }
+
+    // Restore child pane URLs before any interaction (override hardcoded src)
+    restorePaneURL(topPane);
+    restorePaneURL(bottomPane);
+
+    // Track navigations for each pane
+    topPane.addEventListener('load', onPaneLoadFactory(topPane));
+    bottomPane.addEventListener('load', onPaneLoadFactory(bottomPane));
+
+    if (gutter) {
+      gutter.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        const bodyRect = body.getBoundingClientRect();
+        const topRect = topPane.getBoundingClientRect();
+        total = bodyRect.height - GUTTER; // total available for both iframes
+        startTop = topRect.height;
+        startY = e.clientY;
+
+        // Ensure we keep receiving events even over iframes
+        try { gutter.setPointerCapture(e.pointerId); } catch (_) {}
+        overlay = createOverlay();
+        document.body.appendChild(overlay);
+
+        window.addEventListener('pointermove', onPointerMove, true);
+        window.addEventListener('pointerup', endDrag, true);
+        window.addEventListener('pointercancel', endDrag, true);
+        body.classList.add('resizing');
+      });
+
+      // Keyboard resizing for accessibility
+      gutter.addEventListener('keydown', (e) => {
+        const { key } = e;
+        if (key !== 'ArrowUp' && key !== 'ArrowDown' && key !== 'Home' && key !== 'End') return;
+        e.preventDefault();
+        const totalNow = computeTotal();
+        const rect = topPane.getBoundingClientRect();
+        const step = e.shiftKey ? KEY_STEP_BIG : KEY_STEP;
+        let topPx = rect.height;
+        if (key === 'ArrowUp') topPx -= step;
+        else if (key === 'ArrowDown') topPx += step;
+        else if (key === 'Home') topPx = MIN;
+        else if (key === 'End') topPx = totalNow - MIN;
+        topPx = clamp(topPx, MIN, totalNow - MIN);
+        setRows(topPx);
+        updateAria(topPx, totalNow);
+        saveRatioFromTopPx(topPx);
+      });
+    }
+
+    // Initialize from saved ratio if available and set ARIA
+    try {
+      const saved = parseFloat(windowStorage.getItem(splitKey) || '');
+      console.log({ saved })
+      if (!Number.isNaN(saved) && saved > 0 && saved < 1) {
+        console.log("< 1")
+        applyFromRatio(saved);
+      } else {
+        console.log("< 2")
+        updateAria(topPane.getBoundingClientRect().height, computeTotal());
+        refreshLayout(splitKey)
+      }
+    } catch (_) {
+      console.log("< 3")
+      updateAria(topPane.getBoundingClientRect().height, computeTotal());
+    }
+
+    // Re-apply on window resize to keep ratio
+    window.addEventListener('resize', () => {
+      try {
+        const saved = parseFloat(windowStorage.getItem(splitKey) || '');
+        if (!Number.isNaN(saved) && saved > 0 && saved < 1) {
+          applyFromRatio(saved);
+        } else {
+          updateAria(topPane.getBoundingClientRect().height, computeTotal());
+        }
+      } catch (_) {
+        updateAria(topPane.getBoundingClientRect().height, computeTotal());
+      }
+    });
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.e === "close") {
+        // find the frame 
+        // Find which iframe sent the message
+        const row0 = document.getElementById('row0');
+        const row1 = document.getElementById('row1');
+        
+        let sourceFrameId = null;
+        
+        if (row0 && event.source === row0.contentWindow) {
+          sourceFrameId = 'row0';
+        } else if (row1 && event.source === row1.contentWindow) {
+          sourceFrameId = 'row1';
+        }
+
+        if (!sourceFrameId) {
+          windowStorage.removeItem(splitKey)
+          location.href = "/home"
+          return
+        }
+        
+        console.log('Message received from iframe:', sourceFrameId);
+        
+        // Or use this approach to loop through all iframes
+        const iframes = document.querySelectorAll('iframe');
+        console.log({ splitKey })
+        for (let iframe of iframes) {
+          if (event.source === iframe.contentWindow) {
+            if (iframe.id === "row0") {
+              // hide row0 => ratio:; 0
+              windowStorage.setItem(splitKey, "0");
+              refreshLayout(splitKey)
+            } else if (iframe.id === "row1") {
+              // hide row1 => ratio:; 1
+              windowStorage.setItem(splitKey, "1");
+              refreshLayout(splitKey)
+            }
+            console.log('Message from iframe with id:', iframe.id);
+            break;
+          }
+        }
+      }
+    })
+  })();
+  </script>
+</body>
+</html>

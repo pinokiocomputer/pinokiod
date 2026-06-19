@@ -1,0 +1,200 @@
+<%
+  const sidebarSelected = (typeof selected !== "undefined" && selected) ? String(selected) : "";
+  const sidebarList = (typeof list !== "undefined" && Array.isArray(list)) ? list : [];
+  const sidebarCurrentHost = (typeof current_host !== "undefined" && current_host) ? current_host : "";
+  const sidebarSelectedNetName = (typeof selectedNetName !== "undefined" && selectedNetName) ? String(selectedNetName) : "";
+  const sidebarShowPeerAccess = typeof showPeerAccess === "boolean" ? showPeerAccess : true;
+  const brands = { win32: "windows", darwin: "apple", linux: "Linux" };
+%>
+<button type="button" class="main-sidebar-mobile-toggle" data-main-sidebar-toggle aria-label="Open navigation" aria-expanded="false">
+  <i class="fa-solid fa-bars" aria-hidden="true"></i>
+</button>
+<button type="button" class="main-sidebar-mobile-backdrop" data-main-sidebar-backdrop aria-label="Close navigation" hidden></button>
+<aside class="main-sidebar" id="main-sidebar" aria-label="Primary navigation">
+  <nav class="main-sidebar-nav" aria-label="Pinokio navigation">
+    <div class='main-sidebar-section main-sidebar-section-actions' aria-label="Actions">
+      <a class='tab main-sidebar-action <%= sidebarSelected === 'explore' ? 'selected' : '' %>' id='explore' href="/home?mode=explore"><i class="fa-solid fa-globe main-sidebar-action-icon"></i><div class='caption'>Explore</div></a>
+      <details class="universal-create-menu">
+        <summary class="tab main-sidebar-action" aria-label="Create options"><i class="fa-solid fa-plus main-sidebar-action-icon"></i><div class='caption'>Create</div></summary>
+        <div class="universal-create-dropdown">
+          <button type="button" data-universal-launcher-open="create_app">Create app</button>
+          <button type="button" data-universal-launcher-open="create_plugin">Create plugin</button>
+        </div>
+      </details>
+      <button type="button" class="tab main-sidebar-action" data-universal-launcher-open="ask" aria-label="Ask Pinokio">
+        <span class="main-sidebar-action-icon ask-pinokio-icon" aria-hidden="true"></span>
+        <div class='caption'>Ask</div>
+      </button>
+    </div>
+
+    <div class='main-sidebar-section' aria-label="Computer">
+      <div class="main-sidebar-section-title">Computer</div>
+      <a href="/home" class="tab <%= sidebarSelected === 'home' ? 'selected' : '' %>"><i class='fas fa-laptop-code'></i><div class='caption'>This machine</div></a>
+      <a href="/network" class="tab <%= sidebarSelected === 'network' ? 'selected' : '' %>"><i class="fa-solid fa-wifi"></i><div class='caption'>Local network</div></a>
+      <% if (sidebarList.length > 0) { %>
+        <% sidebarList.forEach(({ host, name, platform }) => { %>
+          <% const selectedNet = sidebarSelectedNetName && String(name || "") === sidebarSelectedNetName; %>
+          <a href="/net/<%=name%>" class="submenu tab <%= selectedNet ? 'selected' : '' %>"><i class="fa-brands fa-<%=brands[platform]%>"></i><div class='caption'><%=name%> (<%=sidebarCurrentHost === host ? 'this machine' : host%>)</div></a>
+        <% }) %>
+      <% } %>
+    </div>
+
+    <div class='main-sidebar-section' aria-label="Manage">
+      <div class="main-sidebar-section-title">Manage</div>
+      <a class="tab <%= sidebarSelected === 'checkpoints' ? 'selected' : '' %>" href="/checkpoints"><i class="fa-solid fa-clock-rotate-left"></i><div class='caption'>Checkpoints</div></a>
+      <a class="tab <%= sidebarSelected === 'tools' ? 'selected' : '' %>" href="/tools"><i class="fa-solid fa-toolbox"></i><div class='caption'>Tools</div></a>
+      <a class="tab <%= sidebarSelected === 'plugins' ? 'selected' : '' %>" href="/plugins"><i class="fa-solid fa-plug-circle-bolt"></i><div class='caption'>Plugins</div></a>
+      <a class="tab <%= sidebarSelected === 'tasks' ? 'selected' : '' %>" href="/tasks"><i class="fa-solid fa-list-check"></i><div class='caption'>Tasks</div></a>
+      <a class="tab <%= sidebarSelected === 'skills' ? 'selected' : '' %>" href="/skills"><i class="fa-solid fa-wand-magic-sparkles"></i><div class='caption'>Skills</div></a>
+      <a class="tab <%= sidebarSelected === 'logs' ? 'selected' : '' %>" id='genlog' href="/logs"><i class="fa-solid fa-laptop-code"></i><div class='caption'>Logs</div></a>
+    </div>
+
+    <div class='main-sidebar-section' aria-label="Configure">
+      <div class="main-sidebar-section-title">Configure</div>
+      <a class="tab <%= sidebarSelected === 'autolaunch' ? 'selected' : '' %>" href="/autolaunch"><i class="fa-solid fa-power-off"></i><div class='caption'>Autolaunch</div></a>
+      <a href="/connect" class="tab <%= sidebarSelected === 'connect' ? 'selected' : '' %>"><i class="fa-solid fa-plug"></i><div class='caption'>Login</div></a>
+      <a class="tab <%= sidebarSelected === 'settings' ? 'selected' : '' %>" href="/home?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
+    </div>
+  </nav>
+
+  <% if (sidebarShowPeerAccess) { %>
+    <div class='main-sidebar-peer'>
+      <%- include('peer_access_points', {
+        peer_access_points: (typeof peer_access_points !== "undefined" ? peer_access_points : null),
+        peer_url: (typeof peer_url !== "undefined" ? peer_url : null),
+        peer_qr: (typeof peer_qr !== "undefined" ? peer_qr : null),
+      }) %>
+    </div>
+  <% } %>
+</aside>
+<script>
+  (() => {
+    const body = document.body;
+
+    const headerToggle = document.getElementById("minimize-header");
+    const sidebar = document.getElementById("main-sidebar");
+    if (body && sidebar && headerToggle && !headerToggle.dataset.mainSidebarHeaderToggle) {
+      headerToggle.dataset.mainSidebarHeaderToggle = "true";
+      headerToggle.classList.add("sidebar-toggle", "main-sidebar-header-toggle");
+      headerToggle.setAttribute("type", "button");
+      headerToggle.setAttribute("aria-controls", "main-sidebar");
+      headerToggle.innerHTML = `
+        <span class="sidebar-toggle-glyph" aria-hidden="true">
+          <span class="sidebar-toggle-frame">
+            <span class="sidebar-toggle-panel"></span>
+            <span class="sidebar-toggle-content"></span>
+          </span>
+        </span>
+      `;
+
+      const updateToggle = (collapsed) => {
+        const expanded = !collapsed;
+        const label = expanded ? "Hide sidebar" : "Show sidebar";
+        headerToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+        headerToggle.setAttribute("aria-label", label);
+        headerToggle.setAttribute("title", label);
+        headerToggle.setAttribute("data-tippy-content", label);
+        headerToggle.dataset.sidebarState = expanded ? "expanded" : "collapsed";
+        if (headerToggle._tippy && typeof headerToggle._tippy.setContent === "function") {
+          headerToggle._tippy.setContent(label);
+        }
+      };
+
+      const setCollapsed = (collapsed) => {
+        const next = !!collapsed;
+        body.classList.toggle("main-sidebar-collapsed", next);
+        sidebar.setAttribute("aria-hidden", next ? "true" : "false");
+        updateToggle(next);
+        document.dispatchEvent(new CustomEvent("pinokio:sidebar-state", {
+          detail: { collapsed: next, source: "main-sidebar" }
+        }));
+      };
+
+      setCollapsed(false);
+
+      headerToggle.addEventListener("click", (event) => {
+        event.preventDefault();
+        setCollapsed(!body.classList.contains("main-sidebar-collapsed"));
+      });
+
+      window.PinokioMainSidebar = {
+        setCollapsed,
+        isCollapsed: () => body.classList.contains("main-sidebar-collapsed")
+      };
+    }
+
+    if (window.__pinokioMainSidebarMobileInit) return;
+    window.__pinokioMainSidebarMobileInit = true;
+
+    const html = document.documentElement;
+    const toggle = document.querySelector("[data-main-sidebar-toggle]");
+    const backdrop = document.querySelector("[data-main-sidebar-backdrop]");
+    const mobileMq = window.matchMedia("(max-width: 600px)");
+
+    if (!body || !html || !sidebar || !toggle || !backdrop) return;
+
+    const sync = () => {
+      const open = body.classList.contains("main-sidebar-mobile-open");
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      const icon = toggle.querySelector("i");
+      if (icon) {
+        icon.classList.toggle("fa-bars", !open);
+        icon.classList.toggle("fa-xmark", open);
+      }
+      backdrop.hidden = !open;
+    };
+
+    const close = () => {
+      body.classList.remove("main-sidebar-mobile-open");
+      html.classList.remove("main-sidebar-mobile-open");
+      sync();
+    };
+
+    const open = () => {
+      if (!mobileMq.matches) return;
+      body.classList.add("main-sidebar-mobile-open");
+      html.classList.add("main-sidebar-mobile-open");
+      sync();
+    };
+
+    toggle.addEventListener("click", () => {
+      if (body.classList.contains("main-sidebar-mobile-open")) {
+        close();
+      } else {
+        open();
+      }
+    });
+
+    backdrop.addEventListener("click", close);
+
+    sidebar.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target.closest("a, button") && mobileMq.matches) {
+        close();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        close();
+      }
+    });
+
+    const handleMediaChange = () => {
+      if (!mobileMq.matches) {
+        close();
+      } else {
+        sync();
+      }
+    };
+
+    if (typeof mobileMq.addEventListener === "function") {
+      mobileMq.addEventListener("change", handleMediaChange);
+    } else if (typeof mobileMq.addListener === "function") {
+      mobileMq.addListener(handleMediaChange);
+    }
+
+    sync();
+  })();
+</script>

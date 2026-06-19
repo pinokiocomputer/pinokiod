@@ -106,7 +106,7 @@ footer a.btn {
 }
 </style>
 </head>
-<body class='columns <%=theme%>'>
+<body class='columns <%=theme%>' data-agent="<%=agent%>">
   <header class='navheader grabbable'>
   </header>
   <main>
@@ -117,7 +117,7 @@ footer a.btn {
     </div>
     <div class='items'>
       <% items.forEach((item) => { %>
-        <% if (item.href) { %>
+        <% if (typeof item.href === "string" && item.href) { %>
           <div class='item'>
             <% if (item.icon) { %>
               <img src="<%=item.icon%>">

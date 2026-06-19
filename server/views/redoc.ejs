@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>API Docs</title>
+    <link rel="stylesheet" type="text/css" href="/swagger-ui.css" />
+  </head>
+  <body>
+    <% if (spec) { %>
+      <div id='container'></div>
+      <script src="/redoc.standalone.js"></script>
+      <script>
+        Redoc.init(<%-spec.replace(/'/g, "&#39;")%>, {}, document.querySelector("#container"))
+      </script>
+    <% } else { %>
+      <h1>url required</h1>
+    <% } %>
+  </body>
+</html>

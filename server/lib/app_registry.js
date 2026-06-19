@@ -1,0 +1,463 @@
+const fs = require('fs')
+const path = require('path')
+const axios = require('axios')
+const Util = require('../../kernel/util')
+
+class AppRegistryService {
+  constructor({ kernel }) {
+    if (!kernel) {
+      throw new Error('AppRegistryService requires kernel')
+    }
+    this.kernel = kernel
+  }
+
+  isLoopbackHostname(hostname = '') {
+    const normalized = String(hostname || '').trim().toLowerCase()
+    if (!normalized) {
+      return false
+    }
+    return normalized === 'localhost' ||
+      normalized === '0.0.0.0' ||
+      normalized === '::1' ||
+      normalized === '[::1]' ||
+      normalized.startsWith('127.')
+  }
+
+  normalizeSource(source = null) {
+    const protocolRaw = source && typeof source.protocol === 'string' ? source.protocol.trim().toLowerCase() : ''
+    const protocol = protocolRaw === 'https' ? 'https' : 'http'
+    const host = source && typeof source.host === 'string' ? source.host.trim() : ''
+    let hostname = ''
+    if (host) {
+      try {
+        hostname = new URL(`http://${host}`).hostname
+      } catch (_) {
+        hostname = ''
+      }
+    }
+    return {
+      protocol,
+      host,
+      hostname: hostname ? hostname.toLowerCase() : ''
+    }
+  }
+
+  findExternalHostEntries(port) {
+    const normalizedPort = Number.parseInt(String(port || ''), 10)
+    if (!Number.isFinite(normalizedPort) || normalizedPort <= 0) {
+      return []
+    }
+    const currentHost = this.kernel && this.kernel.peer ? this.kernel.peer.host : ''
+    const peerInfo = currentHost && this.kernel && this.kernel.peer && this.kernel.peer.info
+      ? this.kernel.peer.info[currentHost]
+      : null
+    const routerInfo = peerInfo && Array.isArray(peerInfo.router_info) ? peerInfo.router_info : []
+    const entries = []
+    const seen = new Set()
+    for (const item of routerInfo) {
+      if (!item || String(item.internal_port) !== String(normalizedPort)) {
+        continue
+      }
+      const externalHosts = Array.isArray(item.external_hosts) ? item.external_hosts : []
+      for (const externalHost of externalHosts) {
+        if (!externalHost || !externalHost.host || !externalHost.port) {
+          continue
+        }
+        const signature = `${externalHost.host}:${externalHost.port}`
+        if (seen.has(signature)) {
+          continue
+        }
+        seen.add(signature)
+        entries.push({
+          host: String(externalHost.host).trim(),
+          port: Number.parseInt(String(externalHost.port), 10),
+          scope: externalHost.scope || null,
+          interface: externalHost.interface || null
+        })
+      }
+      if (item.external_ip && typeof item.external_ip === 'string') {
+        try {
+          const parsed = new URL(`http://${item.external_ip}`)
+          const signature = `${parsed.hostname}:${parsed.port}`
+          if (!seen.has(signature) && parsed.hostname && parsed.port) {
+            seen.add(signature)
+            entries.push({
+              host: parsed.hostname,
+              port: Number.parseInt(parsed.port, 10),
+              scope: null,
+              interface: null
+            })
+          }
+        } catch (_) {}
+      }
+    }
+    return entries
+  }
+
+  sortExternalHostEntries(entries = [], source = null) {
+    const sourceInfo = this.normalizeSource(source)
+    const scopedEntries = Array.isArray(entries) ? entries.slice() : []
+    const scopeRank = (scope = '') => {
+      switch (String(scope || '').toLowerCase()) {
+        case 'lan':
+          return 0
+        case 'cgnat':
+          return 1
+        default:
+          return 2
+      }
+    }
+    return scopedEntries.sort((a, b) => {
+      const aHost = String(a && a.host ? a.host : '').toLowerCase()
+      const bHost = String(b && b.host ? b.host : '').toLowerCase()
+      const aMatchesCaller = sourceInfo.hostname && aHost === sourceInfo.hostname ? 1 : 0
+      const bMatchesCaller = sourceInfo.hostname && bHost === sourceInfo.hostname ? 1 : 0
+      if (aMatchesCaller !== bMatchesCaller) {
+        return bMatchesCaller - aMatchesCaller
+      }
+      const aScope = scopeRank(a && a.scope)
+      const bScope = scopeRank(b && b.scope)
+      if (aScope !== bScope) {
+        return aScope - bScope
+      }
+      return `${aHost}:${a && a.port ? a.port : ''}`.localeCompare(`${bHost}:${b && b.port ? b.port : ''}`)
+    })
+  }
+
+  buildExternalReadyUrls(url, source = null) {
+    if (!url || typeof url !== 'string') {
+      return []
+    }
+    const originalUrl = String(url)
+    let parsed
+    try {
+      parsed = new URL(originalUrl)
+    } catch (_) {
+      return []
+    }
+    const originalProtocol = parsed.protocol === 'https:' ? 'https:' : 'http:'
+    const hostname = (parsed.hostname || '').trim().toLowerCase()
+    if (!hostname || !this.isLoopbackHostname(hostname)) {
+      return []
+    }
+
+    const externalEntries = this.sortExternalHostEntries(this.findExternalHostEntries(parsed.port), source)
+    const results = []
+    const seen = new Set()
+    for (const entry of externalEntries) {
+      if (!entry || !entry.host || !entry.port) {
+        continue
+      }
+      const next = new URL(parsed.toString())
+      next.protocol = originalProtocol
+      next.hostname = entry.host
+      next.port = String(entry.port)
+      let nextUrl = next.toString()
+      if (/^https?:\/\/[^/?#]+$/i.test(originalUrl) && next.pathname === '/' && !next.search && !next.hash) {
+        nextUrl = nextUrl.replace(/\/$/, '')
+      }
+      if (seen.has(nextUrl)) {
+        continue
+      }
+      seen.add(nextUrl)
+      const item = {
+        url: nextUrl,
+        transport: 'ip',
+        scope: entry.scope || 'unknown'
+      }
+      if (entry.interface) {
+        item.interface = entry.interface
+      }
+      results.push(item)
+    }
+    return results
+  }
+
+  buildExternalReadyUrl(url, source = null) {
+    const externalReadyUrls = this.buildExternalReadyUrls(url, source)
+    return externalReadyUrls.length > 0 ? externalReadyUrls[0].url : null
+  }
+
+  isPathWithin(parentPath, childPath) {
+    if (!parentPath || !childPath) {
+      return false
+    }
+    const relative = path.relative(parentPath, childPath)
+    if (!relative) {
+      return true
+    }
+    return !relative.startsWith('..') && !path.isAbsolute(relative)
+  }
+
+  normalizeAppId(appId = '') {
+    if (typeof appId !== 'string') {
+      return ''
+    }
+    const trimmed = appId.trim()
+    if (!trimmed) {
+      return ''
+    }
+    const normalized = trimmed.replace(/\\/g, '/')
+    if (normalized.includes('/') || normalized === '.' || normalized === '..') {
+      return ''
+    }
+    return normalized
+  }
+
+  normalizeRelativeScriptPath(scriptPath = '') {
+    if (typeof scriptPath !== 'string') {
+      return ''
+    }
+    const trimmed = scriptPath.trim()
+    if (!trimmed) {
+      return ''
+    }
+    const normalized = path.posix.normalize(trimmed.replace(/\\/g, '/'))
+    if (!normalized || normalized === '.' || normalized.startsWith('../') || normalized.startsWith('/')) {
+      return ''
+    }
+    return normalized
+  }
+
+  async pathIsDirectory(targetPath) {
+    try {
+      const stats = await fs.promises.stat(targetPath)
+      return stats.isDirectory()
+    } catch (_) {
+      return false
+    }
+  }
+
+  async pathIsFile(targetPath) {
+    try {
+      const stats = await fs.promises.stat(targetPath)
+      return stats.isFile()
+    } catch (_) {
+      return false
+    }
+  }
+
+  async firstExistingScript(appRoot, candidates = []) {
+    for (const candidate of candidates) {
+      const scriptName = this.normalizeRelativeScriptPath(candidate)
+      if (!scriptName) {
+        continue
+      }
+      const fullPath = path.resolve(appRoot, ...scriptName.split('/'))
+      if (!this.isPathWithin(appRoot, fullPath)) {
+        continue
+      }
+      if (await this.pathIsFile(fullPath)) {
+        return scriptName
+      }
+    }
+    return null
+  }
+
+  toPosixRelative(fromPath, toPath) {
+    const relative = path.relative(fromPath, toPath)
+    return relative.split(path.sep).join('/')
+  }
+
+  collectAppRuntime(appRoot) {
+    const runtime = {
+      running: false,
+      ready: false,
+      state: 'offline',
+      ready_url: null,
+      external_ready_urls: [],
+      ready_script: null,
+      running_scripts: [],
+      local_entries: []
+    }
+    const runningMap = (this.kernel && this.kernel.api && this.kernel.api.running) ? this.kernel.api.running : {}
+    const localMap = (this.kernel && this.kernel.memory && this.kernel.memory.local) ? this.kernel.memory.local : {}
+    const runningScripts = []
+    for (const key of Object.keys(runningMap || {})) {
+      const scriptPath = String(key || '').split('?')[0]
+      if (!scriptPath || !path.isAbsolute(scriptPath)) {
+        continue
+      }
+      if (!this.isPathWithin(appRoot, scriptPath)) {
+        continue
+      }
+      runningScripts.push(scriptPath)
+    }
+    const localEntries = []
+    for (const [key, local] of Object.entries(localMap || {})) {
+      const scriptPath = String(key || '').split('?')[0]
+      if (!scriptPath || !path.isAbsolute(scriptPath)) {
+        continue
+      }
+      if (!this.isPathWithin(appRoot, scriptPath)) {
+        continue
+      }
+      localEntries.push({
+        script: scriptPath,
+        local: local || {}
+      })
+    }
+    let readyEntry = null
+    for (const scriptPath of runningScripts) {
+      const entry = localEntries.find((item) => item.script === scriptPath && item.local && typeof item.local.url === 'string' && item.local.url.trim())
+      if (entry) {
+        readyEntry = entry
+        break
+      }
+    }
+    if (!readyEntry) {
+      readyEntry = localEntries.find((item) => item.local && typeof item.local.url === 'string' && item.local.url.trim())
+    }
+    runtime.running = runningScripts.length > 0
+    runtime.running_scripts = runningScripts.map((fullPath) => this.toPosixRelative(appRoot, fullPath))
+    runtime.local_entries = localEntries.map((entry) => {
+      return {
+        script: this.toPosixRelative(appRoot, entry.script),
+        local: entry.local || {}
+      }
+    })
+    if (readyEntry) {
+      runtime.ready_url = readyEntry.local.url
+      runtime.ready_script = this.toPosixRelative(appRoot, readyEntry.script)
+    }
+    runtime.ready = Boolean(runtime.ready_url)
+    if (runtime.running) {
+      runtime.state = runtime.ready ? 'online' : 'starting'
+    }
+    return runtime
+  }
+
+  async probeUrlReady(url, timeoutMs = 1500) {
+    if (!url || typeof url !== 'string') {
+      return false
+    }
+    try {
+      await axios.get(url, {
+        timeout: timeoutMs,
+        maxRedirects: 0,
+        validateStatus: () => true
+      })
+      return true
+    } catch (_) {
+      return false
+    }
+  }
+
+  parseBooleanQuery(input, fallback = false) {
+    if (typeof input === 'boolean') {
+      return input
+    }
+    if (typeof input === 'number') {
+      return input !== 0
+    }
+    if (typeof input === 'string') {
+      const normalized = input.trim().toLowerCase()
+      if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+        return true
+      }
+      if (['0', 'false', 'no', 'off'].includes(normalized)) {
+        return false
+      }
+    }
+    return fallback
+  }
+
+  parseTailCount(input, fallback = 200) {
+    const parsed = Number.parseInt(String(input || ''), 10)
+    if (!Number.isFinite(parsed)) {
+      return fallback
+    }
+    return Math.min(Math.max(parsed, 1), 5000)
+  }
+
+  async listInfoApps() {
+    try {
+      const apps = await this.kernel.api.listApps()
+      return apps.map((app) => ({
+        name: app.name,
+        title: app.title,
+        description: app.description,
+        icon: app.icon
+      }))
+    } catch (error) {
+      console.warn('Failed to enumerate api apps for url dropdown', error)
+      return []
+    }
+  }
+
+  async buildAppStatus(appId, options = {}) {
+    const normalizedAppId = this.normalizeAppId(appId)
+    if (!normalizedAppId) {
+      return null
+    }
+    const apiRoot = this.kernel.path('api')
+    const appRoot = path.resolve(apiRoot, normalizedAppId)
+    if (!this.isPathWithin(apiRoot, appRoot)) {
+      return null
+    }
+    const relativeToApi = path.relative(apiRoot, appRoot)
+    if (!relativeToApi || relativeToApi.includes(path.sep)) {
+      return null
+    }
+    if (!(await this.pathIsDirectory(appRoot))) {
+      return null
+    }
+
+    let meta
+    try {
+      meta = await this.kernel.api.meta(normalizedAppId)
+    } catch (_) {
+      meta = null
+    }
+
+    const runtime = this.collectAppRuntime(appRoot)
+    runtime.external_ready_urls = this.buildExternalReadyUrls(runtime.ready_url, options.source || null)
+    const installScript = await this.firstExistingScript(appRoot, ['install.js', 'install.json'])
+    const startScript = await this.firstExistingScript(appRoot, ['start.js', 'start.json'])
+    let defaultTarget = null
+    try {
+      defaultTarget = await this.kernel.api.get_default(appRoot)
+    } catch (_) {
+      defaultTarget = null
+    }
+    let defaultScript = null
+    if (defaultTarget && typeof defaultTarget === 'string' && path.isAbsolute(defaultTarget) && this.isPathWithin(appRoot, defaultTarget)) {
+      defaultScript = this.toPosixRelative(appRoot, defaultTarget)
+    }
+    let ready = runtime.ready
+    let state = runtime.state
+    let probe = null
+    const shouldProbe = this.parseBooleanQuery(options.probe, false)
+    if (shouldProbe && runtime.ready_url) {
+      probe = await this.probeUrlReady(runtime.ready_url, Number.isFinite(options.timeout) ? options.timeout : 1500)
+      ready = probe
+      if (runtime.running) {
+        state = probe ? 'online' : 'starting'
+      }
+    }
+    return {
+      app_id: normalizedAppId,
+      name: normalizedAppId,
+      title: meta && meta.title ? meta.title : normalizedAppId,
+      description: meta && meta.description ? meta.description : '',
+      icon: meta && meta.icon ? meta.icon : '/pinokio-black.png',
+      path: appRoot,
+      install_script: installScript,
+      start_script: startScript,
+      default_target: defaultTarget || null,
+      default_script: defaultScript,
+      running: runtime.running,
+      ready,
+      ready_url: runtime.ready_url,
+      external_ready_urls: runtime.external_ready_urls,
+      state,
+      running_scripts: runtime.running_scripts,
+      ready_script: runtime.ready_script,
+      local_entries: runtime.local_entries,
+      probe,
+      last_error: null
+    }
+  }
+}
+
+module.exports = AppRegistryService

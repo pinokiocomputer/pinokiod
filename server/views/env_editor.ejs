@@ -145,6 +145,20 @@ body.dark .comment {
 #save {
   background: royalblue;
 }
+#delete-project {
+  color: #fff;
+  background: firebrick;
+  width: 100%;
+  display: block;
+  text-align: center;
+  margin-top: 20px;
+  padding: 12px 16px;
+}
+#delete-project:hover {
+  background: #b22222;
+  color: #fff;
+  border: none;
+}
 a#customize {
   text-decoration: underline;
   cursor: pointer;
@@ -162,6 +176,7 @@ a#customize {
 }
 body {
   display: block;
+  padding: 10px;
 }
 .card {
   display: flex;
@@ -215,14 +230,161 @@ footer .btn.go-home {
 }
 .env-title {
   font-weight: bold;
+  margin-bottom: 5px;
 }
 .env-description {
   margin-bottom: 10px;
+}
+.warning {
+  padding: 10px;
+  margin: 10px 0 20px;
+  border-left: 5px solid rgba(0,0,0,0.1);
+}
+.warning a {
+  text-decoration: none;
+  color: royalblue;
+}
+.install-options {
+  margin: 0 0 20px;
+}
+body.dark .install-option {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+}
+.install-option {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(15,23,42,0.12);
+  border-radius: 4px;
+  background: rgba(15,23,42,0.03);
+}
+.install-option-copy {
+  min-width: 0;
+  flex: 1;
+}
+.install-option-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+body.dark .install-option-list {
+  color: rgba(255,255,255,0.72);
+}
+.install-option-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: rgba(15,23,42,0.74);
+  line-height: 1.45;
+}
+.install-option-list li + li {
+  margin-top: 4px;
+}
+body.dark .beta-badge {
+  border-color: rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.84);
+}
+.beta-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(15,23,42,0.12);
+  background: rgba(15,23,42,0.06);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+body.dark .toggle-switch-text {
+  color: rgba(255,255,255,0.82);
+}
+.toggle-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.toggle-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+body.dark .toggle-slider {
+  background: rgba(255,255,255,0.18);
+}
+.toggle-slider {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(15,23,42,0.16);
+  transition: background 0.2s ease;
+}
+.toggle-slider::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.2);
+  transition: transform 0.2s ease;
+}
+.toggle-switch input:checked + .toggle-slider {
+  background: royalblue;
+}
+.toggle-switch input:checked + .toggle-slider::after {
+  transform: translateX(18px);
+}
+.toggle-switch-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(15,23,42,0.72);
+}
+@media (max-width: 640px) {
+  .install-option {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .toggle-switch {
+    justify-content: space-between;
+  }
 }
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
   const n = new N()
+  const navigateHome = () => {
+    const isAppHost = new URLSearchParams(window.location.search || "").get("host") === "app"
+    if (isAppHost && window.parent && window.parent !== window) {
+      try {
+        window.parent.location.assign("/home")
+        return
+      } catch (_) {}
+    }
+    window.location.assign("/home")
+  }
+  const protectionInput = document.querySelector("#protection-enabled")
+  const protectionState = document.querySelector("[data-protection-state]")
+  const syncProtectionState = () => {
+    if (!protectionInput || !protectionState) {
+      return
+    }
+    protectionState.textContent = protectionInput.checked ? "On" : "Off"
+  }
+  if (protectionInput) {
+    protectionInput.addEventListener("change", syncProtectionState)
+    syncProtectionState()
+  }
   document.querySelector("#save").addEventListener("click", async (e) => {
     // save
     const vals = {}
@@ -239,14 +401,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       },
       body: JSON.stringify({
         filepath: location.pathname.slice(5),
-        vals
+        vals,
+        protection_enabled: protectionInput ? protectionInput.checked : undefined
       })
     }).then((res) => {
       return res.json()
     })
     console.log("res" ,res)
     <% if (init && name) { %>
-      location.href = "/pinokio/browser/<%=name%>"
+      //location.href = "/pinokio/browser/<%=name%>"
+      location.href = "/p/<%=encodeURIComponent(name)%>?install_protection=1"
     <% } else { %>
       n.Noty({
         text: `Updated!`
@@ -258,12 +422,57 @@ document.addEventListener("DOMContentLoaded", async () => {
       e.preventDefault()
       e.stopPropagation()
       document.querySelector("#editor").classList.toggle("hidden")
+      document.body.classList.toggle("center")
     })
+  <% } %>
+  <% if (!init && name) { %>
+    const deleteBtn = document.querySelector("#delete-project")
+    if (deleteBtn) {
+      const projectName = <%- JSON.stringify(name) %>
+      deleteBtn.addEventListener("click", async (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        const confirmed = confirm("Are you sure you wish to delete?")
+        if (!confirmed) {
+          return
+        }
+        Swal.fire({
+          html: '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting',
+          customClass: {
+            container: "loader-container",
+            popup: "loader-popup",
+            htmlContainer: "loader-dialog",
+            footer: "hidden",
+            actions: "hidden"
+          }
+        })
+        try {
+          const res = await fetch("/pinokio/delete", {
+            method: "post",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ name: projectName })
+          }).then((response) => response.json())
+          Swal.close()
+          if (res && res.success) {
+            navigateHome()
+          } else if (res && res.error) {
+            alert(res.error)
+          } else {
+            alert("Failed to delete project")
+          }
+        } catch (err) {
+          Swal.close()
+          alert(err.message || "Failed to delete project")
+        }
+      })
+    }
   <% } %>
 })
 </script>
 </head>
-<body class='<%=theme%> <%=init ? 'center' : ''%>'>
+<body class='<%=theme%> <%=init ? 'center' : ''%>' data-agent="<%=agent%>">
   <main>
     <% if (init) { %>
       <div>
@@ -279,8 +488,28 @@ document.addEventListener("DOMContentLoaded", async () => {
             </div>
           </div>
         <% } %>
+        <div class='warning'>
+          This will execute the 3rd party script downloaded from <a href="<%=gitRemote%>" target="_blank"><%=gitRemote%>.</a>
+        </div>
+        <div class='install-options'>
+          <div class='install-option'>
+            <div class='install-option-copy'>
+              <div class='install-option-title'>Protection <span class='beta-badge'>Beta</span></div>
+              <ul class='install-option-list'>
+                <li>Blocks packages newer than 72 hours for new runs in this app.</li>
+                <li>Can reduce risk, but some installs may fail.</li>
+                <li>You can change this later in the app.</li>
+              </ul>
+            </div>
+            <label class='toggle-switch' for='protection-enabled'>
+              <input id='protection-enabled' type='checkbox' <%= protection_enabled ? 'checked' : '' %>>
+              <span class='toggle-slider' aria-hidden='true'></span>
+              <span class='toggle-switch-text' data-protection-state><%= protection_enabled ? 'On' : 'Off' %></span>
+            </label>
+          </div>
+        </div>
         <footer>
-          <a href="/" class='btn go-home'><i class='fa-solid fa-home'></i> home</a>
+          <a href="/home" class='btn go-home'><i class='fa-solid fa-home'></i> home</a>
           <div class='flexible'></div>
           <button id='customize' class='btn'><i class="fa-solid fa-gear"></i> Customize</button>
           <div id='save' class='btn'>
@@ -292,7 +521,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       <header class='navheader grabbable'>
         <h1>
           <% if (home) { %>
-            <a class='home-button home' href="/"><i class='fa-solid fa-home'></i></a>
+            <a class='home-button home' href="/home"><i class='fa-solid fa-home'></i></a>
           <% } %>
           <div class='flexible'></div>
           <div class='nav-btns'>
@@ -316,6 +545,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           </div>
         <% } %>
       <% }) %>
+      <% if (name) { %>
+        <button class='btn' id='delete-project'>
+          <i class="fa-solid fa-trash"></i> Delete Project
+        </button>
+      <% } %>
     </div>
   </main>
 </body>

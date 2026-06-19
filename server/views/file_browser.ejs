@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Files · <%=workspaceLabel%></title>
+  <link href="/css/fontawesome.min.css" rel="stylesheet">
+  <link href="/css/solid.min.css" rel="stylesheet">
+  <link href="/css/regular.min.css" rel="stylesheet">
+  <link href="/css/brands.min.css" rel="stylesheet">
+  <link href="/style.css" rel="stylesheet">
+  <link href="/files-app/app.css" rel="stylesheet">
+  <link href="/filepond.min.css" rel="stylesheet" />
+  <link href="/filepond-plugin-image-preview.min.css" rel="stylesheet" />
+  <link href="/filepond-plugin-image-edit.min.css" rel="stylesheet" />
+  <link href="/noty.css" rel="stylesheet">
+  <% if (agent === 'electron') { %>
+    <link href="/electron.css" rel="stylesheet">
+  <% } %>
+</head>
+<body class="<%=theme%>" data-agent="<%=agent%>">
+  <div class="files-app" data-theme="<%=theme%>">
+    <header class="files-app__header">
+      <button class="files-app__mobile-back" id="files-app-mobile-back" type="button" aria-label="Back to files">
+        <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+        <span>Files</span>
+      </button>
+      <div class="files-app__header-title">
+        <% if (workspaceMeta && workspaceMeta.icon) { %>
+          <img class="files-app__header-icon" src="<%= workspaceMeta.icon %>" onerror="this.onerror=null; this.src='/pinokio-black.png'" alt="Project icon" />
+        <% } else { %>
+          <i class="fa-regular fa-folder-open"></i>
+        <% } %>
+        <div class="files-app__header-text">
+          <div class="files-app__header-primary"><%= (workspaceMeta && workspaceMeta.title) ? workspaceMeta.title : workspaceLabel %></div>
+          <% if (workspaceMeta && workspaceMeta.description) { %>
+            <div class="files-app__header-desc"><%= workspaceMeta.description %></div>
+          <% } %>
+          <div class="files-app__header-sub"><%=workspaceRoot%></div>
+        </div>
+      </div>
+      <div class="files-app__header-actions">
+        <button class="files-app__meta" type="button" id="files-app-edit-metadata">
+          <i class="fa-solid fa-pen-to-square"></i>
+          <span>Edit metadata</span>
+        </button>
+        <button class="files-app__save" id="files-app-save" disabled>
+          <i class="fa-solid fa-floppy-disk"></i>
+          <span>Save</span>
+        </button>
+      </div>
+    </header>
+    <section class="files-app__body">
+      <aside class="files-app__sidebar" aria-label="Project files">
+        <div class="files-app__sidebar-scroll" id="files-app-tree">
+        </div>
+      </aside>
+      <main class="files-app__main">
+        <button class="files-app__sidebar-toggle" id="files-app-toggle-sidebar" type="button" aria-controls="files-app-tree" aria-expanded="true">
+          <span class="sr-only">Hide files</span>
+          <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+        </button>
+        <div class="files-app__tabs" id="files-app-tabs" role="tablist" aria-label="Open files"></div>
+        <div class="files-app__editor" id="files-app-editor" role="presentation"></div>
+        <div class="files-app__status" id="files-app-status" role="status" aria-live="polite"></div>
+      </main>
+    </section>
+  </div>
+  <script src="/sweetalert2.js"></script>
+  <script src="/filepond-plugin-file-validate-type.min.js"></script>
+  <script src="/filepond-plugin-image-exif-orientation.min.js"></script>
+  <script src="/filepond-plugin-image-preview.min.js"></script>
+  <script src="/filepond-plugin-image-edit.min.js"></script>
+  <script src="/filepond-plugin-image-crop.min.js"></script>
+  <script src="/filepond-plugin-image-resize.min.js"></script>
+  <script src="/filepond-plugin-image-transform.min.js"></script>
+  <script src="/filepond.min.js"></script>
+  <script src="/fseditor.js"></script>
+  <script src="/ace/ace.js"></script>
+  <script src="/ace/ext-modelist.js"></script>
+  <script src="/files-app/app.js"></script>
+  <script>
+    window.FilesApp.init({
+      workspace: <%- JSON.stringify(workspaceSlug) %>,
+      workspaceLabel: <%- JSON.stringify(workspaceLabel) %>,
+      theme: <%- JSON.stringify(theme) %>,
+      initialPath: <%- JSON.stringify(initialPath || '') %>,
+      initialPathType: <%- JSON.stringify(initialPathType || null) %>,
+      workspaceRoot: <%- JSON.stringify(workspaceRootEncoded || '') %>
+    });
+
+    const workspaceMetadata = {
+      title: <%- JSON.stringify((workspaceMeta && workspaceMeta.title) || '') %>,
+      description: <%- JSON.stringify((workspaceMeta && workspaceMeta.description) || '') %>,
+      icon: <%- JSON.stringify((workspaceMeta && workspaceMeta.icon) || '') %>,
+      iconpath: <%- JSON.stringify((workspaceMeta && workspaceMeta.iconpath) || '') %>
+    };
+    const workspaceSlugValue = <%- JSON.stringify(workspaceSlug) %>;
+
+    const encodeWorkspacePath = (value) => {
+      if (!value) {
+        return '';
+      }
+      return value
+        .split('/')
+        .filter(Boolean)
+        .map((segment) => encodeURIComponent(segment))
+        .join('/');
+    };
+
+    const redirectToWorkspace = (newPath) => {
+      if (!newPath) {
+        return window.location.href;
+      }
+      const encoded = encodeWorkspacePath(newPath);
+      const url = new URL(window.location.href);
+      url.pathname = `/pinokio/fileview/${encoded}`;
+      return url.toString();
+    };
+
+    const metadataButton = document.getElementById('files-app-edit-metadata');
+    if (metadataButton) {
+      metadataButton.addEventListener('click', async (event) => {
+        event.preventDefault();
+        if (typeof FSEditor !== 'function') {
+          return;
+        }
+        try {
+          await FSEditor({
+            title: workspaceMetadata.title,
+            description: workspaceMetadata.description,
+            old_path: workspaceSlugValue,
+            icon: workspaceMetadata.icon,
+            iconpath: workspaceMetadata.iconpath,
+            edit: true,
+            redirect: redirectToWorkspace
+          });
+        } catch (error) {
+          console.error('Failed to open metadata editor', error);
+        }
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,2225 @@
+:root {
+  --universal-launcher-radius: 8px;
+  --universal-launcher-control-radius: 7px;
+  --universal-launcher-border: rgba(15, 23, 42, 0.12);
+  --universal-launcher-border-strong: rgba(15, 23, 42, 0.18);
+  --universal-launcher-surface: rgba(255, 255, 255, 0.98);
+  --universal-launcher-surface-muted: rgba(248, 250, 252, 0.96);
+  --universal-launcher-surface-solid: #ffffff;
+  --universal-launcher-panel-bg: #ffffff;
+  --universal-launcher-panel-bg-muted: rgba(248, 250, 252, 0.96);
+  --universal-launcher-control-surface: #ffffff;
+  --universal-launcher-text: #111827;
+  --universal-launcher-text-muted: rgba(55, 65, 81, 0.78);
+  --universal-launcher-shadow: 0 18px 56px rgba(15, 23, 42, 0.14);
+  --universal-quick-action-bg: var(--pinokio-chrome-accent-bg-light, rgba(15, 23, 42, 0.84));
+  --universal-quick-action-bg-hover: var(--pinokio-chrome-accent-bg-light, rgba(15, 23, 42, 0.84));
+  --universal-quick-action-text: var(--pinokio-chrome-accent-fg-light, #c8a362);
+  --universal-launcher-accent-text: var(--universal-quick-action-text);
+  --universal-launcher-primary-bg: var(--universal-quick-action-bg);
+  --universal-launcher-primary-border: var(--universal-quick-action-bg);
+  --universal-launcher-primary-text: var(--universal-quick-action-text);
+  --universal-launcher-primary-bg-hover: var(--universal-quick-action-bg);
+  --universal-launcher-primary-border-hover: var(--universal-quick-action-bg);
+  --universal-create-dropdown-surface: #ffffff;
+  --universal-create-dropdown-shadow: 0 12px 24px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15, 23, 42, 0.08);
+  --universal-create-dropdown-hover: rgba(65, 105, 225, 0.1);
+}
+
+body.dark {
+  --universal-launcher-border: rgba(255, 255, 255, 0.09);
+  --universal-launcher-border-strong: rgba(255, 255, 255, 0.14);
+  --universal-launcher-surface: rgba(10, 10, 11, 0.98);
+  --universal-launcher-surface-muted: rgba(20, 20, 22, 0.98);
+  --universal-launcher-surface-solid: #0a0a0b;
+  --universal-launcher-panel-bg: #0a0a0b;
+  --universal-launcher-panel-bg-muted: rgba(20, 20, 22, 0.98);
+  --universal-launcher-control-surface: #131315;
+  --universal-launcher-text: rgba(250, 250, 250, 0.96);
+  --universal-launcher-text-muted: rgba(161, 161, 170, 0.88);
+  --universal-launcher-shadow: 0 24px 72px rgba(0, 0, 0, 0.42);
+  --universal-quick-action-bg: var(--pinokio-chrome-accent-bg-dark, rgba(255, 255, 255, 0.08));
+  --universal-quick-action-bg-hover: var(--pinokio-chrome-accent-bg-dark, rgba(255, 255, 255, 0.08));
+  --universal-quick-action-text: var(--pinokio-chrome-accent-fg-dark, #c2b28a);
+  --universal-launcher-accent-text: var(--universal-quick-action-text);
+  --universal-launcher-primary-bg: var(--universal-quick-action-text);
+  --universal-launcher-primary-border: var(--universal-quick-action-text);
+  --universal-launcher-primary-text: var(--universal-launcher-surface-solid);
+  --universal-launcher-primary-bg-hover: var(--universal-quick-action-text);
+  --universal-launcher-primary-border-hover: var(--universal-quick-action-text);
+  --universal-create-dropdown-surface: #151517;
+  --universal-create-dropdown-shadow: 0 16px 36px rgba(0, 0, 0, 0.38), 0 2px 10px rgba(0, 0, 0, 0.24);
+  --universal-create-dropdown-hover: rgba(65, 105, 225, 0.22);
+}
+
+.main-sidebar .universal-create-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: auto;
+  right: 0;
+  z-index: 80;
+  min-width: 172px;
+  width: max-content;
+  max-width: min(220px, calc(100vw - 24px));
+  height: auto !important;
+  max-height: none !important;
+  display: none;
+  flex-direction: column;
+  align-items: stretch;
+  align-content: flex-start;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--universal-launcher-border-strong);
+  border-radius: 8px;
+  background: var(--universal-create-dropdown-surface);
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12), 0 1px 4px rgba(15, 23, 42, 0.08);
+  overflow: clip;
+}
+
+.main-sidebar .universal-create-menu:not([open]) .universal-create-dropdown {
+  display: none;
+}
+
+.main-sidebar .universal-create-menu[open] .universal-create-dropdown {
+  display: flex !important;
+}
+
+.main-sidebar .universal-create-dropdown button {
+  appearance: none;
+  border: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  background: transparent;
+  color: var(--universal-launcher-text);
+  text-align: left;
+  min-height: 32px;
+  gap: 3px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.main-sidebar .universal-create-dropdown button:hover,
+.main-sidebar .universal-create-dropdown button:focus-visible {
+  background: var(--universal-create-dropdown-hover);
+  outline: none;
+}
+
+body.dark .main-sidebar .universal-create-dropdown button:hover,
+body.dark .main-sidebar .universal-create-dropdown button:focus-visible {
+  background: var(--universal-create-dropdown-hover);
+}
+
+.universal-launcher-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(10, 10, 12, 0.42);
+  backdrop-filter: blur(4px);
+  overscroll-behavior: contain;
+}
+
+html.universal-launcher-open,
+body.universal-launcher-open {
+  overflow: hidden;
+}
+
+.universal-launcher-overlay[hidden] {
+  display: none !important;
+}
+
+.universal-launcher-overlay [hidden] {
+  display: none !important;
+}
+
+.universal-launcher-output {
+  margin-top: 12px;
+  border: 1px solid var(--universal-launcher-border);
+  border-radius: 10px;
+  background: var(--universal-launcher-control-surface);
+  overflow: hidden;
+}
+
+.universal-launcher-output-label {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--universal-launcher-border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-output-code {
+  margin: 0;
+  padding: 12px;
+  min-height: 150px;
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  color: var(--universal-launcher-text);
+  background: transparent;
+}
+
+.universal-launcher-panel {
+  position: relative;
+  width: min(620px, calc(100vw - 28px));
+  max-height: min(640px, calc(100vh - 32px));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border-radius: var(--universal-launcher-radius);
+  border: 1px solid var(--universal-launcher-border);
+  background: var(--universal-launcher-surface);
+  box-shadow: var(--universal-launcher-shadow);
+  color: var(--universal-launcher-text);
+}
+
+.universal-launcher-header,
+.universal-launcher-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.universal-launcher-header {
+  border-bottom: 1px solid var(--universal-launcher-border);
+}
+
+.universal-launcher-footer {
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--universal-launcher-border);
+}
+
+.universal-launcher-heading {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.universal-launcher-title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--universal-launcher-accent-text);
+}
+
+.universal-launcher-brand-mark {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: currentColor;
+  color: inherit;
+  -webkit-mask: url('/pinokio-mark.svg') center / 13px 13px no-repeat;
+  mask: url('/pinokio-mark.svg') center / 13px 13px no-repeat;
+}
+
+.universal-launcher-title {
+  margin: 0;
+  font-size: 16px;
+  color: inherit;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.universal-launcher-description {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-status {
+  margin-top: 4px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 18px;
+  padding: 9px 11px;
+  border: 1px solid rgba(65, 105, 225, 0.16);
+  border-radius: 10px;
+  background: color-mix(in srgb, royalblue 6%, var(--universal-launcher-surface-muted));
+}
+
+.universal-launcher-status[hidden] {
+  display: none !important;
+}
+
+.universal-launcher-status-spinner {
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 2px solid rgba(65, 105, 225, 0.18);
+  border-top-color: royalblue;
+  animation: universal-launcher-spin 0.8s linear infinite;
+}
+
+.universal-launcher-status-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.universal-launcher-status-label {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--universal-launcher-text);
+}
+
+.universal-launcher-status-detail {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--universal-launcher-text-muted);
+}
+
+body.dark .universal-launcher-status-spinner {
+  border-color: rgba(255, 255, 255, 0.12);
+  border-top-color: royalblue;
+}
+
+body.dark .universal-launcher-status {
+  border-color: rgba(65, 105, 225, 0.28);
+  background: color-mix(in srgb, royalblue 10%, var(--universal-launcher-surface-muted));
+}
+
+@keyframes universal-launcher-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.universal-launcher-close {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  border: 1px solid var(--universal-launcher-border);
+  background: transparent;
+  color: var(--universal-launcher-text-muted);
+  cursor: pointer;
+}
+
+.universal-launcher-close[hidden] {
+  display: none !important;
+}
+
+.universal-launcher-close:hover,
+.universal-launcher-close:focus-visible {
+  background: rgba(15, 23, 42, 0.05);
+  color: var(--universal-launcher-text);
+  outline: none;
+}
+
+body.dark .universal-launcher-close:hover,
+body.dark .universal-launcher-close:focus-visible {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.universal-launcher-body {
+  overflow: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 14px;
+  transition: opacity 160ms ease;
+}
+
+.universal-launcher-panel.is-submitting .universal-launcher-body {
+  opacity: 0.48;
+  pointer-events: none;
+}
+
+.universal-launcher-panel.is-submitting .universal-launcher-footer-links {
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+.universal-launcher-intents {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.universal-launcher-modes {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  align-self: flex-start;
+}
+
+.universal-launcher-mode {
+  appearance: none;
+  min-width: 0;
+  min-height: 0;
+  padding: 0 0 7px;
+  border: 0;
+  border-bottom: 1.5px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--universal-launcher-text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.universal-launcher-mode:hover,
+.universal-launcher-mode:focus-visible {
+  color: var(--universal-launcher-text);
+  outline: none;
+}
+
+.universal-launcher-mode.active {
+  border-color: var(--universal-launcher-accent-text);
+  background: transparent;
+  color: var(--universal-launcher-text);
+}
+
+.universal-launcher-intents[hidden] {
+  display: none !important;
+}
+
+.universal-launcher-primary-grid,
+.universal-launcher-secondary-grid {
+  display: grid;
+  gap: 10px;
+  align-items: start;
+  grid-template-columns: 1fr;
+}
+
+.universal-launcher-intent {
+  appearance: none;
+  min-width: 0;
+  height: 34px;
+  border-radius: var(--universal-launcher-control-radius);
+  border: 1px solid var(--universal-launcher-border);
+  background: var(--universal-launcher-surface-muted);
+  color: var(--universal-launcher-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.universal-launcher-intent.active {
+  border-color: var(--universal-launcher-border-strong);
+  background: var(--universal-launcher-surface);
+  color: var(--universal-launcher-text);
+}
+
+.universal-launcher-section {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.universal-launcher-section[hidden] {
+  display: none !important;
+}
+
+.universal-launcher-section-download {
+  gap: 10px;
+}
+
+.universal-launcher-download-inline {
+  display: grid;
+  gap: 10px;
+}
+
+.universal-launcher-download-help {
+  display: grid;
+  gap: 8px;
+  padding-top: 0;
+}
+
+.universal-launcher-download-help-toggle {
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-download-help-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.universal-launcher-download-help-toggle:hover,
+.universal-launcher-download-help-toggle:focus-visible {
+  color: var(--universal-launcher-text);
+  outline: none;
+}
+
+.universal-launcher-download-help-body {
+  display: grid;
+  gap: 6px;
+  padding-left: 1px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-download-help-body p {
+  margin: 0;
+}
+
+.universal-launcher-download-help-body code {
+  font: inherit;
+  font-weight: 600;
+  color: var(--universal-launcher-text);
+}
+
+.universal-launcher-section-heading-with-action {
+  align-items: center;
+}
+
+.universal-launcher-section-heading.is-compact {
+  min-height: 0;
+  padding-bottom: 2px;
+}
+
+.universal-launcher-section-heading.is-compact .universal-launcher-section-title {
+  display: none;
+}
+
+.universal-launcher-section-heading.is-compact .universal-launcher-section-note {
+  margin-left: 0;
+}
+
+.universal-launcher-section-heading-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.universal-launcher-template-toggle {
+  appearance: none;
+  flex: 0 1 clamp(180px, 34vw, 240px);
+  width: min(100%, 240px);
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--universal-launcher-border);
+  border-radius: var(--universal-launcher-control-radius);
+  background: var(--universal-launcher-surface-muted);
+  color: var(--universal-launcher-text);
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  text-align: left;
+  cursor: pointer;
+}
+
+.universal-launcher-template-toggle:hover,
+.universal-launcher-template-toggle:focus-visible,
+.universal-launcher-template-toggle[aria-expanded="true"] {
+  border-color: var(--universal-launcher-border-strong);
+  background: var(--universal-launcher-surface);
+  outline: none;
+}
+
+.universal-launcher-template-toggle-icon,
+.universal-launcher-template-toggle-label {
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-template-toggle-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.universal-launcher-template-toggle:hover .universal-launcher-template-toggle-icon,
+.universal-launcher-template-toggle:hover .universal-launcher-template-toggle-label,
+.universal-launcher-template-toggle:focus-visible .universal-launcher-template-toggle-icon,
+.universal-launcher-template-toggle:focus-visible .universal-launcher-template-toggle-label,
+.universal-launcher-template-toggle[aria-expanded="true"] .universal-launcher-template-toggle-icon,
+.universal-launcher-template-toggle[aria-expanded="true"] .universal-launcher-template-toggle-label {
+  color: var(--universal-launcher-text);
+}
+
+.universal-launcher-template-toggle[disabled] {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.universal-launcher-template-toggle[hidden],
+.universal-launcher-template-layer[hidden],
+.universal-launcher-template-browser[hidden],
+.universal-launcher-template-chooser[hidden],
+.universal-launcher-template-details[hidden] {
+  display: none !important;
+}
+
+.universal-launcher-template-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1010;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.universal-launcher-template-backdrop {
+  position: absolute;
+  inset: 0;
+  appearance: none;
+  border: 0;
+  background: rgba(4, 6, 12, 0.74);
+  backdrop-filter: blur(2px);
+  cursor: default;
+}
+
+.universal-launcher-template-modal {
+  position: relative;
+  width: min(560px, calc(100% - 24px));
+  max-height: min(680px, calc(100% - 24px));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border: 1px solid var(--universal-launcher-border-strong);
+  border-radius: 16px;
+  background: var(--universal-launcher-surface);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.38);
+  overflow: hidden;
+}
+
+.universal-launcher-template-modal-header,
+.universal-launcher-template-modal-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--universal-launcher-border);
+}
+
+.universal-launcher-template-modal-footer {
+  align-items: center;
+  border-top: 1px solid var(--universal-launcher-border);
+  border-bottom: 0;
+}
+
+.universal-launcher-template-modal-heading {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.universal-launcher-template-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.universal-launcher-template-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--universal-launcher-accent-text);
+  line-height: 1.2;
+}
+
+.universal-launcher-template-modal-description,
+.universal-launcher-template-details-description,
+.universal-launcher-template-empty {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-template-modal-close {
+  width: 32px;
+  height: 32px;
+  appearance: none;
+  border: 1px solid var(--universal-launcher-border);
+  border-radius: 10px;
+  background: var(--universal-launcher-surface-muted);
+  color: var(--universal-launcher-text-muted);
+  cursor: pointer;
+}
+
+.universal-launcher-template-modal-close:hover,
+.universal-launcher-template-modal-close:focus-visible {
+  border-color: var(--universal-launcher-border-strong);
+  color: var(--universal-launcher-text);
+  outline: none;
+}
+
+.universal-launcher-template-create {
+  min-height: 30px;
+  padding: 0 10px;
+  appearance: none;
+  border: 1px solid var(--universal-launcher-border);
+  border-radius: 10px;
+  background: var(--universal-launcher-surface-muted);
+  color: var(--universal-launcher-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.universal-launcher-template-create:hover,
+.universal-launcher-template-create:focus-visible {
+  border-color: var(--universal-launcher-border-strong);
+  background: var(--universal-launcher-surface);
+  outline: none;
+}
+
+.universal-launcher-template-modal-body {
+  display: grid;
+  gap: 10px;
+  padding: 16px 14px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.universal-launcher-template-chooser {
+  display: grid;
+  gap: 12px;
+}
+
+.universal-launcher-template-chooser-empty {
+  display: grid;
+  gap: 10px;
+  justify-items: flex-start;
+  padding: 14px;
+  border: 1px dashed var(--universal-launcher-border);
+  border-radius: 12px;
+  background: var(--universal-launcher-surface-muted);
+}
+
+.universal-launcher-template-details {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.universal-launcher-template-details[hidden] {
+  display: none !important;
+}
+
+.universal-launcher-template-details-title,
+.universal-launcher-template-preview-label,
+.universal-launcher-template-input-label {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.universal-launcher-template-details-title {
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.universal-launcher-template-details-top-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.universal-launcher-template-back-button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--universal-launcher-text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.universal-launcher-template-back-button:hover,
+.universal-launcher-template-back-button:focus-visible {
+  color: var(--universal-launcher-text);
+  outline: none;
+}
+
+.universal-launcher-template-input-list {
+  display: grid;
+  gap: 8px;
+}
+
+.universal-launcher-template-input-field {
+  display: grid;
+  gap: 5px;
+}
+
+.universal-launcher-template-preview {
+  display: grid;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.universal-launcher-template-preview[hidden] {
+  display: none !important;
+}
+
+.universal-launcher-template-preview-code {
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--universal-launcher-border);
+  border-radius: 10px;
+  background: var(--universal-launcher-surface-muted);
+  color: var(--universal-launcher-text);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.universal-launcher-ask-task-preview-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.universal-launcher-ask-task-preview-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.universal-launcher-ask-task-preview-toggle::before {
+  content: "Show";
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-template-preview[open] .universal-launcher-ask-task-preview-toggle::before {
+  content: "Hide";
+}
+
+.universal-launcher-template-create-inline[hidden] {
+  display: none !important;
+}
+
+.universal-launcher-template-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.universal-launcher-section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.universal-launcher-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.universal-launcher-section-note {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-template-search {
+  height: 34px;
+}
+
+.universal-launcher-template-list {
+  display: grid;
+  gap: 6px;
+  max-height: 184px;
+  overflow: auto;
+}
+
+.universal-launcher-template-list-section-title {
+  padding: 4px 2px 0;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-template-list-section-title:first-child {
+  padding-top: 0;
+}
+
+.universal-launcher-template-row {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  appearance: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--universal-launcher-border);
+  border-radius: 10px;
+  background: var(--universal-launcher-surface-muted);
+  color: var(--universal-launcher-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.universal-launcher-template-action-card {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.universal-launcher-template-action-row {
+  justify-content: space-between;
+  cursor: default;
+}
+
+.universal-launcher-template-row:hover,
+.universal-launcher-template-row:focus-visible,
+.universal-launcher-template-row.selected {
+  border-color: var(--universal-launcher-border-strong);
+  background: var(--universal-launcher-surface);
+  outline: none;
+}
+
+.universal-launcher-template-action-row:hover,
+.universal-launcher-template-action-row:focus-visible {
+  border-color: var(--universal-launcher-border);
+  background: var(--universal-launcher-surface-muted);
+}
+
+.universal-launcher-template-row:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.universal-launcher-template-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  flex: 1 1 auto;
+}
+
+.universal-launcher-template-label {
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.universal-launcher-template-meta,
+.universal-launcher-template-helper {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-template-row-action-button {
+  flex: 0 0 auto;
+  align-self: center;
+  appearance: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 78px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--universal-launcher-primary-border);
+  background: var(--universal-launcher-primary-bg);
+  color: var(--universal-launcher-primary-text);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.universal-launcher-template-row-action-button:hover,
+.universal-launcher-template-row-action-button:focus-visible {
+  background: var(--universal-launcher-primary-bg-hover);
+  border-color: var(--universal-launcher-primary-border-hover);
+  color: var(--universal-launcher-primary-text);
+  outline: none;
+}
+
+.universal-launcher-template-row-action-button-secondary {
+  border-color: var(--universal-launcher-border-strong);
+  background: transparent;
+  color: var(--universal-launcher-text);
+}
+
+.universal-launcher-template-row-action-button-secondary:hover,
+.universal-launcher-template-row-action-button-secondary:focus-visible {
+  border-color: var(--universal-launcher-border-strong);
+  background: var(--universal-launcher-surface);
+  color: var(--universal-launcher-text);
+}
+
+.universal-launcher-template-row-action-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.universal-launcher-template-action-card.is-disabled {
+  opacity: 0.6;
+}
+
+.universal-launcher-template-inline-tools {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.universal-launcher-template-inline-summary {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-template-inline-summary-row,
+.universal-launcher-template-inline-footer {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.universal-launcher-template-inline-link {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--universal-launcher-accent-text);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.universal-launcher-template-inline-link:hover,
+.universal-launcher-template-inline-link:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+.universal-launcher-template-inline-field {
+  min-width: min(100%, 280px);
+  flex: 1 1 220px;
+  display: grid;
+  gap: 5px;
+}
+
+.universal-launcher-template-inline-label {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-template-inline-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.universal-launcher-template-inline-footer .universal-launcher-template-inline-actions {
+  margin-left: auto;
+}
+
+.universal-launcher-ask-task {
+  gap: 10px;
+}
+
+.universal-launcher-ask-task-suggestions,
+.universal-launcher-ask-task-selected,
+.universal-launcher-ask-task-workspaces,
+.universal-launcher-ask-task-fresh {
+  display: grid;
+  gap: 8px;
+}
+
+.universal-launcher-ask-task-suggestions[hidden],
+.universal-launcher-ask-task-selected[hidden],
+.universal-launcher-ask-task-workspaces[hidden],
+.universal-launcher-template-helper[hidden] {
+  display: none !important;
+}
+
+.universal-launcher-section-prompt .universal-launcher-ask-task {
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.universal-launcher-ask-task-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.universal-launcher-ask-task-chip {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  flex: 1 1 auto;
+}
+
+.universal-launcher-ask-task-chip-label {
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-ask-task-chip-meta {
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--universal-launcher-text);
+}
+
+.universal-launcher-ask-task-clear {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--universal-launcher-text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.universal-launcher-ask-task-clear:hover,
+.universal-launcher-ask-task-clear:focus-visible {
+  color: var(--universal-launcher-text);
+  outline: none;
+}
+
+.universal-launcher-ask-task-clear i {
+  font-size: 11px;
+}
+
+.universal-launcher-ask-task-workspace-list {
+  max-height: none;
+  overflow: visible;
+}
+
+.universal-launcher-ask-task-fresh {
+  gap: 8px;
+}
+
+.universal-launcher-ask-task-fresh:not(:empty) {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--universal-launcher-border);
+}
+
+.universal-launcher-ask-task-fresh-note {
+  margin-top: -2px;
+}
+
+.universal-launcher-template-action-card-new.is-secondary .universal-launcher-template-row {
+  background: transparent;
+}
+
+.universal-launcher-template-action-card-new.is-secondary .universal-launcher-template-row:hover,
+.universal-launcher-template-action-card-new.is-secondary .universal-launcher-template-row:focus-visible {
+  background: var(--universal-launcher-surface-muted);
+}
+
+.universal-launcher-input,
+.universal-launcher-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  appearance: none;
+  border: 1px solid var(--universal-launcher-border-strong);
+  border-radius: var(--universal-launcher-control-radius);
+  background: var(--universal-launcher-control-surface);
+  color: var(--universal-launcher-text);
+  padding: 9px 11px;
+  font: inherit;
+  line-height: 1.45;
+}
+
+.universal-launcher-input {
+  height: 38px;
+}
+
+.universal-launcher-field-status {
+  margin-top: 6px;
+  min-height: 16px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-field-status[hidden] {
+  display: none !important;
+}
+
+.universal-launcher-field-status.is-checking,
+.universal-launcher-field-status.is-idle {
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-field-status.is-success {
+  color: #0f766e;
+}
+
+.universal-launcher-field-status.is-error {
+  color: #b42318;
+}
+
+body.dark .universal-launcher-field-status.is-success {
+  color: #5eead4;
+}
+
+body.dark .universal-launcher-field-status.is-error {
+  color: #fda29b;
+}
+
+.universal-launcher-textarea {
+  resize: none;
+  min-height: 88px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.universal-launcher-ask-composer.is-ask-intent .universal-launcher-textarea {
+  min-height: 72px;
+  max-height: 220px;
+}
+
+.universal-launcher-textarea.is-readonly {
+  resize: none;
+  cursor: default;
+  background: var(--universal-launcher-surface-muted);
+}
+
+.universal-launcher-input:hover,
+.universal-launcher-textarea:hover {
+  border-color: rgba(17, 24, 39, 0.22);
+  background: var(--universal-launcher-control-surface);
+}
+
+.universal-launcher-input:focus,
+.universal-launcher-textarea:focus {
+  outline: none;
+  border-color: rgba(17, 24, 39, 0.28);
+  background: var(--universal-launcher-control-surface);
+}
+
+body.dark .universal-launcher-input:hover,
+body.dark .universal-launcher-textarea:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+body.dark .universal-launcher-input:focus,
+body.dark .universal-launcher-textarea:focus {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.universal-launcher-dropzone {
+  appearance: none;
+  width: 100%;
+  border: 1px dashed var(--universal-launcher-border-strong);
+  border-radius: var(--universal-launcher-control-radius);
+  background: var(--universal-launcher-surface-muted);
+  color: var(--universal-launcher-text-muted);
+  min-height: 92px;
+  padding: 14px 16px;
+  text-align: center;
+  font: inherit;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.universal-launcher-dropzone.dragover,
+.universal-launcher-dropzone:hover,
+.universal-launcher-dropzone:focus-visible {
+  border-color: var(--universal-launcher-text-muted);
+  color: var(--universal-launcher-text);
+  outline: none;
+}
+
+.universal-launcher-upload-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.universal-launcher-upload[hidden],
+.universal-launcher-upload.is-disabled {
+  display: none !important;
+}
+
+.universal-launcher-upload-empty {
+  font-size: 12px;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-upload-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--universal-launcher-border);
+  border-radius: 7px;
+  background: var(--universal-launcher-surface-muted);
+}
+
+.universal-launcher-upload-meta {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.universal-launcher-upload-name {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.universal-launcher-upload-size {
+  font-size: 12px;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-upload-remove {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--universal-launcher-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.universal-launcher-tool-groups {
+  display: grid;
+  gap: 12px;
+}
+
+.universal-launcher-tool-picker {
+  position: relative;
+}
+
+.universal-launcher-tool-trigger {
+  width: 100%;
+  min-height: 46px;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--universal-launcher-border-strong);
+  border-radius: var(--universal-launcher-control-radius);
+  background: var(--universal-launcher-control-surface);
+  color: var(--universal-launcher-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.universal-launcher-tool-trigger:hover,
+.universal-launcher-tool-trigger:focus-visible,
+.universal-launcher-tool-picker.open .universal-launcher-tool-trigger {
+  border-color: var(--universal-launcher-border-strong);
+  background: var(--universal-launcher-control-surface);
+  outline: none;
+}
+
+.universal-launcher-tool-trigger:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.universal-launcher-tool-trigger-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.universal-launcher-tool-trigger-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.universal-launcher-tool-trigger-label {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.universal-launcher-tool-trigger:not(.has-value) .universal-launcher-tool-trigger-label {
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-tool-trigger-meta {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-tool-trigger-caret {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--universal-launcher-text-muted);
+  transition: transform 160ms ease;
+}
+
+.universal-launcher-tool-picker.open .universal-launcher-tool-trigger-caret {
+  transform: rotate(180deg);
+}
+
+.universal-launcher-tool-sheet-layer[hidden] {
+  display: none !important;
+}
+
+.universal-launcher-tool-sheet-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2001;
+  padding: 16px;
+  display: grid;
+  place-items: center;
+}
+
+.universal-launcher-tool-sheet-backdrop {
+  appearance: none;
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: var(--universal-launcher-surface-solid);
+  cursor: default;
+}
+
+body.dark .universal-launcher-tool-sheet-backdrop {
+  background: var(--universal-launcher-surface-solid);
+}
+
+.universal-launcher-tool-sheet {
+  position: relative;
+  z-index: 1;
+  min-height: 0;
+  width: min(100%, 540px);
+  max-height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  border: 1px solid var(--universal-launcher-border);
+  border-radius: 12px;
+  background: var(--universal-launcher-surface);
+  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.16);
+  overflow: hidden;
+}
+
+.universal-launcher-tool-sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid var(--universal-launcher-border);
+}
+
+.universal-launcher-tool-sheet-heading {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.universal-launcher-tool-sheet-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--universal-launcher-accent-text);
+  letter-spacing: -0.02em;
+}
+
+.universal-launcher-tool-sheet-description {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-tool-sheet-close {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  border: 1px solid var(--universal-launcher-border);
+  background: transparent;
+  color: var(--universal-launcher-text-muted);
+  cursor: pointer;
+}
+
+.universal-launcher-tool-sheet-close:hover,
+.universal-launcher-tool-sheet-close:focus-visible {
+  background: rgba(15, 23, 42, 0.05);
+  color: var(--universal-launcher-text);
+  outline: none;
+}
+
+body.dark .universal-launcher-tool-sheet-close:hover,
+body.dark .universal-launcher-tool-sheet-close:focus-visible {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.universal-launcher-tool-sheet-close:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.universal-launcher-tool-sheet-body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+
+.universal-launcher-tool-group {
+  display: grid;
+  gap: 6px;
+}
+
+.universal-launcher-tool-group-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--universal-launcher-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.universal-launcher-tool-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.universal-launcher-tool {
+  min-width: 0;
+  width: 100%;
+  appearance: none;
+  display: grid;
+  grid-template-columns: 14px 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--universal-launcher-border);
+  border-radius: 7px;
+  background: var(--universal-launcher-surface-muted);
+  color: var(--universal-launcher-text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.universal-launcher-tool.selected {
+  border-color: var(--universal-launcher-border-strong);
+  background: var(--universal-launcher-surface);
+}
+
+.universal-launcher-tool:hover,
+.universal-launcher-tool:focus-visible {
+  border-color: var(--universal-launcher-border-strong);
+  background: var(--universal-launcher-surface);
+  outline: none;
+}
+
+.universal-launcher-tool-indicator {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid var(--universal-launcher-border-strong);
+  position: relative;
+}
+
+.universal-launcher-tool.selected .universal-launcher-tool-indicator::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 999px;
+  background: #111827;
+}
+
+body.dark .universal-launcher-tool.selected .universal-launcher-tool-indicator::after {
+  background: #fafafa;
+}
+
+.universal-launcher-tool-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.universal-launcher-tool-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0;
+}
+
+.universal-launcher-tool-label {
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.universal-launcher-tool-sheet .universal-launcher-tool-meta {
+  display: none;
+}
+
+.universal-launcher-tool-meta {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-error {
+  min-height: 18px;
+  font-size: 12px;
+  color: #b42318;
+  white-space: pre-line;
+}
+
+body.dark .universal-launcher-error {
+  color: #fda29b;
+}
+
+.universal-launcher-footer {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.universal-launcher-footer-start,
+.universal-launcher-footer-actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.universal-launcher-footer-start {
+  flex: 1 1 auto;
+}
+
+.universal-launcher-footer.has-footer-tool .universal-launcher-footer-start {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.universal-launcher-footer-links {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.universal-launcher-footer-utility-links {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.universal-launcher-footer.has-footer-tool .universal-launcher-footer-links {
+  padding-left: 2px;
+}
+
+.universal-launcher-footer-separator {
+  font-size: 11px;
+  line-height: 1;
+  color: var(--universal-launcher-border-strong);
+}
+
+.universal-launcher-footer-link-icon {
+  font-size: 11px;
+}
+
+.universal-launcher-advanced-link {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--universal-launcher-text-muted);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.universal-launcher-share-link {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--universal-launcher-text-muted);
+  text-decoration: none;
+}
+
+.universal-launcher-section-heading-actions .universal-launcher-share-link {
+  font-size: 12px;
+}
+
+.universal-launcher-advanced-link:hover,
+.universal-launcher-advanced-link:focus-visible,
+.universal-launcher-share-link:hover,
+.universal-launcher-share-link:focus-visible {
+  color: var(--universal-quick-action-bg);
+  text-decoration: underline;
+  outline: none;
+}
+
+.universal-launcher-advanced-link[hidden],
+.universal-launcher-share-link[hidden] {
+  display: none !important;
+}
+
+.swal2-popup.universal-launcher-download-modal {
+  border: 1px solid var(--universal-launcher-border);
+  border-radius: 12px;
+  background: var(--universal-launcher-panel-bg);
+  box-shadow: 0 26px 64px rgba(15, 23, 42, 0.18);
+}
+
+.swal2-container.universal-launcher-download-container {
+  z-index: 2147483000 !important;
+}
+
+.swal2-popup.universal-launcher-download-modal .swal2-html-container.universal-launcher-download-html {
+  margin: 0;
+  padding: 0;
+}
+
+.universal-launcher-download-shell {
+  display: grid;
+  gap: 16px;
+  text-align: left;
+}
+
+.universal-launcher-download-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.universal-launcher-download-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: 1px solid var(--universal-launcher-border);
+  background: var(--universal-launcher-panel-bg-muted);
+  color: var(--universal-launcher-title-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.universal-launcher-download-heading {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.universal-launcher-download-title {
+  font-size: 18px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--universal-launcher-text);
+}
+
+.universal-launcher-download-subtitle {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-download-note {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-download-note code {
+  font: inherit;
+  font-weight: 600;
+  color: var(--universal-launcher-text);
+}
+
+.universal-launcher-download-fields {
+  display: grid;
+  gap: 12px;
+}
+
+.universal-launcher-download-field {
+  display: grid;
+  gap: 6px;
+}
+
+.universal-launcher-download-label {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--universal-launcher-text);
+}
+
+.universal-launcher-download-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--universal-launcher-border-strong);
+  background: var(--universal-launcher-control-surface);
+  color: var(--universal-launcher-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.universal-launcher-download-input:focus {
+  outline: none;
+  border-color: var(--universal-quick-action-bg);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--universal-quick-action-bg) 14%, transparent);
+}
+
+.swal2-popup.universal-launcher-download-modal .pinokio-download-actions.swal2-actions {
+  gap: 10px;
+  justify-content: flex-end;
+  padding-top: 6px;
+}
+
+.swal2-popup.universal-launcher-download-modal .pinokio-download-confirm.swal2-confirm,
+.swal2-popup.universal-launcher-download-modal .pinokio-download-cancel.swal2-cancel {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid var(--universal-launcher-border);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.swal2-popup.universal-launcher-download-modal .pinokio-download-confirm.swal2-confirm {
+  background: var(--universal-launcher-primary-bg);
+  border-color: var(--universal-launcher-primary-border);
+  color: var(--universal-launcher-primary-text);
+}
+
+.swal2-popup.universal-launcher-download-modal .pinokio-download-confirm.swal2-confirm:hover,
+.swal2-popup.universal-launcher-download-modal .pinokio-download-confirm.swal2-confirm:focus-visible {
+  background: var(--universal-launcher-primary-bg-hover);
+  border-color: var(--universal-launcher-primary-border-hover);
+  color: var(--universal-launcher-primary-text);
+  outline: none;
+}
+
+.swal2-popup.universal-launcher-download-modal .pinokio-download-cancel.swal2-cancel {
+  background: transparent;
+  color: var(--universal-launcher-text-muted);
+}
+
+.swal2-popup.universal-launcher-download-modal .pinokio-download-cancel.swal2-cancel:hover,
+.swal2-popup.universal-launcher-download-modal .pinokio-download-cancel.swal2-cancel:focus-visible {
+  background: var(--universal-launcher-panel-bg-muted);
+  color: var(--universal-launcher-text);
+  outline: none;
+}
+
+.universal-launcher-button {
+  appearance: none;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid var(--universal-launcher-border);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.universal-launcher-button-secondary {
+  background: transparent;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-button-primary {
+  background: var(--universal-launcher-primary-bg);
+  border-color: var(--universal-launcher-primary-border);
+  color: var(--universal-launcher-primary-text);
+  font-weight: 700;
+}
+
+.universal-launcher-button-primary:hover,
+.universal-launcher-button-primary:focus-visible {
+  background: var(--universal-launcher-primary-bg-hover);
+  border-color: var(--universal-launcher-primary-border-hover);
+  color: var(--universal-launcher-primary-text);
+  outline: none;
+}
+
+body.dark .universal-launcher-button-primary {
+  background: var(--universal-launcher-primary-bg);
+  border-color: var(--universal-launcher-primary-border);
+  color: var(--universal-launcher-primary-text);
+}
+
+body.dark .universal-launcher-button-primary:hover,
+body.dark .universal-launcher-button-primary:focus-visible {
+  background: var(--universal-launcher-primary-bg-hover);
+  border-color: var(--universal-launcher-primary-border-hover);
+  color: var(--universal-launcher-primary-text);
+}
+
+.universal-launcher-button:disabled,
+.universal-launcher-close:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.universal-launcher-ask-composer {
+  display: grid;
+  gap: 8px;
+}
+
+.universal-launcher-ask-composer.is-ask-intent.has-inline-results {
+  gap: 0;
+}
+
+.universal-launcher-ask-composer.is-ask-intent.has-inline-results .universal-launcher-textarea {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.universal-launcher-ask-composer.is-ask-intent.has-inline-results .universal-launcher-ask-task {
+  gap: 0;
+  margin-top: -1px;
+}
+
+.universal-launcher-ask-composer.is-ask-intent.has-inline-results .universal-launcher-ask-task-suggestions .universal-launcher-template-list {
+  gap: 0;
+  max-height: 232px;
+}
+
+.universal-launcher-ask-composer.is-ask-intent.has-inline-results .universal-launcher-ask-task-suggestions .universal-launcher-template-list-section-title {
+  padding: 10px 12px 4px;
+  border-left: 1px solid var(--universal-launcher-border);
+  border-right: 1px solid var(--universal-launcher-border);
+  background: var(--universal-launcher-surface-muted);
+}
+
+.universal-launcher-ask-composer.is-ask-intent.has-inline-results .universal-launcher-ask-task-suggestions .universal-launcher-template-list-section-title:first-child {
+  border-top: 1px solid var(--universal-launcher-border);
+}
+
+.universal-launcher-ask-composer.is-ask-intent.has-inline-results .universal-launcher-ask-task-suggestions .universal-launcher-template-row {
+  border-radius: 0;
+  border-top: 0;
+  padding: 10px 12px;
+}
+
+.universal-launcher-ask-composer.is-ask-intent.has-inline-results .universal-launcher-ask-task-suggestions .universal-launcher-template-row:first-child {
+  border-top: 1px solid var(--universal-launcher-border);
+}
+
+.universal-launcher-ask-composer.is-ask-intent.has-inline-results .universal-launcher-ask-task-suggestions .universal-launcher-template-list-section-title + .universal-launcher-template-row {
+  border-top: 1px solid var(--universal-launcher-border);
+}
+
+.universal-launcher-ask-composer.is-ask-intent.has-inline-results .universal-launcher-ask-task-suggestions .universal-launcher-template-row:last-child {
+  border-bottom-left-radius: var(--universal-launcher-control-radius);
+  border-bottom-right-radius: var(--universal-launcher-control-radius);
+}
+
+.universal-launcher-ask-composer.is-task-mode {
+  gap: 0;
+}
+
+.universal-launcher-ask-composer.is-task-mode .universal-launcher-ask-task {
+  gap: 0;
+}
+
+.universal-launcher-ask-composer.is-task-mode .universal-launcher-ask-task-selected {
+  padding: 11px 12px 12px;
+  border: 1px solid var(--universal-launcher-border);
+  border-radius: var(--universal-launcher-control-radius);
+  background: var(--universal-launcher-surface-muted);
+}
+
+.universal-launcher-suggestion-row {
+  align-items: center;
+  gap: 12px;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.universal-launcher-suggestion-row:hover,
+.universal-launcher-suggestion-row:focus-visible {
+  border-color: color-mix(in srgb, var(--universal-launcher-accent-text) 35%, var(--universal-launcher-border-strong));
+  background: color-mix(in srgb, var(--universal-launcher-surface-muted) 90%, var(--universal-launcher-accent-text) 10%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--universal-launcher-accent-text) 18%, transparent);
+  outline: none;
+}
+
+.universal-launcher-suggestion-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid var(--universal-launcher-border);
+  background: var(--universal-launcher-surface);
+  color: var(--universal-launcher-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.universal-launcher-suggestion-row:hover .universal-launcher-suggestion-icon,
+.universal-launcher-suggestion-row:focus-visible .universal-launcher-suggestion-icon {
+  color: var(--universal-launcher-accent-text);
+  border-color: color-mix(in srgb, var(--universal-launcher-accent-text) 35%, var(--universal-launcher-border-strong));
+  background: color-mix(in srgb, var(--universal-launcher-surface) 86%, var(--universal-launcher-accent-text) 14%);
+}
+
+.universal-launcher-suggestion-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.universal-launcher-suggestion-hint {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--universal-launcher-text-muted);
+}
+
+.universal-launcher-suggestion-row:hover .universal-launcher-suggestion-hint,
+.universal-launcher-suggestion-row:focus-visible .universal-launcher-suggestion-hint {
+  color: var(--universal-launcher-accent-text);
+}
+
+.universal-launcher-section-tools.footer-mounted {
+  min-width: 220px;
+  gap: 0;
+}
+
+.universal-launcher-section-tools.footer-mounted .universal-launcher-section-heading {
+  display: none !important;
+}
+
+.universal-launcher-section-tools.footer-mounted .universal-launcher-tool-trigger {
+  min-height: 34px;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.universal-launcher-section-tools.footer-mounted .universal-launcher-tool-trigger-label {
+  font-size: 12px;
+}
+
+.universal-launcher-section-tools.footer-mounted .universal-launcher-tool-trigger-meta {
+  font-size: 11px;
+}
+
+@media (max-width: 760px) {
+  .universal-launcher-overlay {
+    padding: 12px;
+  }
+
+  .universal-launcher-panel {
+    width: min(100vw - 24px, 620px);
+    max-height: calc(100vh - 24px);
+  }
+
+  .universal-launcher-header,
+  .universal-launcher-body,
+  .universal-launcher-footer {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .universal-launcher-footer {
+    padding: 8px 12px;
+  }
+
+  .main-sidebar .universal-create-dropdown {
+    min-width: 100%;
+  }
+
+  .universal-launcher-tool-sheet-layer {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 560px) {
+  .universal-launcher-intents {
+    grid-template-columns: 1fr;
+  }
+
+  .universal-launcher-footer {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .universal-launcher-footer-start,
+  .universal-launcher-footer-actions {
+    width: 100%;
+  }
+
+  .universal-launcher-footer-actions {
+    justify-content: flex-end;
+  }
+
+  .universal-launcher-section-tools.footer-mounted {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .universal-launcher-template-toggle {
+    flex-basis: 100%;
+    width: 100%;
+  }
+
+  .universal-launcher-tool-trigger {
+    min-height: 44px;
+  }
+
+  .universal-launcher-tool-list {
+    grid-template-columns: 1fr;
+  }
+
+  .universal-launcher-tool-sheet-header,
+  .universal-launcher-tool-sheet-body {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
+@media (max-height: 820px) {
+  .universal-launcher-overlay {
+    padding: 12px;
+  }
+
+  .universal-launcher-panel {
+    max-height: calc(100vh - 24px);
+  }
+
+  .universal-launcher-header,
+  .universal-launcher-footer,
+  .universal-launcher-body {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .universal-launcher-footer {
+    padding: 8px 12px;
+  }
+
+  .universal-launcher-body {
+    gap: 12px;
+  }
+
+  .universal-launcher-textarea {
+    min-height: 80px;
+  }
+
+  .universal-launcher-dropzone {
+    min-height: 78px;
+    padding: 12px 14px;
+  }
+
+  .universal-launcher-tool-sheet-layer {
+    padding: 12px;
+  }
+
+  .universal-launcher-tool-sheet-header {
+    padding-top: 12px;
+    padding-bottom: 10px;
+  }
+
+  .universal-launcher-tool-sheet-body {
+    padding-top: 10px;
+    padding-bottom: 12px;
+  }
+}

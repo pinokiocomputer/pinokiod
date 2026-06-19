@@ -10,11 +10,45 @@
 <link href="/css/brands.min.css" rel="stylesheet">
 <link href="/markdown.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
+<link href="/filepond.min.css" rel="stylesheet" />
+<link href="/filepond-plugin-image-preview.min.css" rel="stylesheet" />
+<link href="/filepond-plugin-image-edit.min.css" rel="stylesheet" />
 <link href="/style.css" rel="stylesheet"/>
+<link href="/urldropdown.css" rel="stylesheet" />
+<link href="/tom-select.css" rel="stylesheet" />
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+.bubble {
+  position: relative;
+  background: rgba(0,0,0,0.1);
+  color: #333;
+  border-radius: 10px;
+  padding: 10px 15px;
+  font-size: 14px;
+  flex-grow: 1;
+  line-height: 1.4;
+  margin: 0 10px;
+  font-weight: bold;
+}
+/* Left-side tail */
+.bubble::before {
+  content: "";
+  position: absolute;
+  top: 10px; /* Vertical alignment of the tail */
+  left: -20px; /* Positioning outside the bubble */
+  border-width: 10px;
+  border-style: solid;
+  border-color: transparent rgba(0,0,0,0.1) transparent transparent;
+}
+body.dark .bubble {
+  background: rgba(0,0,0,0.4);
+  color: white;
+}
+body.dark .bubble:before {
+  border-color: transparent rgba(0,0,0,0.4) transparent transparent;
+}
 .line2 {
   display: flex;
   align-items: center;
@@ -114,7 +148,6 @@ a.badge {
 }
 body.dark .btn {
   color: white;
-  border: 1px solid rgba(255,255,255,0.3);
 }
 body.dark .badge {
   background: rgba(255,255,255,0.1);
@@ -125,10 +158,1035 @@ body.dark .browser-options-row {
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 */
+body.dark .context-menu-wrapper {
+  background: rgba(0,0,0,0.9) !important;
+  color: white !important;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+}
+.context-menu-wrapper {
+  background: whitesmoke !important;
+  border-radius: 10px;
+  overflow: hidden;
+  min-width: 220px;
+  padding: 6px 0;
+}
+.menu-btns {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.home-app-line .menu-btns > .btn {
+  min-height: 22px;
+  margin: 0 !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  border-radius: 6px !important;
+  background: rgba(15, 23, 42, 0.035) !important;
+  color: rgba(31, 41, 55, 0.74) !important;
+  box-sizing: border-box;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: none;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+body.dark .home-app-line .menu-btns > .btn {
+  border-color: rgba(255, 255, 255, 0.075) !important;
+  background: rgba(255, 255, 255, 0.045) !important;
+  color: rgba(229, 231, 235, 0.72) !important;
+}
+.home-app-line .menu-btns > .btn:hover,
+.home-app-line .menu-btns > .btn:focus-visible {
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  background: rgba(15, 23, 42, 0.055) !important;
+  color: rgba(17, 24, 39, 0.9) !important;
+  outline: none;
+}
+body.dark .home-app-line .menu-btns > .btn:hover,
+body.dark .home-app-line .menu-btns > .btn:focus-visible {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: rgba(248, 250, 252, 0.9) !important;
+}
+.context-menu {
+  position: absolute;
+  right: auto;
+  margin: 0;
+  padding: 0;
+  z-index: 10;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+.context-menu:popover-open {
+  border: none;
+  outline: none;
+}
+.context-menu .btn:hover {
+  color: cornflowerblue !important;
+}
+.context-menu .btn {
+  background: none !important;
+  border: none !important;
+  display: block;
+  width: 100%;
+  padding: 7px 14px !important;
+  text-align: left;
+  color: black;
+  margin: 0 !important;
+}
+.context-menu-section-title {
+  padding: 8px 14px 6px;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.45);
+}
+.context-menu-divider {
+  height: 1px;
+  margin: 6px 0;
+  background: rgba(0,0,0,0.08);
+}
+body.dark .btn {
+  background: rgba(255,255,255,0.05) !important;
+}
+.app-btns .btn {
+  border-radius: 4px;
+  padding: 8px 10px;
+  width: 70px;
+  /*
+  padding: 6px 10px;
+  */
+  text-align: center;
+}
+body.dark .context-menu .btn {
+  color: white;
+  background: none !important;
+}
+body.dark .context-menu-section-title {
+  color: rgba(255,255,255,0.55);
+}
+body.dark .context-menu-divider {
+  background: rgba(255,255,255,0.08);
+}
+.open-menu, .browse {
+/*
+  width: 80px;
+  */
+  border-radius: 6px !important;
+  /*
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  */
+}
+.terminals-link .terminals-link-indicator {
+  margin-left: 2px;
+  font-size: 12px;
+  opacity: 0.72;
+}
+.terminals-link i {
+  color: inherit !important;
+}
+.menu-btns .shutdown,
+.menu-btns .terminals-link.is-online {
+  padding: 0 7px !important;
+  background: rgba(15, 23, 42, 0.05) !important;
+  border-color: rgba(15, 23, 42, 0.09) !important;
+  color: rgba(31, 41, 55, 0.82) !important;
+}
+body.dark .menu-btns .shutdown,
+body.dark .menu-btns .terminals-link.is-online {
+  background: rgba(255, 255, 255, 0.055) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+  color: rgba(229, 231, 235, 0.82) !important;
+}
+.menu-btns .shutdown:hover,
+.menu-btns .shutdown:focus-visible,
+.menu-btns .shutdown:active,
+.menu-btns .terminals-link.is-online:hover,
+.menu-btns .terminals-link.is-online:focus-visible,
+.menu-btns .terminals-link.is-online:active {
+  background: rgba(15, 23, 42, 0.075) !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: rgba(17, 24, 39, 0.94) !important;
+  outline: none;
+}
+body.dark .menu-btns .shutdown:hover,
+body.dark .menu-btns .shutdown:focus-visible,
+body.dark .menu-btns .shutdown:active,
+body.dark .menu-btns .terminals-link.is-online:hover,
+body.dark .menu-btns .terminals-link.is-online:focus-visible,
+body.dark .menu-btns .terminals-link.is-online:active {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: rgba(248, 250, 252, 0.94) !important;
+}
+.menu-btns .shutdown i,
+.menu-btns .terminals-link.is-online i {
+  color: inherit !important;
+}
+.menu-btns .shutdown i.fa-stop {
+  color: #b45309 !important;
+  font-size: 10px;
+}
+body.dark .menu-btns .shutdown i.fa-stop {
+  color: #d6a451 !important;
+}
+.menu-btns .terminals-link.is-online i.fa-terminal {
+  color: #4b5563 !important;
+}
+body.dark .menu-btns .terminals-link.is-online i.fa-terminal {
+  color: #a7adb7 !important;
+}
+.toggle-star.is-starred i {
+  color: #b8860b;
+}
+body.dark .toggle-star.is-starred i {
+  color: #ffcc66;
+}
+.noty_bar.home-star-toast {
+  max-width: 360px !important;
+  background: linear-gradient(180deg, rgba(24, 28, 39, 0.98), rgba(14, 17, 26, 0.98)) !important;
+  color: #f8f4ea !important;
+  border: 1px solid rgba(255, 214, 102, 0.22) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28) !important;
+}
+.noty_bar.home-star-toast .noty_body {
+  padding: 12px 14px !important;
+}
+.home-star-toast__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.home-star-toast__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  background: rgba(255, 214, 102, 0.14);
+  color: #ffd666;
+  box-shadow: inset 0 0 0 1px rgba(255, 214, 102, 0.18);
+}
+.home-star-toast__content {
+  min-width: 0;
+}
+.home-star-toast__title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #fff7d6;
+}
+.home-star-toast__text {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(248, 244, 234, 0.78);
+}
+.open-menu.selected {
+  border: none !important;
+  /*
+  background: none !important;
+  */
+}
+.open-menu.selected span {
+  display: none;
+}
+main {
+  display: flex;
+}
+.submenu .tab {
+  padding: 0;
+}
+.submenu .tab {
+  border-left: 10px solid transparent;
+}
+aside {
+  width: 200px;
+  display: block;
+  flex-shrink: 0;
+}
+body.dark aside .tab:hover, aside .tab:hover {
+  color: royalblue !important;
+  opacity: 1;
+}
+aside .tab i {
+  width: 20px;
+  text-align: center;
+  display: block;
+}
+body.dark aside .tab {
+  color: white;
+}
+aside .tab.hidden {
+  padding: 0;
+}
+aside .tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: black;
+  text-decoration: none;
+  padding: 10px;
+  font-size: 12px;
+  opacity: 0.5;
+  border-left: 10px solid transparent;
+}
+body.dark aside .tab.selected {
+
+  color: white;
+  /*
+  border-left: 10px solid white;
+  */
+}
+aside .tab.selected {
+/*
+  border-left: 10px solid black;
+  */
+  font-weight: bold;
+  opacity: 1;
+}
+aside .btn-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 10px;
+  margin-top: 10px;
+}
+aside .btn-tab .btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  text-align: left;
+  margin: 0;
+  padding: 10px 12px;
+  border: none !important;
+  border-radius: 0 !important;
+  background: rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+}
+body.dark aside .btn-tab .btn {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+aside .btn-tab .btn i {
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+aside .btn-tab .btn .caption {
+  display: block;
+}
+.home-search-form .home-apps-sort {
+  --home-sort-bg: rgba(0, 0, 0, 0.05);
+  --home-sort-border: rgba(0, 0, 0, 0.08);
+  --home-sort-hover-border: rgba(0, 0, 0, 0.12);
+  --home-sort-hover-bg: rgba(0, 0, 0, 0.08);
+  --home-sort-focus-border: rgba(0, 0, 0, 0.14);
+  --home-sort-focus-bg: rgba(0, 0, 0, 0.08);
+  --home-sort-text: rgba(15, 23, 42, 0.9);
+  --home-sort-muted: rgba(15, 23, 42, 0.66);
+  --home-sort-dropdown-bg: rgba(255, 255, 255, 0.98);
+  --home-sort-dropdown-border: rgba(15, 23, 42, 0.12);
+  --home-sort-dropdown-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  --home-sort-option-hover-bg: rgba(15, 23, 42, 0.05);
+  --home-sort-option-hover-text: rgba(15, 23, 42, 0.95);
+  --home-sort-option-selected-bg: rgba(15, 23, 42, 0.08);
+  --home-sort-option-selected-text: rgba(15, 23, 42, 0.96);
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  gap: 5px;
+  height: var(--home-filter-control-height);
+  min-height: var(--home-filter-control-height);
+  padding: 0 12px;
+  border: 1px solid var(--home-sort-border);
+  border-radius: 6px;
+  background: var(--home-sort-bg);
+  color: var(--home-sort-text);
+  box-sizing: border-box;
+  margin-left: auto;
+  align-self: center;
+  flex: 0 0 auto;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.home-search-form .home-apps-sort:hover {
+  border-color: var(--home-sort-hover-border);
+  background: var(--home-sort-hover-bg);
+}
+
+.home-search-form .home-apps-sort:focus-within {
+  border-color: var(--home-sort-focus-border);
+  background: var(--home-sort-focus-bg);
+}
+
+.home-search-form .home-apps-sort .home-apps-sort-icon {
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.85;
+  flex: 0 0 auto;
+  color: var(--home-sort-muted);
+}
+
+.home-search-form .home-apps-sort .home-apps-sort-caret {
+  font-size: 9px;
+  line-height: 1;
+  opacity: 0.7;
+  pointer-events: none;
+  flex: 0 0 auto;
+  color: var(--home-sort-muted);
+}
+
+.home-search-form .home-apps-sort label {
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--home-sort-muted);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.home-search-form .home-apps-sort select {
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+  color: inherit;
+  padding: 0;
+  margin: 0;
+  min-width: 88px;
+  height: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.home-search-form .home-apps-sort .ts-wrapper {
+  flex: 0 0 auto;
+  width: 132px;
+  min-width: 132px;
+  height: 100%;
+}
+
+.home-search-form .home-apps-sort .ts-wrapper.single .ts-control {
+  display: flex;
+  align-items: center;
+  border: 0;
+  outline: none;
+  background: transparent;
+  background-image: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  border-radius: 0;
+  cursor: pointer;
+  color: inherit;
+  height: 100%;
+}
+
+.home-search-form .home-apps-sort .ts-control > .item {
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--home-sort-text);
+}
+
+.home-search-form .home-apps-sort .ts-control > input {
+  width: 0 !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: var(--home-sort-text);
+}
+
+.home-search-form .home-apps-sort .ts-dropdown {
+  margin: 8px 0 0;
+  width: 100%;
+  min-width: 100%;
+  border: 1px solid var(--home-sort-dropdown-border);
+  border-radius: 8px;
+  background: var(--home-sort-dropdown-bg);
+  box-shadow: var(--home-sort-dropdown-shadow);
+}
+
+.home-search-form .home-apps-sort .ts-dropdown .ts-dropdown-content {
+  background: transparent;
+}
+
+.home-search-form .home-apps-sort .ts-dropdown .option {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--home-sort-text);
+  padding: 7px 10px;
+  white-space: nowrap;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.home-search-form .home-apps-sort .ts-dropdown .option.active,
+.home-search-form .home-apps-sort .ts-dropdown [data-selectable].option:hover {
+  background: var(--home-sort-option-hover-bg);
+  color: var(--home-sort-option-hover-text);
+}
+
+.home-search-form .home-apps-sort .ts-dropdown .option.selected,
+.home-search-form .home-apps-sort .ts-dropdown .option.selected.active,
+.home-search-form .home-apps-sort .ts-dropdown [data-selectable].option.selected:hover {
+  background: var(--home-sort-option-selected-bg);
+  color: var(--home-sort-option-selected-text);
+}
+
+body.dark .home-search-form .home-apps-sort {
+  --home-sort-bg: rgba(255, 255, 255, 0.06);
+  --home-sort-border: rgba(255, 255, 255, 0.05);
+  --home-sort-hover-border: rgba(255, 255, 255, 0.1);
+  --home-sort-hover-bg: rgba(255, 255, 255, 0.09);
+  --home-sort-focus-border: rgba(255, 255, 255, 0.12);
+  --home-sort-focus-bg: rgba(255, 255, 255, 0.1);
+  --home-sort-text: rgba(226, 232, 240, 0.92);
+  --home-sort-muted: rgba(226, 232, 240, 0.78);
+  --home-sort-dropdown-bg: rgba(24, 24, 27, 0.98);
+  --home-sort-dropdown-border: rgba(255, 255, 255, 0.1);
+  --home-sort-dropdown-shadow: 0 14px 28px rgba(0, 0, 0, 0.42);
+  --home-sort-option-hover-bg: rgba(255, 255, 255, 0.06);
+  --home-sort-option-hover-text: rgba(248, 250, 252, 0.98);
+  --home-sort-option-selected-bg: rgba(255, 255, 255, 0.08);
+  --home-sort-option-selected-text: rgba(248, 250, 252, 0.98);
+}
+
+body.dark .home-search-form .home-apps-sort:hover {
+  border-color: var(--home-sort-hover-border);
+  background: var(--home-sort-hover-bg);
+}
+
+body.dark .home-search-form .home-apps-sort:focus-within {
+  border-color: var(--home-sort-focus-border);
+  background: var(--home-sort-focus-bg);
+}
+
+body.dark .home-search-form .home-apps-sort label {
+  color: var(--home-sort-muted);
+}
+
+body.dark .home-search-form .home-apps-sort select {
+  color: var(--home-sort-text);
+}
+
+body.dark .home-search-form .home-apps-sort .ts-control > .item {
+  color: var(--home-sort-text);
+}
+
+body.dark .home-search-form .home-apps-sort .ts-dropdown {
+  border-color: var(--home-sort-dropdown-border);
+  background: var(--home-sort-dropdown-bg);
+  box-shadow: var(--home-sort-dropdown-shadow);
+}
+
+body.dark .home-search-form .home-apps-sort .ts-dropdown .option {
+  color: var(--home-sort-text);
+}
+
+body.dark .home-search-form .home-apps-sort .ts-dropdown .option.active,
+body.dark .home-search-form .home-apps-sort .ts-dropdown [data-selectable].option:hover {
+  background: var(--home-sort-option-hover-bg);
+  color: var(--home-sort-option-hover-text);
+}
+.home-search-form {
+  --home-filter-control-height: 40px;
+  align-items: center;
+  gap: 8px;
+}
+body.is-home {
+  --home-page-nav-bg: #ffffff;
+  --home-page-nav-border: rgba(15, 23, 42, 0.12);
+  --home-page-accent: #6b7280;
+  background: #ffffff;
+  isolation: isolate;
+  min-height: 100vh;
+}
+body.dark.is-home {
+  --home-page-accent: #9ca3af;
+  --home-page-nav-bg: #1b1c1d;
+  --home-page-nav-border: rgba(255, 255, 255, 0.08);
+  background: #1b1c1d;
+}
+body.is-home > header.navheader {
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+  isolation: isolate;
+}
+body.dark .home-search-form {
+  border-bottom-color: rgba(148, 163, 184, 0.22);
+}
+.home-search-form input[type='search'].flexible {
+  height: var(--home-filter-control-height);
+  min-height: var(--home-filter-control-height);
+  box-sizing: border-box;
+  padding: 0 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1;
+}
+.home-app-line {
+  color: var(--light-color);
+  cursor: pointer;
+}
+body.dark .home-app-line {
+  color: var(--dark-color);
+}
+.home-app-line:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--home-page-accent) 55%, transparent);
+  outline-offset: -2px;
+}
+.home-app-line > h3 {
+  align-items: flex-start;
+  gap: 0;
+}
+.home-app-line .item-icon {
+  align-self: flex-start;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+}
+.home-app-line .item-icon img {
+  width: 40px;
+  height: 40px;
+  display: block;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.menu-btns .home-icon-btn {
+  width: 28px;
+  height: 22px;
+  min-width: 28px;
+  min-height: 22px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: top;
+  box-sizing: border-box;
+}
+.menu-btns .home-icon-btn:hover,
+.menu-btns .home-icon-btn:focus-visible {
+  color: var(--home-page-accent) !important;
+}
+body.dark .menu-btns .home-icon-btn:hover,
+body.dark .menu-btns .home-icon-btn:focus-visible {
+  color: var(--home-page-accent) !important;
+}
+.menu-btns .home-icon-btn i {
+  color: inherit;
+}
+.menu-btns .toggle-star.is-starred {
+  color: #b8860b !important;
+}
+body.dark .menu-btns .toggle-star.is-starred {
+  color: #ffcc66 !important;
+}
+.home-actions-dialog {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(680px, calc(100vh - 32px));
+  padding: 0;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.98);
+  color: rgba(15, 23, 42, 0.94);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+}
+.home-actions-dialog:not([open]) {
+  display: none;
+}
+.home-actions-dialog[open] {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  display: block;
+  margin: 0;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+}
+.home-actions-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.32);
+}
+body.dark .home-actions-dialog {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(18, 20, 25, 0.98);
+  color: rgba(248, 250, 252, 0.94);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+body.dark .home-actions-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.58);
+}
+.home-actions-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: min(560px, calc(100vh - 48px));
+  overflow: hidden;
+}
+.home-actions-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.09);
+}
+body.dark .home-actions-header {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.home-actions-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+}
+.home-actions-icon img {
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.home-actions-heading {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.home-actions-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.home-actions-title-row h2 {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+  line-height: 1.2;
+}
+.home-actions-path {
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: rgba(15, 23, 42, 0.58);
+}
+body.dark .home-actions-path {
+  color: rgba(226, 232, 240, 0.58);
+}
+.home-actions-status,
+.home-run-menu-status,
+.home-actions-count {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--pinokio-chrome-accent-bg-light);
+  color: var(--pinokio-chrome-accent-fg-light);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+body.dark .home-actions-status,
+body.dark .home-run-menu-status,
+body.dark .home-actions-count {
+  background: var(--pinokio-chrome-accent-bg-dark);
+  color: var(--pinokio-chrome-accent-fg-dark);
+}
+.home-actions-close {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.home-actions-close:hover,
+.home-actions-close:focus-visible {
+  background: rgba(15, 23, 42, 0.07);
+  outline: none;
+}
+body.dark .home-actions-close:hover,
+body.dark .home-actions-close:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+}
+.home-actions-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 18px 0;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.09);
+}
+body.dark .home-actions-tabs {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.home-actions-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  color: rgba(15, 23, 42, 0.68);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.home-actions-tab.is-active {
+  border-color: rgba(15, 23, 42, 0.11);
+  background: rgba(248, 250, 252, 0.9);
+  color: rgba(15, 23, 42, 0.94);
+}
+body.dark .home-actions-tab {
+  color: rgba(226, 232, 240, 0.68);
+}
+body.dark .home-actions-tab.is-active {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(248, 250, 252, 0.94);
+}
+.home-actions-body {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 14px 18px 18px;
+}
+.home-actions-panel[hidden] {
+  display: none;
+}
+.home-run-menu-list,
+.home-actions-command-list,
+.home-run-menu-children {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.home-run-menu-group {
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 7px;
+  overflow: hidden;
+}
+body.dark .home-run-menu-group {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.home-run-menu-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 38px;
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  list-style: none;
+}
+.home-run-menu-summary::-webkit-details-marker {
+  display: none;
+}
+.home-run-menu-group[open] > .home-run-menu-summary i {
+  transform: rotate(180deg);
+}
+.home-run-menu-children {
+  padding: 0 8px 8px;
+}
+.home-run-menu-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+.home-run-command,
+.home-mode-command {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 0 11px;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 6px;
+  background: rgba(248, 250, 252, 0.72);
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+button.home-run-command,
+button.home-mode-command {
+  font-family: inherit;
+}
+body.dark .home-run-command,
+body.dark .home-mode-command {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.045);
+}
+.home-run-command:hover,
+.home-run-command:focus-visible,
+.home-mode-command:hover,
+.home-mode-command:focus-visible,
+.home-run-stop:hover,
+.home-run-stop:focus-visible {
+  border-color: color-mix(in srgb, var(--home-page-accent) 34%, transparent);
+  background: color-mix(in srgb, var(--home-page-accent) 9%, transparent);
+  outline: none;
+}
+.home-run-menu-label,
+.home-mode-command span:first-of-type {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-run-menu-label i,
+.home-mode-command i {
+  width: 16px;
+  text-align: center;
+}
+.home-run-command > i:last-child {
+  flex: 0 0 auto;
+  font-size: 10px;
+  opacity: 0.6;
+}
+.home-run-stop {
+  width: 38px;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 6px;
+  background: rgba(248, 250, 252, 0.72);
+  color: rgba(185, 28, 28, 0.82);
+  cursor: pointer;
+}
+body.dark .home-run-stop {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(252, 165, 165, 0.86);
+}
+.home-mode-command.is-danger {
+  color: rgba(185, 28, 28, 0.86);
+}
+body.dark .home-mode-command.is-danger {
+  color: rgba(252, 165, 165, 0.9);
+}
+.home-actions-empty {
+  padding: 18px 12px;
+  border: 1px dashed rgba(15, 23, 42, 0.16);
+  border-radius: 7px;
+  color: rgba(15, 23, 42, 0.55);
+  font-size: 12px;
+  font-weight: 700;
+}
+body.dark .home-actions-empty {
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(226, 232, 240, 0.58);
+}
+#suggestion {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+}
+#suggestion img {
+  width: 50px;
+  height: 50px;
+}
+#suggestion h4 {
+  margin: 0;
+}
+/*
+#suggestion .prompt {
+  padding: 10px 15px;
+  margin: 10px 0;
+  border-left: 10px solid rgba(0,0,0,0.1);
+}
+*/
+body.dark aside .current.selected {
+/*
+  border-left: 10px solid white;
+  */
+}
+/*
+.container {
+  margin-left: 20px;
+}
+*/
+/*
+@media only screen and (max-width: 800px) {
+  body {
+    display: flex !important;
+    flex-direction: row !important;
+  }
+}
+*/
+@media only screen and (max-width: 760px) {
+  .home-search-form {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .home-search-form .home-apps-sort {
+    margin-left: 0;
+  }
+  header .flexible {
+    min-width: unset;
+  }
+  .home-actions-dialog {
+    width: 100vw;
+    max-width: none;
+    height: 100vh;
+    max-height: none;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  .home-actions-shell {
+    min-height: 100vh;
+  }
+}
 @media only screen and (max-width: 480px) {
   .btn2 {
     padding: 5px;
     font-size: 11px;
+  }
+  .menu-btns .home-icon-btn {
+    width: 28px;
+    height: 22px;
+    min-width: 28px;
+    min-height: 22px;
   }
   .nav-btns {
     flex-grow: 1;
@@ -137,6 +1195,7 @@ body.dark .browser-options-row {
   }
 }
 </style>
+<script src="/window_storage.js"></script>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/noty.js"></script>
@@ -148,12 +1207,25 @@ body.dark .browser-options-row {
 <script src="/Socket.js"></script>
 <script src="/install.js"></script>
 <script src="/common.js"></script>
-<script src="/opener.js"></script>
 <script src="/nav.js"></script>
 <script src="/fuse.js"></script>
 <script src="/report.js"></script>
+<script src="/popper.min.js"></script>
+<script src="/tippy-bundle.umd.min.js"></script>
+<script src="/filepond-plugin-file-validate-type.min.js"></script>
+<script src="/filepond-plugin-image-exif-orientation.min.js"></script>
+<script src="/filepond-plugin-image-preview.min.js"></script>
+<script src="/filepond-plugin-image-edit.min.js"></script>
+<script src="/filepond-plugin-image-crop.min.js"></script>
+<script src="/filepond-plugin-image-resize.min.js"></script>
+<script src="/filepond-plugin-image-transform.min.js"></script>
+<script src="/filepond.min.js"></script>
+<script src="/fscreator.js"></script>
+<script src="/fseditor.js"></script>
+<script src="/urldropdown.js"></script>
+<script src="/tom-select.complete.min.js"></script>
 </head>
-<body class='<%=theme%>'>
+<body class='<%= [theme, "main-sidebar-page", ishome ? "is-home" : ""].filter(Boolean).join(" ") %>' data-agent="<%=agent%>">
 <% if (error) { %>
 <nav class='error-message'>
   <div><%=error%></div>
@@ -161,15 +1233,35 @@ body.dark .browser-options-row {
   <a class='btn' target="_blank" href="<%=install%>">Download</a>
 </nav>
 <% } %>
-<!--
-<header class='grabbable'>
--->
 <header class='navheader grabbable'>
 <h1>
 <% if (ishome) { %>
-<a class='home' href="/"><i class="fa-solid fa-house"></i></a>
-<button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
-<button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
+<a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
+<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+  <div><i class="fa-solid fa-expand"></i></div>
+</button>
+<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
+<div class='mobile-flexible'></div>
+<form class='urlbar'>
+  <div class='url-input-container'>
+    <input type='url' placeholder='enter any local url to open in pinokio'>
+    <div class='url-dropdown' id='url-dropdown'></div>
+  </div>
+</form>
+<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+  <div><i class="fa-solid fa-table-columns"></i></div>
+</a>
+<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+</a>
+<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+  <div><i class="fa-solid fa-plus"></i></div>
+</button>
 <% } %>
 <% paths.forEach((path) => { %>
   <% if (path.action) { %>
@@ -178,32 +1270,16 @@ body.dark .browser-options-row {
     <a class='path' href="<%=path.path%>"><%-path.name%></a>
   <% } %>
 <% }) %>
-<form class='search'>
-  <% if (display.includes("form")) { %>
-    <input type='search' class="flexible" placeholder='Filter downloaded apps'>
-  <% } else { %>
-  <% } %>
-</form>
-<% if (ishome) { %>
-  <div class='nav-btns'>
-    <a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
-    <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
-    <% if (agent === "electron") { %>
-      <a class='btn2' data-filepath="<%=filepath%>"><div><i class="fa-regular fa-folder-open"></i></div><div>Files</div></a>
-    <% } %>
-    <button class='btn2' id='genlog'><div><i class="fa-solid fa-laptop-code"></i></div><div>Debug</div></button>
-    <a id='downloadlogs' download class='hidden btn2' href="/pinokio/logs.zip"><div><i class="fa-solid fa-download"></i></div><div>Download logs</div></a>
-    <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
-    <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
-  </div>
-<% } %>
+<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+  <div><i class="fa-solid fa-xmark"></i></div>
+</button>
 </h1>
 <% if (!ishome) { %>
   <div class='runner'>
     <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> View Folder</button>
   </div>
 <% } %>
-<% if (display.includes("dependencies")) { %>
+<% if (display.includes("dependencies") && config) { %>
 <div class='dependencies'>
   <h2>Prerequisites</h2>
   <div class='item'>Download and install the following dependencies first</div>
@@ -212,7 +1288,7 @@ body.dark .browser-options-row {
     <% if (dep.downloaded) { %>
       <div class='item'><i class="fa-solid fa-check"></i> <a class='downloaded' href="<%=dep.downloaded%>" target="_blank"><%=dep.uri%></a><div class='flexible'></div></div>
     <% } else { %>
-      <div class='item'><a class='btn' href="/?mode=download&uri=<%=dep.uri%>" target="_blank"><i class="fa-solid fa-download"></i> Download</a> <%=dep.uri%><div class='flexible'></div></div>
+      <div class='item'><a class='btn' href="/?mode=download&uri=<%= encodeURIComponent(dep.uri) %>" target="_blank"><i class="fa-solid fa-download"></i> Download</a> <%=dep.uri%><div class='flexible'></div></div>
     <% } %>
   <% }) %>
   </div>
@@ -223,123 +1299,87 @@ body.dark .browser-options-row {
 <div id='terminal' class='hidden'></div>
 <div class='container'>
 <% if (ishome) { %>
-  <% if (running.length === 0 && notRunning.length === 0) { %>
-  <% } else { %>
-    <div class='browser-options'>
-      <% if (agent === "electron") { %>
-        <div class='browser-options-row'>
-          <% if (agent === "electron") { %>
-            <a href="/" target="_blank" class='btn' features="browser"><div><i class="fa-solid fa-square-up-right"></i> Open</div></a>
-          <% } else { %>
-            <a href="/" target="_blank" class='btn'><div><i class="fa-solid fa-square-up-right"></i> Open</div></a>
-          <% } %>
-          <div class='flexible'>
-            <h3><i class="fa-solid fa-bolt"></i> Instant Launch</h3>
-            <div>(Experimental) Directly open pinokio apps from your favorite browser address bar at localhost. If an app you're trying to use is already running, it will instantly load. If it's not, the app will first launch and then load the website.</div>
-          </div>
-        </div>
-      <% } %>
-      <div class='browser-options-row'>
-        <a href="/proxy" class='btn'><div><i class="fa-solid fa-gauge"></i> Configure</div></a>
-        <div class='flexible'>
-          <h3><i class="fa-solid fa-wifi"></i> Local Sharing</h3>
-          <div>Serve Pinokio, installed apps, and even external apps (example: Ollama) to any device on the same network.</div>
-        </div>
-      </div>
-      <!--
-      <div class='browser-options-row'>
-        <a href="/proxy" class='flexible'>
-          <h3><i class="fa-solid fa-wifi"></i> Local Share</h3>
-          <div>Access Pinokio, Ollama, and other 3rd party apps from any device on the same network. By default it's off.</div>
-        </a>
-        <% if (false) { %>
-          <% if (proxy) { %>
-            <a id='wifi-stop' data-proxy="<%=proxy.proxy%>" class='btn'><div><i class="fa-solid fa-stop"></i> Stop</div></a>
-            <div class='flexible'>
-              <h3><i class="fa-solid fa-wifi"></i> Local Share</h3>
-              <div>Access Pinokio from any device on the same network. By default it's off.</div>
-              <span class='badge'><i class="fa-solid fa-circle-notch fa-spin"></i> Running at <a href="<%=proxy.proxy%>" target="_blank" features="browser"><%=proxy.proxy%></a></span>
-              <a id='wifi-qr' class='badge'><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
-            </div>
-          <% } else { %>
-            <a id='wifi' class='btn'><div><i class="fa-solid fa-play"></i> Start</div></a>
-            <a id='wifi-starting' class='btn disabled hidden'><div><i class="fa-solid fa-circle-notch fa-spin"></i> Starting</div></a>
-            <div class='flexible'>
-              <h3><i class="fa-solid fa-wifi"></i> Local Share</h3>
-              <div>Access Pinokio from any device on the same network. By default it's off.</div>
-            </div>
-          <% } %>
-        <% } %>
-      </div>
-        -->
-      <div class='browser-options-row hidden'>
-        <% if (cloudflare_pub) { %>
-          <a id='cloudflare-stop' class='btn'><div><i class="fa-solid fa-stop"></i> Stop</div></a>
-          <div class='flexible'>
-            <h3>Public Share</h3>
-            <div>Open up your Pinokio server to the open internet (anyone with the URL can access)</div>
-            <span class='badge'><i class="fa-solid fa-circle-notch fa-spin"></i> Running at <a href="<%=cloudflare_pub%>" target="_blank" features="browser"><%=cloudflare_pub%></a></span>
-            <a id='cloudflare-qr' class='badge'><i class="fa-solid fa-qrcode"></i> Scan QR Code</a>
-          </div>
-        <% } else { %>
-          <a id='cloudflare' class='btn'><div><i class="fa-solid fa-play"></i> Start</div></a>
-          <a id='cloudflare-starting' class='btn disabled hidden'><div><i class="fa-solid fa-circle-notch fa-spin"></i> Starting</div></a>
-          <div class='flexible'>
-            <h3>Public Share</h3>
-            <div>Open up your Pinokio server to the open internet (anyone with the URL can access)</div>
-          </div>
-        <% } %>
-      </div>
-    </div>
-  <% } %>
-  <!--
-  <div class='type-tabs'>
-    <% if (mode === "task") { %>
-      <a class='type-tab' href="/"><img src='/pinokio-<%=theme=='dark' ? 'white' : 'black'%>.png'> Apps</a>
-      <a class='type-tab selected' href="/?mode=task"> <img src='/<%=theme=='dark' ? 'term-dark.png' : 'term-white.png'%>'> Tasks</a>
+  <% const currentHomeSort = (typeof home_sort === "string" ? home_sort : "most_used") %>
+  <form class='search home-search-form'>
+    <% if (display.includes("form")) { %>
+      <input type='search' class="flexible" placeholder='Search apps'>
     <% } else { %>
-      <a class='type-tab selected' href="/"><img src='/pinokio-<%=theme=='dark' ? 'white' : 'black'%>.png'> Apps</a>
-      <a class='type-tab' href="/?mode=task"> <img src='/<%=theme=='dark' ? 'term-dark.png' : 'term-white.png'%>'> Tasks</a>
     <% } %>
-  </div>
-  -->
+    <div class="home-apps-sort">
+      <i class="fa-solid fa-sort home-apps-sort-icon" aria-hidden="true"></i>
+      <label for="home-apps-sort-select">Sort</label>
+      <select id="home-apps-sort-select" aria-label="Sort apps">
+        <option value="most_used" <%= currentHomeSort === "most_used" ? "selected" : "" %>>Most used</option>
+        <option value="last_opened" <%= currentHomeSort === "last_opened" ? "selected" : "" %>>Last opened</option>
+        <option value="az" <%= currentHomeSort === "az" ? "selected" : "" %>>A-Z</option>
+      </select>
+      <i class="fa-solid fa-chevron-down home-apps-sort-caret" aria-hidden="true"></i>
+    </div>
+  </form>
+<% } %>
+<% if (ishome) { %>
   <% if (running.length > 0) { %>
     <div class='running-apps'>
-      <div class='header-label'>Running</div>
-      <% running.forEach((item) => { %>
-        <a href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line align-top'>
+      <% running.forEach((item, index) => { %>
+        <div data-href="<%=item.browser_url%>" data-target="<%=item.target || '_self'%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" data-starred="<%=item.starred ? "1" : "0"%>" data-launch-count-total="<%=item.launch_count_total || 0%>" data-last-launch-at="<%=item.last_launch_at || ''%>" class='line align-top home-app-line' role='link' tabindex='0'>
           <h3>
-            <% if (item.icon) { %>
-              <img src="<%=item.icon%>">
-            <% } else { %>
-              <% if (theme === 'dark') { %>
-                <img src="/pinokio-white.png">
+            <div class='item-icon'>
+              <% if (item.icon) { %>
+                <img src="<%=item.icon%>" onerror="this.src='/pinokio-black.png'"/>
               <% } else { %>
-                <img src="/pinokio-black.png">
+                <% if (theme === 'dark') { %>
+                  <img src="/pinokio-white.png">
+                <% } else { %>
+                  <img src="/pinokio-black.png">
+                <% } %>
               <% } %>
-              <!--
-              <div class='avatar'>
-                <i class="fa-regular fa-circle-dot"></i>
-              </div>
-              -->
-            <% } %>
+            </div>
             <div class='col'>
-              <div class='uri'><i class="fa-regular fa-folder"></i><%=item.url%></div>
-              <div class='title'><%=item.name%></div>
+              <div class='title'>
+                <i class="fa-solid fa-circle"></i>
+                <span><%=item.name%></span>
+              </div>
+              <div class='uri'><%=item.filepath%></div>
               <div class='description'><%=item.description%></div>
-              <div>
-                <button class='btn browse' data-src="<%=item.browser_url%>/browse">
-                  <i class='fa-regular fa-folder-open'></i>
+              <div class='menu-btns'>
+                <button
+                  type='button'
+                  class='btn home-icon-btn toggle-star <%=item.starred ? "is-starred" : ""%>'
+                  data-app-id="<%=item.uri%>"
+                  data-starred="<%=item.starred ? "1" : "0"%>"
+                  title="<%=item.starred ? "Unstar app" : "Star app"%>"
+                  aria-label="<%=item.starred ? "Unstar app" : "Star app"%>"
+                >
+                  <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star" aria-hidden="true"></i>
                 </button>
-                <button class='btn del' data-src="<%=item.url%>">
-                  <i class="fa-solid fa-trash-can"></i>
+                <button class='btn open-menu open-actions-modal' type='button' data-dialog-id="home-actions-running-<%=index%>" aria-haspopup="dialog" title="Actions" aria-label="Actions">
+                  <i class="fa-solid fa-ellipsis" aria-hidden="true"></i><span> menu</span>
                 </button>
+                <% const runningTerminalOnlineCount = Number(item.terminal_online_count || 0) %>
+                <% const runningTerminalLabel = runningTerminalOnlineCount > 0 ? `${runningTerminalOnlineCount} terminal${runningTerminalOnlineCount === 1 ? "" : "s"} online` : "Terminals" %>
+                <% if (runningTerminalOnlineCount > 0) { %>
+                  <button class='btn browse terminals-link is-online' type='button' data-src="<%=item.dev_url%>" title="<%=runningTerminalLabel%>">
+                    <i class="fa-solid fa-terminal" aria-hidden="true"></i>
+                    <span><%=runningTerminalLabel%></span>
+                    <i class="fa-solid fa-circle-notch fa-spin terminals-link-indicator" aria-hidden="true"></i>
+                  </button>
+                <% } %>
                 <% if (item.running_scripts) { %>
                   <% item.running_scripts.forEach((s) => { %>
-                      <button class='btn shutdown' data-src="<%=s.path%>">
-                        <i class="fa-solid fa-stop"></i> Stop <%=s.name%>&nbsp;
-                        <i class='fa-solid fa-spin fa-circle-notch'></i>
+                  <% const runningScriptName = s.name || "script" %>
+                  <% if (s.id) { %>
+                      <button class='btn shutdown' type='button' data-id="<%=s.id%>" data-type="<%=s.type ? s.type : ''%>" title="Stop <%=runningScriptName%>" aria-label="Stop <%=runningScriptName%>">
+                        <i class="fa-solid fa-stop" aria-hidden="true"></i>
+                        <span>Stop <%=runningScriptName%></span>
+                        <i class='fa-solid fa-spin fa-circle-notch' aria-hidden='true'></i>
                       </button>
+                    <% } else { %>
+                      <button class='btn shutdown' type='button' data-src="<%=s.path%>" title="Stop <%=runningScriptName%>" aria-label="Stop <%=runningScriptName%>">
+                        <i class="fa-solid fa-stop" aria-hidden="true"></i>
+                        <span>Stop <%=runningScriptName%></span>
+                        <i class='fa-solid fa-spin fa-circle-notch' aria-hidden='true'></i>
+                      </button>
+                    <% } %>
                   <% }) %>
                 <% } %>
               </div>
@@ -353,47 +1393,60 @@ body.dark .browser-options-row {
                 </div>
               <% } %>
             </div>
-            <div class='spinner'>
-              <i class="fa-solid fa-chevron-right"></i>
-              <!--
-              <i class="fa-solid fa-circle-notch fa-spin"></i>
-              -->
-            </div>
           </h3>
-        </a>
+          <%- include('partials/home_action_modal', { item, id: `home-actions-running-${index}` }) %>
+        </div>
       <% }) %>
     </div>
   <% } %>
   <% if (notRunning.length > 0) { %>
     <div class='not-running-apps'>
-      <div class='header-label'>Not Running</div>
-      <% notRunning.forEach((item) => { %>
-        <a href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line align-top'>
+      <% notRunning.forEach((item, index) => { %>
+        <div data-href="<%=item.browser_url%>" data-target="<%=item.target || '_self'%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" data-starred="<%=item.starred ? "1" : "0"%>" data-launch-count-total="<%=item.launch_count_total || 0%>" data-last-launch-at="<%=item.last_launch_at || ''%>" class='line align-top home-app-line' role='link' tabindex='0'>
           <h3>
-            <% if (item.icon) { %>
-              <img src="<%=item.icon%>">
-            <% } else { %>
-            <!--
-              <div class='avatar'>
-                <i class="fa-regular fa-circle-dot"></i>
-              </div>
-              -->
-              <% if (theme === 'dark') { %>
-                <img src="/pinokio-white.png">
+            <div class='item-icon'>
+              <% if (item.icon) { %>
+                <img src="<%=item.icon%>" onerror="this.src='/pinokio-black.png'"/>
               <% } else { %>
-                <img src="/pinokio-black.png">
+                <% if (theme === 'dark') { %>
+                  <img src="/pinokio-white.png">
+                <% } else { %>
+                  <img src="/pinokio-black.png">
+                <% } %>
               <% } %>
-            <% } %>
+            </div>
             <div class='col'>
-              <div class='uri'><i class="fa-regular fa-folder"></i><%=item.url%></div>
-              <div class='title'><%=item.name%></div>
+              <div class='title'>
+                <i class="fa-solid fa-circle"></i>
+                <span><%=item.name%></span>
+              </div>
+              <div class='uri'><%=item.filepath%></div>
               <div class='description'><%=item.description%></div>
-              <button class='btn browse' data-src="<%=item.browser_url%>/browse">
-                <i class='fa-regular fa-folder-open'></i>
-              </button>
-              <button class='btn del' data-src="<%=item.url%>">
-                <i class="fa-solid fa-trash-can"></i>
-              </button>
+              <% const notRunningTerminalOnlineCount = Number(item.terminal_online_count || 0) %>
+              <div class='menu-btns'>
+                <button
+                  type='button'
+                  class='btn home-icon-btn toggle-star <%=item.starred ? "is-starred" : ""%>'
+                  data-app-id="<%=item.uri%>"
+                  data-starred="<%=item.starred ? "1" : "0"%>"
+                  title="<%=item.starred ? "Unstar app" : "Star app"%>"
+                  aria-label="<%=item.starred ? "Unstar app" : "Star app"%>"
+                >
+                  <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star" aria-hidden="true"></i>
+                </button>
+                <button class='btn open-menu open-actions-modal' type='button' data-dialog-id="home-actions-not-running-<%=index%>" aria-haspopup="dialog" title="Actions" aria-label="Actions">
+                  <i class="fa-solid fa-ellipsis" aria-hidden="true"></i><span> menu</span>
+                </button>
+                <% if (notRunningTerminalOnlineCount > 0) { %>
+                <% const notRunningTerminalLabel = notRunningTerminalOnlineCount > 0 ? `${notRunningTerminalOnlineCount} terminal${notRunningTerminalOnlineCount === 1 ? "" : "s"} online` : "Terminals" %>
+                  <button class='btn browse terminals-link is-online' type='button' data-src="<%=item.dev_url%>" title="<%=notRunningTerminalLabel%>">
+                    <i class="fa-solid fa-terminal" aria-hidden="true"></i>
+                    <span><%=notRunningTerminalLabel%></span>
+                    <i class="fa-solid fa-circle-notch fa-spin terminals-link-indicator" aria-hidden="true"></i>
+                  </button>
+                <% } %>
+              </div>
+              <div class='fiexible'></div>
               <% if (item.shortcuts && item.shortcuts.length > 0) { %>
                 <div class='btns'>
                   <% item.shortcuts.forEach((btn) => { %>
@@ -404,11 +1457,9 @@ body.dark .browser-options-row {
                 </div>
               <% } %>
             </div>
-            <div class='spinner'>
-              <i class="fa-solid fa-chevron-right"></i>
-            </div>
           </h3>
-        </a>
+          <%- include('partials/home_action_modal', { item, id: `home-actions-not-running-${index}` }) %>
+        </div>
       <% }) %>
     </div>
   <% } %>
@@ -416,13 +1467,15 @@ body.dark .browser-options-row {
     <div class='placeholder'>
       <h1>Welcome.</h1>
       <br>
-      <div>Get started by installing some Pinokio scripts.</div>
-      <a href="/?mode=explore" class='btn'><i class="fa-solid fa-globe"></i> Visit Discover Page</a>
+      <div>Get started by installing or creating some pinokio scripts.</div>
+      <a href="/home?mode=explore" class='btn'><i class="fa-solid fa-globe"></i> Explore</a>
+      <span>&nbsp;or&nbsp;</span>
+      <button type='button' class='btn' data-universal-launcher-open="create_app"><i class="fa-solid fa-wand-magic-sparkles"></i> Create</button>
     </div>
   <% } %>
 <% } else { %>
   <% items.forEach((item, index) => { %>
-    <a data-description="<%=item.description%>" data-index="<%=index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line thick' href="<%=item.url%>">
+    <a target="<%=item.target || '_self'%>" data-description="<%=item.description%>" data-index="<%=index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line thick' href="<%=item.url%>">
       <h3>
         <% if (item.icon) { %>
           <i class="<%=item.icon%>"></i>
@@ -440,27 +1493,72 @@ body.dark .browser-options-row {
   <div class='content'><%-readme%></div>
 </div>
 <% } %>
-<% if (display.includes("onboarding")) { %>
-<!--
-<div class='container'>
-  <div class='content'>
-    <h2>Quickstart</h2>
-    <div>Install llama</div>
-    <br>
-    <button class='btn' id='llama'>Install</button>
-  </div>
 </div>
--->
-<% } %>
-</div>
+<%- include('partials/main_sidebar', { selected: 'home' }) %>
 </main>
 <script>
 let paths = location.pathname.split("/").filter(x=>x)
 var term
 const n = new N()
 let socket = new Socket()
+window.PinokioHomeGuardNavigate = null;
+if (document.querySelector(".home-search-form")) {
+  document.body.classList.add("is-home");
+}
+<% if (ishome) { %>
+document.addEventListener("DOMContentLoaded", () => {
+  // Run wait_ready for every /home navigation so we only leave when requirements are satisfied
+  const guardNavigate = (href, options = {}) => {
+    const url = new URL(href, location.href);
+    wait_ready(url).then(({ closeModal, ready }) => {
+      if (ready) {
+        if (closeModal) {
+          closeModal()
+        }
+        options?.replace ? location.replace(url) : location.assign(url);
+      } else {
+        const callbackUrl = url
+          ? (url.pathname + url.search + url.hash)
+          : (window.location.pathname + window.location.search + window.location.hash);
+        const callback = encodeURIComponent(callbackUrl);
+        window.location.href = `/setup/dev?callback=${callback}`;
+      }
+    });
+  };
+  // Capture same-window anchor clicks and reroute them through the guard
+  document.addEventListener("click", (event) => {
+    // Ignore clicks the page already handled or anything besides a plain left-click
+    if (event.defaultPrevented || event.button !== 0) return;
+    // Let modifier-assisted shortcuts (open in new tab, etc.) behave normally
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    // Only guard actual anchor navigations
+    const anchor = event.target.closest("a[href]");
+    if (!anchor) return;
+    // Skip downloads so they aren’t blocked by readiness polling
+    if (anchor.hasAttribute("download")) return;
+    // Don’t intercept links that explicitly open in another browsing context
+    const targetAttr = anchor.getAttribute("target");
+    if (targetAttr && targetAttr !== "_self") return;
+    // Ignore hash jumps, javascript: URLs, and empty hrefs
+    const rawHref = anchor.getAttribute("href") || "";
+    if (!rawHref || rawHref.startsWith("#") || /^javascript:/i.test(rawHref)) return;
+    // Prevent cross-origin navigations from being delayed—they don’t hit Pinokio anyway
+    const url = new URL(anchor.href, location.href);
+    if (url.origin !== location.origin) return;
+    event.preventDefault();
+    guardNavigate(url.toString());
+  });
+  window.PinokioHomeGuardNavigate = guardNavigate;
+});
+<% } %>
 const pull = async () => {
-  if (!term) term = createTerm()
+  if (!term) {
+    <% if (theme === "dark") { %>
+    term = await createTerm(xtermTheme.FrontEndDelight)
+    <% } else { %>
+    term = await createTerm(xtermTheme.Tomorrow)
+    <% } %>
+  }
   socket.close()
   await new Promise((resolve, reject) => {
     let cwd
@@ -604,9 +1702,21 @@ const renderSearch = () => {
     }
   }
 
+//  suggest(target.value)
+
 }
+//const suggest = (str) => {
+//  // suggestion
+//  if (str.length > 0) {
+//    document.querySelector("#suggestion").classList.remove("hidden")
+//  } else {
+//    document.querySelector("#suggestion").classList.add("hidden")
+//  }
+//  document.querySelector("#suggestion .prompt").innerHTML = str
+//}
 
 renderSearch()
+
 
 document.querySelector("form input[type=search]").addEventListener("input", (e) => {
   selectedIndex = 0
@@ -689,7 +1799,12 @@ document.querySelector("form input[type=search]").focus()
 //})
 <% if (display.includes("install")) { %>
 document.querySelector("#install").addEventListener("click", async (e) => {
-  location.href = e.target.getAttribute("data-url")
+  const targetUrl = e.target.getAttribute("data-url");
+  if (window.PinokioHomeGuardNavigate) {
+    window.PinokioHomeGuardNavigate(targetUrl);
+  } else {
+    location.href = targetUrl;
+  }
 })
 <% } %>
 //Reporter()
@@ -710,6 +1825,56 @@ document.querySelector(".requirements").addEventListener("click", (e) => {
 })
 <% } %>
 */
+const HOME_SORT_DEFAULT = "most_used"
+const HOME_SORT_STORAGE_KEY = "pinokio.home.apps.sort"
+const normalizeHomeSortMode = (value) => {
+  const normalized = String(value || "").trim().toLowerCase()
+  if (normalized === "most_used" || normalized === "most-used") {
+    return "most_used"
+  }
+  if (normalized === "last_opened" || normalized === "last-opened") {
+    return "last_opened"
+  }
+  if (normalized === "az" || normalized === "a-z") {
+    return "az"
+  }
+  return HOME_SORT_DEFAULT
+}
+const readStoredHomeSortMode = () => {
+  try {
+    if (!window || !window.localStorage) {
+      return HOME_SORT_DEFAULT
+    }
+    return normalizeHomeSortMode(window.localStorage.getItem(HOME_SORT_STORAGE_KEY))
+  } catch (_) {
+    return HOME_SORT_DEFAULT
+  }
+}
+const persistHomeSortMode = (value) => {
+  const normalized = normalizeHomeSortMode(value)
+  try {
+    if (window && window.localStorage) {
+      window.localStorage.setItem(HOME_SORT_STORAGE_KEY, normalized)
+    }
+  } catch (_) {}
+  return normalized
+}
+const updateSearchParam = (name, value, options = {}) => {
+  const params = new URLSearchParams(location.search)
+  if (typeof value === "string" && value.trim().length > 0) {
+    params.set(name, value)
+  } else {
+    params.delete(name)
+  }
+  const query = params.toString()
+  const nextPath = query ? `${location.pathname}?${query}` : location.pathname
+  if (options && options.replace) {
+    window.history.replaceState({ path: nextPath }, "", nextPath)
+  } else {
+    window.history.pushState({ path: nextPath }, "", nextPath)
+  }
+  return nextPath
+}
 let params = new URLSearchParams(location.search)
 let selected = params.get("selected")
 if (selected) {
@@ -718,13 +1883,28 @@ if (selected) {
 }
 if (document.querySelector("form input[type=search]")) {
   document.querySelector("form input[type=search]").addEventListener("input", (e) => {
-    let p
-    if (e.target.value && e.target.value.trim().length > 0) {
-      p = location.pathname + "?selected=" + e.target.value
-    } else {
-      p = location.pathname
-    }
-    window.history.pushState({ path: p }, '', p);
+    updateSearchParam("selected", e.target.value || "", { replace: false })
+  })
+}
+const homeSortSelect = document.querySelector("#home-apps-sort-select")
+if (homeSortSelect) {
+  const sortFromQueryRaw = params.get("sort")
+  const hasSortQuery = typeof sortFromQueryRaw === "string" && sortFromQueryRaw.trim().length > 0
+  const initialSort = hasSortQuery
+    ? normalizeHomeSortMode(sortFromQueryRaw)
+    : readStoredHomeSortMode()
+  if (homeSortSelect.value !== initialSort) {
+    homeSortSelect.value = initialSort
+  }
+  persistHomeSortMode(initialSort)
+  if (!hasSortQuery) {
+    updateSearchParam("sort", initialSort, { replace: true })
+  }
+  homeSortSelect.addEventListener("change", (event) => {
+    const nextSort = persistHomeSortMode(event.target.value)
+    event.target.value = nextSort
+    reorderHomeSectionsByPreference(nextSort)
+    updateSearchParam("sort", nextSort, { replace: true })
   })
 }
 <% if (ishome) { %>
@@ -732,18 +1912,18 @@ if (document.querySelector("form input[type=search]")) {
 // if launch_complete is false => not finished launching. wait until it's complete, and then refresh
 // autolaunch display update
 <% if (!launch_complete) { %>
-  let interval = setInterval(async () => {
-    let res = await fetch("/pinokio/info").then((res) => {
-      return res.json()
-    })
-    if (res.launch_complete) {
-      console.log("launched")
-      clearInterval(interval)
-      location.href = location.href
-    } else {
-      console.log("not yet launched")
-    }
-  }, 1000)
+//  let interval = setInterval(async () => {
+//    let res = await fetch("/pinokio/info").then((res) => {
+//      return res.json()
+//    })
+//    if (res.launch_complete) {
+//      console.log("launched")
+//      clearInterval(interval)
+//      location.href = location.href
+//    } else {
+//      console.log("not yet launched")
+//    }
+//  }, 1000)
 <% } %>
 document.addEventListener("keydown", (e) => {
   e = e || window.event;
@@ -786,10 +1966,460 @@ document.addEventListener("keydown", (e) => {
     }
   }
 });
+const supportsNativePopovers = typeof document.createElement('div').showPopover === 'function'
+if (!supportsNativePopovers) {
+  document.querySelectorAll('.context-menu[popover]').forEach((menu) => {
+    menu.style.display = 'none'
+  })
+}
+const getMenuDimensions = (menu) => {
+  let width = parseFloat(menu.dataset.cachedWidth)
+  let height = parseFloat(menu.dataset.cachedHeight)
+  if (!width || !height) {
+    const prev = {
+      visibility: menu.style.visibility,
+      display: menu.style.display,
+      position: menu.style.position,
+      top: menu.style.top,
+      left: menu.style.left,
+    }
+    menu.style.visibility = 'hidden'
+    menu.style.display = 'block'
+    menu.style.position = 'fixed'
+    menu.style.top = '0'
+    menu.style.left = '0'
+    width = menu.offsetWidth
+    height = menu.offsetHeight
+    if (width > 0) {
+      menu.dataset.cachedWidth = width
+    }
+    if (height > 0) {
+      menu.dataset.cachedHeight = height
+    }
+    menu.style.visibility = prev.visibility
+    menu.style.display = prev.display
+    menu.style.position = prev.position
+    menu.style.top = prev.top
+    menu.style.left = prev.left
+  }
+  return {
+    width: width || 0,
+    height: height || 0
+  }
+}
+const closeContextMenuForNode = (node) => {
+  const contextMenu = node && typeof node.closest === 'function'
+    ? node.closest('.context-menu')
+    : null
+  if (contextMenu) {
+    const hasNativePopover = supportsNativePopovers && typeof contextMenu.hidePopover === 'function'
+    if (hasNativePopover) {
+      if (contextMenu.matches(':popover-open')) {
+        contextMenu.hidePopover()
+      }
+    } else {
+      contextMenu.style.display = 'none'
+      contextMenu.dataset.open = 'false'
+    }
+  }
+  const dialog = node && typeof node.closest === 'function'
+    ? node.closest('.home-actions-dialog')
+    : null
+  if (dialog && dialog.open && typeof dialog.close === 'function') {
+    dialog.close()
+  }
+}
+window.PinokioHomeCloseContextMenu = closeContextMenuForNode
+const setHomeActionsTab = (dialog, tabName) => {
+  if (!dialog || !tabName) {
+    return
+  }
+  dialog.querySelectorAll('.home-actions-tab[data-tab]').forEach((tab) => {
+    const isActive = tab.getAttribute('data-tab') === tabName
+    tab.classList.toggle('is-active', isActive)
+    tab.setAttribute('aria-selected', isActive ? 'true' : 'false')
+  })
+  dialog.querySelectorAll('.home-actions-panel').forEach((panel) => {
+    const isActive = panel.getAttribute('data-panel') === tabName
+    panel.classList.toggle('is-active', isActive)
+    panel.hidden = !isActive
+  })
+}
+const openHomeActionsDialog = (button) => {
+  if (!button) {
+    return
+  }
+  const dialogId = button.getAttribute('data-dialog-id')
+  const dialog = dialogId ? document.getElementById(dialogId) : null
+  if (!dialog) {
+    return
+  }
+  setHomeActionsTab(dialog, button.getAttribute('data-default-tab') || 'run')
+  if (typeof dialog.showModal === 'function') {
+    dialog.showModal()
+  } else {
+    dialog.setAttribute('open', '')
+  }
+}
+const navigateHomeAppLine = (line) => {
+  if (!line) {
+    return
+  }
+  const href = line.getAttribute('data-href')
+  if (!href) {
+    return
+  }
+  const target = line.getAttribute('data-target')
+  if (target && target !== '_self') {
+    window.open(href, target)
+    return
+  }
+  if (window.PinokioHomeGuardNavigate) {
+    window.PinokioHomeGuardNavigate(href)
+  } else {
+    location.href = href
+  }
+}
+const shouldIgnoreHomeLineNavigation = (event) => {
+  if (!event || event.defaultPrevented) {
+    return true
+  }
+  const target = event.target
+  if (!(target instanceof Element)) {
+    return false
+  }
+  return Boolean(target.closest('button, a, input, select, textarea, dialog, summary, [role="tab"]'))
+}
+const stopHomeRunMenuItem = (target) => {
+  const shellId = target.getAttribute('data-shell-id')
+  const scriptId = target.getAttribute('data-script-id')
+  const href = target.getAttribute('data-href')
+  let method
+  let params
+  if (shellId) {
+    method = "kernel.bin.shell_kill"
+    params = { id: shellId }
+  } else if (scriptId) {
+    method = "kernel.api.stop"
+    params = { id: scriptId }
+  } else if (href) {
+    method = "kernel.api.stop"
+    params = { uri: "~" + new URL(href, location.href).pathname }
+  }
+  if (!method) {
+    return
+  }
+  target.disabled = true
+  const icon = target.querySelector('i')
+  if (icon) {
+    icon.className = 'fa-solid fa-circle-notch fa-spin'
+  }
+  const stopSocket = new Socket()
+  stopSocket.run({ method, params }, (packet) => {
+    if (packet.type === "result") {
+      stopSocket.close()
+      if (icon) {
+        icon.className = 'fa-solid fa-check'
+      }
+      setTimeout(() => {
+        location.href = location.href
+      }, 250)
+    } else if (packet.type === "error") {
+      stopSocket.close()
+      target.disabled = false
+      if (icon) {
+        icon.className = 'fa-solid fa-stop'
+      }
+      n.Noty({
+        text: packet.data || "Failed to stop",
+        silent: true
+      })
+    }
+  })
+}
+const parseLineStarSortMeta = (line) => {
+  if (!line) {
+    return {
+      starred: 0,
+      launchCount: 0,
+      lastLaunch: 0,
+      index: Number.MAX_SAFE_INTEGER,
+      name: "",
+    }
+  }
+  const starred = line.getAttribute("data-starred") === "1" ? 1 : 0
+  const launchCount = Number.parseInt(line.getAttribute("data-launch-count-total") || "0", 10)
+  const lastLaunchRaw = line.getAttribute("data-last-launch-at") || ""
+  const lastLaunch = lastLaunchRaw ? (Date.parse(lastLaunchRaw) || 0) : 0
+  const index = Number.parseInt(line.getAttribute("data-index") || String(Number.MAX_SAFE_INTEGER), 10)
+  const name = (line.getAttribute("data-name") || "").toLowerCase()
+  return {
+    starred,
+    launchCount: Number.isFinite(launchCount) ? launchCount : 0,
+    lastLaunch,
+    index: Number.isFinite(index) ? index : Number.MAX_SAFE_INTEGER,
+    name
+  }
+}
+const readCurrentHomeSortMode = () => {
+  const sortSelect = document.querySelector("#home-apps-sort-select")
+  if (sortSelect) {
+    return normalizeHomeSortMode(sortSelect.value)
+  }
+  const currentParams = new URLSearchParams(location.search)
+  return normalizeHomeSortMode(currentParams.get("sort"))
+}
+const compareLinesByPreference = (a, b, sortMode = readCurrentHomeSortMode()) => {
+  const aa = parseLineStarSortMeta(a)
+  const bb = parseLineStarSortMeta(b)
+  if (aa.starred !== bb.starred) {
+    return bb.starred - aa.starred
+  }
+  if (sortMode === "last_opened") {
+    if (aa.lastLaunch !== bb.lastLaunch) {
+      return bb.lastLaunch - aa.lastLaunch
+    }
+    if (aa.launchCount !== bb.launchCount) {
+      return bb.launchCount - aa.launchCount
+    }
+    const byName = aa.name.localeCompare(bb.name)
+    if (byName !== 0) {
+      return byName
+    }
+  } else if (sortMode === "az") {
+    const byName = aa.name.localeCompare(bb.name)
+    if (byName !== 0) {
+      return byName
+    }
+  } else {
+    if (aa.launchCount !== bb.launchCount) {
+      return bb.launchCount - aa.launchCount
+    }
+    if (aa.lastLaunch !== bb.lastLaunch) {
+      return bb.lastLaunch - aa.lastLaunch
+    }
+    const byName = aa.name.localeCompare(bb.name)
+    if (byName !== 0) {
+      return byName
+    }
+  }
+  if (aa.index !== bb.index) {
+    return aa.index - bb.index
+  }
+  return aa.name.localeCompare(bb.name)
+}
+const reorderHomeSectionsByPreference = (sortMode = readCurrentHomeSortMode()) => {
+  const sections = [".running-apps", ".not-running-apps"]
+  for (const selector of sections) {
+    const section = document.querySelector(selector)
+    if (!section) {
+      continue
+    }
+    const lines = Array.from(section.querySelectorAll(":scope > .line"))
+    lines.sort((x, y) => compareLinesByPreference(x, y, sortMode))
+    for (const line of lines) {
+      section.appendChild(line)
+    }
+  }
+}
+if (homeSortSelect) {
+  reorderHomeSectionsByPreference(normalizeHomeSortMode(homeSortSelect.value))
+  if (typeof window.TomSelect === "function" && !homeSortSelect.tomselect) {
+    const sortDropdownParent = homeSortSelect.closest(".home-apps-sort")
+    new TomSelect(homeSortSelect, {
+      create: false,
+      maxItems: 1,
+      allowEmptyOption: false,
+      searchField: [],
+      controlInput: null,
+      dropdownParent: sortDropdownParent || undefined
+    })
+  }
+  const sortContainer = homeSortSelect.closest(".home-apps-sort")
+  if (sortContainer && sortContainer.dataset.clickBound !== "true") {
+    sortContainer.dataset.clickBound = "true"
+    sortContainer.addEventListener("click", (event) => {
+      if (!(event.target instanceof Element) || event.target.closest(".ts-dropdown")) {
+        return
+      }
+      const sortControl = homeSortSelect.tomselect
+      if (sortControl && !event.target.closest(".ts-control")) {
+        sortControl.focus()
+        sortControl.open()
+        return
+      }
+      if (!event.target.closest("select")) {
+        homeSortSelect.focus()
+        homeSortSelect.click()
+      }
+    })
+  }
+}
+let homeStarToast = null
+const showHomeStarToast = () => {
+  if (typeof n === "undefined" || !n || typeof n.Noty !== "function") {
+    return
+  }
+  if (homeStarToast && typeof homeStarToast.close === "function") {
+    homeStarToast.close()
+  }
+  homeStarToast = n.Noty({
+    type: "notification",
+    className: "home-star-toast",
+    timeout: 5200,
+    progressBar: false,
+    closeWith: ["click"],
+    silent: true,
+    text: `
+      <div class="home-star-toast__row">
+        <div class="home-star-toast__icon">
+          <i class="fa-solid fa-star"></i>
+        </div>
+        <div class="home-star-toast__content">
+          <div class="home-star-toast__title">Starred apps get priority</div>
+          <div class="home-star-toast__text">AI agents rank starred apps higher when searching for tools to use.</div>
+        </div>
+      </div>
+    `
+  })
+}
 document.addEventListener("click", async (e) => {
-
   let target
-
+  if (e.target.classList.contains("open-actions-modal")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".open-actions-modal")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    openHomeActionsDialog(target)
+    return
+  }
+  if (e.target.classList.contains("home-actions-close")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".home-actions-close")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    const dialog = target.closest(".home-actions-dialog")
+    if (dialog && typeof dialog.close === "function") {
+      dialog.close()
+    }
+    return
+  }
+  if (e.target.classList.contains("home-actions-dialog")) {
+    e.target.close()
+    return
+  }
+  if (e.target.classList.contains("home-actions-tab")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".home-actions-tab")
+  }
+  if (target && target.hasAttribute("data-tab")) {
+    e.preventDefault()
+    e.stopPropagation()
+    setHomeActionsTab(target.closest(".home-actions-dialog"), target.getAttribute("data-tab"))
+    return
+  }
+  if (e.target.classList.contains("home-run-stop")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".home-run-stop")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    stopHomeRunMenuItem(target)
+    return
+  }
+  if (e.target.classList.contains("home-run-command")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".home-run-command")
+  }
+  if (target) {
+    const confirmText = target.getAttribute("data-confirm")
+    if (confirmText && !confirm(confirmText)) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
+  }
+  target = e.target.closest(".home-app-line")
+  if (target && !shouldIgnoreHomeLineNavigation(e)) {
+    e.preventDefault()
+    e.stopPropagation()
+    navigateHomeAppLine(target)
+    return
+  }
+  if (e.target.classList.contains("toggle-star")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".toggle-star")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (target.dataset.pending === "1") {
+      return
+    }
+    const appId = target.getAttribute("data-app-id")
+    if (!appId) {
+      return
+    }
+    const currentlyStarred = target.getAttribute("data-starred") === "1"
+    const nextStarred = !currentlyStarred
+    target.dataset.pending = "1"
+    try {
+      const response = await fetch(`/apps/preferences/${encodeURIComponent(appId)}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ starred: nextStarred })
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok || !payload || !payload.preference) {
+        throw new Error(payload && payload.error ? payload.error : "Failed to update app star")
+      }
+      target.setAttribute("data-starred", payload.preference.starred ? "1" : "0")
+      if (payload.preference.starred) {
+        target.classList.add("is-starred")
+      } else {
+        target.classList.remove("is-starred")
+      }
+      const icon = target.querySelector("i")
+      if (icon) {
+        icon.className = payload.preference.starred ? "fa-solid fa-star" : "fa-regular fa-star"
+      }
+      const starLabel = payload.preference.starred ? "Unstar app" : "Star app"
+      target.setAttribute("title", starLabel)
+      target.setAttribute("aria-label", starLabel)
+      const label = target.querySelector("span")
+      if (label) {
+        label.textContent = payload.preference.starred ? "Starred" : "Star"
+      }
+      const line = target.closest(".line")
+      if (line) {
+        line.setAttribute("data-starred", payload.preference.starred ? "1" : "0")
+        line.setAttribute("data-launch-count-total", String(payload.preference.launch_count_total || 0))
+        line.setAttribute("data-last-launch-at", payload.preference.last_launch_at || "")
+      }
+      reorderHomeSectionsByPreference()
+      if (payload.preference.starred) {
+        showHomeStarToast()
+      }
+    } catch (error) {
+      alert(error && error.message ? error.message : "Failed to update app star")
+    } finally {
+      delete target.dataset.pending
+    }
+    return
+  }
   if (e.target.classList.contains("shutdown")) {
     target = e.target
   } else {
@@ -799,43 +2429,256 @@ document.addEventListener("click", async (e) => {
     e.preventDefault()
     e.stopPropagation()
     let src = target.getAttribute("data-src")
-    console.log("src", src)
+    let id = target.getAttribute('data-id')
+    let type = target.getAttribute('data-type')
+    console.log({ id, src, type })
+    target.disabled = true
+    const stopIcon = target.querySelector("i.fa-stop")
+    const spinIcon = target.querySelector("i.fa-spin")
+    if (stopIcon) {
+      stopIcon.classList.add("hidden")
+    }
+    if (spinIcon) {
+      spinIcon.classList.remove("hidden")
+    }
 
-    socket.run({
-      method: "kernel.api.stop",
-      params: {
-        uri: "~/" + src
-      }
-    }, (packet) => {
-      console.log("packet", packet)
-      if (packet.type === "result") {
-        socket.close()
-        target.querySelector("i.fa-stop").className = "fa-solid fa-check"
-        target.querySelector("i.fa-spin").classList.add("hidden")
-        n.Noty({
-          text: `stopped ${src}`,
-          silent: true
-        })
-        setTimeout(() => {
-          location.href = location.href
-        }, 1000)
-      }
-    })
+    let params = {}
+    if (id) params.id = id
+    if (src) params.uri = "~/" + src
+
+    if (type === "shell") {
+      socket.run({
+        method: "kernel.bin.shell_kill",
+        params: { id }
+      }, (packet) => {
+        console.log("packet", packet)
+        if (packet.type === "result") {
+          socket.close()
+          target.querySelector("i.fa-stop").className = "fa-solid fa-check"
+          target.querySelector("i.fa-spin").classList.add("hidden")
+          n.Noty({
+            text: `stopped`,
+            silent: true
+          })
+          setTimeout(() => {
+            location.href = location.href
+          }, 500)
+        }
+      })
+    } else {
+      socket.run({
+        method: "kernel.api.stop",
+        params,
+      }, (packet) => {
+        console.log("packet", packet)
+        if (packet.type === "result") {
+          socket.close()
+          target.querySelector("i.fa-stop").className = "fa-solid fa-check"
+          target.querySelector("i.fa-spin").classList.add("hidden")
+          n.Noty({
+            text: `stopped ${src}`,
+            silent: true
+          })
+          setTimeout(() => {
+            location.href = location.href
+          }, 500)
+        }
+      })
+    }
+
 
     return
   }
-
-
-  if (e.target.classList.contains("browse")) {
+  if (e.target.classList.contains("open-menu")) {
     target = e.target
   } else {
-    target = e.target.closest(".browse")
+    target = e.target.closest(".open-menu")
   }
   if (target) {
     e.preventDefault()
     e.stopPropagation()
+    let popoverId = target.getAttribute('popovertarget')
+    let contextMenu
+    if (popoverId) {
+      contextMenu = document.getElementById(popoverId)
+    }
+    if (!contextMenu) {
+      contextMenu = target.closest(".col")?.querySelector(".context-menu")
+    }
+    if (contextMenu) {
+      const hasNativePopover = supportsNativePopovers && typeof contextMenu.showPopover === 'function'
+      const isOpen = hasNativePopover ? contextMenu.matches(':popover-open') : contextMenu.dataset.open === 'true'
+      if (isOpen) {
+        if (hasNativePopover) {
+          contextMenu.hidePopover()
+        } else {
+          contextMenu.style.display = 'none'
+          contextMenu.dataset.open = 'false'
+        }
+        return
+      }
+      if (hasNativePopover) {
+        document.querySelectorAll('.context-menu[popover]').forEach((menuEl) => {
+          if (menuEl !== contextMenu && menuEl.matches(':popover-open') && typeof menuEl.hidePopover === 'function') {
+            menuEl.hidePopover()
+          }
+        })
+      } else {
+        document.querySelectorAll('.context-menu[data-open="true"]').forEach((menuEl) => {
+          if (menuEl !== contextMenu) {
+            menuEl.style.display = 'none'
+            menuEl.dataset.open = 'false'
+          }
+        })
+      }
+      const buttonRect = target.getBoundingClientRect()
+      const menuRect = getMenuDimensions(contextMenu)
+      const viewportPadding = 12
+      let left = Math.min(buttonRect.left, window.innerWidth - menuRect.width - viewportPadding)
+      left = Math.max(viewportPadding, left)
+      let top = buttonRect.bottom + 6
+      if (top + menuRect.height + viewportPadding > window.innerHeight) {
+        top = buttonRect.top - menuRect.height - 6
+      }
+      const maxTop = Math.max(viewportPadding, window.innerHeight - menuRect.height - viewportPadding)
+      top = Math.min(Math.max(viewportPadding, top), maxTop)
+      if (hasNativePopover) {
+        contextMenu.style.position = 'fixed'
+        contextMenu.style.left = left + 'px'
+        contextMenu.style.top = top + 'px'
+        contextMenu.style.right = 'auto'
+        contextMenu.style.bottom = 'auto'
+        contextMenu.togglePopover()
+      } else {
+        const btnContainer = target.closest('.menu-btns')
+        if (!btnContainer) {
+          return
+        }
+        const containerRect = btnContainer.getBoundingClientRect()
+        contextMenu.style.left = Math.max(0, left - containerRect.left) + 'px'
+        contextMenu.style.top = top - containerRect.top + 'px'
+        contextMenu.style.right = 'auto'
+        contextMenu.style.bottom = 'auto'
+        contextMenu.style.display = 'block'
+        contextMenu.dataset.open = 'true'
+      }
+    }
+    return
+  }
+  if (e.target.classList.contains("move-menu")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".move-menu")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    closeContextMenuForNode(target)
+
+    let disable_message = target.getAttribute('data-disable')
+    if (disable_message && disable_message.length > 0) {
+      alert(disable_message)
+      return
+    }
+
+    let line = target.closest(".line")
+    let title = line.getAttribute("data-title")
+    let icon = line.getAttribute("data-icon")
+    let iconpath = line.getAttribute("data-iconpath")
+    let path = line.getAttribute("data-path")
+    let description = line.getAttribute("data-description")
+    await FSEditor({
+      title,
+      description,
+      old_path: path,
+      icon,
+      iconpath,
+      move: true,
+      edit: true,
+      redirect: (new_path) => {
+        return location.href
+      }
+    })
+    return
+  }
+
+  if (e.target.classList.contains("copy-menu")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".copy-menu")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    closeContextMenuForNode(target)
+    let line = target.closest(".line")
+    let title = line.getAttribute("data-title")
+    let icon = line.getAttribute("data-icon")
+    let iconpath = line.getAttribute("data-iconpath")
+    let path = line.getAttribute("data-path")
+    let description = line.getAttribute("data-description")
+    await FSEditor({
+      title,
+      description,
+      old_path: path,
+      icon,
+      iconpath,
+      copy: true,
+      edit: true,
+      redirect: (new_path) => {
+        return location.href
+      }
+    })
+    return
+  }
+
+  if (e.target.classList.contains("edit-menu")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".edit-menu")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    closeContextMenuForNode(target)
+    let line = target.closest(".line")
+    let title = line.getAttribute("data-title")
+    let icon = line.getAttribute("data-icon")
+    let iconpath = line.getAttribute("data-iconpath")
+    let path = line.getAttribute("data-path")
+    let description = line.getAttribute("data-description")
+    await FSEditor({
+      title,
+      description,
+      old_path: path,
+      icon,
+      iconpath,
+      edit: true,
+      redirect: (new_path) => {
+        return location.href
+      }
+    })
+    return
+  }
+
+
+
+
+  if (e.target.classList.contains("browse") || e.target.classList.contains("home-browse")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".browse, .home-browse")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    closeContextMenuForNode(target)
     let src = target.getAttribute("data-src")
-    location.href = src
+    if (window.PinokioHomeGuardNavigate) {
+      window.PinokioHomeGuardNavigate(src)
+    } else {
+      location.href = src
+    }
     return
   }
 
@@ -849,6 +2692,14 @@ document.addEventListener("click", async (e) => {
   if (target) {
     e.preventDefault()
     e.stopPropagation()
+    closeContextMenuForNode(target)
+
+    let disable_message = target.getAttribute('data-disable')
+    if (disable_message && disable_message.length > 0) {
+      alert(disable_message)
+      return
+    }
+
     let confirmed = confirm("Are you sure you want to delete the folder? All files in the folder will be gone.")
     if (confirmed) {
       let itemEl = target.closest(".line[data-uri]")
@@ -876,8 +2727,9 @@ document.addEventListener("click", async (e) => {
       console.log("res", res)
       Swal.close()
       if (res) {
+        debugger
         if (res.success) {
-          location.href = "/"
+          location.href = "/home"
         } else if (res.error) {
           alert(res.error)
         }
@@ -891,9 +2743,18 @@ document.addEventListener("click", async (e) => {
 
   if (document.querySelector(".container")) {
     document.querySelector(".container").addEventListener("click", async (e) => {
-      let el = e.target.closest(".menu-btn")
-      if (!el) {
-        if (el.classList.contains("menu-btn")) {
+      //let el = e.target.closest(".menu-btn")
+      //if (!el) {
+      //  if (el.classList.contains("menu-btn")) {
+      //    el = e.target
+      //  }
+      //}
+
+      let el
+      if (e.target.classList.contains("menu-btn")) {
+        el = e.target
+      } else {
+        if (e.target.closest(".menu-btn")) {
           el = e.target
         }
       }
@@ -945,6 +2806,17 @@ document.addEventListener("click", async (e) => {
   */
 
 
+})
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") {
+    return
+  }
+  const line = e.target && e.target.closest ? e.target.closest(".home-app-line") : null
+  if (!line || shouldIgnoreHomeLineNavigation(e)) {
+    return
+  }
+  e.preventDefault()
+  navigateHomeAppLine(line)
 })
 <% if (proxy) { %>
   if (document.querySelector("#wifi-qr")) {
@@ -1059,35 +2931,15 @@ if (document.querySelector("#cloudflare")) {
   })
 }
 <% } %>
-if (document.querySelector("#back")) {
-  document.querySelector("#back").addEventListener("click", (e) => {
-    history.back()
-  })
-}
-if (document.querySelector("#forward")) {
-  document.querySelector("#forward").addEventListener("click", (e) => {
-    history.forward()
-  })
-}
-if (document.querySelector("#genlog")) {
-  document.querySelector("#genlog").addEventListener("click", (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    e.target.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'
-    fetch("/pinokio/log", {
-      method: "post",
-    }).then((res) => {
-      console.log("RES", res)
-      let btn = document.querySelector("#genlog")
-      let btn2 = document.querySelector("#downloadlogs")
-      btn2.classList.remove("hidden") 
-      btn.classList.add("hidden")
-      btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Generated!'
-      //btn.classList.add("hidden")
-    })
-  })
-}
+
+// Initialize URL Dropdown with empty behavior
+document.addEventListener('DOMContentLoaded', function() {
+  initUrlDropdown({
+    clearBehavior: 'empty'
+  });
+});
 
 </script>
+<script src="/opener.js"></script>
 </body>
 </html>

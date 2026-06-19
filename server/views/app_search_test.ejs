@@ -1,0 +1,185 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/style.css" rel="stylesheet"/>
+<link href="/urldropdown.css" rel="stylesheet" />
+<style>
+.search-shell {
+  max-width: 980px;
+  margin: 36px auto 80px auto;
+  padding: 0 16px;
+}
+.search-card {
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(0,0,0,0.02);
+  margin-bottom: 12px;
+}
+body.dark .search-card {
+  border-color: rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+}
+.search-form {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0 14px 0;
+}
+.search-form input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid rgba(0,0,0,0.2);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: white;
+  color: inherit;
+}
+body.dark .search-form input[type="text"] {
+  border-color: rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.06);
+}
+.search-summary {
+  font-size: 13px;
+  opacity: 0.85;
+  margin-bottom: 12px;
+}
+.search-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.search-title {
+  font-size: 18px;
+  margin: 0 0 6px 0;
+}
+.search-meta {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-bottom: 6px;
+}
+.search-desc {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.search-snippet {
+  font-size: 12px;
+  background: rgba(0,0,0,0.035);
+  border-radius: 6px;
+  padding: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+body.dark .search-snippet {
+  background: rgba(255,255,255,0.06);
+}
+pre.search-json {
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 8px;
+  background: rgba(0,0,0,0.03);
+  padding: 12px;
+  max-height: 60vh;
+  overflow: auto;
+  font-size: 12px;
+}
+body.dark pre.search-json {
+  border-color: rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+}
+</style>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<script src="/urldropdown.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  initUrlDropdown({
+    clearBehavior: 'empty'
+  })
+})
+</script>
+</head>
+<body class="<%= theme %>" data-agent="<%= agent %>">
+<header class="navheader grabbable">
+<h1>
+<a class="home" href="/home"><img class="icon" src="/pinokio-black.png"><i class="fa-solid fa-expand home-expand-icon" aria-hidden="true"></i></a><div class="header-drag-handle" aria-hidden="true" title="Drag minimized header"></div>
+<button class="btn2" id="minimize-header" data-tippy-content="fullscreen" title="fullscreen">
+  <div><i class="fa-solid fa-expand"></i></div>
+</button>
+<button class="btn2" id="back" data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class="btn2" id="forward" data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class="btn2" id="refresh-page" data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class="btn2" id="screenshot" data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
+<button class="btn2" id="inspector" data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+<button class="btn2 mobile-link-button" id="mobile-link-button" data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
+<div class="mobile-flexible"></div>
+<form class="urlbar">
+  <div class="url-input-container">
+    <input type="url" placeholder="enter any local url to open in pinokio">
+    <div class="url-dropdown" id="url-dropdown" style="display: none;"></div>
+  </div>
+</form>
+<a class="btn2" href="/columns" data-tippy-content="split into 2 columns">
+  <div><i class="fa-solid fa-table-columns"></i></div>
+</a>
+<a class="btn2" href="/rows" data-tippy-content="split into 2 rows">
+  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+</a>
+<button class="btn2" id="new-window" data-tippy-content="open a new window" title="open a new window" data-agent="<%= agent %>">
+  <div><i class="fa-solid fa-plus"></i></div>
+</button>
+<button class="btn2 hidden" id="close-window" data-tippy-content="close this section">
+  <div><i class="fa-solid fa-xmark"></i></div>
+</button>
+</h1>
+</header>
+<main>
+  <div class="search-shell">
+    <div class="search-card">
+      <h1 class="search-title">App Search Test</h1>
+      <div class="search-meta"><a href="/home?mode=settings">Settings</a> / Search Diagnostics</div>
+      <form method="get" action="/apps/search/test" class="search-form">
+        <input type="text" name="q" value="<%= query %>" placeholder="Search apps. Example: qwen tts">
+        <button class="btn" type="submit"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+      </form>
+      <div class="search-summary">
+        Query: <code><%= query || "(empty)" %></code>
+        · Results: <code><%= result && Number.isFinite(result.count) ? result.count : 0 %></code>
+      </div>
+    </div>
+
+    <% const apps = result && Array.isArray(result.apps) ? result.apps : [] %>
+    <% if (apps.length > 0) { %>
+      <div class="search-grid">
+        <% apps.slice(0, 12).forEach((app) => { %>
+          <div class="search-card">
+            <div class="search-title"><%= app.title || app.name || app.app_id %></div>
+            <div class="search-meta">
+              <code><%= app.app_id || app.name %></code>
+              <% if (typeof app.score === "number") { %> · score: <code><%= app.score %></code><% } %>
+              <% if (app.state) { %> · state: <code><%= app.state %></code><% } %>
+            </div>
+            <% if (app.description) { %>
+              <div class="search-desc"><%= app.description %></div>
+            <% } %>
+            <% if (Array.isArray(app.matches) && app.matches.length > 0) { %>
+              <div class="search-snippet"><%= app.matches[0].snippet || "" %></div>
+            <% } %>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <div class="search-card">
+      <div class="search-meta">Raw JSON</div>
+      <pre class="search-json"><%= resultJson %></pre>
+    </div>
+  </div>
+</main>
+</body>
+</html>

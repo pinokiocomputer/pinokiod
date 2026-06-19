@@ -19,9 +19,9 @@ class C {
     let pipe_uri
     if (req.params.passcode) {
       // 1. start a pipe server => needed for authentication
-      const api_path = Util.api_path(req.parent.path, kernel)
-      const pinokio_path = path.resolve(api_path, "pinokio.js")
-      const config  = (await kernel.loader.load(pinokio_path)).resolved
+      const api_name = Util.api_name(req.parent.path, kernel)
+      const launcher = await kernel.api.launcher(api_name)
+      const config = launcher.script
       pipe_uri = await kernel.pipe.start(req.params.uri, req.parent.path, req.params.passcode, config)
     } else {
       // 2. if no passcode required, no need for a pipe server just use the original

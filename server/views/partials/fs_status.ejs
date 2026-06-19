@@ -1,0 +1,39 @@
+<div id='fs-status' data-workspace="<%=name%>" data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-status-uri="<%=git_status_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>" data-fork-uri="<%=git_fork_url%>">
+  <!--
+  <div class='fs-status-dropdown nested-menu git blue'>
+    <button type='button' class='fs-status-btn frame-link reveal'>
+      <span class='fs-status-label'>
+        <i class="fa-brands fa-git-alt"></i>
+        Git
+      </span>
+    </button>
+    <div class='fs-dropdown-menu submenu hidden' id='git-repos'>
+    </div>
+  </div>
+  -->
+  <div class='fs-status-dropdown git-changes'>
+    <button id='fs-changes-btn' class='fs-status-btn revealer' data-group='#fs-changes-menu' type='button'>
+      <span class='fs-status-label'><i class="fa-solid fa-code-compare"></i> Changes</span>
+      <div class='badge'></div>
+    </button>
+    <div class='fs-dropdown-menu submenu hidden' id='fs-changes-menu'></div>
+  </div>
+  <div class='fs-status-dropdown git-fork'>
+    <button id='fs-fork-btn' class='fs-status-btn revealer' type='button' data-group='#fs-fork-menu'>
+      <span class='fs-status-label'>
+        <i class="fa-solid fa-code-branch"></i>
+        <span class='fs-status-title'>Fork</span>
+      </span>
+    </button>
+    <div class='fs-dropdown-menu submenu hidden' id='fs-fork-menu'></div>
+  </div>
+  <div class='fs-status-dropdown git-publish'>
+    <button id='fs-push-btn' class='fs-status-btn revealer' type='button' data-group='#fs-push-menu'>
+      <span class='fs-status-label'>
+        <i class="fa-brands fa-github"></i>
+        <span class='fs-status-title'>Publish</span>
+      </span>
+    </button>
+    <div class='fs-dropdown-menu submenu hidden' id='fs-push-menu'></div>
+  </div>
+</div>

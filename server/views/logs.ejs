@@ -1,0 +1,211 @@
+<html>
+<head>
+<title>Logs</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<script src="/window_storage.js"></script>
+<script src="/popper.min.js"></script>
+<script src="/tippy-bundle.umd.min.js"></script>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/install.js"></script>
+<script src="/timeago.min.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<script src="/report.js"></script>
+</head>
+<body class='<%=theme%> <%= logsEmbedded ? "logs-embedded" : "main-sidebar-page" %>' data-agent="<%=agent%>">
+<% if (!logsEmbedded) { %>
+  <%- include('partials/app_navheader', { agent }) %>
+<% } %>
+<main>
+  <div class='container'>
+    <% if (!logsError) { %>
+    <section class="logs-page" id="logs-root" data-workspace="<%= logsWorkspace ? logsWorkspace : '' %>" data-report-url="<%= logsReportUrl || '' %>" data-initial-view="<%= logsInitialView || 'raw' %>">
+      <div class="logs-page-header">
+        <div class="logs-page-switch">
+          <% if (logsReportUrl) { %>
+            <div class="logs-view-switch" role="tablist" aria-label="Log views">
+              <button type="button" class="logs-view-tab" data-logs-view="latest" role="tab" aria-controls="logs-latest-panel">Latest</button>
+              <button type="button" class="logs-view-tab" data-logs-view="raw" role="tab" aria-controls="logs-raw-panel">Raw logs</button>
+            </div>
+          <% } else { %>
+            <div class="logs-raw-only-title"><i class="fa-solid fa-laptop-code" aria-hidden="true"></i><span>Logs</span></div>
+          <% } %>
+        </div>
+        <div class="logs-page-controls">
+          <div class="logs-action-group" data-logs-actions="latest">
+            <button type="button" class="logs-flat-button" id="logs-copy-report" disabled><i class="fa-solid fa-copy"></i><span>Copy</span></button>
+            <button type="button" class="logs-flat-button" id="logs-refresh-report"><i class="fa-solid fa-arrows-rotate"></i><span>Refresh</span></button>
+          </div>
+          <div class="logs-action-group" data-logs-actions="raw">
+            <button type="button" class="logs-primary-button" id="logs-generate-archive"><i class="fa-solid fa-file-zipper"></i><span>Generate zip</span></button>
+            <a id="logs-download-archive" class="logs-secondary-button hidden" href="<%= typeof logsDownloadUrl !== 'undefined' ? logsDownloadUrl : '/pinokio/logs.zip' %>" download><i class="fa-solid fa-download"></i><span>Download</span></a>
+            <button type="button" class="logs-flat-button" id="logs-refresh-tree"><i class="fa-solid fa-arrows-rotate"></i><span>Refresh tree</span></button>
+          </div>
+          <% if (logsEmbedded) { %>
+            <button type="button" class="logs-icon-button logs-close-button" id="logs-close-view" aria-label="Close logs" title="Close logs"><i class="fa-solid fa-xmark"></i></button>
+          <% } %>
+        </div>
+      </div>
+
+      <section class="logs-latest-view" id="logs-latest-panel" data-logs-panel="latest" role="tabpanel">
+        <div class="logs-latest-workspace">
+          <section class="logs-report-pane" aria-label="Issue report preview">
+            <div class="logs-latest-pane-header">
+              <div>
+                <p class="logs-latest-pane-eyebrow">Report preview</p>
+                <div class="logs-latest-pane-title">Markdown draft</div>
+              </div>
+            </div>
+            <pre class="logs-report-output" id="logs-report-output" tabindex="0"></pre>
+          </section>
+          <aside class="logs-redaction-pane" aria-label="Report details and redaction review">
+            <div class="logs-latest-pane-header">
+              <div>
+                <p class="logs-latest-pane-eyebrow">Review</p>
+                <div class="logs-latest-pane-title">Before copy</div>
+              </div>
+            </div>
+            <div class="logs-review-content">
+              <section class="logs-review-section" aria-label="Latest report details">
+                <div class="logs-review-section-title">Snapshot</div>
+                <div class="logs-review-meta">
+                  <div>
+                    <span>Generated</span>
+                    <strong id="logs-report-generated">--</strong>
+                  </div>
+                  <div>
+                    <span>Sections</span>
+                    <strong id="logs-report-sections">--</strong>
+                  </div>
+                </div>
+                <div class="logs-review-file-list" id="logs-report-files" aria-label="Included log files"></div>
+              </section>
+              <section class="logs-review-section" aria-label="Registry draft size">
+                <div class="logs-review-section-row">
+                  <div class="logs-review-section-title">Registry draft</div>
+                  <div class="logs-review-badge" id="logs-draft-size-badge">--</div>
+                </div>
+                <div class="logs-draft-meter" aria-hidden="true">
+                  <div class="logs-draft-meter-fill" id="logs-draft-meter-fill"></div>
+                </div>
+                <div class="logs-draft-status" id="logs-draft-status">Waiting for latest log snapshot.</div>
+              </section>
+              <section class="logs-review-section" aria-label="Privacy filter status">
+                <div class="logs-review-section-row">
+                  <div class="logs-review-section-title">Privacy filter</div>
+                  <div class="logs-review-badge" id="logs-redaction-count">Not run</div>
+                </div>
+                <div class="logs-report-status" id="logs-report-status" role="status" aria-live="polite">Building latest log snapshot…</div>
+                <button type="button" class="logs-primary-button logs-review-filter-button" id="logs-run-filter" disabled><i class="fa-solid fa-shield-halved"></i><span>Run privacy filter</span></button>
+              </section>
+              <section class="logs-review-section logs-review-section--redactions" aria-label="Redaction review">
+                <div class="logs-review-section-title">Redactions</div>
+                <div class="logs-redaction-filters" id="logs-redaction-filters" aria-label="Filter redactions"></div>
+                <div class="logs-redaction-list" id="logs-redaction-list"></div>
+              </section>
+            </div>
+          </aside>
+          <footer class="logs-community-footer" aria-label="Ask Community">
+            <div class="logs-community-copy">
+              <div class="logs-community-heading"><i class="fa-solid fa-comments" aria-hidden="true"></i><span>Ask Community</span></div>
+              <div class="logs-community-subtitle">Opens a draft question on pinokio.co with this report attached.</div>
+            </div>
+            <div class="logs-community-title-field">
+              <label class="logs-community-title-label" for="logs-draft-title">Title</label>
+              <input class="logs-community-title-input" id="logs-draft-title" type="text" maxlength="120" autocomplete="off" spellcheck="true" placeholder="Issue title" disabled>
+              <span class="logs-community-title-note" id="logs-draft-title-note" aria-live="polite"></span>
+            </div>
+            <button type="button" class="logs-primary-button logs-community-submit" id="logs-create-draft" disabled><i class="fa-solid fa-paper-plane"></i><span>Ask Community</span></button>
+          </footer>
+        </div>
+      </section>
+
+      <section class="logs-raw-view" id="logs-raw-panel" data-logs-panel="raw" role="tabpanel">
+        <div class="logs-sidebar" aria-label="Log folders">
+          <div class="logs-sidebar-header">
+            <div>
+              <p class="logs-sidebar-eyebrow">Raw log files</p>
+              <h2>Files</h2>
+              <div class="logs-tree-hint">Select a file to stream live output.</div>
+            </div>
+            <div class="logs-zip-status" id="logs-zip-status" role="status" aria-live="polite"></div>
+          </div>
+          <div class="logs-tree-wrapper">
+            <div class="logs-tree" id="logs-tree" role="tree" aria-label="Pinokio logs"></div>
+          </div>
+        </div>
+        <div class="logs-resizer" id="logs-resizer" role="separator" aria-orientation="vertical" aria-valuemin="220" aria-valuemax="560" aria-valuenow="320" tabindex="0" aria-label="Resize or collapse log navigation">
+          <button type="button" class="logs-resizer-toggle" aria-label="Collapse log navigation">
+            <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="logs-main" aria-live="polite">
+          <div class="logs-viewer-panel">
+            <div class="logs-viewer-header">
+              <div>
+                <p class="logs-viewer-eyebrow">Raw logs</p>
+                <div class="logs-viewer-path" id="logs-viewer-path">Select a log file to start streaming.</div>
+              </div>
+              <div class="logs-viewer-controls">
+                <label class="logs-autoscroll-toggle">
+                  <input type="checkbox" id="logs-autoscroll" checked>
+                  <span>Auto-scroll</span>
+                </label>
+                <button type="button" class="logs-flat-button" id="logs-clear-viewer" disabled>
+                  <i class="fa-solid fa-eraser"></i>
+                  <span>Clear</span>
+                </button>
+              </div>
+            </div>
+            <div class="logs-viewer-status" id="logs-viewer-status">Waiting for selection…</div>
+            <pre class="logs-viewer-output" id="logs-viewer-output" role="log" aria-live="polite" tabindex="0"></pre>
+          </div>
+        </div>
+      </section>
+    </section>
+    <% } else { %>
+    <section class="logs-page logs-page--error" id="logs-root-error">
+      <div class="logs-empty-state">
+        <div class="logs-empty-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <h2>Unable to open logs for this workspace</h2>
+        <p><%= logsError %></p>
+        <div class="logs-empty-actions">
+          <a class="btn" href="/logs"><i class="fa-solid fa-laptop-code"></i> View system logs</a>
+          <% if (logsWorkspace) { %>
+            <a class="btn" href="/logs?workspace=<%= encodeURIComponent(logsWorkspace) %>"><i class="fa-solid fa-rotate-right"></i> Retry</a>
+          <% } %>
+        </div>
+      </div>
+    </section>
+    <% } %>
+  </div>
+  <% if (!logsEmbedded) { %>
+    <%- include('partials/main_sidebar', { selected: 'logs', showPeerAccess: false }) %>
+  <% } %>
+</main>
+<script>
+window.LOGS_PAGE_DATA = <%- JSON.stringify({ rootDisplay: logsRootDisplay || '', downloadUrl: logsDownloadUrl || '/pinokio/logs.zip', workspace: logsWorkspace || '', workspaceTitle: logsTitle || '', reportUrl: logsReportUrl || '', draftUrl: typeof logsDraftUrl !== 'undefined' ? logsDraftUrl : '', registryBase: 'https://pinokio.co', initialView: logsInitialView || 'raw', embedded: !!logsEmbedded }) %>
+</script>
+<script src="/logs.js"></script>
+</body>
+</html>

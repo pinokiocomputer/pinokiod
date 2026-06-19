@@ -235,8 +235,9 @@ body.dark .item .tile .badge {
   padding: 10px 0;
 }
 </style>
+<script src="/popper.min.js"></script>
+<script src="/tippy-bundle.umd.min.js"></script>
 <script src="/hotkeys.min.js"></script>
-<script src="/sweetalert2.js"></script>
 <script src="/noty.js"></script>
 <script src="/notyq.js"></script>
 <script src="/xterm.js"></script>
@@ -251,19 +252,31 @@ body.dark .item .tile .badge {
 <script src="/nav.js"></script>
 <script src="/report.js"></script>
 </head>
-<body class='<%=theme%>'>
+<body class='<%=theme%>' data-agent="<%=agent%>">
 <header class='navheader grabbable'>
 <h1>
-<a class='home' href="/"><i class="fa-solid fa-house"></i></a>
-<button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
-<button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
+<a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
+<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+  <div><i class="fa-solid fa-expand"></i></div>
+</button>
+<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
 <div class='flexible'></div>
-<div class='nav-btns'>
-  <a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
-  <a class='btn2' href="/?mode=help"><div><i class="fa-regular fa-face-smile"></i></div><div>Community</div></a>
-  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
-  <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
-</div>
+<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+  <div><i class="fa-solid fa-table-columns"></i></div>
+</a>
+<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+</a>
+<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+  <div><i class="fa-solid fa-plus"></i></div>
+</button>
+<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+  <div><i class="fa-solid fa-xmark"></i></div>
+</button>
 </h1>
 </header>
 <main>

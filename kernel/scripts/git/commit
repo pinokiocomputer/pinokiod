@@ -1,0 +1,31 @@
+{
+  "run": [{
+    "when": "{{args.message && args.message.length > 0}}",
+    "method": "jump",
+    "params": {
+      "id": "commit",
+      "params": {
+        "commit": "{{args.message}}"
+      }
+    }
+  }, {
+    "method": "input",
+    "params": {
+      "form": [{
+        "key": "commit",
+        "title": "Commit message"
+      }]
+    }
+  }, {
+    "id": "commit",
+    "method": "shell.run",
+    "params": {
+      "chain": true,
+      "path": "{{args.cwd}}",
+      "message": [
+        "git add .",
+        "git commit -am \"{{input.commit}}\""
+      ]
+    }
+  }]
+}

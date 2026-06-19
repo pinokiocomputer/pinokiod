@@ -8,7 +8,7 @@ class N {
       //layout: "topRight"
     }, options)
     //this.audio = new Audio("/beep.wav")
-    this.audio = new Audio("/pop.mp3")
+    this.audio = new Audio("/chime.mp3")
   }
   Noty(options) {
     const o = {

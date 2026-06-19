@@ -1,0 +1,1906 @@
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<script src="/hotkeys.min.js"></script>
+<script src="/ace/ace.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-inline-bridge.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/xterm-addon-search.js"></script>
+<script src="/xterm-addon-search-bar.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/Socket.js"></script>
+<script src="/resizeSync.js"></script>
+<script src="/terminal_input_tracker.js"></script>
+<script src="/terminal_input_utils.js"></script>
+<script src="/terminal_key_caption.js"></script>
+<script src="/terminal-settings.js"></script>
+<script src="/pinokio-touch.js"></script>
+<script src="/common.js"></script>
+<script src="/run-task-save.js"></script>
+<script src="/he.js"></script>
+<script src="/opener.js"></script>
+<!--
+<script src="/nav.js"></script>
+-->
+<script src="/autoexpand.js"></script>
+<script src="/modalinput.js"></script>
+<script src="/htmlmodal.js"></script>
+<script src="/simplemodal.js"></script>
+<script src="/waitmodal.js"></script>
+<script src="/notifyinput.js"></script>
+<script src="/report.js"></script>
+<script src="/mark.min.js"></script>
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/style.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<!--
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+-->
+
+
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+.stopped-btn {
+  background: silver;
+}
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+#table > table {
+  border-left: 2px solid black;
+  padding-left: 5px;
+  margin: 10px 0;
+}
+.highlight {
+  background: yellow;
+  width: 100px;
+}
+th {
+  background: rgba(0,0,0,0.1);
+  padding: 10px;
+  font-size: 12px;
+}
+td {
+  font-size: 12px;
+  padding: 10px;
+}
+td.val {
+  background: rgba(0,0,0,0.06);
+}
+td.key {
+  background: rgba(0,0,0,0.1);
+}
+.button {
+  cursor: pointer; 
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+header {
+  position: relative;
+  padding: 10px 0;
+}
+.button:hover {
+  
+}
+.terminal {
+  box-sizing: border-box;
+}
+.xterm .xterm-viewport {
+  width: initial !important;
+}
+#terminal {
+  position: relative;
+}
+.terminal-drop-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease-in-out;
+  padding: 12px;
+  z-index: 5;
+}
+.terminal-drop-overlay.active {
+  opacity: 1;
+}
+.navheader3 {
+  padding: 10px;
+}
+.navheader {
+  padding-bottom: 0;
+}
+.navheader h1 {
+  align-items: center;
+}
+/*
+.navheader {
+  background: var(--dark-bg);
+}
+*/
+/*
+.btn {
+  background: royalblue;
+}
+*/
+#del-bin {
+  color: royalblue;
+  cursor: pointer;
+  font-weight: bold;
+  padding: 0 5px;
+  text-decoration: underline;
+}
+body.frozen {
+  overflow: auto !important;
+}
+.terminal-container {
+  padding: 0;
+}
+#status-window {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  /*
+  flex-grow: 1;
+  text-align: right;
+  */
+  padding: 0 10px;
+}
+#status-window strong {
+  color: royalblue;
+}
+#status-window b {
+  color: black;
+  font-weight: normal;
+}
+body.dark #status-window b {
+  color: white;
+}
+#progress-window {
+  flex-shrink: 0;
+  width: 100px;
+  background: #eee;
+  height: 15px;
+  /*
+  border-radius: 5px;
+  */
+  overflow: hidden;
+}
+#progress-bar {
+  width: 0%;
+  height: 100%;
+  background: royalblue;
+  transition: width 0.2s;
+}
+@media only screen and (max-width: 768px) {
+  body {
+    flex-direction: column !important;
+  }
+}
+html.agent-shell-hide-run-controls .runner .play-btn,
+html.agent-shell-hide-run-controls .runner .starting-btn {
+  display: none !important;
+}
+</style>
+<link href="/terminal.css" rel="stylesheet"/>
+<script>
+let shell_id
+let lastNotifiedShellId = null
+const INITIAL_MESSAGE = <% if (message) { %><%-JSON.stringify(message)%><% } else { %>null<% } %>
+const RESTART_MESSAGE = <% if (restart_message) { %><%-JSON.stringify(restart_message)%><% } else { %>null<% } %>
+const pendingStopRequestIds = []
+const flushStopAcknowledgements = (ok) => {
+  while (pendingStopRequestIds.length > 0) {
+    const requestId = pendingStopRequestIds.shift()
+    window.parent.postMessage({
+      action: "pinokio:stop-shell-result",
+      requestId,
+      ok: Boolean(ok)
+    }, "*")
+  }
+}
+const formatUploadNotification = (files, sessionId, shellEmit, shellEmitAttempted) => {
+  if (!Array.isArray(files) || files.length === 0) {
+    return 'Upload complete (no files reported)'
+  }
+  const countLabel = files.length > 1 ? `${files.length} files attached` : 'File attached'
+  const sessionLabel = sessionId ? sessionId : '(unknown session)'
+  const summaries = files.map((file) => {
+    const name = file && (file.originalName || file.name || file.storedAs) ? (file.originalName || file.name || file.storedAs) : 'unknown'
+    const target = file && (file.cliRelativePath || file.displayPath || file.path) ? (file.cliRelativePath || file.displayPath || file.path) : ''
+    const summary = target ? `${name} → ${target}` : name
+    return summary.length > 180 ? `${summary.slice(0, 177)}…` : summary
+  })
+  let emitStatus
+  if (shellEmitAttempted) {
+    emitStatus = shellEmit ? 'Shell emit: delivered to terminal session' : 'Shell emit: failed – fallback used'
+  } else if (shellEmitAttempted === false) {
+    emitStatus = 'Shell emit: not attempted'
+  } else {
+    emitStatus = 'Shell emit: status unknown'
+  }
+  return `${countLabel}<br>Session: ${sessionLabel}<br>${emitStatus}<br>${summaries.join('<br>')}`
+}
+const postMessageToAncestors = (payload) => {
+  if (!payload || typeof payload !== "object") {
+    return false
+  }
+  if (typeof window !== "undefined" && typeof window.PinokioBroadcastMessage === "function") {
+    try {
+      if (window.PinokioBroadcastMessage(payload, "*", window)) {
+        return true
+      }
+    } catch (_) {}
+  }
+  const targets = new Set()
+  try {
+    if (window.parent && window.parent !== window && typeof window.parent.postMessage === "function") {
+      targets.add(window.parent)
+    }
+  } catch (_) {}
+  try {
+    if (window.top && window.top !== window && typeof window.top.postMessage === "function") {
+      targets.add(window.top)
+    }
+  } catch (_) {}
+  let dispatched = false
+  targets.forEach((target) => {
+    try {
+      target.postMessage(payload, "*")
+      dispatched = true
+    } catch (_) {}
+  })
+  return dispatched
+}
+const openAppLogsForError = (packet) => {
+  return postMessageToAncestors({
+    e: "pinokio:logs-new",
+    type: "pinokio:logs-new",
+    reason: "error",
+    frame: window.name || null,
+    source: "shell"
+  })
+}
+const showErrorScreen = (packet) => {
+  const errorScreen = document.querySelector("#error-screen")
+  const errorOutput = errorScreen ? errorScreen.querySelector("pre") : null
+  if (!errorScreen || !errorOutput) {
+    return
+  }
+  errorScreen.classList.remove("hidden")
+  errorOutput.textContent = packet && packet.data ? packet.data : ""
+  let instance = new Mark(errorOutput, {
+    separateWordSearch: false,
+    accuracy: "exactly"
+  })
+  if (packet && packet.event) {
+    instance.mark(packet.event)
+    let element = errorScreen.querySelector("mark")
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" })
+    }
+  }
+}
+const notifyShellSession = (id) => {
+  if (!id || id === lastNotifiedShellId) {
+    return
+  }
+  lastNotifiedShellId = id
+  postMessageToAncestors({
+    type: "shell-session-id",
+    frame: window.name || null,
+    shellId: id
+  })
+}
+const parseTerminalIdFromShellRef = (value) => {
+  if (typeof value !== "string" || value.length === 0) {
+    return ""
+  }
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return ""
+  }
+  const queryIndex = trimmed.indexOf("?")
+  if (queryIndex < 0) {
+    return ""
+  }
+  try {
+    const params = new URLSearchParams(trimmed.slice(queryIndex + 1))
+    const terminalId = params.get("terminal_id")
+    return typeof terminalId === "string" ? terminalId.trim() : ""
+  } catch (_) {
+    return ""
+  }
+}
+const resolveManagedTerminalId = () => {
+  try {
+    const params = new URLSearchParams(window.location.search || "")
+    const queryTerminalId = params.get("terminal_id")
+    if (typeof queryTerminalId === "string" && queryTerminalId.trim().length > 0) {
+      return queryTerminalId.trim()
+    }
+  } catch (_) {}
+  return parseTerminalIdFromShellRef(shell_id)
+}
+const isAgentManagedTerminalId = (terminalId) => {
+  if (typeof terminalId !== "string") {
+    return false
+  }
+  const normalized = terminalId.trim().toLowerCase()
+  if (!normalized) {
+    return false
+  }
+  const provider = normalized.split(":")[0]
+  return provider === "codex" || provider === "claude" || provider === "gemini"
+}
+const hideLocalRunControls = isAgentManagedTerminalId(resolveManagedTerminalId())
+if (hideLocalRunControls && document && document.documentElement) {
+  document.documentElement.classList.add("agent-shell-hide-run-controls")
+}
+const SHELL_IDLE_WINDOW_MS = 1200
+let shellIdleTimer = null
+let shellIsLive = false
+const clearShellIdleTimer = () => {
+  if (shellIdleTimer) {
+    clearTimeout(shellIdleTimer)
+    shellIdleTimer = null
+  }
+}
+const markShellDisconnected = () => {
+  shellIsLive = false
+  clearShellIdleTimer()
+}
+const markShellActivity = () => {
+  if (!shellIsLive) {
+    return
+  }
+  clearShellIdleTimer()
+  shellIdleTimer = setTimeout(() => {
+    if (!shellIsLive) {
+      return
+    }
+    postMessageToAncestors({
+      type: "idle",
+      frame: window.name || null
+    })
+  }, SHELL_IDLE_WINDOW_MS)
+}
+const markShellLive = () => {
+  shellIsLive = true
+  markShellActivity()
+}
+window.addEventListener("beforeunload", () => {
+  markShellDisconnected()
+})
+function buildBinaryRpcPayload(rpc, fileEntries) {
+  const metadata = {
+    rpc,
+    buffer_keys: fileEntries.map((entry) => entry.key)
+  }
+  const metaBytes = new TextEncoder().encode(JSON.stringify(metadata))
+  const separator = new Uint8Array([0])
+  const parts = [metaBytes, separator]
+  for (const entry of fileEntries) {
+    const lenBytes = new Uint8Array(4)
+    new DataView(lenBytes.buffer).setUint32(0, entry.buffer.byteLength)
+    parts.push(lenBytes, entry.buffer)
+  }
+  const totalLength = parts.reduce((sum, part) => sum + part.length, 0)
+  const combined = new Uint8Array(totalLength)
+  let offset = 0
+  for (const part of parts) {
+    combined.set(part, offset)
+    offset += part.length
+  }
+  return combined.buffer
+}
+const fallbackPreviewSanitizer = (value) => {
+  if (typeof value !== "string" || value.length === 0) {
+    return ""
+  }
+  return value.replace(/[\x00-\x1F\x7F]/g, "")
+}
+const sanitizePreviewLine = (value) => {
+  const sanitizer = (typeof window !== "undefined" && typeof window.PinokioSanitizePreviewLine === "function")
+    ? window.PinokioSanitizePreviewLine
+    : fallbackPreviewSanitizer
+  return sanitizer(value || "")
+}
+document.addEventListener("DOMContentLoaded", async () => {
+  const n = new N()
+  class RPC {
+    constructor() {
+      this.socket = new Socket()
+    this.resizeSync = window.PinokioResizeSync.create({
+        socket: this.socket,
+        getShellId: () => shell_id
+      })
+      this.buffer = []
+      this.uploadContext = {
+        cwd: "~" + location.pathname
+      }
+      this.currentId = <% if (id) { %><%-JSON.stringify(id)%><% } else { %>null<% } %>
+      this.hasRunOnce = <% if (running) { %>true<% } else { %>false<% } %>
+      this.pendingInput = []
+      this.inputBuffer = ""
+      this.inputTracker = window.TerminalInputTracker ? new window.TerminalInputTracker({
+        getFrameName: () => window.name || null,
+        getWindow: () => window
+      }) : null
+    }
+    flushPendingInput() {
+      if (!this.socket || !shell_id) {
+        return
+      }
+      while (this.pendingInput.length > 0) {
+        const chunk = this.pendingInput.shift()
+        if (typeof chunk !== "string" || chunk.length === 0) {
+          continue
+        }
+        this.socket.run({
+          key: chunk,
+          id: shell_id
+        })
+      }
+    }
+    resetInputBuffer() {
+      if (this.inputTracker) {
+        this.inputTracker.reset()
+        return
+      }
+      this.inputBuffer = ""
+    }
+    handleBackspace() {
+      if (this.inputTracker) {
+        this.inputTracker.handleBackspace()
+        return
+      }
+      if (this.inputBuffer.length > 0) {
+        this.inputBuffer = this.inputBuffer.slice(0, -1)
+      }
+    }
+    captureTextInput(text) {
+      if (this.inputTracker) {
+        this.inputTracker.capture(text)
+        return
+      }
+      if (typeof text !== "string" || text.length === 0) {
+        return
+      }
+      const normalized = text.replace(/\r/g, "\n")
+      const segments = normalized.split("\n")
+      for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i]
+        const isLast = (i === segments.length - 1)
+        if (!isLast) {
+          const line = this.inputBuffer + segment
+          this.inputBuffer = ""
+          this.notifyLineSubmitted(line)
+        } else {
+          this.inputBuffer += segment
+        }
+      }
+    }
+    notifyLineSubmitted(line) {
+      if (this.inputTracker) {
+        this.inputTracker.submit(line)
+        return
+      }
+      markShellActivity()
+      const safeLine = sanitizePreviewLine(line || "")
+      const preview = safeLine.trim()
+      const limit = 200
+      const truncated = preview.length > limit ? preview.slice(0, limit) + "..." : preview
+      postMessageToAncestors({
+        type: "terminal-input",
+        frame: window.name || null,
+        line: truncated,
+        hasContent: truncated.length > 0
+      })
+    }
+    write(text) {
+      if (text !== "\u0007") {
+        this.term.write(text)
+      }
+      this.dirty = true
+    }
+    finished() {
+    /*
+      n.Noty({
+        text: `[Success] All steps complete`,
+      })
+      */
+      document.querySelector(".play-btn").classList.remove("hidden")
+      document.querySelector(".stop-btn").classList.add("hidden")
+      document.querySelector(".starting-btn").classList.add("hidden")
+    }
+    stop() {
+      this.socket.run({
+        method: "kernel.bin.shell_kill",
+        params: {
+          id: shell_id 
+        }
+      }, (stream) => {
+      })
+    }
+    save() {
+      return new Promise((resolve, reject) => {
+        let cwd = "~" + location.pathname
+
+        this.socket.close()
+        this.resizeSync.reset()
+        this.socket.run({
+          method: "fs.write",
+          params: {
+            path: cwd,
+            text: str,
+//            string: str
+//            json: instructions
+          }
+        }, (packet) => {
+          if (packet.type === "result" && packet.id === "fs.write") {
+            dirty = false
+            document.querySelector("#save").classList.add("disabled")
+            resolve()
+          }
+        })
+      })
+    }
+    async start(mode, options = {}) {
+//        await this.save()
+        this.socket.close()
+
+        let query = Object.fromEntries(new URLSearchParams(location.search))
+        const manualRestart = Boolean(options && options.manualRestart)
+        const isListenMode = mode === "listen"
+        const messageToRun = isListenMode
+          ? INITIAL_MESSAGE
+          : (this.hasRunOnce ? (RESTART_MESSAGE || INITIAL_MESSAGE) : INITIAL_MESSAGE)
+        if (!isListenMode) {
+          this.hasRunOnce = true
+        }
+        let firstPacketReceived = false
+        const payload = {
+          //method: "kernel.bin.shell_start",
+          method: "kernel.bin.exec",
+          <% if (venv) { %>
+            venv: "<%-JSON.stringify(venv).slice(1, -1)%>",
+          <% } %>
+          <% if (launch_shell) { %>
+            shell: "<%-JSON.stringify(launch_shell).slice(1, -1)%>",
+          <% } %>
+          <% if (kill) { %>
+            on: [{
+              event: "<%=kill%>",
+              kill: true
+            }],
+          <% } %>
+          <% if (done) { %>
+            on: [{
+              event: "<%=done%>",
+              done: true
+            }],
+          <% } %>
+          <% if (input) { %>
+            input: true,
+          <% } %>
+          <% if (env) { %>
+          env: <%-JSON.stringify(env)%>,
+          <% } %>
+          <% if (conda) { %>
+          conda: <%-JSON.stringify(conda)%>,
+          <% } %>
+          mode: (mode ? mode : "run"),
+          id: <%-JSON.stringify(id)%>,
+          //path: "<%=cwd%>",
+          path: "<%-JSON.stringify(cwd).slice(1, -1)%>",
+          client: {
+            cols: this.term.cols,
+            rows: this.term.rows,
+          }
+        }
+        if (messageToRun) {
+          payload.message = messageToRun
+        }
+        this.socket.run(payload, async (packet) => {
+          if (!firstPacketReceived) {
+            refreshParent({
+              type: "start",
+              manual_restart: manualRestart
+            })
+            markShellLive()
+            firstPacketReceived = true
+          }
+          if (packet.type === 'start') {
+            markShellLive()
+            console.log("refreshParent", packet)
+            refreshParent(packet)
+            document.querySelector(".play-btn").classList.add("hidden")
+            document.querySelector(".starting-btn").classList.add("hidden")
+            document.querySelector(".stop-btn").classList.remove("hidden")
+            if (packet.data && packet.data.description) {
+              if ('current' in packet.data) {
+                document.querySelector("footer").innerHTML = `<b>
+                  <i class="fa-solid fa-circle-notch fa-spin"></i>(${packet.data.current+1}/${packet.data.total}) ${packet.data.title ? packet.data.title : ''}
+                </b>
+                <div class='flexible content'>${packet.data.description}</div>`
+//                <div class='toggle-expand'>
+//                  <i class="fa-solid fa-circle-chevron-up"></i>
+//                </div>`
+              } else {
+                document.querySelector("footer").innerHTML = `<b>
+                  <i class="fa-solid fa-circle-notch fa-spin"></i> ${packet.data.title ? packet.data.title : ''}
+                </b>
+                <div class='flexible content'></div>`
+//                <div class='toggle-expand'>
+//                  <i class="fa-solid fa-circle-chevron-up"></i>
+//                </div>`
+              }
+            } else if (packet.data && packet.data.method) {
+              document.querySelector("footer").innerHTML = `<b>
+                <i class="fa-solid fa-circle-notch fa-spin"></i> (${packet.data.current+1}/${packet.data.total}) ${packet.data.method}
+              </b>
+              <div class='flexible content'>${packet.data.params ? JSON.stringify(packet.data.params) : ''}</div>`
+//              <div class='toggle-expand'>
+//                <i class="fa-solid fa-circle-chevron-up"></i>
+//              </div>`
+            }
+          } else if (packet.type === "stream") {
+            markShellActivity()
+            refreshParent(packet)
+            // set the current shell id
+            if (packet.data.id) {
+              const previousShellId = shell_id
+              shell_id = packet.data.id
+              if (!previousShellId) {
+                this.flushPendingInput()
+              }
+              if (!previousShellId) {
+                this.resizeSync.sendInitial()
+              }
+              notifyShellSession(shell_id)
+            }
+            if (packet.data.raw) {
+//              console.log({ packet })
+              this.write(packet.data.raw)
+            } else if (packet.data.json) {
+              this.write(JSON.stringify(packet.data.json).replace(/\n/g, "\r\n"))
+              this.write("\r\n")
+            } else if (packet.data.json2) {
+              this.write(JSON.stringify(packet.data.json2, null, 2).replace(/\n/g, "\r\n"))
+              this.write("\r\n")
+            }
+            if (packet.data.type === "shell.kill") {
+              flushStopAcknowledgements(true)
+              this.socket.close()
+            }
+            if (packet.data.type === "emit2") {
+              // long text => still posting to the shell => show progress
+              console.log("emit2", packet.data)
+              document.querySelector("#status-window").innerHTML = `<strong>Pasting... (${Math.floor(100 * packet.data.i/packet.data.total)}%)</strong>`
+              let percent = Math.floor(100 * packet.data.i/packet.data.total)
+              document.querySelector("#progress-window").classList.remove("hidden")
+              document.querySelector("#progress-bar").style.width = "" + percent + "%";
+            } else {
+              document.querySelector("#status-window").innerHTML = "<b>Ready</b>"
+              document.querySelector("#progress-window").classList.add("hidden")
+              document.querySelector("#progress-bar").style.width = "0%"
+            }
+            document.querySelector(".play-btn").classList.add("hidden")
+            document.querySelector(".starting-btn").classList.add("hidden")
+            document.querySelector(".stop-btn").classList.remove("hidden")
+          } else if (packet.type === 'disconnect') {
+            markShellDisconnected()
+            console.log("refreshParent", packet)
+            refreshParent(packet)
+            this.term.write("\r\nDisconnected...\r\n")
+            document.querySelector("footer").innerHTML = "<b>Ready</b>"
+            this.socket.close()
+            document.querySelector(".play-btn").classList.remove("hidden")
+            document.querySelector(".stop-btn").classList.add("hidden")
+            this.resizeSync.reset()
+          } else if (packet.type === 'connect') {
+            markShellLive()
+            console.log("refreshParent", packet)
+            refreshParent(packet)
+            if (packet.data) {
+              if (packet.data.shell) {
+                shell_id = packet.data.shell
+                this.flushPendingInput()
+                notifyShellSession(shell_id)
+              }
+              if (shell_id) {
+                this.resizeSync.sendInitial()
+              }
+              if (packet.data.state) {
+                this.write(packet.data.state)
+              }
+            }
+            document.querySelector(".play-btn").classList.add("hidden")
+            document.querySelector(".starting-btn").classList.add("hidden")
+            document.querySelector(".stop-btn").classList.remove("hidden")
+          } else if (packet.type === 'resize') {
+            this.resizeSync.handleResizePacket(packet)
+          } else if (packet.type === 'wait.end') {
+            try {
+              Swal.close()
+            } catch (e) {
+            }
+            this.socket.respond({
+              response: {},
+//              uri: "~" + location.pathname,
+              uri: packet.id
+            })
+          } else if (packet.type === "process.wait.start") {
+            if (window.PinokioWaitFooterStatus) {
+              window.PinokioWaitFooterStatus.show(packet.data)
+            }
+          } else if (packet.type === "process.wait.end") {
+            if (window.PinokioWaitFooterStatus) {
+              window.PinokioWaitFooterStatus.hide()
+            }
+          } else if (packet.type === 'wait') {
+            await WaitModal(packet.data)
+          } else if (packet.type === "htmlmodal") {
+            if (window.HtmlModal && typeof window.HtmlModal.handle === 'function') {
+              window.HtmlModal.handle(packet, this.socket)
+            }
+          } else if (packet.type === "modal") {
+            await SimpleModal(packet.data)
+            this.socket.respond({
+              response: {},
+              //uri: "~" + location.pathname,
+              uri: packet.id
+            })
+          } else if (packet.type === "input") {
+            let params = packet.data
+            let type = (params.type ? params.type : "modal")
+            let input
+            if (type === "modal") {
+              input = await ModalInput(packet.data)
+            } else if (type === "notify") {
+              input = await NotifyInput(packet.data, n)
+            }
+            if (input) {
+              this.socket.respond({
+                response: input,
+                uri: packet.id
+//                uri: "~" + location.pathname,
+//                uri: (packet.caller ? packet.caller : packet.id)
+              })
+            }
+            /*
+              params := {
+                title,
+                description,
+                form: [{
+                  title,
+                  description
+                }]
+              }
+            */
+          } else if (packet.type === "tab.open") {
+            refreshParent(packet)
+          } else if (packet.type === "browser.open") {
+          /*
+            {
+              "method": "browser.open",
+              "params": {
+                "uri",
+                "target": "_self (default)"|"_blank"|"_parent"|"_top",
+                "features"
+              }
+            }
+            */
+
+///// DEPRECATE browser.open : Pinokio IS the browser. Everything opens in Pinokio. May bring back when necessary
+//            refreshParent()
+//            let params = packet.data
+//            window.open(
+//              params.uri,
+//              (params.target || "_self"),
+//              params.features
+//            )
+          } else if (packet.type === "browser.close") {
+            let params = packet.data
+            if (params && params.target) {
+              let targetWindow = window.open('', params.target)
+              if (targetWindow) {
+                targetWindow.close();
+              }
+            } else {
+              window.close()
+            }
+          } else if (packet.type === "browser") {
+          /*
+            {
+              "method": "browser.close"
+            }
+          */
+            let { method, params } = packet.data
+            let resolved = window
+            let tokens = method.split(".")
+            for(let token of tokens) {
+              resolved = resolved[token]
+            }
+            let result = resolved(...params)
+          } else if (packet.type === "notify") {
+          /*
+            {
+              html: <notification html>,
+              href: <link location to open>,
+              target: <target for window.open()>,
+              features: <windowFeatures>, ("self" => opens in pinokio)
+            }
+          */
+            if (packet.data) {
+              let payload = {}
+              if (packet.data.html) {
+                payload.text = packet.data.html
+              }
+              if (packet.data.type) {
+                payload.type = packet.data.type
+              }
+              payload.silent = packet.data.silent
+              payload.callbacks = {
+                onClick: () => {
+                  let params = packet.data
+                  if (params.href || params.uri) {
+                    window.open(
+                      params.uri || params.href,
+                      (params.target || "_self"),
+                      params.features
+                    )
+                  } else if (params.action === "close") {
+                    if (params && params.target) {
+                      let targetWindow = window.open('', params.target)
+                      if (targetWindow) {
+                        targetWindow.close();
+                      }
+                    } else {
+                      window.close()
+                    }
+                  }
+                }
+              }
+              n.Noty(payload)
+            }
+          } else if (packet.type === "restart") {
+            try {
+              if (window.parent && window.parent !== window && typeof window.parent.postMessage === "function") {
+                window.parent.postMessage(packet, "*")
+              }
+            } catch (_) {}
+          } else if (packet.type === "result") {
+//            this.socket.close()
+          } else if (packet.type === "info") {
+            n.Noty({
+              text: `${packet.data}`,
+            })
+          } else if (packet.type === "error") {
+//            n.Noty({
+//              text: `${packet.data}`,
+//              type: "error"
+//            })
+
+//            this.socket.close()
+//            refreshParent(packet)
+
+
+
+            //document.querySelector("footer .content").innerHTML = document.querySelector("footer .content").innerHTML +  `<pre class='error'>${packet.data}</pre>`
+            document.querySelector("footer .content").innerHTML = document.querySelector("footer .content").innerHTML +  `<pre class='error'>ERROR</pre>`
+//            document.querySelector("footer .toggle-expand i").className = "fa-solid fa-circle-chevron-down"
+//            document.querySelector("footer").classList.add("expanded")
+            document.querySelector("footer i").className = "fa-solid fa-triangle-exclamation"
+
+            document.querySelector(".play-btn").classList.remove("hidden")
+            document.querySelector(".starting-btn").classList.add("hidden")
+            document.querySelector(".stop-btn").classList.add("hidden")
+
+            if (!openAppLogsForError(packet)) {
+              showErrorScreen(packet)
+            }
+
+            this.stop()
+
+
+
+          } else if (packet.type === "event") {
+            if (packet.data === "stop") {
+              document.querySelector(".stop-btn").classList.add("hidden")
+              document.querySelector(".stopped-btn").classList.remove("hidden")
+              document.querySelector("footer").innerHTML = "<b>Ready</b>"
+              setTimeout(() => {
+
+                let params = new URLSearchParams(location.search)
+                let entries = [...params.entries()]
+                let options;
+                if (entries.length > 0) {
+                  options = {}
+                  for(const [key, value] of entries) {
+                    options[key] = value;
+                  }
+                }
+                if (options && options.html) {
+                  n.Noty({
+                    text: options.html,
+                    timeout: 3000,
+                    callbacks: {
+                      onClose: () => {
+                        let uri = options.uri || options.href
+                        if (uri) {
+                          let target = options.target || "_self"
+                          let features = options.features
+                          window.open(uri, target, features)
+                        } else if (options.action === "close") {
+                          window.close()
+                        }
+                      }
+                    }
+                  })
+                }
+              /*
+                n.Noty({
+                  text: '[Notice] finished',
+                  type: 'success'
+                })
+                */
+                document.querySelector(".play-btn").classList.remove("hidden")
+                document.querySelector(".starting-btn").classList.add("hidden")
+                document.querySelector(".stop-btn").classList.add("hidden")
+              }, 0)
+              //this.socket.close()
+            }
+          }
+
+          // Get the available space for the terminal
+//          let terminalContainer = document.querySelector("#terminal")
+//          const availableHeight = terminalContainer.clientHeight;
+//
+//          // Calculate the number of columns and rows the terminal should have
+//          console.log(this.term)
+//          //const rows = Math.floor(availableHeight / this.term._core.viewport._charSizeService.height);
+//          const rows = Math.floor(this.term._core.viewport._lastRecordedViewportHeight / this.term._core.viewport._charSizeService.height);
+//
+//
+//          // Resize the terminal
+//          this.term.resize(this.term.cols, rows);
+//          this.term.scrollToLine(this.term.rows-1);
+//          this.fit.fit()
+//          let pageBottom = document.querySelector("#end")
+//          pageBottom.scrollIntoView()
+        }).then(() => {
+          markShellDisconnected()
+          refreshParent({
+            type: "disconnect"
+          })
+          document.querySelector(".play-btn").classList.remove("hidden")
+          document.querySelector(".stop-btn").classList.add("hidden")
+          document.querySelector(".stopped-btn").classList.add("hidden")
+          <% if (kill_message) { %>
+            n.Noty({
+              text: "<%-kill_message%>",
+//              timeout: 3000,
+              <% if (callback) { %>
+              callbacks: {
+                onClose: () => {
+                  // reload after 500ms in case the page didn't change because only the hash changed.
+                  // if it's a different url, the location.reload won't trigger since location.href
+                  // assingment will send the user to the url before settimeout happens
+                  location.href = "<%=callback%>"
+                  setTimeout(() => {
+                    location.reload()
+                  }, 500)
+                }
+              }
+              <% } %>
+            })
+          <% } else { %>
+            <% if (callback) { %>
+            location.href = "<%=callback%>"
+            // reload after 500ms in case the page didn't change because only the hash changed.
+            // if it's a different url, the location.reload won't trigger since location.href
+            // assingment will send the user to the url before settimeout happens
+            setTimeout(() => {
+              location.reload()
+            }, 500)
+            <% } %>
+          <% } %>
+        })
+    }
+    async run (mode, options = {}) {
+      this.mode = (mode ? mode : "run")
+      markShellDisconnected()
+      
+//      if (dirty) {
+//        await this.save()
+//        n.Noty({
+//          text: `script updated`,
+//        })
+//      }
+
+      <% if (theme === "dark") { %>
+      await this.createTerm(xtermTheme.FrontEndDelight)
+      <% } else { %>
+      await this.createTerm(xtermTheme.Tomorrow)
+      <% } %>
+      await this.start(mode, options)
+    }
+    async uploadFiles(files, overlay) {
+      const localFiles = Array.isArray(files) ? files : []
+      if (localFiles.length === 0) {
+        return
+      }
+      if (!this.socket || !this.socket.ws || this.socket.ws.readyState !== WebSocket.OPEN) {
+        n.Noty({
+          text: "Terminal connection is not ready for uploads",
+          type: "error"
+        })
+        return
+      }
+      const entries = []
+      for (let i = 0; i < localFiles.length; i++) {
+        const file = localFiles[i]
+        if (!file || typeof file.arrayBuffer !== "function") {
+          continue
+        }
+        try {
+          const arrayBuffer = await file.arrayBuffer()
+          const key = `file_${Date.now()}_${i}_${Math.random().toString(16).slice(2, 8)}`
+          entries.push({
+            key,
+            name: file.name || `upload-${i + 1}`,
+            size: file.size,
+            type: file.type || "",
+            buffer: new Uint8Array(arrayBuffer)
+          })
+        } catch (error) {
+          console.error("Failed to read dropped file", error)
+        }
+      }
+      if (entries.length === 0) {
+        n.Noty({
+          text: "No readable files were dropped",
+          type: "error"
+        })
+        return
+      }
+      const rpcPayload = {
+        method: "terminal.upload",
+        params: {
+          id: shell_id,
+          cwd: this.uploadContext.cwd,
+          files: entries.map(({ key, name, size, type }) => ({ key, name, size, type }))
+        }
+      }
+      try {
+        if (overlay) {
+          overlay.classList.add("active")
+          overlay.textContent = "Uploading..."
+        }
+        await this.socket.sendBinary(buildBinaryRpcPayload(rpcPayload, entries))
+      } catch (error) {
+        console.error("Upload failed", error)
+        n.Noty({
+          text: `Upload failed: ${error.message}`,
+          type: "error"
+        })
+      } finally {
+        if (overlay) {
+          overlay.classList.remove("active")
+          overlay.textContent = "Drop files to upload"
+        }
+      }
+    }
+    async uploadRemoteResources(resources, overlay) {
+      const remoteItems = Array.isArray(resources) ? resources.filter((item) => item && typeof item.href === "string" && item.href.trim()) : []
+      if (remoteItems.length === 0) {
+        return
+      }
+      const payload = {
+        id: shell_id,
+        cwd: this.uploadContext.cwd,
+        urls: remoteItems
+      }
+      try {
+        if (overlay) {
+          overlay.classList.add("active")
+          overlay.textContent = "Downloading..."
+        }
+        const response = await fetch('/terminal/url-upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        })
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
+        const result = await response.json().catch(() => ({}))
+        const files = Array.isArray(result.files) ? result.files : []
+        const failures = Array.isArray(result.errors) ? result.errors : []
+        if (files.length > 0) {
+          try {
+            refreshParent({
+              type: "terminal.upload",
+              files
+            })
+            if (typeof reloadMemory === 'function') {
+              reloadMemory()
+            }
+          } catch (_) {}
+          const shellEmit = typeof result.shellEmit === 'boolean' ? result.shellEmit : undefined
+          const shellEmitAttempted = typeof result.shellEmitAttempted === 'boolean' ? result.shellEmitAttempted : undefined
+          n.Noty({
+            text: formatUploadNotification(files, shell_id, shellEmit, shellEmitAttempted),
+            timeout: 6000
+          })
+        }
+        if (failures.length > 0) {
+          const plural = failures.length > 1
+          n.Noty({
+            text: plural ? `${failures.length} remote files failed to download` : `Remote file failed to download`,
+            type: "error",
+            timeout: 5000
+          })
+        }
+      } catch (error) {
+        n.Noty({
+          text: `Remote upload failed: ${error.message}`,
+          type: "error"
+        })
+      } finally {
+        if (overlay) {
+          overlay.classList.remove("active")
+          overlay.textContent = "Drop files to upload"
+        }
+      }
+    }
+    async collectFilesFromDataTransfer(dataTransfer) {
+      if (!dataTransfer) {
+        return { urls: [] }
+      }
+      const resourceMap = new Map()
+      const ensureResource = (input, nameHint) => {
+        if (!input) {
+          return
+        }
+        let resolved
+        try {
+          resolved = new URL(input, window.location.href)
+        } catch (_) {
+          return
+        }
+        if (!resolved || !resolved.protocol || !/^https?:$/i.test(resolved.protocol)) {
+          return
+        }
+        const href = resolved.href
+        const existing = resourceMap.get(href)
+        if (existing) {
+          if (nameHint && !existing.nameHint) {
+            existing.nameHint = nameHint
+          }
+          return
+        }
+        resourceMap.set(href, { href, url: resolved, nameHint: nameHint || null })
+      }
+      const handleDownloadUrl = (value) => {
+        if (!value) {
+          return
+        }
+        const firstColon = value.indexOf(":")
+        const lastColon = value.lastIndexOf(":")
+        if (firstColon === -1 || lastColon === -1 || lastColon <= firstColon) {
+          ensureResource(value, null)
+          return
+        }
+        const filename = value.slice(firstColon + 1, lastColon)
+        const url = value.slice(lastColon + 1)
+        ensureResource(url, filename)
+      }
+      const handleStringEntry = (type, rawValue) => {
+        if (!rawValue) {
+          return
+        }
+        if (type === "DownloadURL") {
+          handleDownloadUrl(rawValue)
+          return
+        }
+        const value = rawValue.trim()
+        if (!value) {
+          return
+        }
+        if (type === "text/html") {
+          try {
+            const parser = new DOMParser()
+            const doc = parser.parseFromString(value, "text/html")
+            const anchors = doc.querySelectorAll("a[href]")
+            anchors.forEach((anchor) => {
+              const href = anchor.getAttribute("href")
+              const nameHint = anchor.getAttribute("download") || (anchor.textContent ? anchor.textContent.trim() : null)
+              ensureResource(href, nameHint)
+            })
+            const srcElements = doc.querySelectorAll("[src]")
+            srcElements.forEach((element) => {
+              const src = element.getAttribute("src")
+              if (!src) {
+                return
+              }
+              const title = element.getAttribute("download") || element.getAttribute("title") || element.getAttribute("alt") || null
+              ensureResource(src, title)
+            })
+          } catch (error) {
+            console.warn("Failed to parse dropped HTML for resources", error)
+          }
+          return
+        }
+        if (type === "text/x-moz-url") {
+          const parts = value.split(/\r?\n/)
+          const url = parts[0] ? parts[0].trim() : ""
+          const title = parts[1] ? parts[1].trim() : null
+          if (url) {
+            ensureResource(url, title)
+          }
+          return
+      }
+      const lines = value.split(/\r?\n/)
+      for (const line of lines) {
+        const candidate = line.trim()
+        if (!candidate || candidate.startsWith("#")) {
+          continue
+        }
+        let resolvedHref
+        try {
+          const resolved = new URL(candidate, window.location.href)
+          resolvedHref = resolved.href
+        } catch (_) {
+          continue
+        }
+        let decodedHref = resolvedHref
+        try {
+          decodedHref = decodeURIComponent(resolvedHref)
+        } catch (_) {}
+        if (/[<>"']/.test(decodedHref)) {
+          continue
+        }
+        ensureResource(resolvedHref, null)
+      }
+    }
+      const items = dataTransfer.items ? Array.from(dataTransfer.items) : []
+      const stringItems = items.filter((item) => item && item.kind === "string" && typeof item.getAsString === "function")
+      if (stringItems.length > 0) {
+        const stringValues = await Promise.all(stringItems.map((item) => new Promise((resolve) => {
+          try {
+            item.getAsString((value) => resolve({ type: item.type || "text/plain", value }))
+          } catch (_) {
+            resolve(null)
+          }
+        })))
+        for (const entry of stringValues) {
+          if (entry) {
+            handleStringEntry(entry.type, entry.value)
+          }
+        }
+      }
+      const fallbackTypes = ["DownloadURL", "text/uri-list", "text/plain", "text/html", "text/x-moz-url"]
+      if (typeof dataTransfer.getData === "function") {
+        for (const type of fallbackTypes) {
+          try {
+            const value = dataTransfer.getData(type)
+            if (value) {
+              handleStringEntry(type, value)
+            }
+          } catch (_) {}
+        }
+      }
+      const resources = Array.from(resourceMap.values())
+      if (!resources.length) {
+        return { urls: [] }
+      }
+      const urls = resources.map((resource) => {
+        const basePath = resource.url ? resource.url.pathname : new URL(resource.href).pathname
+        let filename = resource.nameHint || basePath.split("/").pop() || "download"
+        try {
+          filename = decodeURIComponent(filename)
+        } catch (_) {}
+        if (!filename) {
+          filename = "download"
+        }
+        return {
+          href: resource.href,
+          name: filename
+        }
+      })
+      return { urls }
+    }
+    async createTerm (_theme) {
+      console.log(xtermTheme)
+      if (!this.term) {
+        const theme = Object.assign({ }, _theme, {
+          selectionBackground: "red",
+          selectionForeground: "white"
+        })
+        console.log({ theme })
+        <% if (theme !== "dark") { %>
+          theme.foreground = "black"
+        <% } %>
+
+        let config = {
+          scrollback: 9999999,
+          fontSize: 12,
+          fontFamily: 'monospace',
+          theme,
+          //theme: xtermTheme.FrontEndDelight
+          //theme: xtermTheme.Afterglow
+
+          //theme: xtermTheme.PencilLight
+
+          //theme: xtermTheme.Flatland
+          //theme: xtermTheme.OneHalfLight
+          //theme: xtermTheme.Piatto_Light
+          //theme: xtermTheme.Spring
+          //theme: xtermTheme.Terminal_Basic
+          //theme: xtermTheme.Tomorrow
+        }
+        let res = await fetch("/xterm_config").then((res) => {
+          return res.json()
+        })
+        if (res && res.config) {
+          config = res.config
+        }
+        const baseConfig = Object.assign({}, config)
+        if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.applyToConfig === 'function') {
+          config = window.PinokioTerminalSettings.applyToConfig(config)
+        }
+        const term = new Terminal(config)
+        if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.register === 'function') {
+          window.PinokioTerminalSettings.register(term, { baseConfig })
+        }
+        term.open(document.querySelector("#terminal"))
+        const terminalContainer = document.querySelector("#terminal")
+        const dropOverlay = document.createElement("div")
+        dropOverlay.className = "terminal-drop-overlay"
+        dropOverlay.textContent = "Drop files to upload"
+        terminalContainer.appendChild(dropOverlay)
+        window.PinokioTouch.bindTerminalFocus(term, terminalContainer)
+        const dedupeClipboardFiles = (inputs) => {
+          const seen = new Set()
+          const results = []
+          inputs.forEach((file) => {
+            if (!file || !(file instanceof File) || !(file.size > 0)) {
+              return
+            }
+            const signature = `${file.name || ''}::${file.size || 0}::${file.type || ''}`
+            if (seen.has(signature)) {
+              return
+            }
+            seen.add(signature)
+            results.push(file)
+          })
+          return results
+        }
+        const collectClipboardFiles = (clipboardData) => {
+          const files = []
+          const seen = new Set()
+          if (!clipboardData) {
+            return { files, hasFileFlavor: false }
+          }
+          let hasFileFlavor = false
+          try {
+            const types = Array.from(clipboardData.types || [])
+            hasFileFlavor = types.some((type) => type === "Files" || type === "application/x-moz-file")
+          } catch (_) {}
+          const pushIfUnique = (file) => {
+            if (!file || !(file instanceof File) || !(file.size > 0)) {
+              return
+            }
+            const key = `${file.name || ''}::${file.size || 0}::${file.type || ''}`
+            if (seen.has(key)) {
+              return
+            }
+            seen.add(key)
+            files.push(file)
+          }
+          try {
+            Array.from(clipboardData.files || []).forEach(pushIfUnique)
+          } catch (_) {}
+          try {
+            const items = clipboardData.items ? Array.from(clipboardData.items) : []
+            items.forEach((item) => {
+              if (!item || item.kind !== "file" || typeof item.getAsFile !== "function") {
+                return
+              }
+              try {
+                pushIfUnique(item.getAsFile())
+              } catch (_) {}
+            })
+          } catch (_) {}
+          return { files, hasFileFlavor }
+        }
+        const readClipboardFilesFallback = async () => {
+          if (!navigator.clipboard || typeof navigator.clipboard.read !== "function") {
+            return []
+          }
+          try {
+            const clipboardItems = await navigator.clipboard.read()
+            const collected = []
+            const seen = new Set()
+            let index = 0
+            for (const item of clipboardItems) {
+              if (!item || !Array.isArray(item.types)) {
+                index += 1
+                continue
+              }
+              const types = item.types
+              const preferredType = types.find((type) => type && !type.startsWith("text/"))
+                || types.find((type) => /^image\//i.test(type))
+                || types[0]
+              if (!preferredType) {
+                index += 1
+                continue
+              }
+              try {
+                const blob = await item.getType(preferredType)
+                if (!blob) {
+                  index += 1
+                  continue
+                }
+                let name = typeof item.name === "string" && item.name ? item.name : ""
+                if (!name) {
+                  const ext = preferredType && preferredType.includes("/") ? preferredType.split("/").pop() : ""
+                  const safeExt = ext ? ext.replace(/[^a-z0-9]/gi, "").toLowerCase() : ""
+                  name = `clipboard-${Date.now()}-${index}${safeExt ? `.${safeExt}` : ""}`
+                }
+                const file = blob instanceof File ? blob : new File([blob], name, {
+                  type: blob.type || preferredType,
+                  lastModified: Date.now()
+                })
+                const key = `${file.name || ''}::${file.size || 0}::${file.type || ''}`
+                if (seen.has(key)) {
+                  index += 1
+                  continue
+                }
+                seen.add(key)
+                collected.push(file)
+              } catch (error) {
+                if (error && error.name !== "NotAllowedError") {
+                  console.warn("Failed to extract clipboard blob", error)
+                }
+              }
+              index += 1
+            }
+            return collected
+          } catch (error) {
+            if (error && error.name !== "NotAllowedError") {
+              console.warn("navigator.clipboard.read() failed", error)
+            }
+            return []
+          }
+        }
+        const extractUrlsFromClipboard = (clipboardData) => {
+          const urls = []
+          if (!clipboardData) {
+            return urls
+          }
+          const seen = new Set()
+          const pushUrl = (href, nameHint) => {
+            if (!href) {
+              return
+            }
+            let resolved
+            try {
+              resolved = new URL(href, window.location.href)
+            } catch (_) {
+              try {
+                resolved = new URL(href)
+              } catch (_) {
+                return
+              }
+            }
+            if (!/^https?:$/i.test(resolved.protocol)) {
+              return
+            }
+            const key = resolved.href
+            if (seen.has(key)) {
+              return
+            }
+            seen.add(key)
+            urls.push({ href: resolved.href, name: nameHint || null })
+          }
+          let html = ""
+          let uriList = ""
+          if (typeof clipboardData.getData === "function") {
+            try { html = clipboardData.getData("text/html") || "" } catch (_) {}
+            try { uriList = clipboardData.getData("text/uri-list") || "" } catch (_) {}
+          }
+          if (uriList) {
+            uriList.split(/\r?\n/).forEach((line) => {
+              const trimmed = line.trim()
+              if (!trimmed || trimmed.startsWith("#")) {
+                return
+              }
+              pushUrl(trimmed, null)
+            })
+          }
+          if (html) {
+            try {
+              const parser = new DOMParser()
+              const doc = parser.parseFromString(html, "text/html")
+              doc.querySelectorAll("img[src]").forEach((img) => {
+                const src = img.getAttribute("src")
+                const nameHint = img.getAttribute("alt") || img.getAttribute("title") || null
+                pushUrl(src, nameHint)
+              })
+              doc.querySelectorAll("a[href]").forEach((anchor) => {
+                const href = anchor.getAttribute("href")
+                const nameHint = anchor.getAttribute("download") || (anchor.textContent ? anchor.textContent.trim() : null)
+                pushUrl(href, nameHint)
+              })
+            } catch (error) {
+              console.warn("Failed to parse clipboard HTML", error)
+            }
+          }
+          return urls
+        }
+        const getClipboardPlainText = (clipboardData) => {
+          if (!clipboardData || typeof clipboardData.getData !== "function") {
+            return ""
+          }
+          try {
+            return clipboardData.getData("text/plain") || ""
+          } catch (_) {
+            return ""
+          }
+        }
+        const isLikelyImagePaste = (clipboardData) => {
+          if (!clipboardData) {
+            return false
+          }
+          const types = Array.from(clipboardData.types || [])
+          if (types.some((type) => type && type.toLowerCase().startsWith("image/"))) {
+            return true
+          }
+          if (typeof clipboardData.getData === "function") {
+            try {
+              const html = clipboardData.getData("text/html") || ""
+              if (html && /<img\b/i.test(html)) {
+                return true
+              }
+            } catch (_) {}
+            try {
+              const uriList = clipboardData.getData("text/uri-list") || ""
+              if (uriList && uriList.split(/\r?\n/).some((line) => {
+                const trimmed = line.trim()
+                if (!trimmed || trimmed.startsWith("#")) {
+                  return false
+                }
+                return /^https?:\/\//i.test(trimmed)
+              })) {
+                return true
+              }
+            } catch (_) {}
+          }
+          return false
+        }
+        let suppressClipboardText = false
+        let dragDepth = 0
+        const prevent = (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        terminalContainer.addEventListener("dragenter", (event) => {
+          prevent(event)
+          dragDepth += 1
+          dropOverlay.classList.add("active")
+        })
+        terminalContainer.addEventListener("dragover", prevent)
+        terminalContainer.addEventListener("dragleave", (event) => {
+          prevent(event)
+          dragDepth = Math.max(0, dragDepth - 1)
+          if (dragDepth === 0) {
+            dropOverlay.classList.remove("active")
+          }
+        })
+        terminalContainer.addEventListener("drop", async (event) => {
+          prevent(event)
+          dragDepth = 0
+          dropOverlay.classList.remove("active")
+          const files = Array.from(event.dataTransfer ? event.dataTransfer.files || [] : [])
+          let remoteResources = []
+          try {
+            const extra = await this.collectFilesFromDataTransfer(event.dataTransfer)
+            if (extra && Array.isArray(extra.urls) && extra.urls.length) {
+              const seenUrls = new Set()
+              remoteResources = extra.urls.filter((item) => {
+                if (!item || typeof item.href !== "string") {
+                  return false
+                }
+                const key = item.href.trim()
+                if (!key || seenUrls.has(key)) {
+                  return false
+                }
+                seenUrls.add(key)
+                return true
+              })
+            }
+          } catch (error) {
+            console.warn("Failed to collect files from drop payload", error)
+          }
+          if (!files.length && (!remoteResources || remoteResources.length === 0)) {
+            return
+          }
+          try {
+            if (remoteResources && remoteResources.length > 0) {
+              await this.uploadRemoteResources(remoteResources, dropOverlay)
+            }
+          } catch (error) {
+            console.warn("Remote upload failed", error)
+          }
+          if (files.length > 0) {
+            await this.uploadFiles(files, dropOverlay)
+          }
+          this.term.focus()
+        })
+        terminalContainer.addEventListener("paste", async (event) => {
+          const clipboard = event && event.clipboardData ? event.clipboardData : null
+          const plainText = getClipboardPlainText(clipboard)
+          const hasPlainText = typeof plainText === "string" && plainText.trim().length > 0
+          const { files: directFiles, hasFileFlavor } = collectClipboardFiles(clipboard)
+          let files = directFiles
+          let remoteUrls = []
+          if (files.length === 0) {
+            remoteUrls = extractUrlsFromClipboard(clipboard)
+            if (remoteUrls.length === 0 && !hasFileFlavor && isLikelyImagePaste(clipboard)) {
+              files = await readClipboardFilesFallback()
+            }
+          }
+          console.log('[clipboard paste][shell]', {
+            files: files.map((file) => ({ name: file.name, size: file.size, type: file.type })),
+            remoteUrls,
+            hasFileFlavor,
+            hasPlainText,
+            types: clipboard ? Array.from(clipboard.types || []) : []
+          })
+          const shouldHandleUpload = files.length > 0 || (remoteUrls.length > 0 && !hasPlainText)
+          if (!shouldHandleUpload) {
+            suppressClipboardText = false
+            return
+          }
+          event.preventDefault()
+          event.stopPropagation()
+          suppressClipboardText = true
+          try {
+            if (remoteUrls.length > 0 && !hasPlainText) {
+              await this.uploadRemoteResources(remoteUrls, dropOverlay)
+            }
+            if (files.length > 0) {
+              await this.uploadFiles(files, dropOverlay)
+            }
+          } catch (error) {
+            console.warn("Clipboard upload failed", error)
+          }
+          this.term.focus()
+        }, true)
+        term.attachCustomKeyEventHandler(event => {
+          if (event.type && event.type.toLowerCase() !== 'keydown') {
+            return true
+          }
+          const key = typeof event.key === "string" ? event.key.toLowerCase() : ""
+          if ((event.ctrlKey || event.metaKey) && key === 'c') {
+            const selection = term.getSelection();
+            if (selection) {
+              navigator.clipboard.writeText(selection);
+              return false;
+            }
+          }
+          if ((event.ctrlKey || event.metaKey) && key === 'v') {
+            // Let the browser paste handler run so we don't send ^V to the shell
+            suppressClipboardText = false
+            return false
+          }
+          return true;
+        });
+        //const rows = Math.floor(document.querySelector("#terminal").clientHeight / term._core.viewport._charSizeService.height);
+        //const cols = Math.floor(document.querySelector("#terminal").clientHeight / term._core.viewport._charSizeService.width);
+        //console.log(cols, term.cols)
+        //  // Resize the terminal
+        ////term.resize(cols, rows-5);
+        //term.resize(cols, rows);
+
+        term.onData((data) => {
+          const targetId = shell_id || this.currentId
+          if (this.socket && targetId) {
+            if (shell_id) {
+              this.socket.run({
+                key: data,
+                id: targetId
+              })
+            } else {
+              this.pendingInput.push(data)
+            }
+          }
+          if (typeof window.processTerminalInputData === "function") {
+            window.processTerminalInputData(data, {
+              capture: (chunk) => this.captureTextInput(chunk),
+              backspace: () => this.handleBackspace(),
+              reset: () => this.resetInputBuffer()
+            })
+          } else {
+            this.captureTextInput(data)
+          }
+        })
+
+        const fitAddon = new FitAddon.FitAddon();
+//        const searchAddon = new SearchAddon.SearchAddon();
+//        const searchAddonBar = new SearchBarAddon.SearchBarAddon({searchAddon});
+        term.loadAddon(fitAddon);
+        <% if (agent === "electron") { %>
+          term.loadAddon(new WebLinksAddon.WebLinksAddon((event, uri) => {
+            window.open(uri, "_blank", "browser")
+          }))
+        <% } else { %>
+          term.loadAddon(new WebLinksAddon.WebLinksAddon());
+        <% } %>
+//        term.loadAddon(searchAddon)
+//        term.loadAddon(searchAddonBar);
+//        searchAddonBar.show();
+        fitAddon.fit();
+        this.term = term
+        this.fit = fitAddon
+        this.resizeSync.updateTerm(this.term, this.fit, this.socket)
+        this.tabCaptionHelper = window.PinokioTabCaptionHelper.attach(term, { tracker: this.inputTracker })
+
+      }
+      this.term.focus()
+      this.observer = new ResizeObserver(() => {
+        this.fit.fit()
+        this.resizeSync.sendResize(this.term.cols, this.term.rows)
+      });
+      this.observer.observe(document.body)
+    }
+  }
+  const rpc = new RPC()
+  document.querySelector(".stop-btn").addEventListener("click", async (e) => {
+    await rpc.stop()
+//    socket.run({
+//      id: location.pathname,
+//      method: "kernel.api.stop"
+//    }, (stream) => {
+//      console.log("#", stream)
+//    })
+
+
+    document.querySelector(".play-btn").classList.remove("hidden")
+    document.querySelector(".starting-btn").classList.add("hidden")
+    document.querySelector(".stop-btn").classList.add("hidden")
+    document.querySelector(".stopped-btn").classList.remove("hidden")
+  })
+  document.querySelector(".play-btn").addEventListener("click", async (e) => {
+    document.querySelector(".play-btn").classList.add("hidden")
+    document.querySelector(".starting-btn").classList.remove("hidden")
+    await rpc.run("run", { manualRestart: true })
+    document.querySelector(".play-btn").classList.remove("hidden")
+    document.querySelector(".stop-btn").classList.add("hidden")
+  })
+  <% if (running) { %>
+    // if running, connect
+    rpc.run("listen").then(() => {
+      document.querySelector(".play-btn").classList.remove("hidden")
+      document.querySelector(".stop-btn").classList.add("hidden")
+    })
+    // hide play button
+    document.querySelector(".play-btn").classList.add("hidden")
+    // show stop button
+    document.querySelector(".stop-btn").classList.remove("hidden")
+  <% } else { %>
+    // if not running, start
+    rpc.run().then(() => {
+      document.querySelector(".play-btn").classList.remove("hidden")
+      document.querySelector(".stop-btn").classList.add("hidden")
+    })
+    // show starting button
+    document.querySelector(".starting-btn").classList.remove("hidden")
+  <% } %>
+
+  window.addEventListener('message', function(event) {
+    const data = event && event.data ? event.data : {}
+    if (data.action === "pinokio:request-stop-shell") {
+      pendingStopRequestIds.push(data.requestId || null)
+      const stopButton = document.querySelector(".stop-btn")
+      const isStopVisible = Boolean(stopButton && !stopButton.classList.contains("hidden"))
+      // If there is no active stop control or no shell id, treat it as already stopped.
+      if (!isStopVisible || !shell_id) {
+        flushStopAcknowledgements(true)
+        return
+      }
+      try {
+        rpc.stop()
+      } catch (error) {
+        flushStopAcknowledgements(false)
+      }
+      return
+    }
+    //  "foreground" message triggers a redraw so buffered output appears after backgrounding.
+    if (data.action === "foreground") {
+      if (rpc.dirty && rpc.term) {
+        const endRow = Math.max(rpc.term.rows - 1, 0)
+        rpc.term.refresh(0, endRow)
+        if (typeof rpc.term.scrollToBottom === "function") {
+          rpc.term.scrollToBottom()
+        }
+        rpc.dirty = false
+      }
+    }
+  });
+//  rpc.run()
+})
+
+</script>
+</head>
+<body class='<%=theme%>' data-agent="<%=agent%>" data-task-save-cwd="<%= cwd || '' %>" data-task-save-workspaces-root="<%= taskSaveWorkspacesRoot || '' %>">
+  <% if (target === "_top") { %>
+    <header class='navheader grabbable'>
+  <% } else { %>
+    <header class='navheader2'>
+  <% } %>
+    <div class='runner'>
+      <% if (target === "_top") { %>
+      <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
+      <% } %>
+      <div class='hidden btn run play-btn'>
+        <span class='play'><i class="fa-solid fa-play"></i> Run</span>
+      </div>
+      <div class='hidden btn run starting-btn'>
+        <span class='starting'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
+      </div>
+      <div class='hidden btn run stop-btn'>
+        <span class='stop'><i class="fa-solid fa-stop"></i> Stop</span>
+      </div>
+      <button class='hidden btn' type='button' data-save-task-button hidden><i class="fa-solid fa-bookmark"></i> Save task</button>
+      <div class='hidden btn stopped-btn'>
+        <span class='stopped'><i class="fa-solid fa-hand"></i> Stopped</span>
+      </div>
+      <div id='status-window'></div>
+      <div id='progress-window' class='hidden'><div id='progress-bar'></div></div>
+    </div>
+  </header>
+  <div class='terminal-container'>
+    <div id='terminal'></div>
+  </div>
+  <footer><b>Ready</b></footer>
+</body>
+</html>

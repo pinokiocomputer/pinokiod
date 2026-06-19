@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>API Docs</title>
+    <link rel="stylesheet" type="text/css" href="/swagger-ui.css" />
+  </head>
+  <body>
+    <% if (spec) { %>
+      <div id="swagger-ui"></div>
+      <script src="/swagger-ui-bundle.js"></script>
+      <script>
+        const spec = <%- spec %>;
+        SwaggerUIBundle({ spec, dom_id: '#swagger-ui' });
+      </script>
+    <% } else { %>
+      <h1>url required</h1>
+    <% } %>
+  </body>
+</html>

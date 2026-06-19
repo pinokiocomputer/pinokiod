@@ -1,0 +1,883 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<link href="/task-launcher.css" rel="stylesheet"/>
+<link href="/urldropdown.css" rel="stylesheet" />
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+  overflow: hidden;
+}
+/*
+body {
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+*/
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+.item {
+  display: flex;
+  align-items: flex-start;
+  margin: 10px;
+  background: rgba(0,0,0,0.04);
+}
+.item img {
+  width: 100px;
+}
+.item .title {
+  text-decoration: none;
+  color: royalblue;
+}
+.item .col {
+  padding: 10px;
+}
+.item .col > * {
+  margin: 5px 0;
+}
+.item .stat {
+  color: rgba(0,0,0,0.8);
+  display: flex;
+}
+.item .stat > * {
+  margin-right: 15px;
+}
+.timestamp {
+  color: rgba(0,0,0,0.5);
+}
+main {
+  flex-grow: 1;
+  display: flex;
+  /*
+  flex-direction: column;
+  */
+}
+.setup-items {
+  display: flex;
+  justify-content: center;
+}
+.head {
+  padding: 80px;
+  text-align: center;
+}
+.desc {
+  padding: 10px 0;
+}
+.head h3 {
+  font-size: 40px;
+  text-transform: uppercase;
+  font-weight: lighter;
+  margin: 0;
+}
+.head h3 i {
+  font-size: 80px;
+}
+body.dark .card {
+  color: white;
+}
+.card {
+  padding: 30px;
+  display:flex;
+  text-decoration: none;
+  color: rgba(0,0,0,0.9);
+}
+.card:hover {
+  color: royalblue !important;
+}
+.card .desc {
+}
+.card h3 {
+  margin: 0;
+  font-size: 30px;
+  letter-spacing: -1px;
+  font-weight: lighter;
+}
+.card .col {
+  padding: 0 10px;
+  flex-grow: 1;
+}
+.card i {
+  font-size: 50px;
+}
+body.dark .config {
+  color: white;
+}
+.config {
+  color: black;
+  padding: 30px;
+  margin: 10px 0;
+}
+.config-header {
+}
+.config-body {
+  padding-top: 20px;
+  margin-top: 20px;
+}
+.config .btn {
+  font-size: 16px;
+  font-weight: bold;
+  width: 100px;
+  background: royalblue;
+  flex-shrink: 0;
+}
+.config-row {
+  padding: 10px 20px 0 0;
+}
+.label {
+  padding-bottom: 5px;
+  font-weight: bold;
+}
+.config-row input[type=text] {
+  padding: 7px;
+}
+.header-label {
+  padding: 0;
+  font-size: 30px;
+  /*
+  text-align: center;
+  */
+  text-transform: capitalize;
+}
+body.dark .container {
+  color: white;
+}
+.container {
+}
+.dark .container-row {
+  background: rgba(255, 255, 255, 0.04);
+}
+.container-row {
+  background: rgba(0, 0, 100, 0.04);
+  box-sizing: border-box;
+}
+.header-label-sub h1 {
+  font-size: 25px;
+  letter-spacing: -1px;
+  font-weight: lighter;
+}
+.header-label-sub {
+  font-size: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+.header-label-sub .s {
+  padding: 10px 0;
+  opacity: 0.7;
+}
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+header .runner {
+  padding: 10px 0 0;
+}
+.proxy {
+  padding: 0 10px;
+  text-align: right;
+}
+.proxy a {
+  text-decoration: none;
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 2px;
+  background: black;
+  color: white;
+}
+.browser-options-btns {
+  display: flex;
+  padding-top: 5px;
+}
+.browser-options-row {
+/*
+  border-top: 1px solid rgba(0,0,0,0.1);
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  */
+  display: flex;
+  padding: 10px;
+  align-items: flex-start;
+}
+.browser-options-row h3 {
+  margin: 0;
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+.browser-options-row .btn.disabled {
+  opacity: 0.7;
+}
+.browser-options-row .btn {
+  font-weight: bold;
+  width: 100px;
+  text-align: center;
+  display: block;
+  margin-right: 10px;
+  flex-shrink: 0;
+  padding: 5px;
+}
+.badge {
+  font-size: 12px;
+  padding: 5px 10px;
+  background: rgba(0,0,100,0.1);
+  border-radius: 5px;
+  display: inline-block;
+  margin-top: 5px;
+}
+a.badge {
+  color: royalblue;
+  text-decoration: none;
+  cursor: pointer;
+}
+.badge a {
+  color: royalblue;
+  text-decoration: none;
+}
+body.dark .btn {
+  color: white;
+  background: rgba(255,255,255,0.05) !important;
+}
+body.dark .badge {
+  background: rgba(255,255,255,0.1);
+}
+/*
+body.dark .browser-options-row {
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+*/
+body.dark .context-menu-wrapper {
+  background: rgba(0,0,0,0.9) !important;
+  color: white !important;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+}
+.context-menu-wrapper {
+  background: rgba(0,0,0,0.06) !important;
+}
+.context-menu {
+ /* 
+  max-height: 10000px;
+  overflow: hidden;
+  transition: max-height 1s ease-in-out;
+  */
+  display: flex;
+  margin: 0 5px 0 0;
+}
+.context-menu .btn:hover {
+  color: cornflowerblue !important;
+}
+.context-menu .btn {
+  background: none !important;
+  border: none !important;
+  display: block;
+  width: 80px;
+  padding: 6px 10px !important;
+  text-align: left;
+  color: black;
+}
+.blank {
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+}
+body.dark .section-header {
+/*
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  */
+}
+.section-header {
+/*
+  border-bottom: 1px solid rgba(0, 0, 0,0.04);
+  */
+  font-weight: normal;
+  font-size: 14px;
+  padding: 15px 5px;
+  /*
+  margin: 0 0 15px;
+  */
+}
+.section-header h2 {
+  font-size: 20px;
+  font-weight: lighter;
+}
+.section-header .section {
+  padding: 0;
+}
+.section-header .section div {
+  font-weight: normal;
+  opacity: 0.6;
+  font-size: 14px;
+}
+.section-header h3 {
+  display: flex;
+  margin: 0;
+}
+.section-header .col {
+  padding-left: 10px;
+  flex-grow: 1;
+  min-width: 0;
+  word-wrap: break-word;
+}
+.tab .btn {
+  color: black;
+  background: none !important;
+}
+body.dark .tab .btn {
+  background: none !important;
+}
+.app-btns .btn {
+  border-radius: 4px;
+  padding: 8px 10px;
+  width: 70px;
+  /*
+  padding: 6px 10px;
+  */
+  text-align: center;
+}
+body.dark .context-menu .btn {
+  color: white;
+}
+.context-menu.collapsed {
+/*
+  max-height: 0; 
+  */
+  display: none;
+}
+body.dark .open-menu, body.dark .browse {
+  border: none !important;
+  /*
+  background: black !important;
+  */
+  color: white !important;
+}
+.open-menu:hover, .browse:hover, body.dark .open-menu:hover, body.dark .browse:hover {
+  color: royalblue !important;
+}
+.open-menu, .browse {
+  width: 80px;
+  border-radius: 0 !important;
+  background: rgba(0,0,0,0.04) !important;
+  color: black !important;
+  /*
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  */
+}
+.open-menu.selected {
+  border: none !important;
+  /*
+  background: none !important;
+  */
+}
+.open-menu.selected span {
+  display: none;
+}
+.sections {
+  display: flex;
+}
+.section {
+  display: block;
+}
+.section h2 {
+  margin: 0;
+}
+.line.align-top h3 .col .btn {
+  box-sizing: border-box;
+  margin-top: 5px;
+  width: 100%;
+}
+.desc {
+  font-size: 14px;
+  padding: 5px 0;
+  font-weight: normal;
+}
+.section-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Three equal columns */
+  gap: 1rem; /* Optional spacing between columns */
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Three equal columns */
+  gap: 1rem; /* Optional spacing between columns */
+}
+.grid-1 {
+  padding: 10px;
+}
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* Responsive columns that wrap */
+  gap: 1rem; /* Optional spacing between columns */
+  padding: 10px;
+}
+.grid-3 > * {
+  min-width: 0;
+}
+.section-header .grid-1, .section-header .grid-2, .section-header .grid-3 {
+  background: none !important;
+  padding: 0 !important;
+}
+.grid-1, .grid-2, .grid-3 {
+  background: rgba(0,0,0,0.04);
+  margin-top: 5px;
+}
+body.dark .grid-1, body.dark .grid-2, body.dark .grid-3 {
+  background: rgba(255,255,255,0.03);
+  margin-top: 5px;
+}
+main {
+  display: flex;
+}
+aside {
+  width: 200px;
+  display: block;
+  flex-shrink: 0;
+}
+aside .tab i {
+  width: 20px;
+  text-align: center;
+}
+body.dark aside .tab {
+  color: white;
+}
+body.dark aside .tab:hover, aside .tab:hover {
+  color: royalblue !important;
+  opacity: 1;
+}
+aside .tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: black;
+  text-decoration: none;
+  padding: 10px;
+  font-size: 12px;
+  opacity: 0.5;
+  border-left: 10px solid transparent;
+}
+body.dark aside .tab.selected {
+  color: white;
+}
+aside .selected {
+  font-weight: bold;
+  opacity: 1;
+}
+/*
+body.dark aside .selected {
+  border-left: 10px solid white;
+}
+aside .selected {
+  border-left: 10px solid black;
+  font-weight: bold;
+  opacity: 1;
+}
+*/
+.tab-content {
+  width: 100%;
+  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+.tab:hover {
+  color: royalblue;
+}
+.tab-content .tab {
+  text-decoration: none;
+  display: flex;
+  font-size: 14px;
+  font-weight: bold;
+  color: black;
+  overflow: hidden;
+  box-sizing: border-box;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0,0,0,0.04);
+  border-radius: 5px;
+}
+.tab .desc {
+  flex-grow: 1;
+  text-align: right;
+}
+body.dark aside .tab {
+  background: none;
+}
+body.dark .tab {
+  color: white;
+  background: rgba(255,255,255,0.03);
+}
+.tab h2 {
+  margin: 0;
+  font-size: 14px;
+}
+.tab .col {
+  flex-grow: 1;
+  margin-left: 10px;
+}
+.tab .emoji {
+  width: 30px;
+  height: 30px;
+  font-size: 20px;
+  box-sizing: border-box;
+  text-align:center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.tab i.img {
+  height: 30px;
+  width: 30px;
+  display: flex;
+  justify-content: center;
+  font-size: 20px;
+  align-items: center;
+  border-radius: 3px;
+}
+.tab .profile img, .tab .profile i {
+  height: 30px;
+  width: 30px;
+  font-size: 30px;
+  border-radius: 3px;
+}
+.menu-container {
+  max-width: 800px;
+  padding: 20px;
+  align-items: flex-start;
+}
+.menu-container {
+  display: flex;
+  box-sizing: border-box;
+}
+.submenu .tab {
+  padding: 0;
+}
+body.dark .net:hover, .net:hover {
+  color: royalblue;
+}
+body.dark .net {
+/*
+  border-left: 3px solid white;
+  */
+  color: rgba(255,255,255,0.7);
+}
+.net {
+  color: rgba(0,0,0,0.7);
+  width: auto;
+  margin: 3px 0;
+  /*
+  padding-left: 5px;
+  border-left: 3px solid black;
+  */
+  font-size: 12px;
+  text-decoration: none;
+  display: block;
+  background: none;
+}
+.net .mark {
+  background: rgba(0,0,0,0.9);
+  border-radius: 3px;
+  color: white;
+  width: 40px;
+  display: inline-block;
+  text-align: center;
+  margin-right: 5px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+body.dark .net .mark {
+  background: white;
+  color: black;
+}
+.placeholder-icon {
+  font-size: 40px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.launch-btns .btn {
+  text-transform: capitalize;
+}
+.launch-btns {
+  display: flex;
+}
+.launch-btns .btn.launch{
+  width: 150px !important;
+  text-align: center !important;
+}
+.installed-apps .title i {
+  color: silver !important;
+}
+.tab.connected p {
+  margin: 0;
+}
+.tab.connected {
+  display: block;
+}
+.tab.connected .tab {
+  border-radius: 0;
+}
+.tab.connected .tab {
+  background: none;
+}
+td.bold {
+  font-weight: bold;
+  width: 100px;
+}
+/*
+.tab.connected .desc, .tab.connected i, .tab.connected h2{
+  color: #78b61a;
+}
+body.dark .tab.connected .desc, body.dark .tab.connected i, body.dark .tab.connected h2{
+  color: greenyellow;
+}
+*/
+.profile {
+  width: 100%;
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.profile-column {
+  flex-grow: 1;
+}
+.profile-column table {
+  width: 100%;
+}
+body.dark .profile td {
+  background: rgba(255,255,255,0.04);
+}
+.profile td {
+  min-width: 100px;
+  vertical-align: top;
+  font-size: 14px;
+  padding:6px 10px;
+  white-space: pre-wrap;
+  background: rgba(0,0,0,0.04);
+  word-break: break-word;
+}
+.app-icon {
+  width: 25px;
+  padding: 5px;
+}
+
+/*
+@media only screen and (max-width: 800px) {
+  body {
+    display: flex !important;
+    flex-direction: row !important;
+  }
+}
+*/
+@media only screen and (max-width: 600px) {
+  aside {
+    width: unset;
+    flex-shrink: unset;
+  }
+  aside {
+    padding: 0 10px;
+  }
+  aside .tab.submenu {
+    padding: 10px;
+  }
+  aside .tab i {
+    width: 100%;
+  }
+  aside .tab .caption {
+    display: none;
+  }
+  aside .tab {
+    margin: 0;
+    padding: 10px;
+    border-left: none;
+  }
+  aside .btn-tab {
+    flex-direction: column;
+    padding: 10px 0;
+  }
+  aside .btn-tab .btn {
+    display: flex;
+    justify-content: center;
+  }
+  aside .btn-tab .btn .caption {
+    display: none; 
+  }
+  header .flexible {
+    min-width: unset;
+  }
+}
+
+@media only screen and (max-width: 480px) {
+  .btn2 {
+    padding: 5px;
+    font-size: 11px;
+  }
+  .nav-btns {
+    flex-grow: 1;
+    justify-content: center;
+    padding: 0;
+  }
+}
+</style>
+</head>
+<body class='<%=theme%> main-sidebar-page task-launcher-page task-page connect-page' data-agent="<%=agent%>">
+<%- include('partials/app_navheader', { agent }) %>
+<main>
+<div class='task-container connect-container'>
+  <section class='task-shell connect-shell'>
+    <header class='task-shell-header'>
+      <div class='task-shell-header-main'>
+        <p class='task-eyebrow'>Login</p>
+        <h1 class='task-title'>Connected services</h1>
+        <p class='task-description'>Log into localhost apps with third-party services.</p>
+      </div>
+    </header>
+    <div class='task-shell-body connect-shell-body'>
+      <section class='task-section connect-services-section'>
+        <% if (!items.length) { %>
+          <div class='task-empty-state'>
+            <p class='task-empty-copy'>No services available yet.</p>
+          </div>
+        <% } else { %>
+          <div class='connect-service-list'>
+      <% items.forEach((item) => { %>
+        <% if (item.profile) { %>
+          <a href="<%=item.url%>" class="connect-service-card connect-service-card-connected">
+            <div class='connect-service-head'>
+              <div class='connect-service-icon'>
+                <% if (item.image) { %>
+                  <img class="connect-service-icon-image" src="<%=item.image%>" alt="">
+                <% } else if (item.icon) { %>
+                  <i class="<%=item.icon%>"></i>
+                <% } else if (item.emoji) { %>
+                  <span><%=item.emoji%></span>
+                <% } else { %>
+                  <i class="fa-solid fa-plug"></i>
+                <% } %>
+              </div>
+              <div class='connect-service-copy'>
+                <div class='connect-service-title-row'>
+                  <h2 class='connect-service-title'><%=item.title%></h2>
+                  <span class='connect-service-status'>Connected</span>
+                </div>
+                <div class='connect-service-description'><%- item.description %></div>
+              </div>
+              <div class='connect-service-open' aria-hidden='true'>
+                <i class="fa-solid fa-chevron-right"></i>
+              </div>
+            </div>
+          </a>
+        <% } else { %>
+          <a href="<%=item.url%>" class="connect-service-card">
+            <div class='connect-service-head'>
+              <div class='connect-service-icon'>
+                <% if (item.image) { %>
+                  <img class="connect-service-icon-image" src="<%=item.image%>" alt="">
+                <% } else if (item.icon) { %>
+                  <i class="<%=item.icon%>"></i>
+                <% } else if (item.emoji) { %>
+                  <span><%=item.emoji%></span>
+                <% } else { %>
+                  <i class="fa-solid fa-plug"></i>
+                <% } %>
+              </div>
+              <div class='connect-service-copy'>
+                <h2 class='connect-service-title'><%=item.title%></h2>
+                <div class="connect-service-description"><%=item.description%></div>
+              </div>
+              <div class="connect-service-open" aria-hidden='true'>
+                <i class="fa-solid fa-chevron-right"></i>
+              </div>
+            </div>
+          </a>
+        <% } %>
+      <% }) %>
+          </div>
+        <% } %>
+      </section>
+    </div>
+  </section>
+</div>
+<%- include('partials/main_sidebar', { selected: 'connect' }) %>
+</main>
+<%- include('partials/app_common_scripts') %>
+</body>
+</html>

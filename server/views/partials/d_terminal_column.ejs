@@ -1,0 +1,37 @@
+<div class='menu-container menu-column user-terminal <%= userTerminal.menu.length === 1 ? "user-terminal--single" : "" %>'>
+  <div class='tab-header'>
+    <h3><i class='<%= userTerminal.icon %>'></i> <%= userTerminal.title === "Terminals" ? "Project Shell" : userTerminal.title %></h3>
+  </div>
+  <% if (userTerminal.subtitle || userTerminal.subtitle_link_href) { %>
+    <div class='column-subtitle'>
+      <% if (userTerminal.subtitle) { %>
+        <span><%= userTerminal.subtitle %></span><% if (userTerminal.subtitle_link_href && userTerminal.subtitle_link_label) { %> <% } %>
+      <% } %>
+      <% if (userTerminal.subtitle_link_href && userTerminal.subtitle_link_label) { %>
+        <a class='column-subtitle-link' href="<%= userTerminal.subtitle_link_href %>" target="_parent"><%= userTerminal.subtitle_link_label %></a>
+      <% } %>
+    </div>
+  <% } %>
+  <div class='tab-content'>
+    <% userTerminal.menu.forEach((i) => { %>
+      <div class='terminal-shell-group'>
+        <div class='terminal-shell-heading'>
+          <% if (i.image) { %>
+            <img src="<%= i.image %>">
+          <% } else if (i.icon) { %>
+            <i class="img <%= i.icon %>"></i>
+          <% } %>
+          <div class='tab-copy'>
+            <h2 class='tab-title'><%= i.title %></h2>
+            <% if (i.subtitle) { %>
+              <div class='tab-subtitle subtitle'><%= i.subtitle %></div>
+            <% } %>
+          </div>
+        </div>
+        <div class='terminal-shell-options'>
+          <%- include('./d_terminal_options', { options: i.menu || [] }) %>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+</div>

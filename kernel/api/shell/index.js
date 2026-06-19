@@ -2,6 +2,36 @@ const path = require('path')
 const fs = require('fs')
 const os = require('os')
 class Shell {
+  async applyBluefairyDefault(req = {}, kernel) {
+    if (!req.params) {
+      return
+    }
+    if (Object.prototype.hasOwnProperty.call(req.params, "bluefairy")) {
+      return
+    }
+    const preferences = kernel && kernel.appPreferences
+    if (
+      !preferences
+      || !kernel
+      || !kernel.api
+      || typeof kernel.api.resolvePath !== "function"
+      || typeof preferences.resolveAppIdFromPath !== "function"
+      || typeof preferences.getPreference !== "function"
+    ) {
+      req.params.bluefairy = "off"
+      return
+    }
+    const cwd = req.cwd || kernel.homedir
+    const requestedPath = req.params.path || "."
+    const resolvedPath = kernel.api.resolvePath(cwd, requestedPath)
+    const appId = preferences.resolveAppIdFromPath(resolvedPath)
+    if (!appId) {
+      req.params.bluefairy = "off"
+      return
+    }
+    const preference = await preferences.getPreference(appId)
+    req.params.bluefairy = preference && preference.protection_enabled === true ? "on" : "off"
+  }
   async start(req, ondata, kernel) {
     /*
       {
@@ -40,6 +70,9 @@ class Shell {
     if (req.params) {
       req.params.$parent = req.parent
     }
+    if (!Object.prototype.hasOwnProperty.call(req.params, "bluefairy")) {
+      req.params.bluefairy = "off"
+    }
 
 //    // create a persistent session
 //    req.params.persistent = true
@@ -48,7 +81,14 @@ class Shell {
 
     let options = {}
     if (req.cwd) options.cwd = req.cwd
-    if (req.parent && req.parent.path) options.group = req.parent.path
+    if (req.parent && req.parent.id) {
+      options.group = req.parent.id
+    } else if (req.parent && req.parent.path) {
+      options.group = req.parent.path
+    }
+    if (req.parent && req.parent.body && req.parent.body.title) {
+      options.title = req.parent.body.title
+    }
     let id = await kernel.shell.start(req.params, options, ondata)
     return id
     //let id = await kernel.shell.start(req.params, options)
@@ -92,9 +132,6 @@ class Shell {
     if (req.params) {
       req.params.$parent = req.parent
     }
-
-    console.log("#### shell.enter", req.params)
-
     let response = await kernel.shell.enter(req.params, ondata)
     //let response = await this.send(req, ondata, kernel, true)
     return response
@@ -118,18 +155,32 @@ class Shell {
         }
       }
     */
+    if (!req.params) {
+      req.params = {}
+    }
+    if (!req.params.path) {
+      req.params.path = req.cwd
+    }
     if (req.params) {
       req.params.$parent = req.parent
     }
+    await this.applyBluefairyDefault(req, kernel)
     let options = {}
     if (req.cwd) options.cwd = req.cwd
-    if (req.parent && req.parent.path) options.group = req.parent.path
+    if (req.parent && req.parent.id) {
+      options.group = req.parent.id
+    } else if (req.parent && req.parent.path) {
+      options.group = req.parent.path
+    }
+    if (req.parent && req.parent.body && req.parent.body.title) {
+      options.title = req.parent.body.title
+    }
     if (req.client) {
       req.params.rows = req.client.rows
       req.params.cols = req.client.cols
     }
     let response = await kernel.shell.run(req.params, options, async (stream) => {
-      process.stdout.write(stream.raw)
+//      process.stdout.write(stream.raw)
       ondata(stream)
     })
     return response

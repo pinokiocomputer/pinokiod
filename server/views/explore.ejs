@@ -2,6 +2,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/style.css" rel="stylesheet"/>
 <style>
 body {
 }
@@ -112,53 +113,76 @@ body main iframe {
   height: 100%;
   width: 100%;
 }
+.explore-url {
+  flex-grow: 1;
+  min-width: 200px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.85);
+  color: inherit;
+  font-size: 12px;
+  line-height: 32px;
+}
+body.dark .explore-url {
+  background: rgba(0,0,0,0.2);
+  border-color: rgba(255,255,255,0.2);
+}
+@media only screen and (max-width: 768px) {
+  .explore-url {
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
 </style>
+<script src="/popper.min.js"></script>
+<script src="/tippy-bundle.umd.min.js"></script>
 <script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
 <script src="/nav.js"></script>
 </head>
-<body class='<%=theme%>'>
+<body class='<%=theme%> main-sidebar-page' data-agent="<%=agent%>">
 <header class='navheader grabbable'>
 <h1>
-<a class='home' href="/"><i class="fa-solid fa-house"></i></a>
-<button class='btn2' id='back'><i class="fa-solid fa-chevron-left"></i></button>
-<button class='btn2' id='forward'><i class="fa-solid fa-chevron-right"></i></button>
-<% paths.forEach((path) => { %>
-  <% if (path.action) { %>
-    <a class='path nav-button' id="<%=path.id%>" onclick="<%=path.action%>"><%-path.name%></a>
-  <% } else if (path.path) { %>
-    <a class='path' href="<%=path.path%>"><%-path.name%></a>
-  <% } %>
-<% }) %>
-<div class='flexible'></div>
-<div class='nav-btns'>
-  <a class='btn2' id='explore' href="/?mode=explore"><div><i class="fa-solid fa-globe"></i></div><div>Discover</div></a>
-  <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
-  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
-  <button id='new-window' title='open a new window' class='btn2'><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
-</div>
-<!--
-<div class='nav-btns'>
-  <a class='btn2' href='https://discord.gg/TQdNwadtE4' target="_blank"><div><i class="fa-brands fa-discord"></i></div><div>Discord</div></a>
-  <a class='btn2' href='https://twitter.com/cocktailpeanut' target="_blank"><div><i class="fa-brands fa-twitter"></i></div><div>Twitter</div></a>
-  <a class='btn2' href="/?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
-</div>
-<button id='new-window' title='open a new window' class='btn2'><i class="fa-solid fa-plus"></i></button>
--->
+<a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
+<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+  <div><i class="fa-solid fa-expand"></i></div>
+</button>
+<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+<input id="explore-url" class="explore-url" type="url" readonly spellcheck="false" value="">
+<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+  <div><i class="fa-solid fa-table-columns"></i></div>
+</a>
+<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+</a>
+<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+  <div><i class="fa-solid fa-plus"></i></div>
+</button>
+<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+  <div><i class="fa-solid fa-xmark"></i></div>
+</button>
 </h1>
 </header>
 <main>
 <% if (theme === "dark") { %>
-  <iframe name="<%=schema%>" src="<%=discover_dark%>" <%=agent === "electron" ? "no-referrer" : ""%>></iframe>
+  <iframe name="<%=schema%>" src="<%=discover_dark%>" <%=agent === "electron" ? "no-referrer" : ""%> allow="fullscreen *;" allowfullscreen></iframe>
 <% } else { %>
-  <iframe name="<%=schema%>" src="<%=discover_light%>" <%=agent === "electron" ? "no-referrer" : ""%>></iframe>
+  <iframe name="<%=schema%>" src="<%=discover_light%>" <%=agent === "electron" ? "no-referrer" : ""%> allow="fullscreen *;" allowfullscreen></iframe>
 <% } %>
+<%- include('partials/main_sidebar', { selected: 'explore' }) %>
 </main>
 <link href="/xterm.min.css" rel="stylesheet" />
 <link href="/css/fontawesome.min.css" rel="stylesheet">
 <link href="/css/solid.min.css" rel="stylesheet">
 <link href="/css/regular.min.css" rel="stylesheet">
 <link href="/css/brands.min.css" rel="stylesheet">
-<link href="/style.css" rel="stylesheet"/>
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
@@ -174,12 +198,147 @@ document.querySelector("form").addEventListener("submit", (e) => {
   }
 })
 */
-document.querySelector("#back").addEventListener("click", (e) => {
-  history.back()
-})
-document.querySelector("#forward").addEventListener("click", (e) => {
-  history.forward()
-})
+(() => {
+  const frame = document.querySelector("main iframe")
+  const urlField = document.querySelector("#explore-url")
+
+  const updateUrlField = (value) => {
+    if (!urlField) return
+    const next = typeof value === "string" ? value : ""
+    urlField.value = next
+    urlField.title = next || "URL unavailable"
+  }
+
+  const getFrameUrl = () => {
+    if (!frame) return ""
+    try {
+      const href = frame.contentWindow && frame.contentWindow.location
+        ? frame.contentWindow.location.href
+        : ""
+      if (typeof href === "string" && href) {
+        return href
+      }
+    } catch (_) {}
+    const attr = frame.getAttribute("src")
+    if (typeof attr === "string" && attr.trim()) {
+      return attr.trim()
+    }
+    try {
+      if (typeof frame.src === "string" && frame.src.trim()) {
+        return frame.src.trim()
+      }
+    } catch (_) {}
+    return ""
+  }
+
+  const syncUrlField = (value) => {
+    const next = typeof value === "string" && value ? value : getFrameUrl()
+    updateUrlField(next)
+  }
+
+  const navigateParentHistory = (delta) => {
+    if (delta < 0) {
+      history.back()
+    } else if (delta > 0) {
+      history.forward()
+    }
+  }
+
+  const requestFrameHistoryNavigation = (delta) => new Promise((resolve) => {
+    if (!frame || !frame.contentWindow || !Number.isFinite(delta) || delta === 0) {
+      resolve(null)
+      return
+    }
+    const requestId = `explore_history_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+    let settled = false
+    let timer = null
+    const finish = (result) => {
+      if (settled) return
+      settled = true
+      window.removeEventListener("message", onMessage)
+      if (timer !== null) {
+        clearTimeout(timer)
+      }
+      resolve(result)
+    }
+    const onMessage = (event) => {
+      if (!event || event.source !== frame.contentWindow) return
+      const data = event.data
+      if (!data || typeof data !== "object") return
+      if (data.e !== "pinokio:history:result") return
+      if (data.requestId !== requestId) return
+      finish(Boolean(data.handled))
+    }
+    window.addEventListener("message", onMessage)
+    timer = window.setTimeout(() => finish(null), 800)
+    try {
+      frame.contentWindow.postMessage(
+        {
+          e: "pinokio:history:go",
+          requestId,
+          delta,
+        },
+        "*"
+      )
+    } catch (_) {
+      finish(null)
+    }
+  })
+
+  const sendLegacyFrameNavigation = (delta) => {
+    if (!frame || !frame.contentWindow || !Number.isFinite(delta) || delta === 0) return
+    try {
+      frame.contentWindow.postMessage(
+        { action: delta < 0 ? "back" : "forward" },
+        "*"
+      )
+    } catch (_) {}
+  }
+
+  const onHeaderHistoryClick = async (delta, event) => {
+    event.preventDefault()
+    event.stopImmediatePropagation()
+    const handledByFrame = await requestFrameHistoryNavigation(delta)
+    if (handledByFrame === true) return
+    if (handledByFrame === null) {
+      sendLegacyFrameNavigation(delta)
+      return
+    }
+    navigateParentHistory(delta)
+  }
+
+  document.addEventListener("click", (event) => {
+    if (!event) return
+    const target = event.target instanceof Element ? event.target : null
+    if (!target) return
+    const backButton = target.closest("#back")
+    if (backButton) {
+      void onHeaderHistoryClick(-1, event)
+      return
+    }
+    const forwardButton = target.closest("#forward")
+    if (forwardButton) {
+      void onHeaderHistoryClick(1, event)
+    }
+  }, true)
+
+  if (frame) {
+    frame.addEventListener("load", () => {
+      syncUrlField()
+    })
+  }
+
+  window.addEventListener("message", (event) => {
+    if (!event || event.source !== (frame && frame.contentWindow)) return
+    const data = event.data
+    if (!data || typeof data !== "object") return
+    if (data.type !== "pinokio:community:location") return
+    if (typeof data.url !== "string") return
+    syncUrlField(data.url)
+  })
+
+  syncUrlField()
+})()
 </script>
 </body>
 </html>

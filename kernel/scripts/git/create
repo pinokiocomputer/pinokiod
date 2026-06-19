@@ -1,0 +1,11 @@
+{
+  "run": [{
+    "method": "github.create",
+    "params": {
+      "path": "{{args.cwd}}",
+      "cwd": "{{args.cwd}}",
+      "name": "{{args.name}}",
+      "visibility": "{{args.visibility}}"
+    }
+  }]
+}

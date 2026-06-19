@@ -1,0 +1,1851 @@
+<html>
+<head>
+<title>Pinokio</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<link href="/task-launcher.css" rel="stylesheet"/>
+<link href="/urldropdown.css" rel="stylesheet" />
+<script src="/sweetalert2.js"></script>
+<script src="/commander.js"></script>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+.full-popup {
+  max-width: 600px !important;
+}
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+ol {
+  padding-inline-start: 15px;
+}
+a.explain {
+  color: royalblue;
+  text-decoration: underline; 
+  cursor: pointer;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+header .runner {
+  padding: 10px 0 0;
+}
+.proc-table {
+  display: flex;
+}
+.proc-table .title {
+  flex-grow: 1;
+}
+.proxy {
+  padding: 0 10px;
+  text-align: right;
+}
+.proxy a {
+  text-decoration: none;
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 2px;
+  background: black;
+  color: white;
+}
+.browser-options-btns {
+  display: flex;
+  padding-top: 5px;
+}
+.browser-options-row {
+  border-top: 1px solid rgba(0,0,0,0.1);
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  display: flex;
+  padding: 20px 0;
+  align-items: flex-start;
+}
+.browser-options-row h3 {
+  margin: 0;
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+.line.align-top h3.table-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+.browser-options-row .btn.disabled {
+  opacity: 0.7;
+}
+.browser-options-row .btn {
+  font-weight: bold;
+  width: 100px;
+  text-align: center;
+  display: block;
+  margin-right: 10px;
+  flex-shrink: 0;
+  padding: 5px;
+}
+.badge {
+  font-size: 12px;
+  padding: 5px 10px;
+  background: rgba(0,0,100,0.1);
+  border-radius: 5px;
+  display: inline-block;
+  margin-top: 5px;
+}
+a.badge {
+  color: royalblue;
+  text-decoration: none;
+  cursor: pointer;
+}
+.badge a {
+  color: royalblue;
+  text-decoration: none;
+}
+/*
+body.dark .btn {
+  background: rgba(255,255,255,0.05) !important;
+}
+*/
+body.dark .badge {
+  background: rgba(255,255,255,0.1);
+}
+body.dark .browser-options-row {
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.description a {
+  color: royalblue;
+  text-decoration: none;
+}
+a.ln[href^=https] {
+  color: #56ad00;
+}
+a.ln:hover {
+  color: red !important;
+}
+.line.align-top h3 {
+  align-items: flex-start;
+}
+.line a:hover {
+  color: red;
+}
+.line img {
+  width: 40px;
+  height: 40px;
+}
+.btn-container {
+  margin-top: 10px;
+}
+.header-label ol {
+  margin: 0;
+}
+.header-label {
+  padding: 0;
+  font-size: 30px;
+  /*
+  text-align: center;
+  */
+  text-transform: capitalize;
+}
+.header-label-sub h1 {
+  font-size: 25px;
+  letter-spacing: -1px;
+  font-weight: lighter;
+}
+.header-label-sub {
+  font-size: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+.header-label-sub .s {
+  padding: 10px 0;
+  opacity: 0.7;
+}
+.header-container {
+  margin: 10px;
+  background: rgba(0, 0, 100, 0.04);
+  padding: 20px;
+  box-sizing: border-box;
+}
+.container {
+/*
+  display: grid;
+  grid-template-columns: repeat(<%=list.length%>, 1fr);
+  */
+}
+.dark .container-row {
+  background: rgba(255, 255, 255, 0.04);
+}
+.container-row {
+  background: rgba(0, 0, 100, 0.04);
+  padding: 15px 30px;
+  box-sizing: border-box;
+}
+.container-row.current .header-label-sub {
+  color: royalblue;
+}
+/*
+.container-row.current .header-label-sub {
+  color: royalblue;
+}
+*/
+.desc {
+/*
+  text-align:center;
+  */
+  padding: 10px 0;
+}
+#reset-label {
+/*
+  background: brown !important;
+  text-align: center;
+  color: white;
+  color: brown;
+  */
+}
+.link-label {
+  margin-right: 10px;
+  padding-top: 5px;
+  padding-bottom: 0 !important;
+  text-decoration: none;
+  color: royalblue;
+  cursor: pointer;
+}
+.container-row table {
+  width: 100%;
+  table-layout: fixed;
+}
+table a {
+  text-decoration: none;
+  color: royalblue;
+}
+td:first-child, th:first-child {
+  max-width: 100px;
+}
+.container-row th h2 {
+  font-weight: lighter;
+  font-size: 18px;
+  margin: 0;
+  text-transform: uppercase;
+}
+.container-row th {
+  vertical-align: top;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  text-align: left;
+  padding: 20px 5px;
+  font-weight: normal;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.container-row td.title {
+  overflow-wrap: break-word;
+}
+.container-row td {
+  vertical-align: top;
+  font-size: 14px;
+  padding: 5px;
+  word-wrap: break-word;
+}
+
+body.dark .config {
+  color: white;
+}
+.config {
+  color: black;
+  padding: 30px 30px 0;
+  margin: 10px 0;
+}
+.config-header {
+}
+.config-body {
+  display: flex;
+  align-items: stretch;
+}
+body.dark .config .btn {
+  background: royalblue;
+}
+.config .btn {
+  font-size: 16px;
+  font-weight: bold;
+  width: 100px;
+  /*
+  */
+  background: royalblue;
+  flex-shrink: 0;
+}
+.config-row {
+  padding: 10px 20px 0 0;
+}
+.label {
+  padding-bottom: 5px;
+  /*
+  font-weight: bold;
+  */
+}
+body.dark .config-row input[type=text] {
+  background: white;
+}
+.config-row input[type=text] {
+  padding: 5px 15px;
+  border-top-left-radius: 30px;
+  border-bottom-left-radius: 30px;
+}
+.app-btns .btn {
+  border-radius: 4px;
+  padding: 8px 10px;
+  width: 70px;
+  /*
+  padding: 6px 10px;
+  */
+  text-align: center;
+}
+.btn.reset {
+  background: firebrick;
+  color: white !important;
+}
+.switcher {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 38px;
+}
+
+.switcher input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+  border-radius: 50px;
+}
+
+.slider:before {
+  border-radius: 50px;
+  position: absolute;
+  content: "";
+  height: 30px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+/*
+  background-color: #2196F3;
+  background: black;
+  */
+  background-color: royalblue;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+.loading {
+  text-align: center;
+  padding: 50px;
+}
+.advanced a.btn {
+  text-align: center;
+}
+.advanced {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.advanced h3 {
+  margin: 0 0 5px;
+}
+.advanced .row {
+  display: flex;
+}
+.advanced input[type=text] {
+  flex-grow: 1;
+  padding: 10px;
+}
+table h3 {
+  margin: 0;
+}
+body.dark .desc {
+  color: rgba(255,255,255,0.7);
+}
+.desc {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.7);
+  padding: 5px 0;
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Three equal columns */
+  gap: 1rem; /* Optional spacing between columns */
+}
+.grid-1 {
+  padding: 10px;
+}
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* Responsive columns that wrap */
+  gap: 1rem; /* Optional spacing between columns */
+  padding: 10px;
+}
+.grid-3 > * {
+  min-width: 0;
+}
+.section-header .grid-1, .section-header .grid-2, .section-header .grid-3 {
+  background: none !important;
+  padding: 0 !important;
+}
+main {
+  display: flex;
+}
+aside {
+  width: 200px;
+  display: block;
+  flex-shrink: 0;
+}
+aside .tab i {
+  width: 20px;
+  text-align: center;
+}
+body.dark aside .tab {
+  color: white;
+}
+body.dark aside .tab:hover, aside .tab:hover {
+  color: royalblue !important;
+  opacity: 1;
+}
+aside .tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: black;
+  text-decoration: none;
+  padding: 10px;
+  font-size: 12px;
+  opacity: 0.5;
+  border-left: 10px solid transparent;
+}
+body.dark aside .tab.selected {
+  color: white;
+  /*
+  border-left: 10px solid white;
+  */
+}
+body.dark aside .selected {
+/*
+  border-left: 10px solid white;
+  */
+}
+aside .selected {
+  font-weight: bold;
+  /*
+  border-left: 10px solid black;
+  */
+  opacity: 1;
+}
+body.dark aside .current.selected {
+  border-left: 10px solid white;
+}
+aside .current.selected {
+  border-left: 10px solid black;
+  font-weight: bold;
+  opacity: 1;
+}
+.submenu .tab {
+  padding: 10px;
+}
+.submenu .tab {
+  border-left: 10px solid transparent;
+}
+body.dark .net:hover, .net:hover {
+  color: royalblue;
+  border-left: 4px solid royalblue;
+}
+body.dark .net {
+  border-left: 3px solid white;
+  color: rgba(255,255,255,0.7);
+}
+.net {
+  color: rgba(0,0,0,0.7);
+  width: auto;
+  margin: 3px 0;
+  padding-left: 5px;
+  border-left: 3px solid black;
+  font-size: 12px;
+  text-decoration: none;
+  display: block;
+  background: none;
+}
+form.search {
+  padding: 20px;
+}
+/*
+input[type=search] {
+  visibility: hidden;
+}
+*/
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+header .runner {
+  padding: 10px 0 0;
+}
+.proxy {
+  padding: 0 10px;
+  text-align: right;
+}
+.proxy a {
+  text-decoration: none;
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 2px;
+  background: black;
+  color: white;
+}
+.browser-options-btns {
+  display: flex;
+  padding-top: 5px;
+}
+.browser-options-row {
+/*
+  border-top: 1px solid rgba(0,0,0,0.1);
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  */
+  display: flex;
+  padding: 10px;
+  align-items: flex-start;
+}
+.browser-options-row h3 {
+  margin: 0;
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+.browser-options-row .btn.disabled {
+  opacity: 0.7;
+}
+.browser-options-row .btn {
+  font-weight: bold;
+  width: 100px;
+  text-align: center;
+  display: block;
+  margin-right: 10px;
+  flex-shrink: 0;
+  padding: 5px;
+}
+.badge {
+  font-size: 12px;
+  padding: 5px 10px;
+  background: rgba(0,0,100,0.1);
+  border-radius: 5px;
+  display: inline-block;
+  margin-top: 5px;
+}
+a.badge {
+  color: royalblue;
+  text-decoration: none;
+  cursor: pointer;
+}
+.badge a {
+  color: royalblue;
+  text-decoration: none;
+}
+body.dark .btn {
+  color: white;
+}
+body.dark .badge {
+  background: rgba(255,255,255,0.1);
+}
+/*
+body.dark .browser-options-row {
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+*/
+body.dark .context-menu-wrapper {
+  background: rgba(0,0,0,0.9) !important;
+  color: white !important;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+}
+.context-menu-wrapper {
+  background: rgba(0,0,0,0.06) !important;
+}
+.context-menu {
+ /* 
+  max-height: 10000px;
+  overflow: hidden;
+  transition: max-height 1s ease-in-out;
+  */
+  display: flex;
+  margin: 0 5px 0 0;
+}
+.context-menu .btn:hover {
+  color: cornflowerblue !important;
+}
+.context-menu .btn {
+  background: none !important;
+  border: none !important;
+  display: block;
+  width: 80px;
+  padding: 6px 10px !important;
+  text-align: left;
+  color: black;
+}
+.section-header2 {
+  display: flex;
+  padding: 10px;
+  background: rgba(0,0,0,0.04);
+  font-weight: bold;
+}
+.section-header2 .col {
+  flex-grow: 1;
+  padding-left: 10px;
+}
+.blank {
+  width: 50px;
+  flex-shrink: 0;
+}
+body.dark .section-header {
+  background: rgba(255,255,255,0.04);
+/*
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  */
+}
+.section-header {
+/*
+  border-bottom: 1px solid rgba(0, 0, 0,0.04);
+  */
+  font-weight: normal;
+  font-size: 14px;
+  padding: 30px 5px;
+  /*
+  margin: 0 0 15px;
+  */
+  background: rgba(0,0,0,0.04);
+}
+.section-header h2 {
+  font-size: 20px;
+  font-weight: lighter;
+}
+.section-header .section {
+  box-sizing: border-box;
+}
+.section-header .section div {
+  font-weight: normal;
+  opacity: 0.6;
+  font-size: 14px;
+}
+.section-header h3 {
+  display: flex;
+  margin: 0;
+}
+.section-header .col {
+  padding-left: 10px;
+  flex-grow: 1;
+  min-width: 0;
+  word-wrap: break-word;
+}
+body.dark .btn {
+  background: rgba(255,255,255,0.05);
+}
+/*
+body.dark .btn {
+  background: rgba(255,255,255,0.05) !important;
+}
+*/
+.app-btns .btn {
+  border-radius: 4px;
+  padding: 8px 10px;
+  width: 70px;
+  /*
+  padding: 6px 10px;
+  */
+  text-align: center;
+}
+body.dark .context-menu .btn {
+  color: white;
+}
+.context-menu.collapsed {
+/*
+  max-height: 0; 
+  */
+  display: none;
+}
+body.dark .open-menu, body.dark .browse {
+  border: none !important;
+  /*
+  background: black !important;
+  */
+  color: white !important;
+}
+.open-menu:hover, .browse:hover, body.dark .open-menu:hover, body.dark .browse:hover {
+  color: royalblue !important;
+}
+.open-menu, .browse {
+  width: 80px;
+  border-radius: 0 !important;
+  background: rgba(0,0,0,0.04) !important;
+  color: black !important;
+  /*
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  */
+}
+.open-menu.selected {
+  border: none !important;
+  /*
+  background: none !important;
+  */
+}
+.open-menu.selected span {
+  display: none;
+}
+.sections {
+  display: flex;
+}
+.section {
+  display: block;
+  min-width: 0;
+}
+.line {
+  padding: 10px;
+}
+.line.align-top h3 .col .btn {
+  box-sizing: border-box;
+  margin-top: 5px;
+  width: 100%;
+}
+.c {
+  flex-grow: 1;
+  min-width: 0;
+}
+.desc {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.7);
+  padding: 5px 0;
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Three equal columns */
+  gap: 1rem; /* Optional spacing between columns */
+}
+.grid-1 {
+  padding: 10px;
+}
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Three equal columns */
+  gap: 1rem; /* Optional spacing between columns */
+  padding: 5px 0;
+}
+.section-header .grid-1, .section-header .grid-2, .section-header .grid-3 {
+  background: none !important;
+  padding: 0 !important;
+}
+.section-header .section {
+  text-align: center;
+  padding: 0 10px;
+}
+.section-header .section h2 {
+  margin: 0;
+  font-weight: bold;
+  text-align: center;
+}
+.section-header .section h2 i {
+  font-size: 30px;
+  width: 100%;
+  display: block;
+  text-align: center;
+  padding: 10px;
+}
+main {
+  display: flex;
+  min-width: 0;
+}
+.help {
+padding:30px;
+font-size: 20px;
+font-weight: bold;
+}
+aside {
+  width: 200px;
+  display: block;
+  flex-shrink: 0;
+}
+aside .tab i {
+  width: 20px;
+  text-align: center;
+}
+body.dark aside .tab {
+  color: white;
+}
+body.dark aside .tab:hover, aside .tab:hover {
+  color: royalblue !important;
+  opacity: 1;
+}
+aside .tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: black;
+  text-decoration: none;
+  padding: 10px;
+  font-size: 12px;
+  opacity: 0.5;
+  border-left: 10px solid transparent;
+}
+body.dark aside .tab.selected {
+  color: white;
+}
+aside .selected {
+  font-weight: bold;
+  opacity: 1;
+}
+/*
+body.dark aside .selected {
+  border-left: 10px solid white;
+}
+aside .selected {
+  border-left: 10px solid black;
+  font-weight: bold;
+  opacity: 1;
+}
+*/
+.loader {
+  padding: 50px;
+  text-align: center;
+  font-size: 40px;
+}
+.submenu .tab {
+  padding: 0;
+}
+body.dark .net:hover, .net:hover {
+  color: royalblue;
+  border-left: 4px solid royalblue;
+}
+body.dark .net {
+  border-left: 3px solid white;
+  color: rgba(255,255,255,0.7);
+}
+.net {
+  color: rgba(0,0,0,0.7);
+  width: auto;
+  margin: 3px 0;
+  padding-left: 5px;
+  border-left: 3px solid black;
+  font-size: 12px;
+  text-decoration: none;
+  display: block;
+  background: none;
+}
+.placeholder-icon {
+  font-size: 40px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+body.dark .troubleshoot {
+  color: rgba(255,255,255,0.5);
+}
+.troubleshoot {
+  padding-top: 15px;
+  color: rgba(0,0,0,0.5);
+}
+.network-name.expanded .btn {
+  border-top-right-radius: 30px;
+  border-bottom-right-radius: 30px;
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+}
+.network-name {
+  display: flex;
+}
+.network-name .btn {
+  border-top-left-radius: 30px;
+  border-bottom-left-radius: 30px;
+  border-top-right-radius: 30px;
+  border-bottom-right-radius: 30px;
+}
+.network-name input[type=text] {
+  border: none;
+  background: rgba(0,0,0,0.1);
+}
+.launch-btns {
+  display: flex;
+}
+.launch-btns .btn.launch{
+  width: 100px !important;
+  text-align: center !important;
+}
+.installed-apps .title i {
+  color: silver !important;
+}
+
+/*
+@media only screen and (max-width: 800px) {
+  body {
+    display: flex !important;
+    flex-direction: row !important;
+  }
+}
+*/
+@media only screen and (max-width: 600px) {
+  aside {
+    width: unset;
+    flex-shrink: unset;
+  }
+  aside {
+    padding: 0 10px;
+  }
+  aside .tab.submenu {
+    padding: 10px;
+  }
+  aside .tab i {
+    width: 100%;
+  }
+  aside .tab .caption {
+    display: none;
+  }
+  aside .tab {
+    margin: 0;
+    padding: 10px;
+    border-left: none;
+  }
+  aside .btn-tab {
+    flex-direction: column;
+    padding: 10px 0;
+  }
+  aside .btn-tab .btn {
+    display: flex;
+    justify-content: center;
+  }
+  aside .btn-tab .btn .caption {
+    display: none; 
+  }
+  header .flexible {
+    min-width: unset;
+  }
+  .config-body {
+    flex-direction: column;
+    gap: 20px;
+  }
+  .config-row {
+    width: 100%;
+    padding-right: 0;
+  }
+  .network-name {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .network-name input[type=text] {
+    width: 100%;
+  }
+  .network-name .btn {
+    width: 100%;
+  }
+}
+
+@media only screen and (max-width: 480px) {
+  .btn2 {
+    padding: 5px;
+    font-size: 11px;
+  }
+  .nav-btns {
+    flex-grow: 1;
+    justify-content: center;
+    padding: 0;
+  }
+}
+body.network-page .task-container {
+  padding: 20px 28px 32px;
+}
+body.network-page .task-shell {
+  width: min(1180px, 100%);
+  margin: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  backdrop-filter: none;
+}
+body.network-page .task-shell-header {
+  padding-bottom: 18px;
+}
+body.network-page .task-shell-body {
+  padding: 28px 28px 28px;
+}
+body.network-page .c {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+body.network-page .container {
+  margin: 0;
+}
+body.network-page .config {
+  margin: 0;
+  padding: 0;
+  color: var(--task-text);
+}
+body.network-page .config-header {
+  display: none;
+}
+body.network-page .config-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px 18px;
+  padding: 18px 22px;
+  border: 1px solid var(--task-border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  align-items: center;
+}
+body.network-page .config-row {
+  padding: 0;
+  min-width: 0;
+}
+body.network-page .config-row .label {
+  padding: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--task-text);
+}
+body.network-page .config-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+body.network-page .config-toggle-copy {
+  display: grid;
+  gap: 3px;
+}
+body.network-page #active-label {
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--task-muted);
+}
+body.network-page .switcher {
+  width: 58px;
+  height: 34px;
+  flex: 0 0 auto;
+}
+body.network-page .config-save-btn {
+  min-width: 104px;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: var(--task-accent-surface) !important;
+  color: var(--task-accent-contrast) !important;
+  border: 1px solid var(--task-accent-surface) !important;
+  font-size: 14px;
+  font-weight: 700;
+}
+body.network-page .config-save-btn:hover {
+  background: var(--task-accent-hover) !important;
+  border-color: var(--task-accent-hover) !important;
+}
+body.network-page .slider {
+  border: 1px solid var(--task-border-strong);
+  background: color-mix(in srgb, var(--task-text) 14%, transparent);
+}
+body.network-page .slider:before {
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+}
+body.network-page .switcher input:checked + .slider {
+  background: color-mix(in srgb, var(--task-accent) 68%, var(--task-panel));
+  border-color: color-mix(in srgb, var(--task-accent) 72%, var(--task-panel));
+}
+body.network-page #network_name {
+  grid-column: 1 / -1;
+}
+body.network-page .network-name {
+  display: block;
+}
+body.network-page .network-name input[type=text] {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--task-border-strong);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--task-panel) 98%, white);
+  color: var(--task-text);
+  padding: 0 14px;
+  height: 44px;
+  box-sizing: border-box;
+}
+body.dark.network-page .network-name input[type=text] {
+  background: color-mix(in srgb, var(--task-panel) 96%, black);
+}
+body.network-page #network_name .label {
+  margin-bottom: 8px;
+}
+body.network-page .advanced {
+  margin-top: 12px;
+  justify-content: flex-start;
+}
+body.network-page .troubleshoot,
+body.dark.network-page .troubleshoot {
+  color: var(--task-muted);
+  padding: 0;
+  font-size: 13px;
+}
+body.network-page .link-label {
+  color: var(--task-accent);
+}
+body.network-page .loading {
+  border: 1px solid var(--task-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  color: var(--task-muted);
+}
+body.network-page .running-apps {
+  display: grid;
+  gap: 14px;
+}
+body.network-page .line {
+  padding: 18px 20px;
+  border: 1px solid var(--task-border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+}
+body.network-page .line.align-top h3 {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+body.network-page .placeholder-icon,
+body.network-page .line img {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--task-accent) 12%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--task-accent);
+}
+body.network-page .line img {
+  object-fit: cover;
+  background: color-mix(in srgb, var(--task-panel) 92%, var(--task-soft));
+}
+body.network-page .line .col {
+  min-width: 0;
+}
+body.network-page .line .title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--task-text);
+  font-size: 18px;
+  font-weight: 700;
+}
+body.network-page .line .title i {
+  font-size: 10px;
+  color: color-mix(in srgb, #84cc16 75%, var(--task-panel));
+}
+body.network-page .grid-3 {
+  padding: 10px 0 0;
+  gap: 14px;
+}
+body.network-page .grid-3 .section {
+  border: 1px solid var(--task-border);
+  border-radius: 14px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+}
+body.network-page .grid-3 .section h2 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--task-text);
+}
+body.network-page .net {
+  margin: 0 0 6px;
+  padding: 0;
+  border: 0;
+  color: var(--task-muted);
+}
+body.dark.network-page .net {
+  color: var(--task-muted);
+}
+body.network-page .get-dns-btn,
+body.network-page .btn,
+body.network-page .proxy a {
+  border-radius: 12px;
+}
+body.network-page .get-dns-btn {
+  margin-top: 10px;
+  max-width: none;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  border: 1px solid var(--task-border);
+  color: var(--task-text);
+}
+body.network-page .badge,
+body.dark.network-page .badge {
+  background: color-mix(in srgb, var(--task-accent) 18%, transparent);
+  color: var(--task-accent);
+}
+@media only screen and (max-width: 820px) {
+  body.network-page .task-shell-header,
+  body.network-page .task-shell-body {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  body.network-page .config-body {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  body.network-page .config-save-btn {
+    width: 100%;
+  }
+}
+@media only screen and (max-width: 560px) {
+  body.network-page .task-container {
+    padding: 16px 14px 24px;
+  }
+  body.network-page .task-shell-body {
+    padding-bottom: 22px;
+  }
+  body.network-page .line.align-top h3 {
+    grid-template-columns: 1fr;
+  }
+  body.network-page .item-icon {
+    margin-bottom: 2px;
+  }
+  body.network-page .grid-3 {
+    grid-template-columns: 1fr;
+  }
+  body.network-page .network-name {
+    display: block;
+  }
+  body.network-page .network-name input[type=text] {
+    border-radius: 14px;
+  }
+}
+</style>
+<script src="/window_storage.js"></script>
+<script src="/popper.min.js"></script>
+<script src="/tippy-bundle.umd.min.js"></script>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<script src="/urldropdown.js"></script>
+<script>
+// Initialize URL Dropdown with empty behavior for network page
+document.addEventListener('DOMContentLoaded', function() {
+  initUrlDropdown({
+    clearBehavior: 'empty'
+  });
+});
+</script>
+</head>
+<body class='<%=theme%> main-sidebar-page task-launcher-page task-page network-page' data-agent="<%=agent%>">
+<header class='navheader grabbable'>
+<h1>
+<a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
+<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+  <div><i class="fa-solid fa-expand"></i></div>
+</button>
+<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
+<div class='mobile-flexible'></div>
+<form class='urlbar'>
+  <div class='url-input-container'>
+    <input type='url' placeholder='enter any local url to open in pinokio'>
+    <div class='url-dropdown' id='url-dropdown'></div>
+  </div>
+</form>
+<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+  <div><i class="fa-solid fa-table-columns"></i></div>
+</a>
+<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+</a>
+<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+  <div><i class="fa-solid fa-plus"></i></div>
+</button>
+
+<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+  <div><i class="fa-solid fa-xmark"></i></div>
+</button>
+</h1>
+</header>
+<main>
+  <div class='task-container'>
+  <section class='task-shell network-shell'>
+    <header class='task-shell-header'>
+      <div class='task-shell-header-main'>
+        <p class='task-eyebrow'>Network</p>
+        <h1 class='task-title'>Network settings</h1>
+        <p class='task-description'>Instantly add HTTPS, CORS, and peer sharing for apps on your local network.</p>
+      </div>
+    </header>
+    <div class='task-shell-body network-shell-body'>
+      <div class='c'>
+  <div class='container'>
+    <div class='config'>
+      <div class='config-body'>
+        <div class='config-row config-toggle-row'>
+          <div class='config-toggle-copy'>
+            <div class='label'>Network access</div>
+            <div id='active-label'><%=peer_active ? "On" : "Off"%></div>
+          </div>
+          <label class="switcher">
+            <input id='active' type="checkbox" <%=peer_active ? 'checked' : ''%>>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <button class='btn save config-save-btn'>Save</button>
+        <div class='config-row' id='network_name'>
+          <div class='label'>Network Name</div>
+          <div class='network-name'>
+            <input id='name' type='text' value="<%=name%>">
+          </div>
+        </div>
+      </div>
+        <div class='advanced'>
+          <!--
+            <div id='advanced-label' class='link-label label'>Advanced</div>
+            <div id='reset-label' class='btn'>Reset</div>
+            -->
+          <div class='troubleshoot'>
+            Not working properly?  <span id='reset-label' class='link-label label'>Try reinstalling the Network Module & Certificates</span>
+          </div>
+        </div>
+    </div>
+    <div class='loading hidden'>
+      <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
+    </div>
+  </div>
+  <div class='container'>
+    <div class='running-apps'>
+      <% if (requirements_pending || peer_active && processes.length === 0) { %>
+        <div class='loader'>
+        <i class="fa-solid fa-circle-notch fa-spin"></i>
+        </div>
+      <% } %>
+      <!--
+      <% static_routes.forEach((route, index) => { %>
+        <div class='line align-top' data-index="<%=processes.length+index%>" data-name="<%=route.name%>" data-title="<%=route.name%>" data-description="<%=route.internal_router.join(' ')%>">
+          <h3>
+            <div class='item-icon'>
+              <div class='placeholder-icon'>
+                <i class="fa-solid fa-clock-rotate-left"></i>
+              </div>
+            </div>
+            <div class='col'>
+              <div class='title'><i class="fa-solid fa-circle"></i><span><%=route.name%></span></div>
+              <div class='grid-3'>
+                <div class='section'>
+                  <% route.internal_router.forEach((domain) => { %>
+                    <% if (domain.endsWith(".localhost")) { %>
+                      <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                    <% } else { %>
+                      <a class='net' target="_blank" href="http://<%=domain%>">http://<%=domain%></a>
+                    <% } %>
+                  <% }) %>
+                </div>
+                <div class='section'>
+                  <% if (route.external_ip) { %>
+                    <a class='net' target="_blank" href="http://<%=route.external_ip%>">http://<%=route.external_ip%></a>
+                  <% } %>
+                </div>
+                <div class='section'>
+                  <% route.external_router.forEach((domain) => { %>
+                    <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                  <% }) %>
+                </div>
+              </div>
+            </div>
+          </h3>
+        </div>
+      <% }) %>
+      -->
+    </div>
+  </div>
+  </div>
+    </div>
+  </section>
+  </div>
+  <%- include('partials/main_sidebar', { selected: 'network' }) %>
+</main>
+<script>
+let interval
+document.querySelector("#reset-label").addEventListener("click", async (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  let ok = confirm("Are you sure you want to reset the network config? (The peer router will be updated to the latest version; 2. A new HTTPS certificate will be generated)")
+  if (ok) {
+    clearInterval(interval)
+    let r = await fetch("/network/reset", {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    }).then((res) => {
+      return res.json()
+    })
+    if (r.success) {
+      //alert("Successfully updated the pinokio home to " + val)
+      document.querySelector(".loading").classList.remove("hidden")
+      document.querySelector(".save").classList.add("hidden")
+      fetch("/restart", {
+        method: "post"
+      }, () => {
+      })
+      let i2 = setInterval(async () => {
+        try {
+          let res = await fetch("/check_peer").then((res) => {
+            return res.json()
+          })
+          console.log("RES", res)
+          if (res.success) {
+            document.querySelector(".loading").classList.add("hidden")
+            clearInterval(i2)
+            if (res.peer_name) {
+              console.log("> 1")
+              location.href = "/net/" + res.peer_name
+            } else {
+              console.log("> 2")
+              location.reload()
+            }
+          }
+        } catch (e) {
+          console.log(e)
+        }
+      }, 1000)
+    } else if (r.error) {
+      alert(r.error)
+      location.reload()
+    }
+  }
+
+})
+/*
+document.querySelector("#advanced-label").addEventListener("click", (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  //document.querySelector("#advanced-input").classList.toggle("hidden") 
+  Commander({
+    callback: "/network",
+    path: "~/network",
+    icon: "fa-solid fa-circle-down",
+    title: "Custom Router",
+    placeholder: "enter a custom router git url",
+    description: `<div>you can write your own custom routers to handle custom request handling for any port <a target="_blank" href="<%=docs%>">Learn more</a></div>`,
+    target: "_top",
+    message: (url) => {
+      let name = new URL(url).pathname.split("/").slice(-2).join("_")
+      return encodeURIComponent(`git clone ${url} ${name}`)
+    }
+  })
+})
+*/
+if (document.querySelector("#active").checked) {
+  console.log("checked")
+  document.querySelector("#network_name").classList.remove("hidden")
+  document.querySelector(".network-name").classList.add("expanded")
+} else {
+  console.log("not checked")
+  document.querySelector("#network_name").classList.add("hidden")
+  document.querySelector(".network-name").classList.remove("expanded")
+}
+document.querySelector("#active").addEventListener("change", (e)=> {
+  console.log(e.target.checked)
+  if (e.target.checked) {
+    document.querySelector("#network_name").classList.remove("hidden")
+    document.querySelector(".network-name").classList.add("expanded")
+    document.querySelector("#name").classList.remove("hidden")
+    document.querySelector("#active-label").innerHTML = "On"
+  } else {
+    document.querySelector("#network_name").classList.add("hidden")
+    document.querySelector(".network-name").classList.remove("expanded")
+    document.querySelector("#name").classList.add("hidden")
+    document.querySelector("#active-label").innerHTML = "Off"
+  }
+})
+document.querySelector("main").addEventListener("click", async (e) => {
+  let target
+
+  if (e.target.classList.contains("explain")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".explain")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    let type = target.getAttribute("data-type")
+    if (type === "https") {
+      await Swal.fire({
+        title: "Instant HTTPS",
+        customClass: {
+          popup: "full-popup",
+          title: "full-title"
+        },
+        showConfirmButton: false,
+        html: `<div class='full-modal'>
+        <ol>
+          <li><strong>Instant:</strong> Pinokio automatically turns ALL your local applications into HTTPS.</li>
+          <li><strong>System-wide:</strong> Instant HTTPS automagically works for ALL your local apps and APIs system-wide (not just those installed on pinokio)</li>
+          <li><strong>Not just for Pinokio:</strong> This means, even the apis and apps that have nothing to do with Pinokio (such as Ollama, LMStudio, or really anything) become HTTPS-ified.</li>
+          <li><strong>Whole New Application Architecture:</strong> Exposing localhost apps over HTTPS unlocks powerful new possibilities. It enables a completely new application architecture where public websites can securely leverage your local APIs as backend services.</li>
+        </ol>
+        <img src="/https.png"/>
+        <br>
+    </div>`
+      })
+    } else if (type === "peer") {
+      await Swal.fire({
+        title: "Peer to Peer HTTPS Local Network",
+        customClass: {
+          popup: "full-popup",
+          title: "full-title"
+        },
+        showConfirmButton: false,
+        html: `<div class='full-modal'>
+        <div>Peers can access each other over HTTPS. It's like a whole internet, but among your local machines.</div>
+        <br>
+        <img src="/peernet.png"/>
+        <br>
+        <div>To start a peer, install Pinokio on any other machine on the same network.</div>
+        <br>
+        <div>Peers automatically discover each other and display accessible apps and endpoints from other machines:</div>
+        <br>
+        <img src="/network.gif"/>
+        <br>
+    </div>`
+      })
+    }
+    return
+  }
+
+  if (e.target.classList.contains("save")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".save")
+  }
+
+  if (target) {
+    let active = document.querySelector("#active").checked ? "1": "0"
+    let body = {
+      PINOKIO_NETWORK_NAME: document.querySelector("#name").value,
+      PINOKIO_NETWORK_ACTIVE: active,
+      PINOKIO_HTTPS_ACTIVE: active,
+    }
+    /*
+    let body = {
+      PINOKIO_NETWORK_NAME: document.querySelector("#name").value,
+      PINOKIO_NETWORK_ACTIVE: (document.querySelector("#peer_active").checked ? "1": "0"),
+      PINOKIO_HTTPS_ACTIVE: (document.querySelector("#https_active").checked ? "1": "0")
+    }
+    */
+    console.log(body)
+    clearInterval(interval)
+    let r = await fetch("/network", {
+      method: "post",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }).then((res) => {
+      return res.json()
+    })
+    if (r.success) {
+      document.querySelector("#network_name").classList.add("hidden")
+      //alert("Successfully updated the pinokio home to " + val)
+      document.querySelector(".loading").classList.remove("hidden")
+      document.querySelector(".save").classList.add("hidden")
+      fetch("/restart", {
+        method: "post"
+      }, () => {
+      })
+      let i3 = setInterval(async () => {
+        try {
+          let res = await fetch("/check_peer").then((res) => {
+            return res.json()
+          })
+          if (res.success) {
+            document.querySelector(".loading").classList.add("hidden")
+            clearInterval(i3)
+            if (res.peer_name) {
+              console.log("> 1")
+              location.href = "/net/" + res.peer_name
+            } else {
+              console.log("> 2")
+              location.reload()
+            }
+          }
+        } catch (e) {
+          console.log(e)
+        }
+      }, 1000)
+    } else if (r.error) {
+      alert(r.error)
+      location.reload()
+    }
+    return
+  }
+
+  if (e.target.classList.contains("stop")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".stop")
+  }
+  if (target) {
+    // stop
+    let res = await fetch("/proxy", {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "stop",
+        target: target.getAttribute("data-target"),
+        name: target.getAttribute("data-name")
+      })
+    }).then((res) => {
+      return res.json()
+    })
+    location.reload()
+    return
+  }
+
+  if (e.target.classList.contains("start")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".start")
+  }
+  if (target) {
+    let res = await fetch("/proxy", {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "start",
+        target: target.getAttribute("data-target"),
+        name: target.getAttribute("data-name"),
+        port: target.getAttribute("data-port")
+      })
+    }).then((res) => {
+      return res.json()
+    })
+    location.reload()
+  }
+
+  if (e.target.classList.contains("wifi-qr")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".wifi-qr")
+  }
+  if (target) {
+    let url = target.getAttribute("data-url")
+    let qr = target.getAttribute("data-qr")
+    console.log({ url, qr })
+    await Swal.fire({
+      title: "Local Share",
+      customClass: {
+        popup: "min-popup",
+        title: "min-title"
+      },
+      showConfirmButton: false,
+      html: `<div class='min-modal'>
+      <div>Access Pinokio from</div>
+      <div>any local network device</div>
+      <div><img src="${qr}"></div>
+  <a href="${url}" target="_blank">${url}</a>
+  </div>`
+    })
+  }
+
+
+})
+if (document.querySelector("#back")) {
+  document.querySelector("#back").addEventListener("click", (e) => {
+    history.back()
+  })
+}
+if (document.querySelector("#forward")) {
+  document.querySelector("#forward").addEventListener("click", (e) => {
+    history.forward()
+  })
+}
+<% if (proxy) { %>
+  if (document.querySelector("#wifi-stop")) {
+    document.querySelector("#wifi-stop").addEventListener("click", async (e) => {
+      let res = await fetch("/unpublish", {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          type: "local"
+        })
+      }).then((res) => {
+        return res.json()
+      })
+      console.log(res)
+      location.reload()
+    })
+  }
+<% } else { %>
+if (document.querySelector("#wifi")) { 
+  document.querySelector("#wifi").addEventListener("click", async (e) => {
+    document.querySelector("#wifi").classList.add("hidden")
+    document.querySelector("#wifi-starting").classList.remove("hidden")
+    let res = await fetch("/publish", {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "local"
+      })
+    }).then((res) => {
+      return res.json()
+    })
+    console.log(res)
+    location.reload()
+  })
+}
+<% } %>
+<% if (requirements_pending) { %>
+let i1 = setInterval(() => {
+  fetch("/requirements_check/network").then((res) => {
+    return res.json()
+  }).then((res) => {
+    console.log(res)
+    if (!res.requirements_pending) {
+      clearInterval(i1)
+      if (res.install_required) {
+        location.href = "/setup/network?callback=/network"
+      } else {
+        location.reload()
+      }
+    }
+  })
+}, 2000)
+<% } %>
+<% if (peer_active && processes.length === 0) { %>
+interval = setInterval(() => {
+  fetch("/peer_check").then((res) => {
+    return res.json()
+  }).then((res) => {
+    if (res.updated) {
+      clearInterval(interval)
+      location.reload()
+    }
+  })
+}, 2000)
+<% } %>
+</script>
+</body>
+</html>

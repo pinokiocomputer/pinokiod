@@ -1,18 +1,29 @@
+const semver = require('semver')
 class Huggingface {
+  description = "Installs huggingface_hub for downloading models and assets from Hugging Face."
+  cmd() {
+    //return 'huggingface_hub "hf-xet!=1.1.10"'
+    return 'huggingface_hub=1.0.1'
+  }
   async install(req, ondata) {
     await this.kernel.bin.exec({
       message: [
         "conda clean -y --all",
-        "conda install -y -c conda-forge huggingface_hub"
+        `conda install -y -c conda-forge ${this.cmd()}`
       ]
-//      conda: {
-//        name: "base",
-//        activate: "minimal"
-//      }
     }, ondata)
   }
   async installed() {
-    return this.kernel.bin.installed.conda.has("huggingface_hub")
+    if (this.kernel.bin.installed.conda.has("huggingface_hub")) {
+      let version = this.kernel.bin.installed.conda_versions.huggingface_hub
+      if (version) {
+        let coerced = semver.coerce(version)
+        if (coerced && semver.eq(coerced, "1.0.1")) {
+          return true
+        }
+      }
+    }
+    return false
   }
 //  env() {
 //    return {

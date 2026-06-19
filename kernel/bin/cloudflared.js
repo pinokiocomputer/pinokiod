@@ -1,5 +1,6 @@
 const fs = require('fs')
 class Cloudflared {
+  description = "Cloudflared lets you expose your local apps to the outside world via Cloudflare Tunnel."
   async uninstall(req, ondata) {
     ondata({ raw: "cleaning up\r\n" })
     let bin = this.kernel.bin

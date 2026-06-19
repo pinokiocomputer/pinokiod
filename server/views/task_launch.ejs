@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= task.config.title %></title>
+  <link href="/css/fontawesome.min.css" rel="stylesheet">
+  <link href="/css/solid.min.css" rel="stylesheet">
+  <link href="/css/brands.min.css" rel="stylesheet">
+  <link href="/noty.css" rel="stylesheet">
+  <link href="/style.css" rel="stylesheet">
+  <link href="/task-launcher.css" rel="stylesheet">
+  <% if (agent === "electron") { %>
+    <link href="/electron.css" rel="stylesheet"/>
+  <% } %>
+  <script src="/task-launcher.js" defer></script>
+  <script src="/task-share.js" defer></script>
+</head>
+<%
+  const effectiveTaskTarget = task.config.target || 'workspaces'
+  const runRootCopy = effectiveTaskTarget === 'api'
+    ? 'Creates a new app.'
+    : effectiveTaskTarget === 'plugin'
+      ? 'Creates a new plugin.'
+      : 'Runs in a new workspace.'
+  const folderMeta = effectiveTaskTarget === 'workspaces' ? 'Optional' : ''
+  const folderRequired = effectiveTaskTarget !== 'workspaces'
+  const folderPlaceholder = effectiveTaskTarget === 'workspaces'
+    ? (suggestedFolderName || 'auto-generated')
+    : 'Enter folder name, e.g. my-project'
+  const headerDescription = task.config.description && !/{{/.test(task.config.description)
+    ? task.config.description
+    : ''
+%>
+<body class="<%= theme %> main-sidebar-page task-launcher-page task-page task-detail-page" data-agent="<%= agent %>">
+  <%- include('partials/app_navheader', { agent }) %>
+  <main>
+  <div class="task-container">
+  <section class="task-shell">
+    <header class="task-shell-header">
+      <div class="task-shell-header-main">
+        <div class="task-shell-topline">
+          <p class="task-eyebrow">Tasks</p>
+        </div>
+        <h1 class="task-title"><%= task.config.title %></h1>
+        <% if (headerDescription) { %>
+          <p class="task-description"><%= headerDescription %></p>
+        <% } %>
+        <p class="task-detail-meta">
+          <span class="task-detail-meta-item task-detail-meta-source">
+            <span class="task-detail-meta-source-name"><%= taskUi.sourceValue %></span>
+            <a class="task-detail-meta-link <%= shareState.remoteWebUrl ? '' : 'task-hidden' %>" href="<%= shareState.remoteWebUrl || '#' %>" target="_blank" rel="noopener noreferrer" data-task-share-remote-link aria-label="Open repository on GitHub">
+              <i class="fa-brands fa-github" aria-hidden="true"></i>
+            </a>
+          </span>
+          <span class="task-detail-meta-sep">•</span>
+          <span class="task-detail-meta-item"><%= taskUi.statusValue %></span>
+        </p>
+      </div>
+      <div class="task-header-actions">
+        <a class="task-link-button" href="/tasks">
+          <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+          <span>Back</span>
+        </a>
+        <a class="task-link-button" href="<%= taskUi.editUrl %>">
+          <i class="fa-solid fa-pen" aria-hidden="true"></i>
+          <span>Edit</span>
+        </a>
+        <form class="task-inline-form" method="post" action="<%= taskUi.deleteUrl %>" data-task-confirm="<%= taskUi.deleteConfirm %>">
+          <button class="task-button danger" type="submit">
+            <i class="fa-solid fa-trash" aria-hidden="true"></i>
+            <span>Delete</span>
+          </button>
+        </form>
+      </div>
+      <div class="task-header-share">
+        <div class="task-share-link-box" data-task-share-link-box>
+          <label class="task-share-link-field">
+            <span class="task-sr-only">Current task permalink</span>
+            <textarea id="task-share-link" class="task-textarea task-share-url" readonly rows="1"><%= permalinkUrl %></textarea>
+          </label>
+          <button class="task-button" type="button" data-task-share-copy>
+            <i class="fa-solid fa-copy" aria-hidden="true"></i>
+            <span>Copy link</span>
+          </button>
+        </div>
+        <div class="task-share-next-step-main task-hidden" data-task-share-next-wrap>
+          <p class="task-share-next-step-copy" data-task-share-next-copy></p>
+          <div class="task-actions" data-task-share-next-actions></div>
+        </div>
+        <form class="task-share-inline-create task-hidden" data-task-share-create-form>
+          <div class="task-inline-fields">
+            <label class="task-field">
+              <span class="task-label">Repository name</span>
+              <input class="task-input" type="text" data-task-share-repo-name placeholder="task-repo">
+            </label>
+            <label class="task-field task-field-tight">
+              <span class="task-label">Visibility</span>
+              <select class="task-select" data-task-share-visibility>
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+              </select>
+            </label>
+            <div class="task-actions task-share-inline-create-actions">
+              <button class="task-button" type="button" data-task-share-create-cancel>Cancel</button>
+              <button class="task-button primary" type="submit">
+                <i class="fa-brands fa-github" aria-hidden="true"></i>
+                <span>Continue</span>
+              </button>
+            </div>
+          </div>
+        </form>
+        <div class="task-share-feedback" data-task-share-feedback hidden></div>
+      </div>
+    </header>
+
+    <div class="task-shell-body">
+      <% if (error) { %>
+        <div class="task-status error"><%= error %></div>
+      <% } %>
+
+      <form class="task-run-form task-detail-layout" method="post" action="/task/start" data-task-pending-form="run">
+        <input type="hidden" name="id" value="<%= task.id %>">
+
+        <div class="task-detail-main">
+          <section class="task-section task-prompt-section">
+            <pre class="task-code task-prompt-code" data-task-rendered-prompt><%= renderedPrompt %></pre>
+            <div class="task-prompt-actions">
+              <button class="task-button primary task-run-button" type="submit">
+                <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+                <span>Run</span>
+              </button>
+              <p class="task-inline-help">Tool and folder stay local. The permalink tracks only the task inputs.</p>
+              <p class="task-submit-feedback" data-task-submit-feedback aria-live="polite" aria-hidden="true">
+                <span data-task-submit-feedback-text></span>
+              </p>
+            </div>
+          </section>
+        </div>
+
+        <aside class="task-detail-sidebar task-run-sidebar">
+          <section class="task-section task-run-section">
+            <div class="task-section-head">
+              <div>
+                <h2 class="task-section-title">Run</h2>
+              </div>
+            </div>
+            <div class="task-run-fields">
+              <% if (task.inputs.length) { %>
+                <% task.inputs.forEach((input) => { %>
+                  <label class="task-field">
+                    <span class="task-label"><%= input.label %><% if (input.required) { %><span class="task-label-required">*</span><% } %></span>
+                    <input class="task-input" type="text" name="input.<%= input.name %>" value="<%= inputValues[input.name] || '' %>" placeholder="<%= input.name %>" <%= input.required ? 'required' : '' %>>
+                  </label>
+                <% }) %>
+              <% } %>
+              <label class="task-field">
+                <span class="task-label">Tool</span>
+                <input type="hidden" name="tool" value="<%= selectedTool || '' %>" data-task-tool-value required>
+                <div data-task-tool-picker data-selected="<%= selectedTool || '' %>"></div>
+              </label>
+
+              <label class="task-field">
+                <span class="task-label">Folder<% if (folderRequired) { %><span class="task-label-required">*</span><% } %><% if (folderMeta) { %><span class="task-label-meta"><%= folderMeta %></span><% } %></span>
+                <input class="task-input" type="text" name="folderName" value="<%= folderName || '' %>" placeholder="<%= folderPlaceholder %>" <%= folderRequired ? 'required' : '' %>>
+              </label>
+            </div>
+          </section>
+        </aside>
+      </form>
+    </div>
+  </section>
+  </div>
+  <%- include('partials/main_sidebar', { selected: 'tasks' }) %>
+  </main>
+
+  <div class="task-share-overlay task-hidden" data-task-share-overlay>
+    <div class="task-share-overlay-backdrop" data-task-share-overlay-close></div>
+    <section class="task-share-overlay-panel" role="dialog" aria-modal="true" aria-labelledby="task-share-overlay-title">
+      <header class="task-share-overlay-header">
+        <div>
+          <p class="task-eyebrow">GitHub Flow</p>
+          <h2 id="task-share-overlay-title" class="task-share-overlay-title" data-task-share-overlay-title>Publish</h2>
+          <p class="task-share-overlay-copy" data-task-share-overlay-copy>Finish the GitHub flow in this panel, then click Done, check again.</p>
+        </div>
+        <button class="task-button icon-only" type="button" data-task-share-overlay-close aria-label="Close">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </header>
+      <div class="task-share-overlay-frame-wrap">
+        <iframe class="task-share-overlay-frame" src="about:blank" allow="fullscreen *;" allowfullscreen data-task-share-overlay-frame></iframe>
+      </div>
+      <footer class="task-share-overlay-footer">
+        <button class="task-button" type="button" data-task-share-overlay-close>Not yet</button>
+        <button class="task-button primary" type="button" data-task-share-overlay-refresh>
+          <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+          <span>Done, check again</span>
+        </button>
+      </footer>
+    </section>
+  </div>
+
+  <script id="task-share-bootstrap" type="application/json"><%- JSON.stringify({
+    task: {
+      id: task.id,
+      title: task.config.title,
+      description: task.config.description || "",
+      path: task.config.path || "tasks",
+      target: effectiveTaskTarget,
+      dir: task.dir,
+      ref: task.ref || "",
+      template: task.template || ""
+    },
+    share: shareState,
+    stateUrl: `/task/share/state?${shareState.remoteRef ? `ref=${encodeURIComponent(shareState.remoteRef)}` : `id=${encodeURIComponent(task.id)}`}`,
+  }) %></script>
+  <%- include('partials/app_common_scripts') %>
+</body>
+</html>

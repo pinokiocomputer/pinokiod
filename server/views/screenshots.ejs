@@ -1,0 +1,1346 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<link href="/task-launcher.css" rel="stylesheet"/>
+<link href="/urldropdown.css" rel="stylesheet" />
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+/*
+.btn {
+  margin-right: 5px;
+  font-weight: normal;
+  padding: 5px 15px;
+  min-width: 100px;
+  text-align: center;
+}
+*/
+.items {
+  max-width: 600px;
+  margin: 50px auto;
+}
+body.dark .item {
+  border-left: 5px solid rgba(255,255,255,0.06);
+}
+.item {
+  margin: 0;
+  /*
+  border-top: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  */
+  padding: 10px;
+  border-left: 5px solid rgba(0,0,0,0.06);
+}
+.titleview {
+  margin: 0;
+  padding: 25px;
+  max-width: 600px;
+}
+.titleview h1 {
+  word-break: break-word;
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+.item > .d {
+  padding-bottom: 10px;
+}
+.item label {
+  display: block;
+  text-transform: capitalize;
+  font-size: 20px;
+  font-weight: bold;
+  padding-bottom: 5px;
+}
+.item .explanation {
+  padding-top: 5px;
+  color: #bf411d;
+  font-size: 12px;
+}
+.item input[type=text] {
+  background: whitesmoke;
+}
+.item select {
+  background: whitesmoke;
+}
+/*
+body.dark .item input[type=text] {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+body.dark .item select {
+  color: white;
+  background: rgba(255,255,255,0.1);
+}
+*/
+.item input[type=text] {
+  padding: 10px;
+  flex-grow: 1;
+  border: none;
+  /*
+  background: rgba(0,0,0,0.05);
+  */
+  width: 100%;
+}
+.item select {
+/*
+  -webkit-appearance: none;
+  -moz-appearance:    none;
+  appearance:         none;
+  */
+
+/*
+  background: rgba(0,0,0,0.05);
+  */
+  padding: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  border: none;
+}
+.item img {
+  width: 100px;
+}
+.item .title {
+  text-decoration: none;
+  color: royalblue;
+}
+.item .col {
+  padding: 10px;
+}
+.item .col > * {
+  margin: 5px 0;
+}
+.item .stat {
+  color: rgba(0,0,0,0.8);
+  display: flex;
+}
+.item .stat > * {
+  margin-right: 15px;
+}
+.timestamp {
+  color: rgba(0,0,0,0.5);
+}
+body.dark .loading {
+  background: rgba(255,255,255,0.06);
+}
+.loading {
+  padding: 20px;
+  text-align: center;
+  background: rgba(0,0,0,0.06);
+}
+body.dark .btn {
+  color: white;
+  background: rgba(255,255,255,0.1);
+}
+body.light {
+/*
+  background: var(--light-nav-bg);
+  */
+}
+/*
+form {
+  text-align: center;
+}
+body.dark header .btn2 {
+  color: var(--light-link-color); 
+}
+header .btn2 {
+  color: var(--light-color); 
+}
+*/
+/*
+body.dark header .home {
+  color: var(--light-link-color); 
+}
+*/
+header .home {
+  color: var(--light-color); 
+}
+body.dark hr {
+  background: white;
+}
+hr {
+  opacity: 0.03;
+  background: black;
+  margin: 30px 0;
+  height: 1px;
+  border: none;
+}
+.reset-cache-loading {
+  padding: 10px;
+  background: rgba(0,0,0,0.1);
+  margin-bottom: 10px;
+  text-align: center;
+}
+.reset-bin-loading {
+  padding: 10px;
+  background: rgba(0,0,0,0.1);
+  margin-bottom: 10px;
+  text-align: center;
+}
+#proxy {
+  text-decoration: underline;
+  margin-left: 10px;
+  display: inline-block;
+  cursor: pointer;
+}
+body.dark .keys pre {
+  background: rgba(255,255,255,0.02) !important;
+}
+.keys pre {
+  padding: 20px;
+  margin: 20px 0;
+  background: rgba(0,0,100,0.04) !important;
+}
+.swal2-actions {
+  justify-content: center !important;
+}
+.swal2-title {
+  text-align: center !important;
+}
+main {
+  display: flex;
+}
+aside {
+  width: 200px;
+  display: block;
+  flex-shrink: 0;
+}
+aside .tab i {
+  width: 20px;
+  text-align: center;
+}
+body.dark aside .tab {
+  color: white;
+}
+body.dark aside .tab:hover, aside .tab:hover {
+  color: royalblue !important;
+  opacity: 1;
+}
+aside .tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: black;
+  text-decoration: none;
+  padding: 10px;
+  font-size: 12px;
+  opacity: 0.5;
+  border-left: 10px solid transparent;
+}
+body.dark aside .tab.selected {
+  color: white;
+}
+aside .selected {
+  font-weight: bold;
+  opacity: 1;
+}
+@media only screen and (max-width: 600px) {
+  aside {
+    width: unset;
+    flex-shrink: unset;
+  }
+  aside {
+    padding: 0 10px;
+  }
+  aside .tab.submenu {
+    padding: 10px;
+  }
+  aside .tab i {
+    width: 100%;
+  }
+  aside .tab .caption {
+    display: none;
+  }
+  aside .tab {
+    margin: 0;
+    padding: 10px;
+    border-left: none;
+  }
+  aside .btn-tab {
+    flex-direction: column;
+    padding: 10px 0;
+  }
+  aside .btn-tab .btn {
+    display: flex;
+    justify-content: center;
+  }
+  aside .btn-tab .btn .caption {
+    display: none; 
+  }
+  header .flexible {
+    min-width: unset;
+  }
+}
+@media only screen and (max-width: 480px) {
+  .btn2 {
+    padding: 5px;
+    font-size: 11px;
+  }
+  .nav-btns {
+    flex-grow: 1;
+    justify-content: center;
+    padding: 0;
+  }
+}
+
+/* Gallery Styles */
+.gallery-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.gallery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid rgba(0,0,0,0.1);
+}
+
+body.dark .gallery-header {
+  border-bottom-color: rgba(255,255,255,0.1);
+}
+
+.gallery-header h2 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.gallery-stats {
+  font-size: 14px;
+  color: rgba(0,0,0,0.6);
+}
+
+body.dark .gallery-stats {
+  color: rgba(255,255,255,0.6);
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 20px 0;
+}
+
+.gallery-empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px;
+  color: rgba(0,0,0,0.5);
+}
+
+.gallery-empty-state i {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+  display: inline-block;
+}
+
+.gallery-empty-state .subtitle {
+  font-size: 14px;
+  color: rgba(0,0,0,0.5);
+  margin-top: 6px;
+}
+
+body.dark .gallery-empty-state {
+  color: rgba(255,255,255,0.7);
+}
+
+body.dark .gallery-empty-state i {
+  opacity: 0.55;
+}
+
+body.dark .gallery-empty-state .subtitle {
+  color: rgba(255,255,255,0.55);
+}
+
+.gallery-item {
+  position: relative;
+  background: rgba(0,0,0,0.03);
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.gallery-item-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 3;
+}
+
+.gallery-item:hover .gallery-item-actions {
+  opacity: 1;
+}
+
+.gallery-item-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
+}
+
+.gallery-item-delete-btn {
+  background: rgba(220, 53, 69, 0.9);
+  color: white;
+}
+
+.gallery-item-delete-btn:hover {
+  background: rgba(220, 53, 69, 1);
+  transform: scale(1.1);
+}
+
+.gallery-item.deleting {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.gallery-item.deleting::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+}
+
+.gallery-item.deleting::after {
+  content: 'Deleting...';
+}
+
+body.dark .gallery-item {
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.1);
+}
+
+.gallery-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.gallery-item-media {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  background: #050505;
+  overflow: hidden;
+}
+
+.gallery-item img,
+.gallery-item video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.2s;
+}
+
+.gallery-item img.loading,
+.gallery-item video.loading {
+  opacity: 0.5;
+}
+
+.gallery-item video {
+  background: #000;
+}
+
+.gallery-item-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+body.dark .gallery-item-badge {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+}
+
+.gallery-item-media-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: rgba(255,255,255,0.85);
+  background: rgba(0,0,0,0.6);
+  font-size: 13px;
+  text-align: center;
+  padding: 0 12px;
+  pointer-events: none;
+}
+
+.gallery-item-media-fallback i {
+  font-size: 24px;
+  opacity: 0.85;
+}
+
+.gallery-item-info {
+  padding: 10px;
+  text-align: center;
+}
+
+.gallery-item-filename {
+  font-size: 12px;
+  color: rgba(0,0,0,0.8);
+  margin-bottom: 5px;
+  word-break: break-all;
+}
+
+body.dark .gallery-item-filename {
+  color: rgba(255,255,255,0.8);
+}
+
+.gallery-item-timestamp {
+  font-size: 11px;
+  color: rgba(0,0,0,0.5);
+}
+
+body.dark .gallery-item-timestamp {
+  color: rgba(255,255,255,0.5);
+}
+
+.gallery-error {
+  text-align: center;
+  padding: 40px 20px;
+  color: #bf411d;
+}
+
+.gallery-error .btn {
+  margin-top: 10px;
+  padding: 8px 16px;
+  background: royalblue;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.gallery-error .btn:hover {
+  background: #4169e1;
+}
+
+/* Image modal/lightbox styles */
+.image-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  cursor: pointer;
+}
+
+.image-modal img {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.image-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/*
+@media only screen and (max-width: 800px) {
+  body {
+    display: flex !important;
+    flex-direction: row !important;
+  }
+}
+*/
+@media only screen and (max-width: 768px) {
+  .gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+  }
+  
+  .gallery-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
+@media only screen and (max-width: 600px) {
+  aside {
+    width: unset;
+    flex-shrink: unset;
+  }
+  aside {
+    padding: 0 10px;
+  }
+  aside .tab i {
+    width: 100%;
+  }
+  aside .tab .caption {
+    display: none;
+  }
+  aside .tab {
+    margin: 0;
+    padding: 10px;
+    border-left: none;
+  }
+  aside .btn-tab {
+    flex-direction: column;
+    padding: 10px 0;
+  }
+  aside .btn-tab .btn {
+    display: flex;
+    justify-content: center;
+  }
+  aside .btn-tab .btn .caption {
+    display: none; 
+  }
+  header .flexible {
+    min-width: unset;
+  }
+}
+
+
+@media only screen and (max-width: 480px) {
+  .gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+  }
+  
+  .gallery-container {
+    padding: 10px;
+  }
+}
+body.screenshots-page .task-container {
+  padding: 20px 28px 32px;
+}
+body.screenshots-page .task-shell {
+  width: min(1120px, 100%);
+  margin: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  backdrop-filter: none;
+}
+body.screenshots-page .task-shell-header {
+  padding-bottom: 18px;
+}
+body.screenshots-page .task-shell-body {
+  padding: 28px 28px 28px;
+}
+body.screenshots-page .gallery-container {
+  padding: 0;
+  max-width: none;
+  margin: 0;
+}
+body.screenshots-page .gallery-header {
+  margin-bottom: 0;
+  padding: 0 0 16px;
+  border-bottom: 1px solid var(--task-border);
+}
+body.screenshots-page .gallery-header h2 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+body.screenshots-page .gallery-stats {
+  color: var(--task-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+body.screenshots-page .gallery-grid {
+  padding: 18px 0 0;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+body.screenshots-page .gallery-empty-state {
+  padding: 72px 20px;
+  border: 1px dashed var(--task-border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  color: var(--task-muted);
+}
+body.screenshots-page .gallery-empty-state i {
+  margin-bottom: 14px;
+  color: var(--task-accent);
+  opacity: 0.28;
+}
+body.dark.screenshots-page .gallery-empty-state i {
+  opacity: 0.42;
+}
+body.screenshots-page .gallery-empty-state p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--task-text);
+}
+body.screenshots-page .gallery-empty-state .subtitle {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--task-muted);
+}
+body.screenshots-page .gallery-item {
+  border-radius: 16px;
+  border: 1px solid var(--task-border);
+  background: color-mix(in srgb, var(--task-panel) 95%, var(--task-soft));
+  box-shadow: none;
+}
+body.dark.screenshots-page .gallery-item {
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+}
+body.screenshots-page .gallery-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 28px rgba(15, 23, 42, 0.08);
+}
+body.screenshots-page .gallery-item-media {
+  background: color-mix(in srgb, var(--task-soft) 38%, #02060d);
+}
+body.screenshots-page .gallery-item-badge {
+  background: color-mix(in srgb, var(--task-bg) 80%, black 20%);
+  color: var(--task-accent-contrast);
+  border: 1px solid color-mix(in srgb, var(--task-border) 80%, transparent);
+}
+body.screenshots-page .gallery-item-info {
+  padding: 12px 14px 14px;
+}
+body.screenshots-page .gallery-item-filename {
+  color: var(--task-text);
+}
+body.screenshots-page .gallery-item-timestamp {
+  color: var(--task-muted);
+}
+body.screenshots-page #gallery-loading,
+body.screenshots-page #gallery-error {
+  margin: 0;
+  padding: 16px 0 0;
+}
+body.screenshots-page .gallery-error p {
+  margin: 0;
+  color: var(--task-muted);
+}
+body.screenshots-page .gallery-error .btn {
+  margin-left: 8px;
+}
+@media (max-width: 820px) {
+  body.screenshots-page .task-shell-header,
+  body.screenshots-page .task-shell-body {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+@media (max-width: 560px) {
+  body.screenshots-page .task-container {
+    padding: 16px 14px 24px;
+  }
+  body.screenshots-page .gallery-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+<script src="/window_storage.js"></script>
+<script src="/popper.min.js"></script>
+<script src="/tippy-bundle.umd.min.js"></script>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/install.js"></script>
+<script src="/timeago.min.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<script src="/urldropdown.js"></script>
+<script>
+// Initialize URL Dropdown with empty behavior for screenshots page
+document.addEventListener('DOMContentLoaded', function() {
+  initUrlDropdown({
+    clearBehavior: 'empty'
+  });
+});
+</script>
+<script src="/report.js"></script>
+</head>
+<body class='<%=theme%> main-sidebar-page task-launcher-page task-page screenshots-page' data-agent="<%=agent%>">
+<!--
+<nav>
+  <a class='logo' href="/home">dal</a>
+</nav>
+  -->
+<header class='navheader grabbable'>
+<h1>
+<a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
+<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+  <div><i class="fa-solid fa-expand"></i></div>
+</button>
+<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
+<div class='mobile-flexible'></div>
+<form class='urlbar'>
+  <div class='url-input-container'>
+    <input type='url' placeholder='enter any local url to open in pinokio'>
+    <div class='url-dropdown' id='url-dropdown'></div>
+  </div>
+</form>
+<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+  <div><i class="fa-solid fa-table-columns"></i></div>
+</a>
+<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+</a>
+<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+  <div><i class="fa-solid fa-plus"></i></div>
+</button>
+<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+  <div><i class="fa-solid fa-xmark"></i></div>
+</button>
+</h1>
+</header>
+<main>
+<div class='task-container'>
+  <section class='task-shell screenshots-shell'>
+    <header class='task-shell-header'>
+      <div class='task-shell-header-main'>
+        <p class='task-eyebrow'>Screenshots</p>
+        <h1 class='task-title'>Screen Captures</h1>
+        <p class='task-description'>Saved screenshots and recordings captured from Pinokio.</p>
+      </div>
+    </header>
+    <div class='task-shell-body screenshots-shell-body'>
+  <div id="gallery-loading" class="loading">Loading captures...</div>
+  <div id="gallery-error" class="gallery-error" style="display: none;">
+    <p>Failed to load captures. <button id="retry-btn" class="task-button">Retry</button></p>
+  </div>
+  <div id="gallery-container" class="gallery-container" style="display: none;">
+    <div class="gallery-header">
+      <h2>Screen Captures</h2>
+      <div class="gallery-stats">
+        <span id="image-count">0 captures</span>
+      </div>
+    </div>
+    <div id="gallery-grid" class="gallery-grid">
+      <!-- Images will be populated here -->
+    </div>
+  </div>
+</div>
+  </section>
+</div>
+<%- include('partials/main_sidebar', { selected: 'screenshots' }) %>
+</main>
+<script>
+// Screenshot Gallery JavaScript
+class ScreenshotGallery {
+  constructor() {
+    this.loadingEl = document.getElementById('gallery-loading')
+    this.errorEl = document.getElementById('gallery-error')
+    this.containerEl = document.getElementById('gallery-container')
+    this.gridEl = document.getElementById('gallery-grid')
+    this.imageCountEl = document.getElementById('image-count')
+    this.retryBtn = document.getElementById('retry-btn')
+    this.currentItems = []
+    
+    this.init()
+  }
+  
+  init() {
+    this.loadScreenshots()
+    this.retryBtn.addEventListener('click', () => this.loadScreenshots())
+    
+    // Handle escape key to close modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.closeModal()
+      }
+    })
+  }
+  
+  async loadScreenshots() {
+    try {
+      this.showLoading()
+      
+      const response = await fetch('/snapshots')
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      this.displayScreenshots(data.files || [])
+      
+    } catch (error) {
+      console.error('Failed to load captures:', error)
+      this.showError(error.message)
+    }
+  }
+  
+  showLoading() {
+    this.loadingEl.style.display = 'block'
+    this.errorEl.style.display = 'none'
+    this.containerEl.style.display = 'none'
+  }
+  
+  showError(message) {
+    this.loadingEl.style.display = 'none'
+    this.errorEl.style.display = 'block'
+    this.containerEl.style.display = 'none'
+    this.currentItems = []
+    this.updateStats()
+    
+    const errorMsg = this.errorEl.querySelector('p')
+    errorMsg.innerHTML = `Failed to load captures: ${message}. <button id="retry-btn" class="btn">Retry</button>`
+    
+    // Re-attach event listener to new retry button
+    const newRetryBtn = document.getElementById('retry-btn')
+    newRetryBtn.addEventListener('click', () => this.loadScreenshots())
+  }
+  
+  displayScreenshots(files) {
+    this.loadingEl.style.display = 'none'
+    this.errorEl.style.display = 'none'
+    this.containerEl.style.display = 'block'
+
+    const items = (files || []).map(file => {
+      const type = this.getMediaType(file)
+      return {
+        file,
+        type,
+        timestamp: this.extractTimestamp(file)
+      }
+    }).filter(item => item.type !== 'unknown')
+
+    this.currentItems = items
+    this.updateStats()
+
+    this.gridEl.innerHTML = ''
+
+    if (items.length === 0) {
+      this.showEmptyState()
+      return
+    }
+
+    const sortedItems = items.sort((a, b) => b.timestamp - a.timestamp)
+    sortedItems.forEach(item => {
+      const node = this.createGalleryItem(item)
+      this.gridEl.appendChild(node)
+    })
+  }
+
+  showEmptyState() {
+    this.imageCountEl.textContent = '0 captures'
+    this.gridEl.innerHTML = `
+      <div class="gallery-empty-state">
+        <i class="fa-solid fa-camera"></i>
+        <p>No captures found</p>
+        <p class="subtitle">Use the camera button above to save a screenshot or recording</p>
+      </div>
+    `
+  }
+
+  updateStats() {
+    if (!this.imageCountEl) return
+    const images = this.currentItems.filter(item => item.type === 'image').length
+    const videos = this.currentItems.filter(item => item.type === 'video').length
+    const total = this.currentItems.length
+
+    if (!total) {
+      this.imageCountEl.textContent = '0 captures'
+      return
+    }
+
+    const parts = []
+    if (images) parts.push(`${images} image${images !== 1 ? 's' : ''}`)
+    if (videos) parts.push(`${videos} video${videos !== 1 ? 's' : ''}`)
+    if (!parts.length) {
+      parts.push(`${total} capture${total !== 1 ? 's' : ''}`)
+    }
+    this.imageCountEl.textContent = parts.join(' · ')
+  }
+  
+  isImageFile(filename) {
+    const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg']
+    const lower = filename.toLowerCase()
+    return imageExtensions.some(ext => lower.endsWith(ext))
+  }
+
+  isVideoFile(filename) {
+    const videoExtensions = ['.webm', '.mp4', '.mkv', '.mov', '.avi', '.m4v']
+    const lower = filename.toLowerCase()
+    return videoExtensions.some(ext => lower.endsWith(ext))
+  }
+
+  getMediaType(filename) {
+    if (!filename) return 'unknown'
+    if (this.isImageFile(filename)) return 'image'
+    if (this.isVideoFile(filename)) return 'video'
+    return 'unknown'
+  }
+  
+  extractTimestamp(filename) {
+    // Extract timestamp from filename like "/asset/screenshots/1756972601674.png"
+    const match = filename.match(/(\d{13})/)
+    if (match) {
+      return parseInt(match[1])
+    }
+    return 0
+  }
+  
+  extractFilename(filepath) {
+    return filepath.split('/').pop()
+  }
+  
+  createGalleryItem(item) {
+    const { file: filepath, type, timestamp } = item
+    const container = document.createElement('div')
+    container.className = 'gallery-item'
+    container.dataset.type = type
+
+    const filename = this.extractFilename(filepath)
+    const timeAgo = timestamp ? timeago.format(new Date(timestamp)) : 'Unknown time'
+
+    const mediaWrapper = document.createElement('div')
+    mediaWrapper.className = 'gallery-item-media'
+
+    let mediaElement
+    if (type === 'image') {
+      mediaElement = document.createElement('img')
+      mediaElement.src = filepath
+      mediaElement.alt = filename
+      mediaElement.loading = 'lazy'
+      mediaElement.classList.add('loading')
+      mediaElement.addEventListener('load', () => {
+        mediaElement.classList.remove('loading')
+      })
+      mediaElement.addEventListener('error', () => {
+        mediaElement.classList.remove('loading')
+        mediaWrapper.innerHTML = `
+          <div class="gallery-item-media-fallback">
+            <i class="fa-solid fa-image-slash"></i>
+            <span>Preview unavailable</span>
+          </div>
+        `
+      })
+    } else {
+      mediaElement = document.createElement('video')
+      mediaElement.src = filepath
+      mediaElement.preload = 'metadata'
+      mediaElement.muted = true
+      mediaElement.loop = true
+      mediaElement.playsInline = true
+      mediaElement.classList.add('loading')
+      mediaElement.addEventListener('loadeddata', () => {
+        mediaElement.classList.remove('loading')
+      })
+      mediaElement.addEventListener('mouseenter', () => {
+        mediaElement.play().catch(() => {})
+      })
+      mediaElement.addEventListener('mouseleave', () => {
+        mediaElement.pause()
+        mediaElement.currentTime = 0
+      })
+      mediaElement.addEventListener('error', () => {
+        mediaElement.classList.remove('loading')
+        mediaWrapper.innerHTML = `
+          <div class="gallery-item-media-fallback">
+            <i class="fa-solid fa-video-slash"></i>
+            <span>Preview unavailable</span>
+          </div>
+        `
+      })
+    }
+
+    mediaWrapper.appendChild(mediaElement)
+    container.appendChild(mediaWrapper)
+
+    if (type === 'video') {
+      const badge = document.createElement('div')
+      badge.className = 'gallery-item-badge'
+      badge.innerHTML = '<i class="fa-solid fa-video"></i><span>Video</span>'
+      container.appendChild(badge)
+    }
+
+    const actions = document.createElement('div')
+    actions.className = 'gallery-item-actions'
+    const deleteBtn = document.createElement('button')
+    deleteBtn.className = 'gallery-item-action-btn gallery-item-delete-btn'
+    deleteBtn.title = 'Delete capture'
+    deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>'
+    actions.appendChild(deleteBtn)
+    container.appendChild(actions)
+
+    const info = document.createElement('div')
+    info.className = 'gallery-item-info'
+    const filenameEl = document.createElement('div')
+    filenameEl.className = 'gallery-item-filename'
+    filenameEl.textContent = filename
+    const timestampEl = document.createElement('div')
+    timestampEl.className = 'gallery-item-timestamp'
+    timestampEl.textContent = timeAgo
+    info.append(filenameEl, timestampEl)
+    container.appendChild(info)
+
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      this.confirmDelete(filepath, filename, container, type)
+    })
+
+    container.addEventListener('click', (e) => {
+      if (e.target.closest('.gallery-item-actions')) {
+        return
+      }
+      this.openModal(filepath, filename, type)
+    })
+
+    return container
+  }
+  
+  openModal(src, filename, type = 'image') {
+    this.closeModal()
+
+    const modal = document.createElement('div')
+    modal.className = 'image-modal'
+
+    const closeBtn = document.createElement('button')
+    closeBtn.className = 'image-modal-close'
+    closeBtn.title = 'Close (Esc)'
+    closeBtn.textContent = '×'
+
+    let media
+    if (type === 'video') {
+      media = document.createElement('video')
+      media.src = src
+      media.controls = true
+      media.autoplay = true
+      media.playsInline = true
+      media.style.maxWidth = '90vw'
+      media.style.maxHeight = '80vh'
+    } else {
+      media = document.createElement('img')
+      media.src = src
+      media.alt = filename
+    }
+
+    modal.append(closeBtn, media)
+    document.body.appendChild(modal)
+
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      this.closeModal()
+    })
+
+    modal.addEventListener('click', () => {
+      this.closeModal()
+    })
+
+    media.addEventListener('click', (e) => {
+      e.stopPropagation()
+    })
+
+    this.currentModal = modal
+  }
+  
+  closeModal() {
+    if (this.currentModal) {
+      const video = this.currentModal.querySelector('video')
+      if (video) {
+        video.pause()
+        video.removeAttribute('src')
+        video.load()
+      }
+      document.body.removeChild(this.currentModal)
+      this.currentModal = null
+    }
+  }
+  
+  confirmDelete(filepath, filename, containerElement, type = 'image') {
+    const isVideo = type === 'video'
+    const preview = isVideo
+      ? `<video src="${filepath}" controls muted style="max-width: 200px; max-height: 150px; border-radius: 4px; margin-bottom: 10px; background: #000;"></video>`
+      : `<img src="${filepath}" style="max-width: 200px; max-height: 150px; border-radius: 4px; margin-bottom: 10px;" alt="Preview">`
+    const label = isVideo ? 'Video capture' : 'Screenshot'
+
+    Swal.fire({
+      title: 'Delete Capture?',
+      html: `
+        <div style="text-align: center; margin: 20px 0;">
+          ${preview}
+          <p style="margin: 10px 0; font-weight: bold;">${filename}</p>
+          <p style="margin: 0; color: #888; font-size: 13px;">${label}</p>
+          <p style="margin: 0; color: #666; font-size: 14px;">This action cannot be undone.</p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Delete',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.deleteScreenshot(filepath, filename, containerElement, type)
+      }
+    })
+  }
+  
+  async deleteScreenshot(filepath, filename, containerElement, type = 'image') {
+    try {
+      containerElement.classList.add('deleting')
+
+      const response = await fetch('/snapshots', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ filename: filepath })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || `HTTP ${response.status}`)
+      }
+
+      containerElement.style.transition = 'all 0.3s ease'
+      containerElement.style.transform = 'scale(0.94)'
+      containerElement.style.opacity = '0'
+
+      setTimeout(() => {
+        if (containerElement.parentNode) {
+          containerElement.parentNode.removeChild(containerElement)
+        }
+        this.currentItems = this.currentItems.filter(item => item.file !== filepath)
+        this.updateStats()
+        if (this.currentItems.length === 0) {
+          this.showEmptyState()
+        }
+      }, 260)
+
+      Swal.fire({
+        title: 'Deleted!',
+        text: 'Capture has been deleted.',
+        icon: 'success',
+        timer: 1800,
+        showConfirmButton: false
+      })
+
+    } catch (error) {
+      console.error('Failed to delete capture:', error)
+      containerElement.classList.remove('deleting')
+      Swal.fire({
+        title: 'Delete Failed',
+        text: error.message,
+        icon: 'error'
+      })
+    }
+  }
+}
+
+// Initialize gallery when page loads
+document.addEventListener('DOMContentLoaded', () => {
+  new ScreenshotGallery()
+})
+</script>
+</body>
+</html>

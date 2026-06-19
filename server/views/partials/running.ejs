@@ -1,0 +1,22 @@
+<% dynamic.forEach((item, index) => { %>
+  <a <%=item.default ? 'data-default' : ''%> data-confirm="<%=item.confirm%>" data-index="<%=index+4%>" target="<%=item.target%>" data-mode="<%=item.mode%>" href="<%=item.href%>" class='btn header-item frame-link <%=item.display || ""%>'<%= item.target_full ? ` data-target-full="${item.target_full}"` : '' %> <%=item.shell_id ? `data-shell=${item.shell_id}` : ""%> <%=item.script_id ? `data-script=${item.script_id}` : ''%><%= item.project_slug ? ` data-project-slug="${item.project_slug}"` : '' %>>
+    <% if (item.running) { %>
+      <i class="fa-solid fa-circle"></i>
+    <% } %>
+    <div class='tab'><%-item.btn%></div>
+    <% if (item.running) { %>
+      <% if (item.online) { %>
+        <div class='loader shutdown online'>
+        </div>
+      <% } else { %>
+        <div class='loader shutdown'>
+          <button class='btn'>
+          <i class="fa-solid fa-stop"></i> Stop
+          </button>
+        </div>
+      <% } %>
+    <% } else { %>
+      <i class="fa-solid fa-angle-right"></i>
+    <% } %>
+  </a>
+<% }) %>

@@ -1,9 +1,10 @@
-const { Terminal } = require('xterm-headless');
+const { Terminal } = require('@xterm/headless');
 const { SerializeAddon } = require("xterm-addon-serialize");
 const sanitize = require("sanitize-filename");
 const YAML = require('yaml')
-
+const kill = require('kill-sync')
 const fastq = require('fastq')
+const normalize = require('normalize-path');
 const { v4: uuidv4 } = require('uuid');
 const os = require('os');
 const fs = require('fs');
@@ -13,10 +14,74 @@ const pty = require('@homebridge/node-pty-prebuilt-multiarch')
 const path = require("path")
 const sudo = require("sudo-prompt-programfiles-x86");
 const unparse = require('yargs-unparser-custom-flag');
-const shellPath = require('shell-path');
 const Util = require('./util')
 const Environment = require('./environment')
+const { applyWindowsNodePackageManagerEnv } = require('./windows_node_package_manager_env')
+const ShellParser = require('./shell_parser')
+const AnsiStreamTracker = require('./ansi_stream_tracker')
+const ShellStateSync = require('./shell_state_sync')
+const ShellRunTemplate = require('./api/shell_run_template')
 const home = os.homedir()
+
+function normalizeComparablePath(filePath, platform) {
+  const normalized = path.normalize(filePath)
+  return platform === 'win32' ? normalized.toLowerCase() : normalized
+}
+
+function isBluefairyShimPath(filePath, platform) {
+  if (!filePath || typeof filePath !== "string") {
+    return false
+  }
+  const normalized = normalizeComparablePath(filePath.trim(), platform)
+  if (!normalized) {
+    return false
+  }
+  const shimDirName = path.basename(normalized)
+  if (shimDirName !== "shims") {
+    return false
+  }
+  const parentDirName = path.basename(path.dirname(normalized))
+  return parentDirName === "bluefairy" || parentDirName === ".bluefairy"
+}
+
+function stripBluefairyShimPaths(pathValue, platform) {
+  if (!pathValue || typeof pathValue !== "string") {
+    return pathValue
+  }
+  return pathValue
+    .split(path.delimiter)
+    .filter((entry) => entry && !isBluefairyShimPath(entry, platform))
+    .join(path.delimiter)
+}
+
+const CONDA_ACTIVATION_STATE_PATTERN = /^(?:_CE_(?:M|CONDA)|CONDA_(?:EXE|PYTHON_EXE|PREFIX(?:_\d+)?|DEFAULT_ENV|PROMPT_MODIFIER|SHLVL|PS1_BACKUP))$/
+
+function isCondaActivationStateKey(key) {
+  return typeof key === "string" && CONDA_ACTIVATION_STATE_PATTERN.test(key)
+}
+
+function stripInheritedCondaActivationState(env) {
+  for (const key of Object.keys(env)) {
+    if (isCondaActivationStateKey(key)) {
+      delete env[key]
+    }
+  }
+}
+
+function setDefaultEnvValue(env, key, value) {
+  const existingKey = Object.keys(env).find((envKey) => envKey.toLowerCase() === key.toLowerCase())
+  if (!existingKey) {
+    env[key] = value
+    return
+  }
+  const existingValue = env[existingKey]
+  if (typeof existingValue !== "string" || !existingValue.trim()) {
+    env[existingKey] = value
+  }
+}
+
+// xterm.js currently ignores DECSYNCTERM (CSI ? 2026 h/l) and renders it as text on Windows.
+// filterDecsync() removes these sequences so they do not pollute the terminal output.
 class Shell {
   /*
     params 
@@ -31,10 +96,34 @@ class Shell {
     }
   */
   constructor(kernel) {
+    this.EOL = os.EOL
     this.kernel = kernel
     this.platform = os.platform()
     this.logs = {}
     this.shell = this.platform === 'win32' ? 'cmd.exe' : 'bash';
+    this.supportsBracketedPaste = this.computeBracketedPasteSupport(this.shell)
+    if (this.kernel && this.kernel.bracketedPasteSupport) {
+      const cached = this.kernel.bracketedPasteSupport[(this.shell || '').toLowerCase()]
+      if (typeof cached === 'boolean') {
+        this.supportsBracketedPaste = cached
+      }
+    }
+    this.decsyncBuffer = ''
+    this.nudgeRestoreTimer = null
+    this.nudging = false
+    this.nudgeReleaseTimer = null
+    this.lastInputAt = 0
+    this.canNudge = true
+    this.enableNudge = false
+    this.awaitingIdleNudge = false
+    this.idleNudgeTimer = null
+    this.idleNudgeDelay = 100
+    this.ignoreNudgeOutput = false
+    this.userActive = false
+    this.userActiveTimer = null
+    this.userActiveTimeout = 1000
+    this.ansiTracker = new AnsiStreamTracker()
+    this.stateSync = new ShellStateSync(this)
 
     // Windows: /D => ignore AutoRun Registry Key
     // Others: --noprofile => ignore .bash_profile, --norc => ignore .bashrc
@@ -56,41 +145,17 @@ class Shell {
     }
     this.queue = fastq((data, cb) => {
       this.stream(data, cb)
-//      cb()
     }, 1)
 
   }
-  async start(params, ondata) {
-
-    /*
-      params := {
-        group: <group id>,
-        id: <shell id>,
-        path: <shell cwd (always absolute path)>,
-        env: <environment value key pairs>
-      }
-    */
-    this.cols = params.cols ? params.cols : 100;
-    this.rows = params.rows ? params.rows : 30;
-
-    this.vt = new Terminal({
-      allowProposedApi: true,
-      cols: this.cols,
-      rows: this.rows,
-    })
-    this.vts = new SerializeAddon()
-    this.vt.loadAddon(this.vts)
-
-    // 1. id
-    this.id = (params.id ? params.id : uuidv4())
-
-    // 2. group id
-    this.group = params.group
-
-    // 2. env
-    // default env
-
+  async init_env(params) {
     this.env = Object.assign({}, process.env)
+    for (const key of Object.keys(this.env)) {
+      if (key.toUpperCase().startsWith("BLUEFAIRY_")) {
+        delete this.env[key]
+      }
+    }
+    stripInheritedCondaActivationState(this.env)
     // If the user has set PYTHONPATH, unset it.
     if (this.env.PYTHONPATH) {
       delete this.env.PYTHONPATH
@@ -103,24 +168,36 @@ class Shell {
     if (this.env.CMAKE_GENERATOR) {
       delete this.env.CMAKE_GENERATOR
     }
+
+    //this.env.PNPM_CONFIG_PREFIX = this.kernel.path("bin/npm")
+    //this.env.pnpm_config_prefix = this.kernel.path("bin/npm")
+//    this.env.PNPM_HOME = this.kernel.path("bin/npm")
+//    this.env.pnpm_home = this.kernel.path("bin/npm")
+
+//    this.env.NPM_CONFIG_PREFIX = this.kernel.path("bin/npm")
+//    this.env.npm_config_prefix = this.kernel.path("bin/npm")
+
     
 //    if (this.env.CUDA_HOME) {
 //      delete this.env.CUDA_HOME
 //    }
     for(let key in this.env) {
       if (key.startsWith("CUDA")) {
-        console.log("Unset env key: " + key)
         delete this.env[key]
       }
       if (/.*(SSH|SSL).*/.test(key)) {
-        console.log("Unset env key: " + key)
         delete this.env[key]
       }
     }
 
+    this.env.CONDA_SHORTCUTS = 0
+    this.env.CONDA_CONSOLE = 'json'
+
+//    this.env.TCELL_MINIMIZE=1
     this.env.CMAKE_OBJECT_PATH_MAX = 1024
     this.env.PYTORCH_ENABLE_MPS_FALLBACK = 1
     this.env.TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD = 1
+    //this.env.NODE_EXTRA_CA_CERTS = this.kernel.path("cache/XDG_DATA_HOME/caddy/pki/authorities/local/root.crt")
 //    this.env.PIP_REQUIRE_VIRTUALENV = "true"
 //    this.env.NPM_CONFIG_USERCONFIG = this.kernel.path("user_npmrc")
 //    this.env.NPM_CONFIG_GLOBALCONFIG = this.kernel.path("global_npmrc")
@@ -128,31 +205,38 @@ class Shell {
 //    this.env.npm_config_globalconfig = this.kernel.path("global_npmrc")
 
     // First override this.env with system env
-    let system_env = await Environment.get(this.kernel.homedir)
+    let system_env = await Environment.get(this.kernel.homedir, this.kernel)
     this.env = Object.assign(this.env, system_env)
 
-    // if the shell is running from a script file, the params.$parent will include the path to the parent script
-    // this means we need to apply app environment as well
-    if (params.$parent) {
-      let api_path = Util.api_path(params.$parent.path, this.kernel)
+    let hf_keys = await this.kernel.connect.keys("huggingface")
+    if (hf_keys && hf_keys.access_token) {
+      this.env.HF_TOKEN = hf_keys.access_token
+    }
+
+    const parentPath = (params.$parent && params.$parent.path) ? path.resolve(params.$parent.path) : null
+    const apiRoot = path.resolve(this.kernel.path("api")) + path.sep
+    const parentStat = parentPath ? await fs.promises.stat(parentPath).catch(() => null) : null
+
+    if (parentStat && parentStat.isFile() && parentPath.startsWith(apiRoot)) {
+      const api_path = Util.api_path(parentPath, this.kernel)
 
       // initialize folders
-      await Environment.init_folders(api_path)
+      await Environment.init_folders(api_path, this.kernel)
 
       // apply app env to this.env
-      let app_env = await Environment.get(api_path)
+      let app_env = await Environment.get(api_path, this.kernel)
       this.env = Object.assign(this.env, app_env)
     }
-    let PATH_KEY;
-    if (this.env.Path) {
-      PATH_KEY = "Path"
-    } else if (this.env.PATH) {
-      PATH_KEY = "PATH"
+    stripInheritedCondaActivationState(this.env)
+    let PATH_KEY = Object.keys(this.env).find((key) => key.toLowerCase() === "path") || "PATH";
+    if (!this.env[PATH_KEY]) {
+      // fall back to whichever casing exists so we don't end up writing to an undefined key
+      this.env[PATH_KEY] = this.env.Path || this.env.PATH || this.env.path;
     }
-    if (this.platform === 'win32') {
+    if (this.isCmdShell()) {
       // ignore 
     } else {
-      this.env[PATH_KEY]= shellPath.sync() || [
+      this.env[PATH_KEY]= this.kernel.shellpath || [
         './node_modules/.bin',
         '/.nodebrew/current/bin',
         '/usr/local/bin',
@@ -160,9 +244,14 @@ class Shell {
       ].join(':');
     }
 
+    if (this.platform !== "win32") {
+      const historyDir = this.kernel.path("history");
+      await fs.promises.mkdir(historyDir, { recursive: true }).catch(() => {});
+      this.env.HISTFILE = path.resolve(historyDir, "bash_history");
+    }
+
     if (this.platform === "linux") {
       let gxx = this.kernel.which('g++')
-      console.log({ gxx })
       if (gxx) {
         this.env.NVCC_PREPEND_FLAGS = `-ccbin ${gxx}`
       }
@@ -205,13 +294,24 @@ class Shell {
       }
     }
 
+    setDefaultEnvValue(this.env, "HF_HUB_DISABLE_UPDATE_CHECK", "1")
+
+    if (this.platform === "win32") {
+      // Hugging Face file symlinks regularly fail on non-admin Windows setups.
+      // Default to no-symlink cache mode unless the user/app explicitly overrides it.
+      setDefaultEnvValue(this.env, "HF_HUB_DISABLE_SYMLINKS", "1")
+      setDefaultEnvValue(this.env, "HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+    }
+
+    stripInheritedCondaActivationState(this.env)
+    this.env[PATH_KEY] = stripBluefairyShimPaths(this.env[PATH_KEY], this.platform)
 
     for(let key in this.env) {
       if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) && key !== "ProgramFiles(x86)") {
         delete this.env[key]
       }
       let val = this.env[key]
-      if (/[\r\n]/.test(val)) {
+      if (!ShellRunTemplate.isPinokioEnvArgKey(key) && /[\r\n]/.test(val)) {
         const replaced = val.replaceAll(/[\r\n]+/g, ' ');
         this.env[key] = replaced
 //        delete this.env[key]
@@ -224,11 +324,239 @@ class Shell {
         delete this.env[key]
       }
     }
+
+    if (this.platform === "win32") {
+      await applyWindowsNodePackageManagerEnv(this.env, {
+        targetPath: params && params.path ? params.path : this.kernel.homedir,
+      })
+    }
+  }
+  isCmdShell(shellName=this.shell) {
+    const name = (shellName || '').toLowerCase()
+    return name.includes('cmd.exe') || name === 'cmd'
+  }
+  isPowerShell(shellName=this.shell) {
+    const name = (shellName || '').toLowerCase()
+    return name.includes('powershell') || name.includes('pwsh')
+  }
+  isUnresolvedTemplate(value) {
+    return typeof value === "string" && /^\{\{[\s\S]*\}\}$/.test(value)
+  }
+  normalizeStructuredMessage(value) {
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => this.normalizeStructuredMessage(item))
+        .filter((item) => typeof item !== "undefined")
+    }
+    if (value && value.constructor === Object) {
+      const normalized = {}
+      for (const [key, item] of Object.entries(value)) {
+        const rendered = this.normalizeStructuredMessage(item)
+        if (typeof rendered !== "undefined") {
+          normalized[key] = rendered
+        }
+      }
+      return normalized
+    }
+    if (this.isUnresolvedTemplate(value)) {
+      return undefined
+    }
+    return value
+  }
+  quoteArgForShell(value, shellName=this.shell) {
+    const input = value == null ? "" : String(value)
+    if (ShellRunTemplate.hasEnvArgMarker(input)) {
+      return ShellRunTemplate.quoteEnvArgComposite(input, shellName)
+    }
+    if (this.isCmdShell(shellName)) {
+      return `"${input.replace(/([()%!^"<>&|])/g, '^$1')}"`
+    }
+    if (this.isPowerShell(shellName)) {
+      return `'${input.replace(/'/g, "''")}'`
+    }
+    return `'${input.split("'").join("'\"'\"'")}'`
+  }
+  buildStructuredMessage(message, shellName=this.shell) {
+    // Structured message objects are argv-like; unresolved pure-template leaves are omitted.
+    const normalized = this.normalizeStructuredMessage(message)
+    if (!normalized || (normalized.constructor === Object && Object.keys(normalized).length === 0)) {
+      return ""
+    }
+    const chunks = unparse(normalized)
+      .filter((item) => item != null)
+      .map((item) => this.quoteArgForShell(item, shellName))
+    if (chunks.length === 0) {
+      return ""
+    }
+    if (this.isPowerShell(shellName)) {
+      return `& ${chunks.join(" ")}`
+    }
+    return chunks.join(" ")
+  }
+  async start(params, ondata) {
+    this.ondata = ondata
+    if (this.nudgeRestoreTimer) {
+      clearTimeout(this.nudgeRestoreTimer)
+      this.nudgeRestoreTimer = null
+    }
+    if (this.nudgeReleaseTimer) {
+      clearTimeout(this.nudgeReleaseTimer)
+      this.nudgeReleaseTimer = null
+    }
+    this.cancelIdleNudge()
+    this.nudging = false
+    this.lastInputAt = 0
+    this.canNudge = true
+    this.ignoreNudgeOutput = false
+    if (this.userActiveTimer) {
+      clearTimeout(this.userActiveTimer)
+      this.userActiveTimer = null
+    }
+    this.userActive = false
+    this.decsyncBuffer = ''
+    this.stateSync.reset()
+    this.envArgsPreviewed = false
+
+    /*
+      params := {
+        group: <group id>,
+        id: <shell id>,
+        path: <shell cwd (always absolute path)>,
+        env: <environment value key pairs>
+      }
+    */
+
+    this.kill_messages = params.kill
+
+    this.cols = 100
+    this.rows = 30
+
+    if (params.cols) {
+      this.cols = params.cols
+    }
+    if (params.rows) {
+      this.rows = params.rows
+    }
+    if (params.client && params.client.cols) {
+      this.cols = params.client.cols
+    }
+    if (params.client && params.client.rows) {
+      this.rows = params.client.rows
+    }
+
+    this.vt = new Terminal({
+      allowProposedApi: true,
+      cols: this.cols,
+      rows: this.rows,
+      fontSize: 12,
+    })
+    this.vts = new SerializeAddon()
+    this.vt.loadAddon(this.vts)
+
+    const extractTerminalIdFromShellId = (shellId) => {
+      if (typeof shellId !== "string" || shellId.length === 0) {
+        return ""
+      }
+      const separatorIndex = shellId.indexOf("?")
+      if (separatorIndex < 0) {
+        return ""
+      }
+      const queryString = shellId.slice(separatorIndex + 1).replace(/&amp;/g, "&")
+      try {
+        const parsed = new URLSearchParams(queryString)
+        return typeof parsed.get("terminal_id") === "string" ? parsed.get("terminal_id").trim() : ""
+      } catch (error) {
+        return ""
+      }
+    }
+
+    // 1. id
+    this.id = (params.id ? params.id : uuidv4())
+    const explicitTerminalId = typeof params.terminal_id === "string" ? params.terminal_id.trim() : ""
+    const resolvedTerminalId = explicitTerminalId || extractTerminalIdFromShellId(this.id)
+    this.terminal_id = resolvedTerminalId || null
+    if (resolvedTerminalId) {
+      params.terminal_id = resolvedTerminalId
+    }
+
+    // 2. group id
+    this.group = params.group
+
+    // 2. env
+    // default env
+    await this.init_env(params)
+
+
+    this.ondata({ raw: `\r\n████\r\n██ Starting Shell ${this.id}\r\n` })
+
+    this.start_time = Date.now()
+    const cloneSourceMessage = (value) => {
+      if (Array.isArray(value)) {
+        return value.slice()
+      }
+      if (value && typeof value === "object") {
+        try {
+          return JSON.parse(JSON.stringify(value))
+        } catch (error) {
+          return value
+        }
+      }
+      return value
+    }
+    this.source_message = cloneSourceMessage(params.message)
+    this.params = params
+    this.stateSync.configure(params.state_interval)
+    this.EOL = os.EOL
+    if (this.params.shell) {
+      this.shell = this.params.shell
+      const normalizedShell = (this.shell || '').toLowerCase()
+      if (this.kernel && this.kernel.bracketedPasteSupport && typeof this.kernel.bracketedPasteSupport[normalizedShell] === 'boolean') {
+        this.supportsBracketedPaste = this.kernel.bracketedPasteSupport[normalizedShell]
+      } else {
+        this.supportsBracketedPaste = this.computeBracketedPasteSupport(this.shell)
+      }
+      if (this.isCmdShell(this.shell)) {
+        this.args = ["/D"]
+      } else if (this.isPowerShell(this.shell)) {
+        this.args = ["-NoLogo", "-NoProfile"]
+      } else if (/bash/i.test(this.shell)) {
+        this.args = ["--noprofile", "--norc"]
+        //this.args = [ "--login", "-i"]
+        this.EOL = "\n"
+        //if (this.platform === "win32") {
+        //  console.log("before transform this.env", this.env)
+        //  for(let key in this.env) {
+        //    let val = this.env[key]
+        //    if (val && typeof val === "string") {
+        //      // split with ;
+        //      let chunks = val.split(";")
+        //      let transformed_chunks = []
+        //      for(let chunk of chunks) {
+        //        if (path.isAbsolute(chunk)) {
+        //          let transformed = :normalize(chunk) 
+        //          transformed = "/" + transformed.replace(":", "")
+        //          transformed_chunks.push(transformed)
+        //        } else {
+        //          transformed_chunks.push(chunk)
+        //        }
+        //      }
+        //      this.env[key] = transformed_chunks.join(";")
+        //    }
+        //  }
+        //  console.log("after transform this.env", this.env)
+        //}
+      }
+    }
+    if (params._pinokio_cmd_delayed_expansion && this.isCmdShell(this.shell) && !this.args.includes("/V:ON")) {
+      this.args.push("/V:ON")
+    }
+
     // 3. path => path can be http, relative, absolute
     this.path = params.path
 
     // automatically add self to the shells registry
     this.kernel.shell.add(this)
+
 
     if (params.sudo) {
       let options = {
@@ -275,20 +603,75 @@ class Shell {
       return response
     } else {
       let response = await this.request(params, async (stream) => {
-        if (stream.prompt) {
-          this.resolve()
-        } else {
-          if (ondata) ondata(stream)
-        }
+        if (ondata) ondata(stream)
+//        if (stream.prompt) {
+//          this.resolve()
+//        } else {
+//          if (ondata) ondata(stream)
+//        }
       })
       return response
     }
 
 //    return this.id
   }
+  resize({ cols, rows }) {
+//    console.log("RESIZE", { cols, rows })
+    this.cols = cols
+    this.rows = rows
+    if (this.ptyProcess && typeof this.ptyProcess.resize === "function") {
+      this.ptyProcess.resize(cols, rows)
+    }
+    if (this.vt && typeof this.vt.resize === "function") {
+      this.vt.resize(cols, rows)
+    }
+    this.stateSync.invalidate()
+  }
+  async emit2(message) {
+    /*
+    // buffer size
+    1. default:256
+    2. "interactive": true => 1024
+    3. "buffer": n => n
+    */
+    let chunk_size = 256  // default buffer: 256
+    if (this.params && this.params.buffer) {
+      chunk_size = this.params.buffer 
+    } else if (this.params.interactive) {
+      chunk_size = 1024
+    }
+//    console.log({ interactive: this.params.interactive, chunk_size })
+    this.canNudge = true
+    this.cancelIdleNudge()
+    for(let i=0; i<message.length; i+=chunk_size) {
+      let chunk = message.slice(i, i+chunk_size)
+//      console.log("write chunk", { i, chunk })
+      this.ptyProcess.write(chunk)
+      this.ondata({ i, total: message.length, type: "emit2" })
+      await new Promise(r => setTimeout(r, 10));
+//      if (interactive) {
+//        await new Promise(queueMicrotask); // zero-delay yield to avoid blocking
+//      } else {
+//        await new Promise(r => setTimeout(r, 1));
+//      }
+    }
+  }
   emit(message) {
-    if (this.ptyProcess) {
-      this.ptyProcess.write(message)
+    if (this.input) {
+      if (this.ptyProcess) {
+        this.stateSync.noteInput()
+        if (message.length > 1024) {
+          this.lastInputAt = Date.now()
+          this.canNudge = true
+          this.cancelIdleNudge()
+          this.emit2(message)
+        } else {
+          this.ptyProcess.write(message)
+          this.lastInputAt = Date.now()
+          this.canNudge = true
+          this.cancelIdleNudge()
+        }
+      }
     }
   }
   send(message, newline, cb) {
@@ -296,19 +679,32 @@ class Shell {
       this.cb = cb
       return new Promise((resolve, reject) => {
         this.resolve = resolve
+        this.stateSync.noteInput()
         if (Array.isArray(message)) {
           for(let m of message) {
             this.cmd = this.build({ message: m })
             this.ptyProcess.write(this.cmd)
+            this.lastInputAt = Date.now()
+            this.canNudge = true
+            this.cancelIdleNudge()
             if (newline) {
-              this.ptyProcess.write(os.EOL)
+              this.ptyProcess.write(this.EOL)
+              this.lastInputAt = Date.now()
+              this.canNudge = true
+              this.cancelIdleNudge()
             }
           }
         } else {
           this.cmd = this.build({ message })
           this.ptyProcess.write(this.cmd)
+          this.lastInputAt = Date.now()
+          this.canNudge = true
+          this.cancelIdleNudge()
           if (newline) {
-            this.ptyProcess.write(os.EOL)
+            this.ptyProcess.write(this.EOL)
+            this.lastInputAt = Date.now()
+            this.canNudge = true
+            this.cancelIdleNudge()
           }
         }
       })
@@ -319,16 +715,23 @@ class Shell {
       this.cb = cb
       return new Promise((resolve, reject) => {
         this.resolve = resolve
+        this.stateSync.noteInput()
         if (Array.isArray(message)) {
           for(let m of message) {
             this.cmd = this.build({ message: m })
             this.ptyProcess.write(this.cmd)
-            this.ptyProcess.write(os.EOL)
+            this.ptyProcess.write(this.EOL)
+            this.lastInputAt = Date.now()
+            this.canNudge = true
+            this.cancelIdleNudge()
           }
         } else {
           this.cmd = this.build({ message })
           this.ptyProcess.write(this.cmd)
-          this.ptyProcess.write(os.EOL)
+          this.ptyProcess.write(this.EOL)
+          this.lastInputAt = Date.now()
+          this.canNudge = true
+          this.cancelIdleNudge()
         }
       })
     }
@@ -338,8 +741,12 @@ class Shell {
       this.cb = cb
       return new Promise((resolve, reject) => {
         this.resolve = resolve
+        this.stateSync.noteInput()
         this.cmd = this.build({ message })
         this.ptyProcess.write(this.cmd)
+        this.lastInputAt = Date.now()
+        this.canNudge = true
+        this.cancelIdleNudge()
       })
     }
   }
@@ -349,7 +756,7 @@ class Shell {
 
     // Log before resolving
     this._log(buf, cleaned)
-    if (this.platform === 'win32') {
+    if (this.isCmdShell()) {
       // For Windows
       this.vt.write('\x1Bc');
       //this.ptyProcess.write('cls\n');
@@ -357,6 +764,17 @@ class Shell {
       // For Unix-like systems (Linux, macOS)
       this.vt.write('\x1B[2J\x1B[3J\x1B[H');
       //this.ptyProcess.write('clear\n')
+    }
+    this.stateSync.invalidate({ clearTail: true })
+  }
+  emitEnvArgsPreview(params) {
+    if (!params || !Array.isArray(params._pinokio_env_args) || params._pinokio_env_args.length === 0 || this.envArgsPreviewed) {
+      return
+    }
+    this.envArgsPreviewed = true
+    const raw = ShellRunTemplate.formatEnvArgsPreview(params._pinokio_env_args)
+    if (raw && this.ondata) {
+      this.ondata({ raw })
     }
   }
   async run(params, cb) {
@@ -370,6 +788,9 @@ class Shell {
 
     // not connected => make a new connection => which means get a new prompt
     // if already connected => no need for a new prompt
+    if (params.input) {
+      this.input = params.input
+    }
     if (params.persistent) {
       this.persistent = params.persistent
     }
@@ -389,8 +810,8 @@ class Shell {
     return new Promise((resolve, reject) => {
       const config = {
         name: 'xterm-color',
-        cols: this.cols,
-        rows: this.rows,
+        cols: 1000,
+        rows: Math.max(this.rows || 24, 24),
         //cols: 1000,
         //rows: 30,
       }
@@ -403,45 +824,48 @@ class Shell {
       //let re = /([\r\n]+[^\r\n]+)(\1)/gs
       let re = /(.+)(\1)/gs
       let term = pty.spawn(this.shell, this.args, config)
-      let ready
       let vt = new Terminal({
-        allowProposedApi: true
+        allowProposedApi: true,
+        fontSize: 12
       })
       let vts = new SerializeAddon()
       vt.loadAddon(vts)
 
       let queue = fastq((data, cb) => {
-        vt.write(data, () => {
-          let buf = vts.serialize()
-          let re = /(.+)echo pinokio[\r\n]+pinokio[\r\n]+(\1)/gs
-          const match = re.exec(buf)
-          if (match && match.length > 0) {
-            let stripped = this.stripAnsi(match[1])
-            const p = stripped
-              .replaceAll(/[\r\n]/g, "")
-              .trim()
-              .replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            term.kill()
-            vt.dispose()
-            queue.killAndDrain()
-            resolve(p)
-          }
-        })
-        cb()
-      }, 1)
-//      term.onExit((result) => {
-//        console.log("onExit", { result })
-//      })
-      term.onData((data) => {
-        if (ready) {
-          queue.push(data)
-        } else {
-          setTimeout(() => {
-            if (!ready) {
-              ready = true
-              term.write(`echo pinokio${os.EOL}echo pinokio${os.EOL}`)
+        if (this.prompt_ready) {
+          vt.write(data, () => {
+            let buf = vts.serialize()
+            let re = /(.+)echo pinokio[\r\n]+pinokio[\r\n]+(\1)/gs
+            const match = re.exec(buf)
+            if (match && match.length > 0) {
+              this.prompt_ready = false
+              this.prompt_done = true
+              let stripped = this.stripAnsi(match[1])
+              const p = stripped
+                .replaceAll(/[\r\n]/g, "")
+                .trim()
+                .replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              term.kill()
+              vt.dispose()
+              queue.killAndDrain()
+              resolve(p)
             }
-          }, 500)
+          })
+          cb()
+        }
+      }, 1)
+      term.onData((data) => {
+        if (!this.prompt_done) {
+          if (this.prompt_ready) {
+            queue.push(this.filterDecsync(data))
+          } else {
+            setTimeout(() => {
+              if (!this.prompt_ready) {
+                this.prompt_ready = true
+                term.write(`echo pinokio${this.EOL}echo pinokio${this.EOL}`)
+              }
+            }, 500)
+          }
         }
       });
     })
@@ -453,6 +877,19 @@ class Shell {
     ].join('|');
     const regex = new RegExp(pattern, 'gi')
     return str.replaceAll(regex, '');
+  }
+  computeBracketedPasteSupport(shellName) {
+    const name = (shellName || '').toLowerCase()
+    if (!name) {
+      return true
+    }
+    if (name.includes('cmd.exe') || name === 'cmd') {
+      return false
+    }
+    if (name.includes('powershell') || name.includes('pwsh')) {
+      return false
+    }
+    return true
   }
   exists(abspath) {
     return new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
@@ -474,29 +911,65 @@ class Shell {
         // if params.message is empty, filter out
         //let delimiter = " && "
         let delimiter
-        if (this.platform === "win32") {
-          delimiter = " && "; // must use &&. & doesn't necessariliy wait until the curruent command finishes
+        if (this.isCmdShell()) {
+          if (params.chain) {
+            if (params.chain === "&") {
+              delimiter = " && ";   // stop if one command in the chain fails
+            } else if (params.chain === "|") {
+              delimiter = " || ";   // only run the rest of the chain if a command fails
+            } else if (params.chain === "*") {
+              delimiter = " & ";   // always run all commands regardless of whether a command fails
+            } else {
+              // exception => use the safe option (stop when command fails)
+              delimiter = " && "; // must use &&. & doesn't necessariliy wait until the curruent command finishes
+            }
+          } else {
+            // default
+            delimiter = " && "; // must use &&. & doesn't necessariliy wait until the curruent command finishes
+          }
         } else {
-          delimiter = " ; ";
+          if (params.chain) {
+            if (params.chain === "&") {
+              delimiter = " && ";   // stop if one command in the chain fails
+            } else if (params.chain === "|") {
+              delimiter = " || ";   // only run the rest of the chain if a command fails
+            } else if (params.chain === "*") {
+              delimiter = " ; ";   // always run all commands regardless of whether a command fails
+            } else {
+              // exception => use the safe option (stop when command fails)
+              delimiter = " && "; // must use &&. & doesn't necessariliy wait until the curruent command finishes
+            }
+          } else {
+            // default
+            delimiter = " && "; // must use &&. & doesn't necessariliy wait until the curruent command finishes
+          }
         }
-        return params.message.filter((m) => {
+        return params.message.map((message) => {
+          if (message && message.constructor === Object) {
+            return this.buildStructuredMessage(message)
+          }
+          return message
+        }).filter((m) => {
           return m && !/^\s+$/.test(m)
         }).join(delimiter)
         //return params.message.join(" && ")
       } else {
-        // command line message
-        let chunks = unparse(params.message).map((item) => {
-          let tokens = item.split(" ")
-          if (tokens.length > 1) {
-            return `"${item}"`
-          } else {
-            return item
-          }
-        })
-        return `${chunks.join(" ")}`
+        return this.buildStructuredMessage(params.message)
       }
     } else {
       return ""
+    }
+  }
+  conda_hook () {
+    if (this.platform === "win32") {
+      if (/bash/i.test(this.shell)) {
+        const conda_sh = this.kernel.path("bin/miniconda/etc/profile.d/conda.sh")
+        return `source ${this.quoteArgForShell(Util.p2u(conda_sh))}`
+      } else {
+        return "conda_hook"
+      }
+    } else {
+      return `eval "$(conda shell.bash hook)"`
     }
   }
   async activate(params) {
@@ -573,18 +1046,21 @@ class Shell {
     // 2. conda_activation
 
     let timeout
-    if (this.platform === "win32") {
+    if (this.isCmdShell()) {
       timeout = 'C:\\Windows\\System32\\timeout /t 1 > nul'
     } else {
-      timeout = 'sleep 1'
+      //timeout = "sleep '1'"
+      timeout = '/usr/bin/sleep 1'
     }
 
+
+    let conda_hook = this.conda_hook()
     let conda_activation = []
     if (conda_activate) {
       if (typeof conda_activate === "string") {
         if (conda_activate === "minimal") {
           conda_activation = [
-            (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+            conda_hook,
             'conda activate base',
           ]
         }
@@ -593,33 +1069,39 @@ class Shell {
       }
     } else if (conda_path) {
       let env_path = path.resolve(params.path, conda_path)
+      const shell_env_path = (this.platform === "win32" && /bash/i.test(this.shell))
+        ? this.quoteArgForShell(Util.p2u(env_path))
+        : this.quoteArgForShell(env_path)
       let env_exists = await this.exists(env_path)
       if (env_exists) {
         conda_activation = [
-          (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+          conda_hook,
+//          timeout,
           `conda deactivate`,
           `conda deactivate`,
           `conda deactivate`,
 //          timeout,
-          `conda activate ${env_path}`,
+          `conda activate ${shell_env_path}`,
 //          timeout,
         ]
       } else {
         conda_activation = [
-          (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
-          `conda create -y -p ${env_path} ${conda_python} ${conda_args ? conda_args : ''}`,
+          conda_hook,
+//          timeout,
+          `conda create -y -p ${shell_env_path} ${conda_python} ${conda_args ? conda_args : ''}`,
           `conda deactivate`,
           `conda deactivate`,
           `conda deactivate`,
 //          timeout,
-          `conda activate ${env_path}`,
+          `conda activate ${shell_env_path}`,
 //          timeout,
         ]
       }
     } else if (conda_name) {
       if (conda_name === "base") {
         conda_activation = [
-          (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+          conda_hook,
+//          timeout,
           `conda deactivate`,
           `conda deactivate`,
           `conda deactivate`,
@@ -633,7 +1115,8 @@ class Shell {
         let env_exists = await this.exists(env_path)
         if (env_exists) {
           conda_activation = [
-            (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+            conda_hook,
+//            timeout,
             `conda deactivate`,
             `conda deactivate`,
             `conda deactivate`,
@@ -643,7 +1126,7 @@ class Shell {
           ]
         } else {
           conda_activation = [
-            (this.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
+            conda_hook,
             `conda create -y -n ${conda_name} ${conda_python} ${conda_args ? conda_args : ''}`,
             `conda deactivate`,
             `conda deactivate`,
@@ -683,36 +1166,66 @@ class Shell {
     if (params.build) {
       if (this.platform === "win32") {
         try {
-          let vcvars_path = this.kernel.bin.vs_path_env.VCVARSALL_PATH
-          if (vcvars_path) {
-            const architecture = os.arch().toLowerCase();  // 'x64', 'ia32' (32-bit), etc.
-            const armArchitecture = process.arch.toLowerCase(); // For ARM-based architectures (on Windows), process.arch might be 'arm64', 'arm', etc.
+          const vcvars_path = this.kernel.bin.vs_path_env && this.kernel.bin.vs_path_env.VCVARSALL_PATH
+          const architecture = os.arch().toLowerCase();  // 'x64', 'ia32' (32-bit), etc.
+          const armArchitecture = process.arch.toLowerCase(); // For ARM-based architectures (on Windows), process.arch might be 'arm64', 'arm', etc.
 
-            // Map architectures to vcvarsall.bat argument
-            let arg
-            if (architecture === 'x64' || armArchitecture === 'arm64') {
-              //arg = 'amd64';  // Native 64-bit architecture
-              arg = 'x64';
-            } else if (architecture === 'ia32' || armArchitecture === 'arm') {
-              arg = 'x86';    // Native 32-bit architecture
-            } else if (armArchitecture === 'x86_arm64') {
-              arg = 'x86_arm64';  // ARM64 on x86
-            } else if (armArchitecture === 'x86_arm') {
-              arg = 'x86_arm';    // ARM on x86
-            } else if (armArchitecture === 'amd64_arm64') {
-              arg = 'amd64_arm64'; // ARM64 on x64
-            } else if (armArchitecture === 'amd64_arm') {
-              arg = 'amd64_arm';   // ARM on x64
-            } else {
-              console.log(`Unsupported arch: os.arch()=${architecture}, process.arch=${armArchitecture}`)
-            }
-
-            if (arg) {
-              //conda_activation.push(`CALL "${vcvars_path}" ${arg} > nul 2>&1`)
-              conda_activation.push(`CALL "${vcvars_path}" ${arg}`)
-            }
+          // Map architectures to vcvarsall.bat argument
+          let arg
+          if (architecture === 'x64' || armArchitecture === 'arm64') {
+            //arg = 'amd64';  // Native 64-bit architecture
+            arg = 'x64';
+          } else if (architecture === 'ia32' || armArchitecture === 'arm') {
+            arg = 'x86';    // Native 32-bit architecture
+          } else if (armArchitecture === 'x86_arm64') {
+            arg = 'x86_arm64';  // ARM64 on x86
+          } else if (armArchitecture === 'x86_arm') {
+            arg = 'x86_arm';    // ARM on x86
+          } else if (armArchitecture === 'amd64_arm64') {
+            arg = 'amd64_arm64'; // ARM64 on x64
+          } else if (armArchitecture === 'amd64_arm') {
+            arg = 'amd64_arm';   // ARM on x64
           } else {
-  //          console.log('vc vars env doesnt exist')
+            console.log(`Unsupported arch: os.arch()=${architecture}, process.arch=${armArchitecture}`)
+          }
+
+          const activate_root = this.kernel.bin.path("miniconda/etc/conda/activate.d")
+          const logDir = this.kernel.path("cache", "logs")
+          await fs.promises.mkdir(logDir, { recursive: true }).catch(() => {})
+          const logSuffix = this.id || Date.now()
+          const compiler_log = path.resolve(logDir, `vs-${logSuffix}.log`)
+          const cuda_log = path.resolve(logDir, `cuda-${logSuffix}.log`)
+          const compiler_candidates = [
+            path.resolve(activate_root, "pinokio", "vs2019_compiler_vars.bat"),
+            path.resolve(activate_root, "pinokio", "vs2022_compiler_vars.bat"),
+            path.resolve(activate_root, "vs2019_compiler_vars.bat"),
+            path.resolve(activate_root, "vs2022_compiler_vars.bat"),
+          ]
+          let compiler_script = null
+          for (const candidate of compiler_candidates) {
+            if (await this.exists(candidate)) {
+              compiler_script = candidate
+              break
+            }
+          }
+          if (compiler_script) {
+            conda_activation.push(`CALL "${compiler_script}" > "${compiler_log}" 2>&1`)
+          } else if (vcvars_path && arg) {
+            conda_activation.push(`CALL "${vcvars_path}" ${arg} > "${compiler_log}" 2>&1`)
+          }
+          const cuda_candidates = [
+            path.resolve(activate_root, "pinokio", "~cuda-nvcc_activate.bat"),
+            path.resolve(activate_root, "~cuda-nvcc_activate.bat"),
+          ]
+          let cuda_script = null
+          for (const candidate of cuda_candidates) {
+            if (await this.exists(candidate)) {
+              cuda_script = candidate
+              break
+            }
+          }
+          if (cuda_script) {
+            conda_activation.push(`CALL "${cuda_script}" > "${cuda_log}" 2>&1`)
           }
         } catch (e) {
           console.log('vc vars setup', e)
@@ -785,21 +1298,26 @@ class Shell {
         }
       }
       if (env_path) {
+        const windowsBashVenv = this.platform === 'win32' && /bash/i.test(this.shell)
+        const shellEnvPath = windowsBashVenv ? `"${Util.p2u(env_path)}"` : env_path
         let activate_path = (this.platform === 'win32' ? path.resolve(env_path, "Scripts", "activate") : path.resolve(env_path, "bin", "activate"))
-        let deactivate_path = (this.platform === 'win32' ? path.resolve(env_path, "Scripts", "deactivate") : "deactivate")
+        let activate_command = windowsBashVenv
+          ? `source "${Util.p2u(activate_path)}" ${shellEnvPath}`
+          : (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`)
+        let deactivate_path = (windowsBashVenv ? "deactivate" : (this.platform === 'win32' ? path.resolve(env_path, "Scripts", "deactivate") : "deactivate"))
         let env_exists = await this.exists(env_path)
         if (env_exists) {
           if (use_uv) {
             venv_activation = [
 //              `python -m venv --upgrade ${env_path}`,
 //              `uv venv --allow-existing ${env_path}${python_version}`,
-              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              activate_command,
 //              timeout,
             ]
           } else {
             venv_activation = [
 //              `python -m venv --upgrade ${env_path}`,
-              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              activate_command,
 //              timeout,
             ]
           }
@@ -807,23 +1325,23 @@ class Shell {
           if (use_uv) {
             // when python version is specified as venv.python => use uv
             venv_activation = [
-              `uv venv ${env_path}${python_version}`,
-              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              `uv venv ${shellEnvPath}${python_version}`,
+              activate_command,
 //              `uv pip install --upgrade pip setuptools wheel`,
               deactivate_path,
 //              timeout,
-              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              activate_command,
 //              timeout,
             ]
           } else {
             // when python version is not specified, use the default python -m venv
             venv_activation = [
-              `python -m venv ${env_path}`,
-              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              `python -m venv ${shellEnvPath}`,
+              activate_command,
 //              `python -m pip install --upgrade pip setuptools wheel`,
               deactivate_path,
 //              timeout,
-              (this.platform === "win32" ? `${activate_path} ${env_path}` : `source ${activate_path} ${env_path}`),
+              activate_command,
 //              timeout,
             ]
           }
@@ -836,7 +1354,23 @@ class Shell {
     }
 
     // 3. construct params.message
-    params.message = conda_activation.concat(venv_activation).concat(params.message)
+    let activation = conda_activation.concat(venv_activation)
+    if (this.kernel.bin && typeof this.kernel.bin.activationCommands === "function") {
+      activation = activation.concat(this.kernel.bin.activationCommands(this))
+    }
+    if (activation.length > 0) {
+      let activation_str = this.build({
+        chain: "*",
+        message: activation
+      })
+      params.message = [activation_str].concat(params.message)
+    } else {
+      params.message = params.message
+    }
+//    params.message = conda_activation.concat(venv_activation).concat(params.message)
+
+
+
 //    params.message = conda_activation.concat(venv_activation).concat(params.message).map((cmd) => {
 //      if (this.platform === 'win32') {
 //        return `call ${cmd}`
@@ -847,6 +1381,8 @@ class Shell {
     return params
   }
   async exec(params) {
+    this.parser = new ShellParser()
+    this.emitEnvArgsPreview(params)
     params = await this.activate(params)
     this.cmd = this.build(params)
     let res = await new Promise((resolve, reject) => {
@@ -865,19 +1401,51 @@ class Shell {
         }
 
         config.env = this.env
-
         if (!this.ptyProcess) {
           // ptyProcess doesn't exist => create
           this.done = false
           this.ptyProcess = pty.spawn(this.shell, this.args, config)
           this.ptyProcess.onData((data) => {
+            if (!this.monitor) {
+              this.monitor = ""
+            }
+            this.monitor = this.monitor + data
+            this.monitor = this.monitor.slice(-300) // last 300
+
+//            let notifications = this.parser.processData(data)
+//            if (notifications.length > 0) {
+//              console.log({ notifications })
+//              for(let notif of notifications) {
+//                if (notif.type !== "bell") {
+//                  Util.push({
+//                    image: path.resolve(__dirname, "../server/public/pinokio-black.png"),
+//                    message: notif.title,
+//                    sound: true,
+//                    timeout: 30,
+//                  })
+//                }
+//              }
+//            }
+
             if (!this.done) {
-              this.queue.push(data)
+
+              // "request cursor position" handling: https://github.com/microsoft/node-pty/issues/535
+              if (data.includes('\x1b[6n')) {
+                const row = this.vt.buffer.active.cursorY + 1;
+                const col = this.vt.buffer.active.cursorX + 1;
+                const response = `\x1b[${row};${col}R`;
+                this.ptyProcess.write(response);
+                data = data.replace(/\x1b\[6n/g, ''); // remove the code
+              }
+
+              const filtered = this.filterDecsync(data)
+              if (this.awaitingIdleNudge) {
+                this.scheduleIdleNudge()
+              }
+              this.maybeNudgeForSequences(filtered)
+              this.queue.push(filtered)
             }
           });
-//          this.ptyProcess.onExit((result) => {
-//            console.log(">>>>>>>>>>>>>>>>>>> exec onExit", result)
-//          })
         }
       } catch (e) {
         console.log("** Error", e)
@@ -894,19 +1462,37 @@ class Shell {
       if (message) {
         this.resolve(message)
       } else {
-        let buf = this.stripAnsi(this.vts.serialize())
-        this.resolve(buf)
+        let { cleaned } = this.stateSync.refresh(true)
+        this.resolve(cleaned)
       }
       this.resolve = undefined
+      this.ondata({ raw: `\r\n\r\n██ Detached from Shell ${this.id}\r\n\r\n` })
     }
   }
-  kill(message, force) {
+  kill(message, force, cb) {
 
     this.done = true
     this.ready = false
+    if (this.nudgeRestoreTimer) {
+      clearTimeout(this.nudgeRestoreTimer)
+      this.nudgeRestoreTimer = null
+    }
+    if (this.nudgeReleaseTimer) {
+      clearTimeout(this.nudgeReleaseTimer)
+      this.nudgeReleaseTimer = null
+    }
+    this.cancelIdleNudge()
+    this.nudging = false
+    this.lastInputAt = 0
+    this.canNudge = true
+    this.ignoreNudgeOutput = false
+    if (this.userActiveTimer) {
+      clearTimeout(this.userActiveTimer)
+      this.userActiveTimer = null
+    }
+    this.userActive = false
 
-    let buf = this.vts.serialize()
-    let cleaned = this.stripAnsi(buf)
+    let { buf, cleaned } = this.stateSync.refresh(true)
 
     // Log before resolving
     this._log(buf, cleaned)
@@ -923,19 +1509,228 @@ class Shell {
     }
     this.vt.dispose()
     this.queue.killAndDrain()
+//    console.log("KILL PTY", this.id)
     if (this.ptyProcess) {
-      this.ptyProcess.kill()
-      this.ptyProcess = undefined
+      if (cb) {
+        try {
+          kill(this.ptyProcess.pid, "SIGKILL", true)
+        } catch (e) {
+          console.log("kill", this.ptyProcess.pid, e)
+        }
+        this.ptyProcess.kill()
+        this.ptyProcess = undefined
+        // automatically remove the shell from this.kernel.shells
+        this.kernel.shell.rm(this.id)
+        if (!this.mute) {
+          this.ondata({ raw: `\r\n\r\n██ Terminated Shell ${this.id}\r\n████\r\n` })
+          this.ondata({ raw: "", type: "shell.kill" })
+        }
+        cb()
+      } else {
+        try {
+          kill(this.ptyProcess.pid, "SIGKILL", true)
+        } catch (e) {
+          console.log("kill", this.ptyProcess.pid, e)
+        }
+        this.ptyProcess.kill()
+        this.ptyProcess = undefined
+        // automatically remove the shell from this.kernel.shells
+        this.kernel.shell.rm(this.id)
+        if (!this.mute) {
+          this.ondata({ raw: `\r\n\r\n██ Terminated Shell ${this.id}\r\n████\r\n` })
+          this.ondata({ raw: "", type: "shell.kill" })
+        }
+      }
+    } else {
+      this.kernel.shell.rm(this.id)
+      if (!this.mute) {
+        this.ondata({ raw: `\r\n\r\n██ Terminated Shell ${this.id}\r\n████\r\n` })
+        this.ondata({ raw: "", type: "shell.kill" })
+      }
     }
 
-    // automatically remove the shell from this.kernel.shells
-    this.kernel.shell.rm(this.id)
+
+    if (this.kernel.api.running[this.id]) {
+      delete this.kernel.api.running[this.id]
+    }
+    if (this.kernel.memory.local[this.id]) {
+      delete this.kernel.memory.local[this.id]
+    }
+
+//    this.ondata({
+//      id: this.id,
+//      type: "disconnect"
+//    })
+//    this.kernel.refresh(true)
+
 
   }
   log() {
-    let buf = this.vts.serialize()
-    let cleaned = this.stripAnsi(buf)
+    let { buf, cleaned } = this.stateSync.refresh(true)
     this._log(buf, cleaned)
+  }
+  filterDecsync(data) {
+    if (!data) return data
+
+    const prefix = '\u001b[?2026'
+    let chunk = this.decsyncBuffer ? this.decsyncBuffer + data : data
+    if (chunk.includes('\u2190')) {
+      chunk = chunk.replace(/\u2190/g, '\u001b')
+    }
+    this.decsyncBuffer = ''
+
+    let result = ''
+    let i = 0
+    while (i < chunk.length) {
+      if (chunk.charCodeAt(i) === 0x1b) { // ESC
+        const remaining = chunk.slice(i)
+        if (remaining.startsWith('\u001b[?2026h') || remaining.startsWith('\u001b[?2026l')) {
+          i += 8
+          continue
+        }
+
+        // Check if the remaining characters form a partial prefix of DECSYNCTERM
+        let matched = 0
+        const len = Math.min(prefix.length, remaining.length)
+        while (matched < len && remaining[matched] === prefix[matched]) {
+          matched++
+        }
+        if (matched === remaining.length && matched < prefix.length + 1) {
+          this.decsyncBuffer = remaining
+          return result
+        }
+      }
+      result += chunk[i]
+      i++
+    }
+
+    return result
+  }
+  setUserActive(active, ttl) {
+    const clearTimer = () => {
+      if (this.userActiveTimer) {
+        clearTimeout(this.userActiveTimer)
+        this.userActiveTimer = null
+      }
+    }
+    if (active) {
+      this.userActive = true
+      this.lastInputAt = Date.now()
+      const parsedTtl = Number(ttl)
+      const timeout = Number.isFinite(parsedTtl) ? parsedTtl : this.userActiveTimeout
+      clearTimer()
+      if (timeout > 0) {
+        this.userActiveTimer = setTimeout(() => {
+          this.userActive = false
+          this.userActiveTimer = null
+        }, timeout)
+      }
+    this.cancelIdleNudge()
+    } else {
+      clearTimer()
+      this.userActive = false
+    }
+  }
+  maybeNudgeForSequences(chunk = '') {
+    if (!this.enableNudge) {
+      return
+    }
+    if (!chunk || typeof chunk !== 'string') {
+      return
+    }
+    const detection = this.ansiTracker.push(chunk)
+    if (!detection) {
+      return
+    }
+    if (this.ignoreNudgeOutput || this.userActive) {
+      return
+    }
+    if (this.nudging || !this.canNudge) {
+//      console.log('[nudge] guard: nudging/canNudge', { nudging: this.nudging, canNudge: this.canNudge, reason: detection.reason })
+      return
+    }
+    const sinceInput = Date.now() - this.lastInputAt
+    if (sinceInput < 200) {
+//      console.log('[nudge] guard: recent input', { sinceInput, reason: detection.reason })
+      return
+    }
+//    console.log('[nudge] scheduling idle nudge', {
+//      reason: detection.reason,
+//      sinceInput,
+//      preview: chunk.slice(0, 160)
+//    })
+    this.requestIdleNudge()
+  }
+  cancelIdleNudge() {
+    if (this.idleNudgeTimer) {
+      clearTimeout(this.idleNudgeTimer)
+      this.idleNudgeTimer = null
+    }
+    this.awaitingIdleNudge = false
+  }
+  requestIdleNudge() {
+    if (this.awaitingIdleNudge || this.nudging || !this.canNudge) {
+      return
+    }
+    this.awaitingIdleNudge = true
+    this.scheduleIdleNudge()
+  }
+  scheduleIdleNudge() {
+    if (!this.awaitingIdleNudge) {
+      return
+    }
+    const delay = this.idleNudgeDelay || 500
+    if (this.idleNudgeTimer) {
+      clearTimeout(this.idleNudgeTimer)
+    }
+    this.idleNudgeTimer = setTimeout(() => {
+      if (this.nudging || !this.canNudge) {
+        this.cancelIdleNudge()
+        return
+      }
+      this.idleNudgeTimer = null
+      this.awaitingIdleNudge = false
+      this.canNudge = false
+//      console.log('[nudge] idle window elapsed')
+      this.forceTerminalNudge()
+    }, delay)
+  }
+  forceTerminalNudge() {
+    if (!this.ptyProcess || this.nudging) {
+//      console.log('[nudge] force skipped', { hasPty: !!this.ptyProcess, nudging: this.nudging })
+      return
+    }
+    this.cancelIdleNudge()
+    const baseCols = Number.isFinite(this.cols) ? this.cols : (this.vt && Number.isFinite(this.vt.cols) ? this.vt.cols : 80)
+    const baseRows = Number.isFinite(this.rows) ? this.rows : (this.vt && Number.isFinite(this.vt.rows) ? this.vt.rows : 24)
+    const cols = Math.max(2, Math.floor(baseCols))
+    const rows = Math.max(2, Math.floor(baseRows))
+    if (cols <= 2) {
+      return
+    }
+    this.ignoreNudgeOutput = true
+    this.nudging = true
+//    console.log('[nudge] shrink start', { cols: cols - 1, rows })
+    this.resize({ cols: cols - 1, rows })
+    if (this.nudgeRestoreTimer) {
+      clearTimeout(this.nudgeRestoreTimer)
+    }
+    this.nudgeRestoreTimer = setTimeout(() => {
+//      console.log('[nudge] restore', { cols, rows })
+//      console.log('[nudge] restore start', { cols, rows })
+      this.resize({ cols, rows })
+      if (this.nudgeReleaseTimer) {
+        clearTimeout(this.nudgeReleaseTimer)
+      }
+      this.nudgeReleaseTimer = setTimeout(() => {
+        this.nudging = false
+        this.canNudge = true
+        this.ignoreNudgeOutput = false
+//        console.log('[nudge] complete')
+        this.nudgeReleaseTimer = null
+      }, 100)
+      this.nudgeRestoreTimer = null
+    }, 100)
   }
   _log(buf, cleaned) {
 
@@ -955,7 +1750,7 @@ class Shell {
       cmd: this.cmd,
       index: this.index,
       group: this.group,
-      env: this.env,
+      env: ShellRunTemplate.redactEnvArgs(this.env),
       done: this.done,
       ready: this.ready,
       id: this.id,
@@ -1008,16 +1803,34 @@ ${cleaned}
 
   }
   stream(msg, callback) {
+    if (msg === "\u0007") {
+      // Ignore bell sound escape character because it slows down everything and makes redundant sound
+      callback()
+      return
+    }
     this.vt.write(msg, () => {
-      let buf = this.vts.serialize()
-      let cleaned = this.stripAnsi(buf)
+      this.stateSync.noteOutput(msg)
+      let buf
+      let cleaned
+      try {
+        ({ buf, cleaned } = this.stateSync.refresh(this.stateSync.shouldForceRefresh()))
+      } catch (e) {
+        console.log("state sync error", e)
+        callback()
+        return
+      }
       let response = {
         id: this.id,
         raw: msg,
         cleaned,
-        state: cleaned
+        state: cleaned,
+        buf,
+        shell_id: this.id
       }
-      if (this.cb) this.cb(response)
+      this.state = cleaned
+      if (this.cb) {
+        this.cb(response)
+      }
 
       // Decide whether to kill or continue
       if (this.ready) {
@@ -1027,19 +1840,29 @@ ${cleaned}
         let test = line.match(termination_prompt_re)
         if (test) {
           let cache = cleaned
-          let cached_msg = msg
           // todo: may need to handle cases when the command returns immediately with no output (example: 'which brew' returns immediately with no text if brew doesn't exist)
           setTimeout(() => {
-            if (cache === cleaned) {
-              if (this.persistent) {
-                if (this.cb) this.cb({
-                  //raw: cached_msg,
-                  //raw: msg,
-                  //raw: "",
-                  cleaned,
-                  state: cleaned,
-                  prompt: true
-                })
+            let latest
+            try {
+              latest = this.stateSync.refresh(true).cleaned
+            } catch (e) {
+              console.log("state sync error", e)
+              callback()
+              return
+            }
+            if (cache === latest) {
+              if (this.params.onprompt) {
+                this.params.onprompt(this)
+              }
+              if (this.input || this.persistent) {
+//                if (this.cb) this.cb({
+//                  //raw: cached_msg,
+//                  //raw: msg,
+//                  //raw: "",
+//                  cleaned,
+//                  state: cleaned,
+//                  prompt: true
+//                })
                 callback()
               } else {
                 callback()
@@ -1060,8 +1883,15 @@ ${cleaned}
         if (test) {
           if (test.length > 0) {
             this.ready = true
+            if (this.params && this.params.onready) {
+              this.params.onready()
+            }
             if (this.ptyProcess) {
-              this.ptyProcess.write(`${this.cmd}${os.EOL}`)
+              this.stateSync.noteInput()
+              this.ptyProcess.write(`${this.cmd}${this.EOL}`)
+//              setTimeout(() => {
+//                this.ptyProcess.write('\x1B[?2004h');
+//              }, 500)
             }
           }
         }

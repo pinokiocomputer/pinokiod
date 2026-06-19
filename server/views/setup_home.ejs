@@ -1,0 +1,192 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+.btn {
+  margin: 5px;
+  width: 100px;
+  text-align: center;
+  padding: 10px;
+  background: black;
+  color: white;
+  text-decoration: none;
+  font-weight: normal;
+}
+.item {
+  display: flex;
+  align-items: flex-start;
+  margin: 10px;
+  background: rgba(0,0,0,0.04);
+}
+.item img {
+  width: 100px;
+}
+.item .title {
+  text-decoration: none;
+  color: royalblue;
+}
+.item .col {
+  padding: 10px;
+}
+.item .col > * {
+  margin: 5px 0;
+}
+.item .stat {
+  color: rgba(0,0,0,0.8);
+  display: flex;
+}
+.item .stat > * {
+  margin-right: 15px;
+}
+.timestamp {
+  color: rgba(0,0,0,0.5);
+}
+main {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+.setup-items {
+  display: flex;
+  justify-content: center;
+}
+.head {
+  padding: 80px;
+  text-align: center;
+}
+.head .desc {
+  opacity: 0.7;
+  padding: 10px;
+}
+.head h3 {
+  font-size: 50px;
+  margin: 0;
+}
+body.dark .card {
+  color: white;
+}
+.card {
+  text-decoration: none;
+  width: 200px;
+  color: rgba(0,0,0,0.9);
+  text-align: center;
+  height: 400px;
+  margin: 20px;
+}
+.card:hover {
+  color: royalblue !important;
+}
+.card .desc {
+  text-align: left;
+  opacity: 0.7;
+}
+.card h3 {
+  font-size: 30px;
+  letter-spacing: -1px;
+}
+.card i {
+  font-size: 50px;
+}
+</style>
+<script src="/common.js"></script>
+</head>
+<body class='<%=theme%>' data-agent="<%=agent%>">
+<header class='grabbable'>
+<h1>
+<a class='path' href="/home"><%-logo%></a>
+<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+  <div><i class="fa-solid fa-expand"></i></div>
+</button>
+<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+<div class='flexible'></div>
+<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+  <div><i class="fa-solid fa-table-columns"></i></div>
+</a>
+<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
+</a>
+<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+  <div><i class="fa-solid fa-plus"></i></div>
+</button>
+<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+  <div><i class="fa-solid fa-xmark"></i></div>
+</button>
+</h1>
+</h1>
+</header>
+<main>
+  <div class='head'>
+    <h3>Setup</h3>
+    <div class='desc'>Select a setup option (You can set up multiple options).</div>
+  </div>
+  <div class='setup-items'>
+    <% items.forEach((item) => { %>
+      <a class='card' href="/setup/<%=item.id%>">
+        <i class="<%=item.icon%>"></i>
+        <h3><%=item.title%></h3>
+        <div class='desc'><%=item.description%></div>
+      </a>
+    <% }) %>
+  </div>
+</main>
+</body>
+</html>

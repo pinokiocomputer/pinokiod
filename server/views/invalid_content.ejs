@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= invalid && invalid.title ? invalid.title : "Invalid Content" %></title>
+  <link href="/css/fontawesome.min.css" rel="stylesheet">
+  <link href="/css/solid.min.css" rel="stylesheet">
+  <link href="/css/brands.min.css" rel="stylesheet">
+  <link href="/noty.css" rel="stylesheet">
+  <link href="/style.css" rel="stylesheet">
+  <link href="/task-launcher.css" rel="stylesheet">
+  <% if (agent === "electron") { %>
+    <link href="/electron.css" rel="stylesheet"/>
+  <% } %>
+</head>
+<body class="<%= theme %> main-sidebar-page task-launcher-page task-page invalid-content-page" data-agent="<%= agent %>">
+  <%- include('partials/app_navheader', { agent }) %>
+  <main>
+    <div class="task-container">
+      <section class="task-shell">
+        <header class="task-shell-header">
+          <div class="task-shell-header-main">
+            <p class="task-eyebrow"><%= invalid && invalid.title ? invalid.title : "Invalid Content" %></p>
+            <h1 class="task-title"><%= invalid && invalid.subjectTitle ? invalid.subjectTitle : "This item" %></h1>
+            <p class="task-description"><%= invalid && invalid.summary ? invalid.summary : "Pinokio cannot use this item until it is fixed." %></p>
+          </div>
+          <div class="task-header-actions">
+            <a class="task-link-button" href="<%= backHref %>">
+              <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+              <span><%= backLabel %></span>
+            </a>
+            <% if (invalid && invalid.folderPath && invalid.folderExists) { %>
+              <button class="task-button" type="button" data-filepath="<%= invalid.folderPath %>">
+                <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
+                <span>Open folder</span>
+              </button>
+            <% } %>
+            <% if (invalid && invalid.manifestPath && invalid.manifestExists) { %>
+              <button class="task-button" type="button" data-filepath="<%= invalid.manifestPath %>">
+                <i class="fa-solid fa-file-code" aria-hidden="true"></i>
+                <span>Open manifest</span>
+              </button>
+            <% } %>
+          </div>
+        </header>
+
+        <div class="task-shell-body">
+          <% if (invalid && invalid.message) { %>
+            <div class="task-status error"><%= invalid.message %></div>
+          <% } %>
+
+          <div class="task-detail-layout">
+            <div class="task-detail-main">
+              <section class="task-section">
+                <div class="task-section-head">
+                  <div>
+                    <h2 class="task-section-title">Problems</h2>
+                    <p class="task-section-subcopy">Fix these issues before trying to use it again.</p>
+                  </div>
+                </div>
+                <div class="task-context-list">
+                  <% (invalid && Array.isArray(invalid.errors) ? invalid.errors : []).forEach((entry) => { %>
+                    <div class="task-context-item">
+                      <strong><%= entry && entry.file ? entry.file : "Issue" %></strong>
+                      <span>
+                        <%= entry && entry.message ? entry.message : "Unknown problem." %>
+                        <% if (entry && entry.fix) { %>
+                          <br>
+                          <%= entry.fix %>
+                        <% } %>
+                      </span>
+                    </div>
+                  <% }) %>
+                </div>
+              </section>
+            </div>
+
+            <aside class="task-detail-sidebar">
+              <section class="task-section">
+                <div class="task-section-head">
+                  <div>
+                    <h2 class="task-section-title">Source</h2>
+                    <p class="task-section-subcopy">These paths are safe to inspect and edit.</p>
+                  </div>
+                </div>
+                <div class="task-context-list">
+                  <% if (invalid && invalid.folderPath) { %>
+                    <div class="task-context-item">
+                      <strong>Folder</strong>
+                      <span>
+                        <%= invalid.folderPath %>
+                        <% if (!invalid.folderExists) { %>
+                          <br>
+                          Missing on disk
+                        <% } %>
+                      </span>
+                    </div>
+                  <% } %>
+                  <% if (invalid && invalid.manifestPath) { %>
+                    <div class="task-context-item">
+                      <strong>Manifest</strong>
+                      <span>
+                        <%= invalid.manifestPath %>
+                        <% if (!invalid.manifestExists) { %>
+                          <br>
+                          Missing on disk
+                        <% } %>
+                      </span>
+                    </div>
+                  <% } %>
+                </div>
+              </section>
+            </aside>
+          </div>
+        </div>
+      </section>
+    </div>
+    <%- include('partials/main_sidebar', { selected: sidebarSelected }) %>
+  </main>
+  <%- include('partials/app_common_scripts') %>
+  <script src="/opener.js"></script>
+</body>
+</html>

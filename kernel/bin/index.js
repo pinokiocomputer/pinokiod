@@ -10,6 +10,7 @@ const { ProxyAgent } = require('proxy-agent');
 const Python = require('./python')
 const Git = require('./git')
 const Node = require('./node')
+const CLI = require('./cli')
 const Brew = require("./brew")
 const Conda = require("./conda")
 const Win = require("./win")
@@ -20,14 +21,21 @@ const LLVM = require('./llvm')
 const VS = require("./vs")
 const Cuda = require("./cuda")
 const Torch = require("./torch")
+const { buildCondaListFromMeta } = require('./conda-meta')
+const {
+  isExpectedSqlitePinned,
+  isWindowsPythonSslFixed,
+} = require('./conda-pins')
 const { glob } = require('glob')
 const fakeUa = require('fake-useragent');
 const fse = require('fs-extra')
 const semver = require('semver')
 //const { bootstrap } = require('global-agent')
 const Environment = require('../environment')
+const Util = require("../util")
 //const imageToAscii = require("image-to-ascii");
 
+const Setup = require('./setup')
 
 
 //const Puppet = require("./puppeteer")
@@ -37,8 +45,27 @@ class Bin {
     this.arch = os.arch()
     this.platform = os.platform()
   }
+  async shell_kill(params, ondata) {
+    console.log("shell_kill", params)
+    this.kernel.shell.kill(params.params)
+  }
+  async shell_start(params, ondata) {
+    params.path = params.path || this.path()
+    if (!Object.prototype.hasOwnProperty.call(params, "bluefairy")) {
+      params.bluefairy = "off"
+    }
+    if (this.client) {
+      params.cols = this.client.cols
+      params.rows = this.client.rows
+    }
+    let response = await this.kernel.shell.start(params, null, ondata)
+    return response
+  }
   async exec(params, ondata) {
     params.path = params.path || this.path()
+    if (!Object.prototype.hasOwnProperty.call(params, "bluefairy")) {
+      params.bluefairy = "off"
+    }
     if (this.client) {
       params.cols = this.client.cols
       params.rows = this.client.rows
@@ -55,10 +82,8 @@ class Bin {
 //    })
 //  }
   async download(url, dest, ondata) {
-    console.log("DOWNLOAD process.env", process.env)
     const agent = new ProxyAgent();
     const userAgent = fakeUa()
-    console.log("download userAgent", userAgent)
     const opts = {
       fileName: dest,
       override: true,
@@ -74,7 +99,6 @@ class Bin {
       opts.httpRequestOptions = { agent }
       opts.httpsRequestOptions = { agent }
     }
-    console.log("opts", opts)
     const dl = new DownloaderHelper(url, this.path(), opts)
     ondata({ raw: `\r\nDownloading ${url} to ${this.path()}...\r\n` })
     let res = await new Promise((resolve, reject) => {
@@ -108,7 +132,9 @@ class Bin {
     */
   }
   async unzip(filepath, dest, options, ondata) {
-    await this.exec({ message: `7z x ${options ? options : ''} ${filepath} -o${dest}` }, ondata)
+    const unzipCmd = this.platform === "win32" ? "7zz" : "7z"
+    const extra = options ? `${options} ` : ""
+    await this.exec({ message: `${unzipCmd} x ${extra}"${filepath}" -o"${dest}"` }, ondata)
   }
   async rm(src, ondata) {
     ondata({ raw: `rm ${src}\r\n` })
@@ -186,8 +212,30 @@ class Bin {
 
     return e
   }
+  activationCommands(shell) {
+    const commands = []
+    if (!this.mods) {
+      return commands
+    }
+    const skipBluefairy = !!(shell && shell.params && shell.params.bluefairy === "off")
+    for (const mod of this.mods) {
+      if (skipBluefairy && mod && mod.name === "bluefairy") {
+        continue
+      }
+      if (mod.mod && typeof mod.mod.activationCommands === "function") {
+        const value = mod.mod.activationCommands(shell)
+        if (Array.isArray(value)) {
+          commands.push(...value.filter(Boolean))
+        } else if (value) {
+          commands.push(value)
+        }
+      }
+    }
+    return commands
+  }
   async init() {
-    console.log("kernel.bin.init", this.kernel.homedir)
+    this.requirements_cache = {}
+    this.mods = []
     if (this.kernel.homedir) {
       const bin_folder = this.path()
       await fs.promises.mkdir(bin_folder, { recursive: true }).catch((e) => { })
@@ -196,8 +244,7 @@ class Bin {
         process.env.PLAYWRIGHT_BROWSERS_PATH = playwright_folder
       }
 //      await fs.promises.mkdir(playwright_folder, { recursive: true }).catch((e) => { })
-      let system_env = await Environment.get(this.kernel.homedir)
-      console.log("***********", { system_env })
+      let system_env = await Environment.get(this.kernel.homedir, this.kernel)
 
       if (system_env.HTTP_PROXY) {
         process.env.HTTP_PROXY = system_env.HTTP_PROXY
@@ -232,7 +279,6 @@ class Bin {
       return file.endsWith(".js") && file !== "index.js" && file !== "cmake.js"
     })
 
-    this.mods = []
     for(let filename of modfiles) {
       // 1. get all the modules in __dirname
       // 2. load them
@@ -266,6 +312,8 @@ class Bin {
       } catch (e) {
         console.log("RefreshInstalled Error", e)
       }
+
+      // initialize pipconfig
       let pipconfig_path = path.resolve(this.kernel.homedir, "pipconfig")
       let pipconfig_exists = await this.kernel.api.exists(pipconfig_path)
       // if not, create one
@@ -273,19 +321,22 @@ class Bin {
         const pipconfigStr = `[global]
   timeout = 1000`
         await fs.promises.writeFile(pipconfig_path, pipconfigStr) 
-  //      await fs.promises.copyFile(
-  //        path.resolve(__dirname, "..", "pipconfig_template"),
-  //        pipconfig_path
-  //      )
       }
 
-      // add gitconfig => support git lfs, long path, etc.
-      let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")
-      // check if gitconfig exists
-      await fs.promises.copyFile(
-        path.resolve(__dirname, "..", "gitconfig_template"),
-        gitconfig_path
-      )
+//      // add gitconfig => support git lfs, long path, etc.
+//      let gitconfig_path = path.resolve(this.kernel.homedir, "gitconfig")
+//      // check if gitconfig exists
+//      await fs.promises.copyFile(
+//        path.resolve(__dirname, "..", "gitconfig_template"),
+//        gitconfig_path
+//      )
+
+      for(let mod of this.mods) {
+        if (mod.mod.start) {
+          await mod.mod.start()
+        }
+      }
+
     }
 
 
@@ -301,6 +352,8 @@ class Bin {
     let conda_check = {}
     let conda = new Set()
     let conda_versions = {}
+    let conda_builds = {}
+    this.correct_conda = false
 
     //////////////////////////////////////////////////////////////////
     // exception handling
@@ -311,28 +364,27 @@ class Bin {
     } else {
       site_packages_path = path.resolve(this.kernel.homedir, "bin/miniconda/lib/python3.10/site-packages")
     }
-    // check if any of 'uvicorn', 'importlib_metadata', 'fastapi' exists
-    let module_paths = ["fastapi", "uvicorn", "importlib_metadata"].map((name) => {
-      return path.resolve(site_packages_path, name)
-    })
+//    // check if any of 'uvicorn', 'importlib_metadata', 'fastapi' exists
+//    let module_paths = ["fastapi", "uvicorn", "importlib_metadata"].map((name) => {
+//      return path.resolve(site_packages_path, name)
+//    })
+//    let to_reset_exists = false
+//    for(let module_path of module_paths) {
+//      let e = await this.kernel.exists(module_path)
+//      console.log("checking kernel exists", { module_path, e })
+//      if (e) {
+//        to_reset_exists = true
+//        break;
+//      }
+//    }
+//    console.log("> to_reset_exists", to_reset_exists)
+
     let to_reset_exists = false
-    for(let module_path of module_paths) {
-      let e = await this.kernel.exists(module_path)
-      console.log({ e, module_path })
-      if (e) {
-        to_reset_exists = true
-        break;
-      }
-    }
-    console.log({ to_reset_exists })
+
     if (to_reset_exists) {
       this.correct_conda = false
     } else {
-      res = await this.exec({ message: `conda list` }, (stream) => {
-  //      process.stdout.write(stream.raw)
-  //        console.log("conda list check", { stream })
-      })
-
+      let res = await buildCondaListFromMeta(this.kernel.bin.path("miniconda"))
       let lines = res.response.split(/[\r\n]+/)
       for(let line of lines) {
         if (start) {
@@ -340,21 +392,18 @@ class Bin {
           if (chunks.length > 2) {
             let name = chunks[0]
             let version = chunks[1]
+            let build = chunks[2]
             conda.add(name)
             conda_versions[name] = version
+            conda_builds[name] = build
             if (name === "conda") {
               conda_check.conda = true
-//              //if (String(version) === "24.11.1") {
-//              if (String(version) === "24.11.3") {
-//                conda_check.conda = true
-//              }
             }
             if (name === "conda-libmamba-solver") {
               //if (String(version) === "24.7.0") {
               let channel = chunks[3]
               let coerced = semver.coerce(version)
-              let mamba_requirement = ">=24.11.1"
-              console.log({ name, channel, version })
+              let mamba_requirement = ">=25.4.0"
               //if (semver.satisfies(coerced, mamba_requirement) && channel === "conda-forge") {
               if (semver.satisfies(coerced, mamba_requirement)) {
                 conda_check.mamba = true
@@ -363,19 +412,12 @@ class Bin {
             // Use sqlite to check if `conda update -y --all` went through successfully
             // sometimes it just fails silently so need to check
             if (name === "sqlite") {
-              if (String(version) === "3.47.2") {
+              if (isExpectedSqlitePinned(this.platform, version)) {
                 conda_check.sqlite = true
               }
-//              let coerced = semver.coerce(version)
-//              let sqlite_requirement = ">=3.47.2"
-//  //            console.log({ coerced, version, sqlite_requirement })
-//              if (semver.satisfies(coerced, sqlite_requirement)) {
-//                console.log("semver satisfied")
-//
-//                conda_check.sqlite = true
-//              } else {
-//                console.log("semver NOT satisfied")
-//              }
+            }
+            if (name === "python") {
+              conda_check.python = this.platform !== "win32" || isWindowsPythonSslFixed(version, build)
             }
           }
         } else {
@@ -385,34 +427,30 @@ class Bin {
         }
       }
 
-      console.log({ conda_check })
-      if (conda_check.conda && conda_check.mamba && conda_check.sqlite) {
+      if (conda_check.conda && conda_check.mamba && conda_check.sqlite && (this.platform !== "win32" || conda_check.python)) {
       //if (conda_check.conda && conda_check.mamba) {
         this.correct_conda = true
       }
     }
     this.installed.conda = conda
     this.installed.conda_versions = conda_versions
+    this.installed.conda_builds = conda_builds
   }
   async refreshInstalled() {
-
-    console.log("refreshInstalled start")
-
 
     /// A. installed packages detection
 
     this.installed_initialized = false
+    this.requirements_cache = {}
+    this.correct_conda = false
 
     //this.installed = {}
-
-    console.log("## check conda")
 
     // 1. conda
 
     // check conda location and see if it exists. only run if it exists
     let conda_path = path.resolve(this.kernel.homedir, "bin", "miniconda")
     let conda_exists = await this.exists(conda_path)
-    console.log({ conda_path, conda_exists })
 
     let start
     let res
@@ -429,103 +467,43 @@ class Bin {
       }
     }
 
-//    // 2. pip
-//    let pip = new Set()
-//    if (conda_exists) {
-//      // conda comes with pip
-//      console.log("## check pip")
-//      start = false
-//      res = await this.exec({ message: `pip list` }, (stream) => {
-////        console.log("pip list check", { stream })
-//      })
-//      console.log("PIP", res.response)
-//      lines = res.response.split(/[\r\n]+/)
-//      for(let line of lines) {
-//        if (start) {
-//          let chunks = line.split(/\s+/).filter(x => x)
-//          if (chunks.length > 1) {
-//            pip.add(chunks[0])
-//          }
-//        } else {
-//          if (/-------.*/i.test(line)) {
-//            start = true 
-//          }
-//        }
-//      }
-//    }
-//    this.installed.pip = pip
-    
-
     if (this.platform === "darwin") {
       // 3. brew
-      console.log("## check brew")
 
       let brew_path = path.resolve(this.kernel.homedir, "bin", "homebrew")
       let brew_exists = await this.exists(brew_path)
-      console.log({ brew_path, brew_exists })
 
       let brew = []
       if (brew_exists) {
-        start = false
-        res = await this.exec({ message: `brew list -1`, conda: { skip: true } }, (stream) => {
-//          console.log("brew list check", { stream })
-        })
-        console.log("BREW", res.response)
-        lines = res.response.split(/[\r\n]+/).slice(0, -1)  // ignore last line since it's the prompt
-        let end = false
-        for(let line of lines) {
-          if (start) {
-            if (/^\s*$/.test(line)) {
-              end = true
-            } else {
-              if (!end) {
-                let chunks = line.split(/\s+/).filter(x => x)
-                brew = brew.concat(chunks)
-              }
-            }
-          } else {
-            if (/==>/.test(line)) {
-              start = true
-            }
+        const cellarPath = path.resolve(brew_path, "Cellar")
+        let usedCellar = false
+        try {
+          const entries = await fs.promises.readdir(cellarPath, { withFileTypes: true })
+          brew = entries
+            .filter((entry) => entry.isDirectory())
+            .map((entry) => entry.name)
+          usedCellar = true
+        } catch (err) {
+          console.log("[brew] cellar scan failed, falling back to brew list -1", err)
+        }
+
+        if (!usedCellar) {
+          start = false
+          res = await this.exec({ message: `brew list -1`, conda: { skip: true } }, () => { })
+          lines = res.response.split(/[\r\n]+/).slice(0, -1)  // ignore last line since it's the prompt
+          const parsed = lines
+            .map((raw) => raw.trim())
+            .filter((line) => line.length > 0 && !/^==>/.test(line))
+          for (const line of parsed) {
+            brew = brew.concat(line.split(/\s+/).filter(Boolean))
           }
         }
       }
       this.installed.brew = new Set(brew)
 
 
-      // check brew_installed
-      console.log("checking brew installed")
-      let e = await this.kernel.bin.exists("homebrew")
-      let { stdout }= await this.exec({ message: "xcode-select -p", conda: { skip: true } }, (stream) => { })
-      let e2 = /(.*Library.*Developer.*CommandLineTools.*|.*Xcode.*Developer.*)/gi.test(stdout)
-      let e3 = await this.kernel.exists("/Library/Developer/CommandLineTools")
-
-      // if xcode-select version exists
-      // - if version is greater thatn 2349 => yes
-      // - if version lower than 2349 => no
-      // if xcode-select version doesn't match
-      // - no
-
-      let e4;
-      let result = await this.exec({ message: "xcode-select --version", conda: { skip: true } }, (stream) => { })
-      if (result && result.stdout) {
-        e4 = /xcode-select version ([0-9]+)/gi.exec(result.stdout)
-        if (e4 && e4.length > 1) {
-          let version = Number(e4[1]) 
-          console.log("xcode-select version", version)
-          if (version >= 2349) {
-            e4 = true
-          } else {
-            e4 = false
-          }
-        } else {
-          e4 = false
-        }
-      } else {
-        e4 = false
-      }
-      console.log("BREW CHECK", { e, e2, e3, e4 })
-      this.brew_installed = e && e2 && e3 && e4
+      this.brew_installed = await this.kernel.bin.exists("homebrew")
+      console.log("brew_installed", this.brew_installed)
 
     }
 
@@ -569,7 +547,7 @@ class Bin {
   //  await this.mod(name).rm({}, ondata)
   //  await this.mod(name).install(options, ondata)
   //}
-  async tryInstall(requirement, x, i, total, ondata) {
+  async tryInstall(id, requirement, x, i, total, ondata) {
     let current_platform = os.platform()
     let current_arch = os.arch()
     let current_gpu = this.kernel.gpu
@@ -629,7 +607,7 @@ class Bin {
               ondata({ html: `<b><i class="fas fa-circle-notch fa-spin"></i> ${progress} Installing ${name}</b>${message}` }, "notify2")
               console.log("## Before m.mod.install", requirement)
               requirement._attempt = x
-              await m.mod.install(requirement, ondata, this.kernel)
+              await m.mod.install(requirement, ondata, this.kernel, id)
 
 //                // 2 second delay to fix conda issue
 //                await new Promise((resolve, reject) => {
@@ -645,6 +623,113 @@ class Bin {
 
       }
 //    }
+  }
+  async path_exists(req, ondata) {
+    let abspath = this.kernel.api.resolvePath(this.kernel.api.userdir, req.params.uri)
+    if (abspath) {
+      console.log({ abspath })
+      let exists = await new Promise(r=>fs.access(abspath, fs.constants.F_OK, e => r(!e)))
+      return exists
+    } else {
+      return false
+    }
+  }
+  async install2(req, ondata) {
+    let { requirements, install_required, requirements_pending, error } = await this.check({
+      bin: this.preset("dev")
+    })
+    req.params = JSON.stringify(requirements)
+    if (this.install_required) {
+      let res = await this.install(req, ondata)
+      return res
+    }
+  }
+  async resolveInstallRequirements(req, ondata) {
+    let params = req.params
+    let mode = req.mode
+    if (typeof params === 'string') {
+      let trimmed = params.trim()
+      if (trimmed.length === 0) {
+        params = null
+      } else if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        try {
+          params = JSON.parse(trimmed)
+        } catch (e) {
+          params = trimmed
+        }
+      } else {
+        params = trimmed
+      }
+    }
+    if (Array.isArray(params)) {
+      return params
+    }
+    if (params && typeof params === 'object') {
+      if (Array.isArray(params.requirements)) {
+        return params.requirements
+      }
+      if (typeof params.mode === 'string' && params.mode.trim().length > 0) {
+        mode = params.mode.trim()
+      }
+    }
+    if (!mode && typeof params === 'string' && params.length > 0) {
+      mode = params
+    }
+    if (!mode && req.params && typeof req.params.mode === 'string' && req.params.mode.trim().length > 0) {
+      mode = req.params.mode.trim()
+    }
+    if (!mode && typeof req.mode === 'string' && req.mode.trim().length > 0) {
+      mode = req.mode.trim()
+    }
+    if (!mode) {
+      throw new Error('kernel.bin.install requires `requirements` array or `mode` string in params')
+    }
+    const preset = this.preset(mode)
+    if (!preset) {
+      const available = Object.keys(Setup).sort().join(', ')
+      throw new Error(`Unknown setup mode "${mode}". Available modes: ${available}`)
+    }
+    if (ondata) {
+      ondata({ html: `<b>Resolving setup preset "${mode}"</b>` }, 'notify2')
+    }
+    const { requirements } = await this.check({ bin: preset })
+    return Array.isArray(requirements) ? requirements : []
+  }
+//  async init_launcher(req, ondata) {
+//    console.log("init_launcher", req)
+//    try {
+//      let projectType = req.params.projectType
+//      let startType = req.params.cliType || req.params.startType
+//      console.log({ projectType, startType })
+//
+//      let cwd = req.cwd
+//      let name = req.name
+//      let payload = {}
+//      payload.cwd = path.resolve(cwd, name)
+//      payload.input = req.params
+//
+//      let mod_path = path.resolve(__dirname, "../proto", projectType, startType)
+//      let mod = await this.kernel.require(mod_path)
+//
+//      await mod(payload, ondata, this.kernel)
+//
+//      // copy readme
+//      let readme_path = path.resolve(__dirname, "../proto/PINOKIO.md")
+//      console.log("copy to", readme_path, path.resolve(cwd, name, "PINOKIO.md"))
+//      await fs.promises.cp(readme_path, path.resolve(cwd, name, "PINOKIO.md"))
+//
+//      // copy CLI.md
+//      let cli_readme_path = 
+//
+//      return { success: "/p/" + name }
+//    } catch (e) {
+//      console.log("ERROR", e)
+//      return { error: e.stack }
+//    }
+//  }
+  async filepicker(req, ondata) {
+    let res = await Util.filepicker(req, ondata, this.kernel)
+    return res
   }
   async install(req, ondata) {
     /*
@@ -664,9 +749,7 @@ class Bin {
     } else {
       this.client = null
     }
-
-    let requirements = JSON.parse(req.params)
-
+    let requirements = await this.resolveInstallRequirements(req, ondata)
     for(let x=0; x<10; x++) {
       console.log(`## Install Attempt ${x}`)
       let i = 0;
@@ -680,7 +763,7 @@ class Bin {
           console.log("already installed. skip.")
         } else {
           console.log("not installed. install.")
-          await this.tryInstall(requirement, x, i, requirements.length, ondata)
+          await this.tryInstall(req.id, requirement, x, i, requirements.length, ondata)
         }
       }
 
@@ -736,24 +819,349 @@ class Bin {
     //    }
     //  }
     //}
-    await this.init()
+    await this.kernel.proto.init()
+
+    if (this.kernel.shell) {
+      this.kernel.shell.reset()
+    }
+
+//    await this.init()
   }
-  async _installed(name, type) {
+  async check_installed(r, dependencies) {
+    if (Array.isArray(r.name)) {
+      for(let name of r.name) {
+        let d = Date.now()
+        let installed = await this._installed(name, r.type, dependencies)
+        if (!installed) return false
+      }
+      return true
+    } else {
+      let installed = await this._installed(r.name, r.type, dependencies)
+      return installed
+    }
+  }
+  async _installed(name, type, dependencies) {
     if (type === "conda") {
-      return this.kernel.bin.installed.conda.has(name)
+      let conda_installed = this.installed.conda.has(name)
+      let dependencies_installed = true
+      for(let d of dependencies) {
+        if(!this.installed.conda.has(d)) {
+          dependencies_installed = false
+          break
+        }
+      }
+      return conda_installed && dependencies_installed
     } else if (type === "pip") {
-      return this.kernel.bin.installed.pip && this.kernel.bin.installed.pip.has(name)
+      return this.installed.pip && this.installed.pip.has(name)
     } else if (type === "brew") {
-      return this.kernel.bin.installed.brew.has(name)
+      return this.installed.brew.has(name)
     } else {
       // check kernel/bin/<module>.installed()
       let filepath = path.resolve(__dirname, "..", "kernel", "bin", name + ".js")
-      let mod = this.kernel.bin.mod[name]
+      let mod = this.mod[name]
       let installed = false
+      /*
+      if (!this.cached_mod_installed) {
+        this.cached_mod_installed = {}
+      }
+      if (this.cached_mod_installed[name] === true) {
+        return true
+      } else {
+        if (mod.installed) {
+          installed = await mod.installed()
+          if (installed) {
+            this.cached_mod_installed[name] = true
+          }
+        }
+        return installed
+      }
+      */
+
       if (mod.installed) {
         installed = await mod.installed()
       }
       return installed
+    }
+  }
+  preset(mode) {
+    return Setup[mode](this.kernel)
+  }
+  requirements(config) {
+    let requirements = config.bin.requirements
+    if (config.script && config.script.requires && config.script.requires.length > 0) {
+      /*********************************************************************
+
+      {
+        requires: [{
+          platform,
+          type,
+          name,
+          args
+        }, {
+          platform,
+          type,
+          name,
+          args
+        }],
+        run: [{
+          ...
+        }]
+      }
+
+      syntax :=
+
+        {
+          platform: <win32|darwin|linux>,
+          type: <conda|pip|brew|none>,
+          name: <package name>,           (example: "ffmpeg", "git")
+          args: <install command flags>   (example: "-c conda-forge")
+        }
+
+
+      1. pinokio native install: no need for specifying platforms since they are included
+
+        {
+          name: "conda"
+        }
+
+
+      2. non native install (conda, pip, brew)
+
+        2.1. Same on all platforms 
+
+        [{
+          type: "conda",
+          name: "ffmpeg",
+          args: "-c conda-forge"
+        }]
+
+        2.2. Specify per platform
+
+
+        [
+          { name: "conda" },
+          { platform: "darwin", type: "brew", name: "llvm" },
+          { platform: "linux", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" },
+          { platform: "win32", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" }
+        ]
+
+        [
+          { name: "conda" },
+          { platform: ["darwin", "linux"], type: "brew", name: "llvm" },
+          { platform: "win32", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" }
+        ]
+
+
+
+      *********************************************************************/
+      let type_name_set = new Set()
+      for(let r of config.script.requires) {
+        // if no platform specified, or if the specified platform matches the current platform
+        if (!r.platform || platform === r.platform || Array.isArray(r.platform) && r.platform.includes(platform) ) {
+          if (Array.isArray(r.name)) {
+            // if array, just add it
+            requirements.push(r)
+          } else {
+            let type_name = `${r.type ? r.type : ''}/${r.name}`
+            if (!type_name_set.has(type_name)) {
+              type_name_set.add(type_name)
+              requirements.push(r)
+            }
+          }
+        }
+      }
+
+    }
+    return requirements
+  }
+  relevant(r) {
+    /*
+      single platform
+      [
+        { name: "conda" },
+        { platform: "darwin", type: "brew", name: "llvm" },
+        { platform: "linux", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" },
+        { platform: "win32", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" }
+      ]
+
+      multiple platforms
+      [
+        { name: "conda" },
+        { platform: ["darwin", "linux"], type: "brew", name: "llvm" },
+        { platform: "win32", tyoe: "conda", name: "llvm", args: "-c conda-forge llvm" }
+      ]
+
+
+      platform & arch
+      [
+        { name: "conda" },
+        { platform: "darwin", arch: ["arm64", "x64"], type: "brew", name: "llvm" },
+      ]
+    */
+
+    let platform = os.platform()
+    let arch = os.arch()
+    let gpu = this.kernel.gpu
+    let relevant = {
+      platform: false,
+      arch: false,
+      gpu: false,
+    }
+    if (r.platform) {
+      if (Array.isArray(r.platform)) {
+        // multiple items
+        if (r.platform.includes(platform)) {
+          relevant.platform = true
+        }
+      } else {
+        // one item
+        if (r.platform === platform) {
+          relevant.platform = true
+        }
+      }
+    } else {
+      // all platforms
+      relevant.platform = true
+    }
+    if (r.arch) {
+      if (Array.isArray(r.arch)) {
+        // multiple items
+        if (r.arch.includes(arch)) {
+          relevant.arch = true
+        }
+      } else {
+        // one item
+        if (r.arch === arch) {
+          relevant.arch = true
+        }
+      }
+    } else {
+      // all platforms
+      relevant.arch = true
+    }
+    if (r.gpu) {
+      if (Array.isArray(r.gpu)) {
+        // multiple items
+        if (r.gpu.includes(gpu)) {
+          relevant.gpu = true
+        }
+      } else {
+        // one item
+        if (r.gpu === gpu) {
+          relevant.gpu = true
+        }
+      }
+    } else {
+      // all platforms
+      relevant.gpu = true
+    }
+    return relevant.platform && relevant.arch && relevant.gpu
+  }
+  async check(config) {
+    if (typeof this.kernel.binCheckDepth !== 'number') {
+      this.kernel.binCheckDepth = 0
+    }
+    this.kernel.binCheckDepth++
+    let requirements = this.requirements(config)
+    let requirements_pending = !this.installed_initialized
+    let install_required = true
+    if (!requirements_pending) {
+      install_required = false
+      for(let i=0; i<requirements.length; i++) {
+        let r = requirements[i]
+        let fingerprint = JSON.stringify(r)
+        let installed
+        const canUseCache = r.name !== "brew" || r.type
+        if (canUseCache && fingerprint in this.requirements_cache) {
+          let relevant = this.relevant(r)
+          requirements[i].relevant = relevant
+          if (relevant) {
+            let dependencies
+            if (r.name === "conda") {
+              dependencies = config.bin.conda_requirements
+              requirements[i].dependencies = dependencies
+            }
+            installed = this.requirements_cache[fingerprint]
+            requirements[i].installed = this.requirements_cache[fingerprint]
+          }
+        } else {
+          //let installed = await this.installed(r)
+          //requirements[i].installed = installed
+          //if (!installed) {
+          //  install_required = true
+          //}
+          let relevant = this.relevant(r)
+          requirements[i].relevant = relevant
+          if (relevant) {
+            let dependencies
+            if (r.name === "conda") {
+              dependencies = config.bin.conda_requirements
+              requirements[i].dependencies = dependencies
+            }
+            installed = await this.check_installed(r, dependencies)
+            if (canUseCache) {
+              this.requirements_cache[fingerprint] = installed
+            }
+            //if (installed) {
+            //  // cache if true
+            //  this.requirements_cache[fingerprint] = true
+            //}
+            requirements[i].installed = installed
+          }
+        }
+        if (!installed) {
+          install_required = true
+        }
+      }
+    }
+
+    let error = null
+    try {
+      this.compatible()
+    } catch (e) {
+      error = e.message
+      install_required = true
+    }
+
+    this.install_required = install_required
+    this.requirements_pending = requirements_pending
+
+    requirements = requirements.filter((r) => {
+      return r.relevant
+    })
+    this.kernel.binCheckDepth--
+    return {
+      error,
+      title: config.bin.title,
+      description: config.bin.description,
+      icon: config.bin.icon,
+      requirements,
+      install_required,
+      requirements_pending
+    }
+  }
+  winBuildNumber() {
+    let osVersion = (/(\d+)\.(\d+)\.(\d+)/g).exec(os.release());
+    let buildNumber = 0;
+    if (osVersion && osVersion.length === 4) {
+        buildNumber = parseInt(osVersion[3]);
+    }
+    return buildNumber;
+  }
+  compatible() {
+    if (this.kernel.platform === "win32") {
+      let buildNumber = this.winBuildNumber() 
+      if (buildNumber < 18309) {
+        // must use conpty for node-pty, and conpty is only supported in win>=18309
+        console.log("Windows buildNumber", buildNumber)
+        throw new Error(`Pinokio supports Windows release 18309 and up (current system: ${buildNumber}`)
+      }
+
+//      if (buildNumber > 25000) {
+//        console.log("Windows buildNumber", buildNumber)
+//        throw new Error(`Pinokio does not currently support Windows Canary (versions 25000 and up). The current system is ${buildNumber}`)
+//        
+//      }
     }
   }
   async sh(params, ondata) {

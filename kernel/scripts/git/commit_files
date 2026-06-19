@@ -1,0 +1,31 @@
+{
+  "run": [{
+    "when": "{{args.paths && args.paths.length > 0}}",
+    "method": "shell.run",
+    "params": {
+      "path": "{{args.cwd}}",
+      "message": [
+        "git add -- {{args.paths}}"
+      ]
+    }
+  }, {
+    "when": "{{args.untracked_paths && args.untracked_paths.length > 0}}",
+    "method": "shell.run",
+    "params": {
+      "path": "{{args.cwd}}",
+      "message": [
+        "git add -- {{args.untracked_paths}}"
+      ]
+    }
+  }, {
+    "when": "{{(args.paths && args.paths.length > 0) || (args.untracked_paths && args.untracked_paths.length > 0)}}",
+    "method": "shell.run",
+    "params": {
+      "chain": true,
+      "path": "{{args.cwd}}",
+      "message": [
+        "git commit -m \"{{args.message}}\""
+      ]
+    }
+  }]
+}

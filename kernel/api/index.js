@@ -11,6 +11,15 @@ const fastq = require('fastq')
 const Loader = require("../loader")
 const Environment = require("../environment")
 const Util = require('../util')
+const ShellRunTemplate = require('./shell_run_template')
+const PluginSources = require('../plugin_sources')
+
+const escapeHtml = (value) => String(value || "")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#39;")
 
 class Api {
   constructor(kernel) {
@@ -26,7 +35,276 @@ class Api {
     this.proxies = {}
     this.mods = {}
     this.child_procs = {}
+    this.resolved_actions = {}
     this.lproxy = new Lproxy()
+  }
+  async launcher_path(name) {
+    let root_path = this.kernel.path("api", name)
+    let primary_path = path.resolve(root_path, "pinokio.js")
+    let exists = await this.exists(primary_path)
+    if (exists) {
+      return root_path
+    } else {
+      let secondary_path = path.resolve(root_path, "pinokio/pinokio.js")
+      let exists = await this.exists(secondary_path)
+      if (exists) {
+        return path.resolve(root_path, "pinokio")
+      }
+    }
+    // default is the 
+    return root_path
+  }
+  async launcher(name) {
+    /*
+      look for:
+      1. pinokio.js
+      2. ./pinokio/pinokio.js
+    */
+    let root_path
+    if (typeof name === "object") {
+      if (name.name) {
+        root_path = this.kernel.path("api", name.name)
+      } else if (name.path) {
+        root_path = name.path
+      }
+    } else {
+      root_path = this.kernel.path("api", name)
+    }
+    let primary_path = path.resolve(root_path, "pinokio.js")
+    let secondary_path = path.resolve(root_path, "pinokio/pinokio.js")
+    let pinokio = (await this.kernel.loader.load(primary_path)).resolved
+    let launcher_root = ""
+    if (!pinokio) {
+      pinokio = (await this.kernel.loader.load(secondary_path)).resolved
+      if (pinokio) {
+        launcher_root = "pinokio"
+      }
+    }
+    return {
+      script: pinokio,
+      root: root_path,
+      launcher_root
+    }
+  }
+//  async createMeta(formData) {
+//    let _path = this.kernel.path("api", formData.path)
+//    await fs.promises.mkdir(_path, { recursive: true }).catch((e) => {})
+//    let icon_path = this.kernel.path("api", formData.path, "icon.png")
+//    await fs.promises.writeFile(icon_path, formData.avatar)
+//
+//    // write title/description to pinokio.json
+//    let meta_path = this.kernel.path("api", formData.path, "pinokio.json")
+//    let meta = {
+//      title: formData.title,
+//      description: formData.description,
+//      icon: "icon.png",
+//      plugin: {
+//        menu: []
+//      }
+//    }
+//    await fs.promises.writeFile(meta_path, JSON.stringify(meta, null, 2))
+//  }
+  async updateMeta(formData, app_path) {
+    // write title/description to pinokio.json
+    let dirty
+    let launcher_path = await this.launcher_path(app_path)
+    let meta_path = path.resolve(launcher_path, "pinokio.json")
+    let meta = (await this.kernel.loader.load(meta_path)).resolved
+    if (!meta) meta = {}
+    if (formData.title) {
+      meta.title = formData.title
+      dirty = true
+    }
+    if (formData.description) {
+      meta.description = formData.description
+      dirty = true
+    }
+    if (!meta.plugin) {
+      meta.plugin = {
+        menu: []
+      }
+    }
+
+    if (formData.icon_dirty) {
+      // 
+      // write icon file
+      let icon_path = this.kernel.path("api", formData.new_path, formData.icon_path)
+      await fs.promises.writeFile(icon_path, formData.avatar)
+      meta.icon = formData.icon_path
+      dirty = true
+    }
+    if (dirty) {
+      await fs.promises.writeFile(meta_path, JSON.stringify(meta, null, 2))
+    }
+  }
+  async meta(name) {
+    let p1
+    let p2
+    let p3
+    let api_path
+    let api_name
+    let api_root_path
+    const api_root = this.userdir || this.kernel.path("api")
+    const isWithinApiRoot = (candidatePath) => {
+      if (typeof candidatePath !== "string" || !candidatePath) {
+        return false
+      }
+      const relativePath = path.relative(api_root, candidatePath)
+      return relativePath === "" || (!relativePath.startsWith("..") && !path.isAbsolute(relativePath))
+    }
+    if (typeof name === "object" && name) {
+      if (name.name) {
+        api_root_path = this.kernel.path("api", name.name)
+        api_path = await this.launcher_path(name.name)
+        api_name = name.name
+      } else if (name.path) {
+        const resolvedPath = path.resolve(name.path)
+        const launcher = await this.launcher({ path: resolvedPath })
+        api_path = (launcher && launcher.script && launcher.launcher_root)
+          ? path.resolve(launcher.root, launcher.launcher_root)
+          : resolvedPath
+        if (isWithinApiRoot(resolvedPath)) {
+          const relativeToApiRoot = path.relative(api_root, resolvedPath)
+          const segments = relativeToApiRoot.split(path.sep).filter(Boolean)
+          api_name = segments[0] || path.basename(resolvedPath)
+          api_root_path = path.resolve(api_root, api_name)
+        } else {
+          api_name = path.basename(resolvedPath)
+          api_root_path = resolvedPath
+        }
+      }
+    } else {
+      api_root_path = this.kernel.path("api", name)
+      api_path = await this.launcher_path(name)
+      api_name = name
+    }
+    if (!api_path) {
+      api_path = api_root_path
+    }
+    if (!api_root_path) {
+      api_root_path = api_path
+    }
+    p1 = path.resolve(api_path, "pinokio.js")
+    p2 = path.resolve(api_path, "pinokio_meta.json")
+    p3 = path.resolve(api_path, "pinokio.json")
+    let pinokio = (await this.kernel.loader.load(p1)).resolved
+    if (pinokio && pinokio.menu && !(Array.isArray(pinokio.menu) || typeof pinokio.menu === "function")) {
+      delete pinokio.menu
+    }
+    let pinokio2 = (await this.kernel.loader.load(p2)).resolved
+    if (pinokio2 && pinokio2.menu && !(Array.isArray(pinokio2.menu) || typeof pinokio2.menu === "function")) {
+      delete pinokio2.menu
+    }
+    let pinokio3 = (await this.kernel.loader.load(p3)).resolved
+    if (pinokio3 && pinokio3.menu && !(Array.isArray(pinokio3.menu) || typeof pinokio3.menu === "function")) {
+      delete pinokio3.menu
+    }
+    let meta = Object.assign({}, pinokio, pinokio2, pinokio3)
+
+    // create pinokio.json if it doesn't exist
+//    if (!pinokio3) {
+//      await fs.promises.writeFile(p3, JSON.stringify({
+//        plugin: {
+//          menu: []
+//        }
+//      }), null, 2)
+//    } else {
+//      if (!pinokio3.plugin) {
+//        pinokio3.plugin.menu = []
+//        await fs.promises.writeFile(p3, JSON.stringify(pinokio3, null, 2))
+//      }
+//    }
+
+    meta.declared_path = typeof meta.path === "string" ? meta.path : ""
+    meta.iconpath = meta.icon ? meta.icon : null
+    //meta.iconpath = meta.icon ? path.resolve(api_path, meta.icon) : null
+    meta.path = api_path
+    meta.name = meta.title
+
+    let relpath = path.relative(api_root_path, api_path)
+    if (relpath === ".") {
+      meta.icon = meta.icon ? `/asset/api/${api_name}/${meta.icon}` : "/pinokio-black.png"
+      meta.link = `/p/${api_name}/dev#n1`
+      meta.web_path = `/api/${api_name}`
+      meta.ui = `/p/${api_name}`
+      meta.browse = `/p/${api_name}/dev`
+    } else {
+      meta.icon = meta.icon ? `/asset/api/${api_name}/${meta.icon}` : "/pinokio-black.png"
+      meta.link = `/p/${api_name}/${relpath}/dev#n1`
+      meta.web_path = `/api/${api_name}/${relpath}`
+      meta.ui = `/p/${api_name}/${relpath}`
+      meta.browse = `/p/${api_name}/dev/${relpath}`
+    }
+    if (!pinokio && !pinokio2 && !pinokio3 ) {
+      meta.init_required = true
+    }
+    if (!pinokio2 && !pinokio3) {
+      meta.meta_required = true
+    }
+    return meta
+  }
+  async listApps() {
+    const apps = []
+    const apiRoot = this.userdir || this.kernel.path("api")
+    let entries
+    try {
+      entries = await fs.promises.readdir(apiRoot, { withFileTypes: true })
+    } catch (enumerationError) {
+      console.warn("Failed to enumerate api apps", enumerationError)
+      return apps
+    }
+
+    for (const entry of entries) {
+      let type
+      try {
+        type = await Util.file_type(apiRoot, entry)
+      } catch (typeError) {
+        console.warn("Failed to inspect api entry", entry.name, typeError)
+        continue
+      }
+      if (!type || !type.directory) {
+        continue
+      }
+
+      const workspacePath = path.resolve(apiRoot, entry.name)
+      let meta
+      try {
+        meta = await this.meta(entry.name)
+      } catch (metaError) {
+        console.warn("Failed to load app metadata", entry.name, metaError)
+        meta = null
+      }
+
+      const launcherPath = meta && meta.path ? meta.path : workspacePath
+      const title = meta && meta.title ? meta.title : entry.name
+      const description = meta && meta.description ? meta.description : ""
+      const icon = meta && meta.icon ? meta.icon : "/pinokio-black.png"
+      apps.push({
+        id: entry.name,
+        name: entry.name,
+        title,
+        description,
+        icon,
+        workspace_path: workspacePath,
+        launcher_path: launcherPath,
+        launcher_root: path.relative(workspacePath, launcherPath),
+        meta: meta || {
+          title,
+          description,
+          icon,
+          path: launcherPath
+        }
+      })
+    }
+
+    apps.sort((a, b) => {
+      const at = (a.title || a.name || "").toLowerCase()
+      const bt = (b.title || b.name || "").toLowerCase()
+      if (at < bt) return -1
+      if (at > bt) return 1
+      return (a.name || "").localeCompare(b.name || "")
+    })
+    return apps
   }
   get_proxy_url(root, port) {
     if (this.proxies) {
@@ -102,10 +380,22 @@ class Api {
     }
   }
   respond(req) {
-    let requestPath = this.filePath(req.uri)
-    if (this.waiter[requestPath]) {
-      this.waiter[requestPath].resolve(req.response)
-      delete this.waiter[requestPath]
+    let requestPath
+    try {
+      requestPath = this.filePath(req.uri)
+    } catch (_) {
+      requestPath = req.uri
+    }
+    const candidates = [requestPath]
+    if (req && req.uri && req.uri !== requestPath) {
+      candidates.push(req.uri)
+    }
+    for (const key of candidates) {
+      if (this.waiter[key]) {
+        this.waiter[key].resolve(req.response)
+        delete this.waiter[key]
+        return
+      }
     }
   }
   wait(scriptPath) {
@@ -118,41 +408,189 @@ class Api {
     let result = await endpoint(rpc, ondata, this.kernel)
     return result
   }
+  requestId(request) {
+    return request ? (request.id || request.path) : null
+  }
+  clearResolvedAction(requestOrId) {
+    const id = typeof requestOrId === "string" ? requestOrId : this.requestId(requestOrId)
+    if (id) {
+      delete this.resolved_actions[id]
+    }
+  }
+  setRunning(request, done) {
+    const id = this.requestId(request)
+    if (!id) {
+      return
+    }
+    this.running[id] = true
+    this.done[id] = done
+  }
+  isActionCandidate(action) {
+    return (Array.isArray(action) && action.length > 0) || typeof action === "function"
+  }
+  isPathInsideRoot(candidatePath, rootPath) {
+    if (!candidatePath || !rootPath) {
+      return false
+    }
+    const relative = path.relative(path.resolve(rootPath), path.resolve(candidatePath))
+    return relative === "" || (!!relative && !relative.startsWith("..") && !path.isAbsolute(relative))
+  }
+  toPosixPath(value) {
+    return String(value || "").split(path.sep).join("/")
+  }
+  pluginPathFromFilePath(filePath) {
+    if (!filePath) {
+      return ""
+    }
+    const candidatePath = path.resolve(filePath)
+    const systemPluginRoot = PluginSources.systemPluginRoot(this.kernel)
+    if (this.isPathInsideRoot(candidatePath, systemPluginRoot)) {
+      const relativePath = this.toPosixPath(path.relative(systemPluginRoot, candidatePath))
+      return PluginSources.normalizePluginPath(`${PluginSources.SYSTEM_PLUGIN_RUN_PREFIX}/${relativePath}`)
+    }
+    const localPluginRoot = this.kernel && typeof this.kernel.path === "function"
+      ? this.kernel.path("plugin")
+      : ""
+    if (this.isPathInsideRoot(candidatePath, localPluginRoot)) {
+      const relativePath = this.toPosixPath(path.relative(localPluginRoot, candidatePath))
+      return PluginSources.normalizePluginPath(`/plugin/${relativePath}`)
+    }
+    return ""
+  }
+  pluginInstallDetailHref(request) {
+    const uri = request && typeof request.uri === "string" ? request.uri : ""
+    let pluginPath = ""
+    if (uri && (PluginSources.isRunPath(uri) || uri.startsWith("/plugin/") || uri.startsWith("plugin/"))) {
+      pluginPath = PluginSources.normalizePluginPath(uri)
+    }
+    if (!pluginPath) {
+      pluginPath = this.pluginPathFromFilePath(request && request.path)
+    }
+    return pluginPath
+      ? `/plugin?path=${encodeURIComponent(pluginPath)}&next=install`
+      : "/plugins"
+  }
+  pluginInstallNoticeStep(request, script) {
+    const title = escapeHtml(script && script.title ? script.title : "This plugin")
+    return {
+      method: "notify",
+      params: {
+        html: `${title} is not installed. Open the plugin page and click Install.`,
+        href: this.pluginInstallDetailHref(request),
+        target: "_parent",
+        type: "warning",
+      }
+    }
+  }
+  async actionContext({ request, script, scriptDir, actionKey, input, args }) {
+    const cwd = request.cwd || scriptDir
+    const id = this.requestId(request)
+    const env = await Environment.get2(request.path, this.kernel)
+    this.kernel.template.update({ envs: env, env })
+    const port = await this.kernel.port()
+    const name = path.relative(this.kernel.path("api"), scriptDir)
+    return {
+      kernel: this.kernel,
+      info: this.kernel.info,
+      script: this.kernel.script,
+      action: actionKey,
+      input,
+      args,
+      global: (this.kernel.memory.global[id] || {}),
+      local: (this.kernel.memory.local[id] || {}),
+      key: this.kernel.memory.key,
+      uri: request.uri,
+      cwd,
+      dirname: scriptDir,
+      exists: (...args) => {
+        return fs.existsSync(path.resolve(cwd, ...args))
+      },
+      running: (...args) => {
+        let fullpath = path.resolve(cwd, ...args)
+        return this.running[fullpath]
+      },
+      name,
+      self: script,
+      port,
+      env,
+      envs: env,
+      ...this.kernel.vars,
+    }
+  }
+  async resolveActionSteps({ request, script, scriptDir, actionKey, input, args }) {
+    const id = this.requestId(request)
+
+    if (actionKey === "run" && script && typeof script.installed === "function" && this.isActionCandidate(script.install)) {
+      let installed = null
+      try {
+        const context = await this.actionContext({ request, script, scriptDir, actionKey: "installed", input, args })
+        installed = await script.installed.call(script, this.kernel, this.kernel.info, context)
+      } catch (error) {
+        console.warn("Plugin installed check failed", request && request.path, error)
+      }
+      if (installed === false) {
+        return [this.pluginInstallNoticeStep(request, script)]
+      }
+    }
+
+    const cached = id ? this.resolved_actions[id] : null
+    if (cached && cached.actionKey === actionKey && Array.isArray(cached.steps)) {
+      return cached.steps
+    }
+
+    const action = script ? script[actionKey] : null
+    let steps
+    if (Array.isArray(action)) {
+      steps = action
+    } else if (typeof action === "function") {
+      const context = await this.actionContext({ request, script, scriptDir, actionKey, input, args })
+      steps = await action.call(script, this.kernel, this.kernel.info, context)
+    } else {
+      steps = null
+    }
+
+    if (id && Array.isArray(steps)) {
+      this.resolved_actions[id] = { actionKey, steps }
+    }
+    return steps
+  }
   async stop(req, ondata) {
     // 1. set the "stop" flag for the uri, so the next execution in the queue for the uri will NOT queue another task
     // 2. stream a message closing the socket
 
+    if (req.params.id) {
+      // /Users/x/pinokio/prototype/system/aicode/template/claude.json?cwd=/Users/x/pinokio/api/MMAudio.git
+      // take the first part only since the rest is the cwd
+      req.params.uri = req.params.id.split("?")[0]
+      this.clearResolvedAction(req.params.id)
+    }
+
+    // 1. if the scropt has 'on.stop', run it when stopping
     let requestPath = this.filePath(req.params.uri)
-
-
-
+    this.clearResolvedAction(requestPath)
     let { cwd, script } = await this.resolveScript(requestPath)
-    console.log("STOP", { script })
     if (script.on) {
       if (script.on.stop) {
         await this.process(script.on.stop) 
       }
     }
-
     // reset modules
     let modpath = this.resolvePath(cwd, req.params.uri)
-    console.log("STOP modpath", modpath)
-    console.log("this.mods before", this.mods)
-    console.log("this.child_procs before", this.child_procs)
     if (this.child_procs[modpath]) {
       let child_procs = Array.from(this.child_procs[modpath])
       for(let proc of child_procs) {
-        console.log("reset child proc", proc)
         delete this.mods[proc]
       }
       delete this.child_procs[modpath]
-      console.log("this.mods after", this.mods)
-      console.log("this.child_procs after", this.child_procs)
     }
 
 
     // stop all shell processes connected to the uri
-    this.kernel.shell.kill({ group: requestPath })
+    if (req.params.id) {
+      this.kernel.shell.kill({ group: req.params.id })
+    } else {
+      this.kernel.shell.kill({ group: requestPath })
+    }
 
     // if any process is in a "wait" state, resume it
     this.kernel.resumeprocess(requestPath)
@@ -170,15 +608,19 @@ class Api {
       this.waiter[requestPath].reject()
       delete this.waiter[requestPath]
     }
-
-    delete this.running[requestPath]
-
-    delete this.kernel.memory.local[requestPath]
-
+    if (req.params.id) {
+      delete this.running[req.params.id]
+      delete this.kernel.memory.local[req.params.id]
+    } else {
+      delete this.running[requestPath]
+      delete this.kernel.memory.local[requestPath]
+    }
     this.ondata({
-      id: requestPath,
+      id: req.params.id || requestPath,
       type: "disconnect"
     })
+//    console.log("kernel.refresh api.stop")
+//    this.kernel.refresh(true)
     return true
   }
   async startScripts() {
@@ -189,32 +631,36 @@ class Api {
     } catch (e) {
     }
     if (files) {
-      let folders = files.filter((file) => { return file.isDirectory() }).map((folder) => { return folder.name })
+      let folders = []
+      for(let file of files) {
+        let type = await Util.file_type(this.userdir, file)
+        if (type.directory) {
+          folders.push(file.name)
+        } 
+      }
       for(let folder of folders) {
         try {
-          const configPath = path.resolve(this.userdir, folder, "pinokio.js")
-          let m = (await this.loader.load(configPath))
-          if (m.resolved) {
-            if (m.resolved.start) {
-              if (typeof m.resolved.start === "function") {
-                if (m.resolved.start.constructor.name === "AsyncFunction") {
-                  m.resolved.start = await m.resolved.start(this.kernel)
+          let m = await this.launcher(folder)
+          if (m && m.script) {
+            if (m.script.start) {
+              if (typeof m.script.start === "function") {
+                if (m.script.start.constructor.name === "AsyncFunction") {
+                  m.script.start = await m.script.start(this.kernel)
                 } else {
-                  m.resolved.start = m.resolved.start(this.kernel)
+                  m.script.start = m.script.start(this.kernel)
                 }
               }
               // start script name => turn into hex to find the folder
               // and add the path to the start script array
-              if (m.resolved.start) {
+              if (m.script.start) {
                 let uri = folder
                 startScripts.push({
                   name: folder,
                   path: "/api/" + folder,
                   uri,
-                  script: m.resolved
+                  script: m.script
                 })
               }
-
             }
           } 
         } catch (e) {
@@ -227,14 +673,20 @@ class Api {
   async linkGit() {
     // iterate through all userdir folders and check for gitconfig
     // if they exist, add to this.gitPath
-    this.gitPath = {}
+    const gitPath = {}
     let files
     try {
       files = await fs.promises.readdir(this.userdir, { withFileTypes: true })
     } catch (e) {
     }
     if (files) {
-      let folders = files.filter((file) => { return file.isDirectory() }).map((folder) => { return folder.name })
+      let folders = []
+      for(let file of files) {
+        let type = await Util.file_type(this.userdir, file)
+        if (type.directory) {
+          folders.push(file.name)
+        } 
+      }
       for(let folder of folders) {
         try {
           const repositoryPath = path.resolve(this.userdir, folder)
@@ -245,13 +697,14 @@ class Api {
             path: 'remote.origin.url'
           })
           if (gitRemote) {
-            this.gitPath[gitRemote] = repositoryPath
+            gitPath[gitRemote] = repositoryPath
           }
         } catch (e) {
           //console.log("E", e)
         }
       }
     }
+    this.gitPath = gitPath
   }
   denormalize(gitRemote) {
     let denormalized
@@ -352,13 +805,20 @@ class Api {
     let modpath
     if (matched_repo.length > 0) {
       let repo_uri = matched_repo[0]
-
-      let relative_path = uri
-        .replace(repo_uri, "")    // remove the git repo uri
-        .slice(1)                 // remove the leading '/' for relative path
+      if (!repo_uri.endsWith(".git")) {
+        repo_uri = repo_uri + ".git"
+      }
 
       let repopath = this.gitPath[repo_uri]
-      modpath = path.resolve(repopath, relative_path)
+      if (uri === repo_uri) {
+        modpath = path.resolve(repopath)
+      } else {
+        let relative_path = uri
+          .replace(repo_uri, "")    // remove the git repo uri
+          .slice(1)                 // remove the leading '/' for relative path
+        modpath = path.resolve(repopath, relative_path)
+      }
+
     } else {
       //console.log("no matching gitpath")
     }
@@ -426,14 +886,18 @@ class Api {
     let method
     let dirname
     let mod
-    if (req.uri) {
+    if (req.method && typeof req.method === "function") {
+      modpath = null
+      method = req.method
+      dirname = __dirname
+      mod = null
+    } else if (req.uri) {
       modpath = this.resolvePath(cwd, req.uri)
       let m = (await this.loader.load(modpath))
       const stats = await fs.promises.stat(modpath)
       if (!this.child_procs[req.parent.path]) {
         this.child_procs[req.parent.path] = new Set()
       }
-      console.log("SCRIPT RESOLVE METHOD", req)
       if (this.mods[modpath]) {
         // use the cached module if unchanged
         if (String(stats.mtime) === String(this.mods[modpath].updated)) {
@@ -494,25 +958,31 @@ class Api {
   }
   async dirs(p) {
     const files = await fs.promises.readdir(p, { withFileTypes: true })
-    return files.filter(file => file.isDirectory()).map((x) => {
-      return {
-        name: x.name,
-        path: path.resolve(p, x.name)
-      }
-    });
+    let folders = []
+    for(let file of files) {
+      let type = await Util.file_type(this.userdir, file)
+      if (type.directory) {
+        folders.push({
+          name: file.name,
+          path: path.resolve(p, file.name)
+        })
+      } 
+    }
+    return folders
   }
   async files(p) {
     const files = await fs.promises.readdir(p, { withFileTypes: true })
-    return files.filter(file => !file.isDirectory())
-    .filter((file) => {
-      return !file.name.startsWith(".")  // no hidden files
-    })
-    .map((x) => {
-      return {
-        name: x.name,
-        path: path.resolve(p, x.name)
+    const res = []
+    for(let file of files) {
+      let type = await Util.file_type(this.userdir, file)
+      if (type.file && !file.name.startsWith(".")) {
+        res.push({
+          name: file.name,
+          path: path.resolve(p, file.name)
+        })
       }
-    });
+    }
+    return res
   }
   exists(_path) {
     return new Promise(r=>fs.access(_path, fs.constants.F_OK, e => r(!e)))
@@ -567,34 +1037,105 @@ class Api {
 
   }
   async step (request, rawrpc, input, i, total, args) {
-    console.time("STEP INIT")
+    if (this.kernel.sysReady) {
+      await this.kernel.sysReady
+    }
     await Promise.all([this.init(), this.kernel.update_sysinfo()])
-    console.timeEnd("STEP INIT")
 
     // clear global regular expression object RegExp.lastMatch (memory leak prevention)
     let r = /\s*/g.exec("");
 
-    let { cwd, script } = await this.resolveScript(request.path)
+    let port = await this.kernel.port()
+
+    let { cwd: scriptDir, script } = await this.resolveScript(request.path)
+    const actionKey = request.action || 'run'
+    const steps = await this.resolveActionSteps({ request, script, scriptDir, actionKey, input, args }) || []
+    const totalSteps = steps.length
+
+    let name = path.relative(this.kernel.path("api"), scriptDir)
+    let cwd = scriptDir
+
+    if (request.cwd) {
+      cwd = request.cwd
+    }
+
+    let id = request.id || request.path
+
+    if (!this.hasActiveRequest(request)) {
+      return { cancelled: true, request }
+    }
 
     let memory = {
       script: this.kernel.script,
       input,
       args,
-      global: (this.kernel.memory.global[request.path] || {}),
-      local: (this.kernel.memory.local[request.path] || {}),
+      global: (this.kernel.memory.global[id] || {}),
+      local: (this.kernel.memory.local[id] || {}),
       key: this.kernel.memory.key,
       current: i,
       uri: request.uri,
       cwd,
+      dirname: scriptDir,
+      exists: (...args) => {
+        return fs.existsSync(path.resolve(cwd, ...args))
+      },
+      running: (...args) => {
+        let fullpath = path.resolve(cwd, ...args)
+        return this.running[fullpath]
+      },
+      name,
       self: script,
+      port,
       ...this.kernel.vars,
     }
 
-    if (i < script.run.length-1) {
+    if (i < totalSteps - 1) {
       memory.next = i+1
     } else {
       memory.next = null
     }
+
+    // snapshot minimal memory state before executing this step
+    let sanitizedInput = input
+    if (sanitizedInput && typeof sanitizedInput === "object") {
+      const clone = Array.isArray(sanitizedInput) ? [...sanitizedInput] : { ...sanitizedInput }
+      if ("stdout" in clone) delete clone.stdout
+      if ("response" in clone) delete clone.response
+      sanitizedInput = clone
+    }
+
+    const memoryLog = {
+      ts: Date.now(),
+      step: i,
+      input: sanitizedInput,
+      args,
+      global: memory.global,
+      local: memory.local,
+      port
+    }
+    try {
+      this.ondata({
+        id,
+        type: "memory",
+        data: {
+          raw: JSON.stringify(memoryLog) + "\r\n"
+        },
+        rpc: rawrpc,
+        rawrpc
+      })
+      if (i === 0 && request.path) {
+        // also emit using the script path id so it is guaranteed to hit disk logs
+        this.ondata({
+          id: request.path,
+          type: "memory",
+          data: {
+            raw: JSON.stringify(memoryLog) + "\r\n"
+          },
+          rpc: rawrpc,
+          rawrpc
+        })
+      }
+    } catch (_) {}
 
 
     this.state = memory
@@ -603,10 +1144,9 @@ class Api {
     let env = await Environment.get2(request.path, this.kernel)
     // set template
     this.kernel.template.update({ envs: env, env })
-
-    this.kernel.memory.rpc[request.path] = rawrpc
-    this.kernel.memory.args[request.path] = args
-    this.kernel.memory.input[request.path] = input
+    this.kernel.memory.rpc[id] = rawrpc
+    this.kernel.memory.args[id] = args
+    this.kernel.memory.input[id] = input
 
     // render until `{{ }}` pattern does not exist
     // 1. render once
@@ -627,17 +1167,28 @@ class Api {
         break;
       }
     }
-
     // replace {{{ }}} with {{ }}
     rpc = this.kernel.template.flatten(rpc)
+    rpc = ShellRunTemplate.renderEnvArgs(this.kernel, rpc, memory)
 
     // 6. rpc must have method names
     if (rpc.method) {
+      if (!this.hasActiveRequest(request)) {
+        return { cancelled: true, request }
+      }
 
       rpc.parent = {
+        id: request.id,
         uri: request.uri,
         path: request.path,
         git: this.parentGitURI(request.path),
+        cwd,
+        origin: request.origin,
+        caller: request.caller,
+        action: request.action,
+        protection_enabled: request.protection_enabled,
+        args,
+        client: request.client,
         body: script 
       }
       // 7. resolve the rpc
@@ -653,6 +1204,9 @@ class Api {
           rawrpc
         })
       } else {
+        if (!this.hasActiveRequest(request)) {
+          return { cancelled: true, request }
+        }
 
         // 9. set the dirname => the resolved module's path is the dirname
         rpc.dirname = resolved.dirname
@@ -673,14 +1227,14 @@ class Api {
 
         rpc.current = i
 
-        rpc.total = script.run.length
+        rpc.total = totalSteps
 
         rpc.input = input
 
         rpc.args = args
 
-        this.kernel.memory.rpc[request.path].current = rpc.current
-        this.kernel.memory.rpc[request.path].total = rpc.total
+        this.kernel.memory.rpc[id].current = rpc.current
+        this.kernel.memory.rpc[id].total = rpc.total
 
 //        this.kernel.memory.rpc[request.path] = rpc
 //        this.kernel.memory.args[request.path] = args
@@ -688,7 +1242,7 @@ class Api {
         if (rpc.hasOwnProperty("next")) {
           console.log("next already exists, don't touch", rpc.next)
           if (typeof rpc.next === "string") {
-            let run = script.run
+            let run = steps
             console.log("run", run)
             for(let i=0; i<run.length; i++) {
               let step = run[i]
@@ -699,12 +1253,11 @@ class Api {
             }
           }
         } else {
-          if (i < script.run.length-1) {
+          if (i < totalSteps-1) {
             rpc.next = i+1
           } else {
             rpc.next = null
           }
-          console.log("next is not set. compute the next value", rpc.next)
         }
 
         if (rpc.hasOwnProperty("when")) {
@@ -724,7 +1277,7 @@ class Api {
 
           if (!should_run) {
             // the current step is skipped, therefore the next value should be ignored as well
-            if (i < script.run.length-1) {
+            if (i < totalSteps-1) {
               rpc.next = i+1
             } else {
               rpc.next = null
@@ -736,7 +1289,7 @@ class Api {
               // last call
               if (script.daemon) {
                 this.ondata({
-                  id: request.path,
+                  id: request.id || request.path,
                   type: "start",
                   data: {
                     title: "Started",
@@ -745,29 +1298,37 @@ class Api {
                 })
               } else {
                 // no next rpc to execute. Finish
-                this.kernel.memory.local[request.path] = {}
-                this.kernel.memory.rpc[request.path] = null
-                this.kernel.memory.input[request.path] = null
-                this.kernel.memory.args[request.path] = null
+                this.kernel.memory.local[id] = {}
+                this.kernel.memory.rpc[id] = null
+                this.kernel.memory.input[id] = null
+                this.kernel.memory.args[id] = null
                 this.ondata({
-                  id: request.path,
+                  id: request.id || request.path,
                   type: "event",
                   data: "stop",
                   rpc,
                   rawrpc
                 })
-                await this.stop({
-                  params: {
-                    uri: request.path
-                  }
-                })
+                if (request.id) {
+                  await this.stop({
+                    params: {
+                      id: request.id
+                    }
+                  })
+                } else {
+                  await this.stop({
+                    params: {
+                      uri: request.path
+                    }
+                  })
+                }
               }
-              return { request, input: null, step: rpc.next, total: script.run.length, args }
+              return { request, input: null, step: rpc.next, total: totalSteps, args }
             } else {
               // still ongoing
-              let next_rpc = script.run[rpc.next]
+              let next_rpc = steps[rpc.next]
               if (next_rpc) {
-                return { request, rawrpc: next_rpc, input: null, step: rpc.next, total: script.run.length, args }
+                return { request, rawrpc: next_rpc, input: null, step: rpc.next, total: totalSteps, args }
               }
             }
           }
@@ -775,7 +1336,7 @@ class Api {
 
         try {
           this.ondata({
-            id: request.path,
+            id: request.id || request.path,
             type: "start",
             data: rpc
           })
@@ -795,7 +1356,7 @@ class Api {
             // 11. actually make the rpc call
             result = await this.run(resolved.method, rpc, (stream, type) => {
               let m = {
-                id: request.path,
+                id: request.id || request.path,
                 caller: request.caller,
                 type: (type ? type : "stream"),
                 index: i,
@@ -821,8 +1382,9 @@ class Api {
 
 
           if (result && result.error) {
+            this.clearResolvedAction(request)
             this.ondata({
-              id: request.path,
+              id: request.id || request.path,
               type: "error",
               data: result.response,
               event: result.error,
@@ -844,9 +1406,9 @@ class Api {
             // write to current app folder's ENVIRONMENT
             let api_path = Util.api_path(request.path, this.kernel)
             let env_path = path.resolve(api_path, "ENVIRONMENT")
-            await Util.update_env(env_path, {
-              PINOKIO_SCRIPT_DEFAULT: "false"
-            })
+//            await Util.update_env(env_path, {
+//              PINOKIO_SCRIPT_DEFAULT: "false"
+//            })
             return
           }
 
@@ -873,9 +1435,9 @@ class Api {
                 if (chunks.length === 2) {
                   let name = chunks[1]
                   if (chunks[0] === "local") {
-                    this.kernel.memory.local[request.path][name] = filled_returns[name]
+                    this.kernel.memory.local[id][name] = filled_returns[name]
                   } else if (chunks[0] === "global") {
-                    this.kernel.memory.global[request.path][name] = filled_returns[name]
+                    this.kernel.memory.global[id][name] = filled_returns[name]
                   }
                 }
               }
@@ -890,26 +1452,26 @@ class Api {
               if (chunks.length === 2) {
                 let name = chunks[1]
                 if (chunks[0] === "local") {
-                  if (!this.kernel.memory.local[request.path]) {
-                    this.kernel.memory.local[request.path] = {}
+                  if (!this.kernel.memory.local[id]) {
+                    this.kernel.memory.local[id] = {}
                   }
-                  this.kernel.memory.local[request.path][name] = result
+                  this.kernel.memory.local[id][name] = result
                 } else if (chunks[0] === "global") {
-                  if (!this.kernel.memory.global[request.path]) {
-                    this.kernel.memory.global[request.path] = {}
+                  if (!this.kernel.memory.global[id]) {
+                    this.kernel.memory.global[id] = {}
                   }
-                  this.kernel.memory.global[request.path][name] = result
+                  this.kernel.memory.global[id][name] = result
                 }
               }
             }
           }
 
           this.ondata({
-            id: request.path,
+            id: request.id || request.path,
             index: i,
             total,
             type: "result",
-            data: result,
+            data: result
           })
 
 
@@ -921,7 +1483,7 @@ class Api {
               html = `<b>Run complete</b><br>${rawrpc.uri ? '<b>uri</b> ' + rawrpc.uri + '<br>' : ''}<b>method</b> ${rawrpc.method}`
             }
             this.ondata({
-              id: request.path,
+              id: request.id || request.path,
               type: "notify",
               data :{
                 html,
@@ -929,7 +1491,7 @@ class Api {
             })
           } else if (typeof rpc.notify === "object") {
             this.ondata({
-              id: request.path,
+              id: request.id || request.path,
               type: "notify",
               data: {
                 html: rpc.notify.html,
@@ -943,11 +1505,15 @@ class Api {
 
           // if not running, don't progress any further
           // (can happen when the script made a request to a 3rd party module and the 3rd party module returns a response after the stop was triggered)
-          if (!this.running[request.path]) {
+          if (request.id) {
+            if (!this.running[request.id]) {
+              console.log("The script was already canceled")
+              return
+            }
+          } else if (!this.running[request.path]) {
             console.log("The script was already canceled")
             return
           }
-
 
           if (typeof rpc.next === "undefined" || rpc.next === null) {
 
@@ -956,42 +1522,51 @@ class Api {
             // if not daemon
             if (script.daemon) {
               this.ondata({
-                id: request.path,
+                id: request.id || request.path,
                 type: "start",
                 data: {
                   title: "Started",
                   description: "All scripts finished running. Running in daemon mode..."
                 }
               })
-              return { request, input: result, step: rpc.next, total: script.run.length, args }
+              return { request, input: result, step: rpc.next, total: totalSteps, args }
             } else {
               // no next rpc to execute. Finish
-              this.kernel.memory.local[request.path] = {}
+              this.kernel.memory.local[id] = {}
               this.ondata({
-                id: request.path,
+                id: request.id || request.path,
                 type: "event",
                 data: "stop",
                 rpc,
                 rawrpc
               })
-              await this.stop({
-                params: {
-                  uri: request.path
-                }
-              })
-              return { request, input: result, step: rpc.next, total: script.run.length, args }
+              if (request.id) {
+                await this.stop({
+                  params: {
+                    id: request.id
+                  }
+                })
+              } else {
+                await this.stop({
+                  params: {
+                    uri: request.path
+                  }
+                })
+              }
+              return { request, input: result, step: rpc.next, total: totalSteps, args }
             }
 
           } else {
             // still going
-            let next_rpc = script.run[rpc.next]
-            return { request, rawrpc: next_rpc, input: result, step: rpc.next, total: script.run.length, args }
+            let next_rpc = steps[rpc.next]
+            return { request, rawrpc: next_rpc, input: result, step: rpc.next, total: totalSteps, args }
           }
 
         } catch (e) {
           console.log("<>ERROR", e)
+          this.clearResolvedAction(request)
           this.ondata({
-            id: request.path,
+            id: request.id || request.path,
             type: "error",
             data: e.stack,
             rpc,
@@ -1002,7 +1577,7 @@ class Api {
       }
     } else {
       this.ondata({
-        id: request.path,
+        id: request.id || request.path,
         type: "error",
         data: "missing RPC attribute: method",
         rpc,
@@ -1029,19 +1604,38 @@ class Api {
   unlisten(name) {
     this.listeners[name] = undefined
   }
+  hasActiveRequest(request) {
+    if (!request) {
+      return false
+    }
+    if (request.id) {
+      return !!this.running[request.id]
+    }
+    if (request.path) {
+      return !!this.running[request.path]
+    }
+    return false
+  }
   createQueue(queue_id, concurrency) {
     this.queues[queue_id] = fastq.promise(async ({ request, rawrpc, input, step, total, cwd, args }) => {
       try {
+        if (!this.hasActiveRequest(request)) {
+          return
+        }
         let response  = await this.step(request, rawrpc, input, step, total, args)
         if (response) {
+          if (response.cancelled) {
+            return
+          }
           if (response.rawrpc) {
             this.queue(response.request, response.rawrpc, response.input, response.step, response.total, cwd, args)
           } else {
+            let id = response.request.id || response.request.path
             if (response.request.caller) {
               if (this.done[response.request.path]) {
                 this.done[response.request.path]({
-                  global: (this.kernel.memory.global[response.request.path] || {}),
-                  local: (this.kernel.memory.local[response.request.path] || {}),
+                  global: (this.kernel.memory.global[id] || {}),
+                  local: (this.kernel.memory.local[id] || {}),
                   //return: response.input
                   input: response.input
                 })
@@ -1049,14 +1643,18 @@ class Api {
             }
           }
         } else {
+          let id = request.id || request.path
           if (this.done[request.path]) {
             this.done[request.path]({
-              global: (this.kernel.memory.global[request.path] || {}),
-              local: (this.kernel.memory.local[request.path] || {}),
+              global: (this.kernel.memory.global[id] || {}),
+              local: (this.kernel.memory.local[id] || {}),
             })
           }
         }
+//        console.log("kernel.refresh after step")
+//        this.kernel.refresh(true)
       } catch (e) {
+        this.clearResolvedAction(request)
         ondata({ raw: e.toString() })
       }
     }, concurrency)
@@ -1081,7 +1679,7 @@ class Api {
     */
 
     // concurrency
-    let concurrency = (rawrpc.queue ? 1 : 10);
+    let concurrency = (rawrpc.queue ? 1 : 1000);
 
     // queue_id
 
@@ -1109,7 +1707,7 @@ class Api {
 
     if (queueSize > 0) {
       this.ondata({
-        id: request.path,
+        id: request.id || request.path,
         type: "info",
         data: `<b>Queued</b> waiting for ${queueSize} ${queueSize > 1 ? 'tasks' : 'task'} to finish<br><b>uri</b> ${rawrpc.uri}<br><b>method</b> ${rawrpc.method}`
       })
@@ -1120,6 +1718,35 @@ class Api {
     return new Promise((resolve, reject) => {
       this.process(request, resolve)
     })
+  }
+  async get_default(repo_path) {
+    let launcher = await this.launcher({
+      path: repo_path
+    })
+    let config = launcher.script
+    if (config && config.menu) {
+      if (typeof config.menu === "function") {
+        if (config.menu.constructor.name === "AsyncFunction") {
+          config.menu = await config.menu(this.kernel, this.kernel.info)
+        } else {
+          config.menu = config.menu(this.kernel, this.kernel.info)
+        }
+      }
+      let running = config.menu.filter((item) => {
+        return item.default
+      })
+      if (running.length > 0) {
+        let r = running[0]
+        if (r.href) {
+          if (r.href.startsWith("http")) {
+            return r.href
+          } else {
+            let href = path.resolve(repo_path, r.href)
+            return href
+          }
+        }
+      }
+    }
   }
   async process(request, done) {
     /**************************************************************
@@ -1161,44 +1788,114 @@ class Api {
 //    let keypath = path.resolve(this.kernel.homedir, "key.json")
 //    this.kernel.keys = (await this.loader.load(keypath)).resolved
 
+    // ensure gitconfig defaults before any shell commands run
+    if (this.kernel.git) {
+      if (typeof this.kernel.git.ensureDefaults === "function") {
+        await this.kernel.git.ensureDefaults()
+      }
+    }
     // init shell before running just to make sure the environment variables are fresh
-    console.time("shell.init")
     await this.kernel.shell.init()
-    console.timeEnd("shell.init")
 
     if (request.uri){
+
       this.counter++;
       // API Call
 
       request.path = this.resolvePath(this.userdir, request.uri)
-      let { cwd, script } = await this.resolveScript(request.path)
-      request.cwd = cwd
 
-      if (!script) {
-        this.ondata({
-          id: request.path,
-          type: "error",
-          data: "the endpoint does not exist: " + request.uri,
-        })
-      } else {
-        // 3. Check if the resolved endpoint has the "run" attribute and it's an array
-        //if (script.run && Array.isArray(script.run)) {
-        if (script.run) {
 
-          this.running[request.path] = true
-
-          this.done[request.path] = done
-
-          this.queue(request, script.run[0], request.input, 0, script.run.length, cwd, request.input)
-
+      // if the path is 
+      let relative = path.relative(this.kernel.homedir, request.path)
+      let chunks = relative.split(path.sep)
+      if (chunks.length == 2) {
+        // the script is requesting a uri of the git repo
+        // look for pinokio.js
+        let p = path.resolve(request.path, "pinokio.js")
+        let exists = await this.exists(p)
+        if (exists) {
+          await this.launch(request, p)
         } else {
           this.ondata({
-            id: request.path,
+            id: request.id || request.path,
             type: "error",
-            data: "missing attribute: run"
+            data: "uri doesn't exist \r\n" + JSON.stringify(request, null, 2)
           })
         }
+      } else {
+        let { cwd, script } = await this.resolveScript(request.path)
+
+        if (!script) {
+          this.ondata({
+            id: request.id || request.path,
+            type: "error",
+            data: "the endpoint does not exist: " + request.uri,
+          })
+        } else {
+          const actionKey = request.action || 'run'
+          request.action = actionKey
+          const action = script ? script[actionKey] : null
+
+          // 3. Check if the resolved endpoint has the requested action attribute and resolve it to steps.
+          if (this.isActionCandidate(action)) {
+
+            this.setRunning(request, done)
+
+            // set DNS
+
+            if (request.path) {
+              if (request.path.startsWith(this.kernel.path("api"))) {
+                await this.kernel.dns({
+                  path: request.path
+                })
+              }
+            }
+
+            const initialPayload = typeof request.input === "undefined" ? {} : request.input
+            let steps
+            try {
+              steps = await this.resolveActionSteps({
+                request,
+                script,
+                scriptDir: cwd,
+                actionKey,
+                input: initialPayload,
+                args: initialPayload
+              })
+            } catch (e) {
+              this.clearResolvedAction(request)
+              delete this.running[this.requestId(request)]
+              this.ondata({
+                id: request.id || request.path,
+                type: "error",
+                data: e.stack,
+              })
+              return
+            }
+
+            if (!Array.isArray(steps) || steps.length === 0) {
+              this.clearResolvedAction(request)
+              delete this.running[this.requestId(request)]
+              this.ondata({
+                id: request.id || request.path,
+                type: "error",
+                data: `missing or invalid attribute: ${actionKey}`
+              })
+              return
+            }
+
+            this.queue(request, steps[0], initialPayload, 0, steps.length, cwd, initialPayload)
+
+          } else {
+            this.ondata({
+              id: request.id || request.path,
+              type: "error",
+              data: `missing or invalid attribute: ${actionKey}`
+            })
+          }
+        }
       }
+
     } else if (request.method) {
       let pass = 0;
       while(true) {
@@ -1215,9 +1912,11 @@ class Api {
           break;
         }
       }
-      if (this.kernel.template.istemplate(request)) {
-        console.log("something wrong with the request", request)
-        return
+      if (request.method.startsWith("kernel")) {
+        if (this.kernel.template.istemplate(request)) {
+          console.log("something wrong with the request", request)
+          return
+        }
       }
 
       // replace {{{ }}} with {{ }}
@@ -1229,12 +1928,16 @@ class Api {
 
       // Kernel Call
       let resolved = await this.resolveMethod(request)
+      let id = request.id ? request.id : request.method 
+      if (request.id) {
+        this.running[request.id] = true
+      }
       try {
         resolved.dirname = resolved.dirname
         let result = await this.run(resolved.method, request, (stream, type) => {
           this.ondata({
             kernel: true,
-            id: request.method,
+            id,
             type: (type ? type : "stream"),
             data: stream,
             rpc: request,
@@ -1243,7 +1946,7 @@ class Api {
         })
         this.ondata({
           kernel: true,
-          id: request.method,
+          id,
           type: "result",
           data: result,
           rpc: request,

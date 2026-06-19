@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Setup</title>
+  <link href="/css/fontawesome.min.css" rel="stylesheet">
+  <link href="/css/solid.min.css" rel="stylesheet">
+  <link href="/css/regular.min.css" rel="stylesheet">
+  <link href="/css/brands.min.css" rel="stylesheet">
+  <link href="/noty.css" rel="stylesheet">
+  <link href="/style.css" rel="stylesheet">
+  <link href="/task-launcher.css" rel="stylesheet">
+  <% if (agent === "electron") { %>
+    <link href="/electron.css" rel="stylesheet"/>
+  <% } %>
+  <script src="/setup-wait-debug.js"></script>
+</head>
+<%
+  const requirementList = Array.isArray(requirements) ? requirements : [];
+  const attentionCount = requirementList.filter((requirement) => !requirement.installed).length;
+  const installedCount = Math.max(0, requirementList.length - attentionCount);
+  const setupMode = typeof mode === "string" && mode.trim() ? mode.trim() : "";
+  const modeLabel = setupMode ? `${setupMode.charAt(0).toUpperCase()}${setupMode.slice(1)}` : "";
+  const eyebrow = modeLabel ? `Setup / ${modeLabel}` : "Setup";
+  const targetPath = current || "/";
+  const readyTitle = install_required ? "System requirements need attention" : "System ready";
+  const readyDescription = install_required
+    ? "Install or refresh what Pinokio needs before reopening this destination."
+    : "Everything Pinokio needs is already available. Continue to reopen this destination.";
+  const setupSidebarSelected = (() => {
+    if (setupMode === "network" || targetPath.indexOf("/network") === 0) return "network";
+    if (setupMode === "connect" || targetPath.indexOf("/connect") === 0 || targetPath.indexOf("/github") === 0) return "connect";
+    if (targetPath.indexOf("/tools") === 0) return "tools";
+    if (targetPath.indexOf("/plugins") === 0) return "plugins";
+    if (targetPath.indexOf("/tasks") === 0) return "tasks";
+    if (targetPath.indexOf("/skills") === 0) return "skills";
+    if (targetPath.indexOf("/logs") === 0) return "logs";
+    if (targetPath.indexOf("/autolaunch") === 0) return "autolaunch";
+    if (targetPath.indexOf("/home?mode=settings") === 0) return "settings";
+    if (targetPath.indexOf("/home") === 0) return "home";
+    return "";
+  })();
+%>
+<body class="<%= theme %> main-sidebar-page task-launcher-page task-page setup-page" data-agent="<%= agent %>">
+  <%- include('partials/app_navheader', { agent }) %>
+  <main>
+    <div class="task-container">
+      <section class="task-shell setup-shell">
+        <header class="task-shell-header">
+          <div class="task-shell-header-main">
+            <div class="task-shell-topline">
+              <p class="task-eyebrow" data-setup-eyebrow><%= eyebrow %></p>
+            </div>
+            <% if (requirements_pending) { %>
+              <h1 class="task-title">Checking system requirements</h1>
+              <p class="task-description">Pinokio is checking what this machine needs before reopening <code><%= targetPath %></code>.</p>
+            <% } else if (!install_required && wait === "caddy") { %>
+              <h1 class="task-title">Finishing secure localhost setup</h1>
+              <p class="task-description">Pinokio is applying secure localhost settings and will reopen <code><%= targetPath %></code> when ready.</p>
+            <% } else if (error) { %>
+              <h1 class="task-title">Setup could not continue</h1>
+              <p class="task-description">Pinokio hit an environment issue while preparing <code><%= targetPath %></code>.</p>
+            <% } else { %>
+              <h1 class="task-title"><%= readyTitle %></h1>
+              <p class="task-description"><%= readyDescription %> Target: <code><%= targetPath %></code>.</p>
+              <div class="task-badge-row task-header-badges">
+                <span class="task-badge <%= install_required ? 'task-badge-warning' : 'task-badge-accent' %>">
+                  <%= install_required ? `${attentionCount} ${attentionCount === 1 ? 'update' : 'updates'} needed` : 'Ready to continue' %>
+                </span>
+                <span class="task-badge task-badge-neutral"><%= requirementList.length %> checks</span>
+              </div>
+            <% } %>
+          </div>
+        </header>
+
+        <div class="task-shell-body">
+          <% if (requirements_pending) { %>
+            <section class="task-section task-section-subtle">
+              <div class="setup-state-root" data-setup-state-root>
+                <div class="setup-loading-state">
+                  <div class="setup-loading-icon" aria-hidden="true">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                  </div>
+                  <div class="setup-loading-copy">
+                    <div class="setup-loading-title">Checking requirements</div>
+                    <p class="setup-loading-text" data-setup-state-label>Stand by...</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+          <% } else if (!install_required && wait === "caddy") { %>
+            <section class="task-section task-section-subtle">
+              <div class="setup-state-root" data-setup-state-root>
+                <div class="setup-loading-state">
+                  <div class="setup-loading-icon" aria-hidden="true">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                  </div>
+                  <div class="setup-loading-copy">
+                    <div class="setup-loading-title">Applying secure localhost setup</div>
+                    <p class="setup-loading-text" data-setup-state-label>Stand by...</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+          <% } else if (error) { %>
+            <section class="task-section task-section-subtle">
+              <div class="setup-state-root" data-setup-state-root>
+                <div class="task-status error"><%= error %></div>
+              </div>
+            </section>
+          <% } else { %>
+            <div class="setup-layout">
+              <section class="task-section setup-requirements-section">
+                <div class="task-section-head">
+                  <div>
+                    <h2 class="task-section-title">Requirements</h2>
+                    <p class="task-section-subcopy">
+                      <%= requirementList.length %> checks total. <%= attentionCount %> <%= attentionCount === 1 ? 'item needs attention' : 'items need attention' %>.
+                    </p>
+                  </div>
+                  <div class="task-section-note"><%= install_required ? 'Review before continuing' : 'All checks passed' %></div>
+                </div>
+
+                <div class="setup-requirement-list">
+                  <% requirementList.forEach((requirement) => { %>
+                    <div class="setup-requirement-row <%= requirement.installed ? 'is-installed' : 'needs-update' %>">
+                      <div class="setup-requirement-copy">
+                        <div class="setup-requirement-name"><%= requirement.type ? `${requirement.type} : ${requirement.name}` : requirement.name %></div>
+                        <% if (requirement.dependencies && requirement.dependencies.length > 0) { %>
+                          <div class="setup-requirement-detail">Includes <%= requirement.dependencies.join(", ") %></div>
+                        <% } %>
+                      </div>
+                      <div class="setup-requirement-state">
+                        <i class="fa-solid <%= requirement.installed ? 'fa-circle-check' : 'fa-rotate-right' %>" aria-hidden="true"></i>
+                        <span><%= requirement.installed ? "Installed" : "Update needed" %></span>
+                      </div>
+                    </div>
+                  <% }) %>
+                </div>
+              </section>
+
+              <div class="setup-actions-column">
+                <section class="task-section setup-action-card">
+                  <div class="task-section-head">
+                    <div>
+                      <h2 class="task-section-title">Ready to continue</h2>
+                      <p class="task-section-subcopy">
+                        <%= install_required ? `${attentionCount} ${attentionCount === 1 ? 'update is' : 'updates are'} needed before Pinokio can continue.` : 'No updates are needed. You can continue immediately.' %>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="task-meta-row task-meta-row-compact setup-summary-grid">
+                    <div class="task-meta-chip">
+                      <span class="task-meta-chip-label">Installed</span>
+                      <span class="task-meta-chip-value"><%= installedCount %> of <%= requirementList.length %></span>
+                    </div>
+                    <div class="task-meta-chip">
+                      <span class="task-meta-chip-label">Needs attention</span>
+                      <span class="task-meta-chip-value"><%= attentionCount %></span>
+                    </div>
+                  </div>
+
+                  <% if (!install_required) { %>
+                    <a class="task-button primary task-run-button setup-primary-button" href="<%= targetPath %>">
+                      <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                      <span>Continue</span>
+                    </a>
+                  <% } %>
+
+                  <form class="<%= install_required ? 'setup-install-form' : 'task-hidden' %>" id="install-form" method="post" action="/pinokio/install">
+                    <input type="hidden" name="requirements" value="<%= JSON.stringify(requirementList) %>">
+                    <input type="hidden" name="callback" value="<%= targetPath %>">
+                    <button class="task-button primary task-run-button setup-primary-button" type="submit">
+                      <i class="fa-solid fa-download" aria-hidden="true"></i>
+                      <span>Install</span>
+                    </button>
+                  </form>
+
+                  <p class="task-inline-help">
+                    <%= install_required ? 'This uses the same install flow as before.' : 'Pinokio can reopen the same destination without reinstalling anything.' %>
+                  </p>
+
+                  <div class="setup-secondary-actions">
+                    <span class="task-inline-help">Not working?</span>
+                    <button class="task-button" type="button" id="del-bin">
+                      <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                      <span>Try a fresh install</span>
+                    </button>
+                  </div>
+
+                  <div class="reset-bin-loading hidden setup-reset-loading">
+                    <i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i>
+                    <span>Stand by. Do not close this window.</span>
+                  </div>
+                </section>
+              </div>
+            </div>
+          <% } %>
+        </div>
+      </section>
+    </div>
+    <%- include('partials/main_sidebar', { selected: setupSidebarSelected }) %>
+  </main>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    const eyebrow = document.querySelector("[data-setup-eyebrow]")
+    if (eyebrow) {
+      const pathParts = window.location.pathname.split("/").filter(Boolean)
+      const setupModeFromPath = pathParts[1] || ""
+      if (setupModeFromPath) {
+        const modeLabelFromPath = `${setupModeFromPath.charAt(0).toUpperCase()}${setupModeFromPath.slice(1)}`
+        eyebrow.textContent = `Setup / ${modeLabelFromPath}`
+      }
+    }
+    <% if (requirements_pending) { %>
+      await new Promise((resolve, reject) => {
+        let interval = setInterval(() => {
+          fetch("/pinokio/requirements_ready").then((res) => {
+            return res.json()
+          }).then((res) => {
+            if (res.error) {
+              alert(res.error)
+              clearInterval(interval)
+            } else if (!res.requirements_pending) {
+              clearInterval(interval)
+              resolve()
+            }
+          })
+        }, 500)
+      })
+      location.href = location.href
+    <% } %>
+    <% if (!requirements_pending && !install_required && wait === "caddy") { %>
+      const waitRoot = document.querySelector("[data-setup-state-root]")
+      const waitLabel = document.querySelector("[data-setup-state-label]")
+      const WAIT_TIMEOUT_MS = 120000
+      const waitDebug = window.PinokioSetupWaitDebug ? window.PinokioSetupWaitDebug.create(waitRoot) : null
+      let lastRouterStatus = null
+      let lastStartupStatus = null
+      let lastServerDebug = null
+      const setWaitLabel = (message) => {
+        if (waitLabel) {
+          waitLabel.textContent = message
+        }
+      }
+      const pushWaitDebugEvent = (message) => {
+        if (waitDebug) {
+          waitDebug.event(message)
+        }
+      }
+      const renderWaitDebug = ({ startedAt, routerStatus, startupStatus, serverDebug } = {}) => {
+        if (typeof routerStatus !== "undefined") {
+          lastRouterStatus = routerStatus
+        }
+        if (typeof startupStatus !== "undefined") {
+          lastStartupStatus = startupStatus
+        }
+        if (typeof serverDebug !== "undefined") {
+          lastServerDebug = serverDebug
+        }
+        if (!waitDebug) {
+          return
+        }
+        waitDebug.render({
+          startedAt,
+          routerStatus: lastRouterStatus,
+          startupStatus: lastStartupStatus,
+          serverDebug: lastServerDebug,
+        })
+      }
+      const trackWaitDebug = ({ routerStatus, startupStatus } = {}) => {
+        if (waitDebug) {
+          waitDebug.track({ routerStatus, startupStatus })
+        }
+      }
+      const showWaitError = (message) => {
+        if (waitRoot) {
+          waitRoot.innerHTML = `
+            <div class="setup-state-root-error">
+              <div class="task-status error">${message}</div>
+              <a class="task-button setup-retry-button" href="${location.href}">Retry</a>
+            </div>
+          `
+          renderWaitDebug()
+        } else {
+          alert(message)
+        }
+      }
+
+      try {
+        setWaitLabel("Enabling secure localhost access...")
+        pushWaitDebugEvent("saving secure localhost flags")
+        renderWaitDebug()
+        const networkResponse = await fetch("/network", {
+          method: "post",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            PINOKIO_NETWORK_ACTIVE: "1",
+            PINOKIO_HTTPS_ACTIVE: "1",
+          })
+        }).then((res) => {
+          return res.json()
+        })
+        if (networkResponse && networkResponse.error) {
+          throw new Error(networkResponse.error)
+        }
+        pushWaitDebugEvent("secure localhost flags saved")
+        renderWaitDebug()
+
+        setWaitLabel("Restarting Pinokio...")
+        pushWaitDebugEvent("restart requested")
+        renderWaitDebug()
+        try {
+          await fetch("/restart", {
+            method: "post"
+          })
+        } catch (error) {
+          console.warn("restart request ended early", error)
+        }
+
+        const startedAt = Date.now()
+        let lastKnownError = null
+        let lastKnownPhase = null
+        renderWaitDebug({ startedAt })
+
+        await new Promise((resolve, reject) => {
+          const interval = setInterval(async () => {
+            try {
+              const [routerStatus, startupStatus, serverDebug] = await Promise.all([
+                fetch("/check_router_up").then((res) => res.json()),
+                fetch("/pinokio/startup_status").then((res) => res.json()).catch(() => null),
+                fetch("/pinokio/secure_router_debug").then((res) => res.json()).catch(() => null)
+              ])
+
+              if (routerStatus && routerStatus.success) {
+                clearInterval(interval)
+                resolve()
+                return
+              }
+
+              if (routerStatus && routerStatus.error) {
+                lastKnownError = routerStatus.error
+              }
+              if (startupStatus && startupStatus.error) {
+                lastKnownError = startupStatus.error
+              }
+              trackWaitDebug({ routerStatus, startupStatus })
+              if (startupStatus && startupStatus.phase) {
+                lastKnownPhase = startupStatus.phase
+                const phaseMessage = startupStatus.phase === "ready"
+                  ? "Secure router is almost ready..."
+                  : `Restarting Pinokio... (${startupStatus.phase.replace(/_/g, " ")})`
+                setWaitLabel(phaseMessage)
+              }
+              renderWaitDebug({ startedAt, routerStatus, startupStatus, serverDebug })
+
+              if (startupStatus && startupStatus.phase === "error") {
+                clearInterval(interval)
+                reject(new Error(lastKnownError || "Pinokio failed to restart cleanly"))
+                return
+              }
+
+              if ((Date.now() - startedAt) >= WAIT_TIMEOUT_MS) {
+                clearInterval(interval)
+                const detail = lastKnownError || lastKnownPhase || "secure localhost router did not come up"
+                pushWaitDebugEvent(`timeout -> ${detail}`)
+                renderWaitDebug({ startedAt, routerStatus, startupStatus })
+                reject(new Error(`Timed out waiting for restart: ${detail}`))
+              }
+            } catch (error) {
+              lastKnownError = error && error.message ? error.message : String(error)
+              pushWaitDebugEvent(`poll error -> ${lastKnownError}`)
+              renderWaitDebug({ startedAt })
+              if ((Date.now() - startedAt) >= WAIT_TIMEOUT_MS) {
+                clearInterval(interval)
+                reject(new Error(`Timed out waiting for restart: ${lastKnownError}`))
+              }
+            }
+          }, 1000)
+        })
+
+        location.href = <%- JSON.stringify(targetPath) %>
+      } catch (error) {
+        console.error("secure router setup failed", error)
+        showWaitError(error && error.message ? error.message : "Failed to restart Pinokio")
+      }
+    <% } %>
+    if (document.querySelector("#del-bin")) {
+      document.querySelector("#del-bin").addEventListener("click", async () => {
+        let proceed = confirm("Are you sure you wish to delete the bin folder?")
+        if (proceed) {
+          document.querySelector(".reset-bin-loading").classList.remove("hidden")
+          document.querySelector("#del-bin").classList.add("hidden")
+          let res = await fetch("/pinokio/delete", {
+            method: "post",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ type: "bin" })
+          }).then((res) => {
+            return res.json()
+          })
+          document.querySelector(".reset-bin-loading").classList.add("hidden")
+          if (res.error) {
+            alert(res.error)
+          } else {
+            document.querySelector("#install-form").submit()
+          }
+        }
+      })
+    }
+  })
+  </script>
+  <%- include('partials/app_common_scripts') %>
+</body>
+</html>

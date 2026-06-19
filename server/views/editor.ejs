@@ -6,6 +6,7 @@
 <script src="/noty.js"></script>
 <script src="/notyq.js"></script>
 <script src="/xterm.js"></script>
+<script src="/xterm-inline-bridge.js"></script>
 <script src="/xterm-addon-fit.js"></script>
 <script src="/xterm-addon-web-links.js"></script>
 <script src="/xterm-theme.js"></script>
@@ -13,12 +14,16 @@
 <script src="/xterm-addon-search-bar.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
+<script src="/resizeSync.js"></script>
+<script src="/terminal-settings.js"></script>
+<script src="/pinokio-touch.js"></script>
 <script src="/common.js"></script>
 <script src="/he.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
 <script src="/autoexpand.js"></script>
 <script src="/modalinput.js"></script>
+<script src="/htmlmodal.js"></script>
 <script src="/simplemodal.js"></script>
 <script src="/waitmodal.js"></script>
 <script src="/notifyinput.js"></script>
@@ -31,10 +36,17 @@
 <link href="/css/brands.min.css" rel="stylesheet">
 <link href="/style.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
+<link href="/urldropdown.css" rel="stylesheet"/>
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+@font-face {
+  font-family: 'RobotoMono';
+  src: url('/RobotoMono-Regular.ttf') format(truetype);
+  font-weight: normal;
+  font-style: normal;
+}
 body.frozen {
   display: flex;
   flex-direction: column;
@@ -96,7 +108,15 @@ td.key {
   
 }
 #editor {
+  font-family: "RobotoMono";
+}
+/*
+#editor {
   background: var(--dark-bg);
+}
+*/
+header {
+  padding: 10px;
 }
 header .runner {
   padding: 10px 0 0;
@@ -111,9 +131,19 @@ header .runner {
 body.frozen {
   overflow: auto !important;
 }
+@media only screen and (max-width: 800px) {
+  header h1 {
+    height: unset;
+  }
+  .appcanvas, main {
+    padding-top: unset;
+  }
+}
 </style>
 <script>
+let shell_id
 document.addEventListener("DOMContentLoaded", async () => {
+  const readOnly = <%= readonly ? "true" : "false" %>;
   <% if (error) { %>
     document.querySelector(".requirements .content").innerHTML = '<div class="loading"><i class="fa-solid fa-circle-exclamation"></i> <%=error%></div>'
   <% } %>
@@ -152,15 +182,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   <% } %>
   <% if (!install_required) { %>
     let editor = ace.edit("editor");
-    //editor.setTheme("ace/theme/tomorrow");
+    //editor.setTheme("ace/theme/github_light_default");
     //editor.setTheme("ace/theme/ambiance");
-    //editor.setTheme("ace/theme/idle_fingers");
-    editor.setTheme("ace/theme/nord_dark");
+    <% if (theme === "dark") { %>
+      editor.setTheme("ace/theme/idle_fingers");
+    <% } else { %>
+      editor.setTheme("ace/theme/tomorrow");
+    <% } %>
+    //editor.setTheme("ace/theme/nord_dark");
     //editor.setTheme("ace/theme/textmate");
     editor.setOptions({
-      maxLines: Infinity, // set to a large number
+      wrap: true,
+//      maxLines: Infinity, // set to a large number
       minLines: 1 // set to a small number
     });
+    editor.setReadOnly(readOnly);
     console.log("location.pathname", location.pathname)
     <% if (mod) { %>
       <% if (js) { %>
@@ -197,6 +233,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     let str;
     let original = editor.getValue()
     editor.getSession().on("change", () => {
+      if (readOnly) {
+        return
+      }
       let v = editor.getValue()
       if (original === v) {
         dirty = false
@@ -209,9 +248,77 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   <% } %>
   const n = new N()
+  const postMessageToAncestors = (payload) => {
+    if (!payload || typeof payload !== "object") {
+      return false
+    }
+    if (typeof window !== "undefined" && typeof window.PinokioBroadcastMessage === "function") {
+      try {
+        if (window.PinokioBroadcastMessage(payload, "*", window)) {
+          return true
+        }
+      } catch (_) {}
+    }
+    const targets = new Set()
+    try {
+      if (window.parent && window.parent !== window && typeof window.parent.postMessage === "function") {
+        targets.add(window.parent)
+      }
+    } catch (_) {}
+    try {
+      if (window.top && window.top !== window && typeof window.top.postMessage === "function") {
+        targets.add(window.top)
+      }
+    } catch (_) {}
+    let dispatched = false
+    targets.forEach((target) => {
+      try {
+        target.postMessage(payload, "*")
+        dispatched = true
+      } catch (_) {}
+    })
+    return dispatched
+  }
+  const openAppLogsForError = (packet) => {
+    return postMessageToAncestors({
+      e: "pinokio:logs-new",
+      type: "pinokio:logs-new",
+      reason: "error",
+      frame: window.name || null,
+      source: "editor"
+    })
+  }
+  const showErrorScreen = (packet) => {
+    const errorScreen = document.querySelector("#error-screen")
+    const errorOutput = errorScreen ? errorScreen.querySelector("pre") : null
+    if (!errorScreen || !errorOutput) {
+      return
+    }
+    errorScreen.classList.remove("hidden")
+    errorOutput.textContent = packet && packet.data ? packet.data : ""
+    let instance = new Mark(errorOutput, {
+      separateWordSearch: false,
+      accuracy: "exactly"
+    })
+    if (packet && packet.event) {
+      instance.mark(packet.event)
+      let element = errorScreen.querySelector("mark")
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" })
+      }
+    }
+  }
+  const activeProcessWait = <% if (typeof active_process_wait !== 'undefined' && active_process_wait) { %><%- JSON.stringify(active_process_wait) %><% } else { %>null<% } %>
+  if (activeProcessWait && (activeProcessWait.title || activeProcessWait.description || activeProcessWait.message) && window.PinokioWaitFooterStatus) {
+    window.PinokioWaitFooterStatus.show(activeProcessWait)
+  }
   class RPC {
     constructor() {
       this.socket = new Socket()
+      this.resizeSync = window.PinokioResizeSync.create({
+        socket: this.socket,
+        getShellId: () => shell_id
+      })
     }
     finished() {
     /*
@@ -224,10 +331,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.querySelector(".run .starting").classList.add("hidden")
     }
     stop() {
+      let cwd = "<%-JSON.stringify(execUrl).slice(1, -1)%>"
       this.socket.run({
         method: "kernel.api.stop",
         params: {
-          uri: "<%=execUrl%>",
+          //uri: "<%=execUrl%>",
+          uri: cwd,
           //uri: "~" + location.pathname
         }
       }, (stream) => {
@@ -235,9 +344,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     save() {
       return new Promise((resolve, reject) => {
-        let cwd = "<%=execUrl%>"
+        if (readOnly) {
+          resolve()
+          return
+        }
+        let cwd = "<%-JSON.stringify(execUrl).slice(1, -1)%>"
+        //let cwd = "<%=execUrl%>"
         //let cwd = "~" + location.pathname
         this.socket.close()
+        this.resizeSync.reset()
         this.socket.run({
           method: "fs.write",
           params: {
@@ -253,10 +368,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         })
       })
     }
-    start(mode) {
-      return new Promise(async (resolve, reject) => {
+    async start(mode) {
 //        await this.save()
-        await this.socket.close()
+        this.socket.close()
 //        document.querySelector(".terminal-container").classList.add("hidden")
         let query = Object.fromEntries(new URLSearchParams(location.search))
 //        document.querySelector(".containers").classList.add("running")
@@ -265,7 +379,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         this.socket.run({
           //uri: location.pathname.slice(1).replace("api/", ""),
           //uri: "~" + location.pathname,
-          uri: "<%=execUrl%>",
+          uri: "<%-JSON.stringify(execUrl).slice(1, -1)%>",
+          //uri: "<%=execUrl%>",
           //uri: "~" + location.pathname,
           mode,
           input: query,
@@ -328,11 +443,44 @@ document.addEventListener("DOMContentLoaded", async () => {
             this.socket.close()
             document.querySelector(".run .play").classList.remove("hidden")
             document.querySelector(".run .stop").classList.add("hidden")
+            this.resizeSync.reset()
+
+            <% if (kill_message) { %>
+              n.Noty({
+                text: "<%-kill_message%>",
+  //              timeout: 3000,
+                <% if (callback) { %>
+                callbacks: {
+                  onClose: () => {
+                    location.href = "<%=callback%>"
+                  }
+                }
+                <% } %>
+              })
+            <% } else { %>
+              <% if (callback) { %>
+              location.href = "<%=callback%>"
+              <% } %>
+            <% } %>
 
           } else if (packet.type === 'connect') {
 //            document.querySelector(".terminal-container").classList.remove("hidden")
-            const message = "..........Connected!\r\n"
-            this.term.write(message)
+            const previousShellId = shell_id
+            if (packet.data.id) {
+              shell_id = packet.data.id
+            }
+            if (!previousShellId && shell_id) {
+              this.resizeSync.sendInitial()
+            }
+            if (packet.data) {
+              if (packet.data.shell) {
+                shell_id = packet.data.shell
+              }
+              this.resizeSync.sendInitial()
+              if (packet.data.state) {
+                this.write(packet.data.state)
+              }
+            }
             /*
             for(let i=0; i<message.length; i++) {
               await new Promise((r, reject) => {
@@ -346,6 +494,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .play").classList.add("hidden")
             document.querySelector(".run .starting").classList.add("hidden")
             document.querySelector(".run .stop").classList.remove("hidden")
+          } else if (packet.type === 'resize') {
+            this.resizeSync.handleResizePacket(packet)
           } else if (packet.type === 'wait.end') {
             try {
               Swal.close()
@@ -355,8 +505,20 @@ document.addEventListener("DOMContentLoaded", async () => {
               response: {},
               uri: packet.id
             })
+          } else if (packet.type === "process.wait.start") {
+            if (window.PinokioWaitFooterStatus) {
+              window.PinokioWaitFooterStatus.show(packet.data)
+            }
+          } else if (packet.type === "process.wait.end") {
+            if (window.PinokioWaitFooterStatus) {
+              window.PinokioWaitFooterStatus.hide()
+            }
           } else if (packet.type === 'wait') {
             await WaitModal(packet.data)
+          } else if (packet.type === "htmlmodal") {
+            if (window.HtmlModal && typeof window.HtmlModal.handle === 'function') {
+              window.HtmlModal.handle(packet, this.socket)
+            }
           } else if (packet.type === "modal") {
             await SimpleModal(packet.data)
             this.socket.respond({
@@ -391,6 +553,25 @@ document.addEventListener("DOMContentLoaded", async () => {
             */
           } else if (packet.type === "tab.open") {
 //            refreshParent(packet)
+          } else if (packet.type === "web.open") {
+          /*
+            {
+              "method": "web.open",
+              "params": {
+                "uri",
+                "target": "_self (default)"|"_blank"|"_parent"|"_top",
+                "features"
+              }
+            }
+            */
+
+            refreshParent()
+            let params = packet.data
+            window.open(
+              params.uri,
+              (params.target || "_self"),
+              params.features
+            )
           } else if (packet.type === "browser.open") {
           /*
             {
@@ -503,22 +684,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelector(".run .starting").classList.add("hidden")
             document.querySelector(".run .stop").classList.add("hidden")
 
-            document.querySelector("#error-screen").classList.remove("hidden")
-            document.querySelector("#error-screen pre").textContent = packet.data
-            let instance = new Mark(document.querySelector("#error-screen pre"), {
-              separateWordSearch: false,
-              accuracy: "exactly"
-            })
-            /*
-            document.querySelector("#error-screen").addEventListener("click", (e) => {
-              document.querySelector("#error-screen").classList.add("hidden")
-            })
-            */
-            console.log("instance", instance)
-            console.log("EVENT", packet.event)
-            instance.mark(packet.event)
-            let element = document.querySelector("mark")
-            element.scrollIntoView({ behavior: "smooth", block: "center" });
+            if (!openAppLogsForError(packet)) {
+              showErrorScreen(packet)
+            }
 
           } else if (packet.type === "event") {
             if (packet.data === "stop") {
@@ -566,7 +734,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
           }
         })
-      })
     }
     async run (mode) {
       this.mode = (mode ? mode : "run")
@@ -578,14 +745,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 //        })
 //      }
 
-      await this.createTerm()
+      <% if (theme === "dark") { %>
+      await this.createTerm(xtermTheme.FrontEndDelight)
+      <% } else { %>
+      await this.createTerm(xtermTheme.Tomorrow)
+      <% } %>
       await this.start(mode)
     }
-    async createTerm () {
+    async createTerm (_theme) {
       if (!this.term) {
+        const theme = Object.assign({ }, _theme, {
+          selectionBackground: "red",
+          selectionForeground: "white"
+        })
         let config = {
+          scrollback: 9999999,
           fontSize: 12,
-          theme: xtermTheme.FrontEndDelight
+          fontFamily: 'monospace',
+          theme,
         }
         let res = await fetch("/xterm_config").then((res) => {
           return res.json()
@@ -593,8 +770,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (res && res.config) {
           config = res.config
         }
+        const baseConfig = Object.assign({}, config)
+        if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.applyToConfig === 'function') {
+          config = window.PinokioTerminalSettings.applyToConfig(config)
+        }
         const term = new Terminal(config)
+        if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.register === 'function') {
+          window.PinokioTerminalSettings.register(term, { baseConfig })
+        }
         term.open(document.querySelector("#terminal"))
+        const terminalContainer = document.querySelector("#terminal")
+        window.PinokioTouch.bindTerminalFocus(term, terminalContainer)
 
 
         term.attachCustomKeyEventHandler(event => {
@@ -614,7 +800,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         term.loadAddon(fitAddon);
         <% if (agent === "electron") { %>
           term.loadAddon(new WebLinksAddon.WebLinksAddon((event, uri) => {
-            window.open(uri, "_blank")
+            window.open(uri, "_blank", "browser")
           }))
         <% } else { %>
           term.loadAddon(new WebLinksAddon.WebLinksAddon());
@@ -625,8 +811,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         fitAddon.fit();
         this.fit = fitAddon
         this.term = term
+        this.resizeSync.updateTerm(this.term, this.fit, this.socket)
       }
       this.term.focus()
+      if (!this.observer) {
+        this.observer = new ResizeObserver(() => {
+          this.fit.fit()
+          this.resizeSync.sendResize(this.term.cols, this.term.rows)
+        })
+        this.observer.observe(document.body)
+      }
     }
   }
   <% if (!install_required) { %>
@@ -824,14 +1018,14 @@ const reloadMemory = async () => {
         <span class='starting hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
         <span class='stop hidden'><i class="fa-solid fa-stop"></i> Stop</span>
       </div>
-      <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> View File</button>
+      <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> Script</button>
       <!--
       <button class='btn' id='open-log' data-logpath="<%=logpath%>"><i class="fa-solid fa-align-left"></i> View Logs</button>
       -->
       <!--
       <button class='btn' id='source' data-editor-url="<%=editorUrl%>">Navigate</button>
       -->
-      <div id='save' class='btn disabled'>
+      <div id='save' class='btn disabled <%= readonly ? "hidden" : "" %>'>
         <span class='save'><i class="fa-solid fa-check"></i> Save</span>
       </div>
     </div>
@@ -935,6 +1129,9 @@ const reloadMemory = async () => {
         <div><i class="fa-solid fa-xmark"></i></div>
       </a>
       <div class='flexible'></div>
+      <button type='button' class='btn' data-ask-ai-trigger="true" data-workspace="<%= (typeof projectName !== 'undefined' && projectName) ? projectName : '' %>" data-workspace-cwd="<%= (typeof cwd !== 'undefined' && cwd) ? cwd : '' %>">
+        <div><i class="fa-solid fa-robot"></i> Ask AI</div>
+      </button>
       <a class='btn' href="<%=portal%>" target="_blank">
         <div><i class="fa-solid fa-question"></i> Ask Community</div>
       </a>

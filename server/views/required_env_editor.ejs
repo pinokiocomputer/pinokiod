@@ -209,6 +209,7 @@ footer .btn.go-home {
 }
 .env-title {
   font-weight: bold;
+  margin-bottom: 5px;
 }
 .env-description {
   margin-bottom: 10px;
@@ -223,10 +224,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.querySelector("#save").addEventListener("click", async (e) => {
     // save
     const vals = {}
+    const hosts = {}
     const els = document.querySelectorAll(".env-item")
     for(let el of els) {
       let input = el.querySelector("input[type=text]")
       vals[input.id] = input.value
+      let host = input.getAttribute("data-host")
+      if (host) {
+        hosts[input.id] = {
+          index: input.getAttribute("data-index"),
+          value: host
+        }
+      }
     }
     console.log("vals", vals)
     let res = await fetch("/env", {
@@ -236,7 +245,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       },
       body: JSON.stringify({
         filepath: "<%=filepath%>",
-        vals
+        vals,
+        hosts
       })
     }).then((res) => {
       return res.json()
@@ -247,7 +257,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 })
 </script>
 </head>
-<body class='<%=theme%> center'>
+<body class='<%=theme%> center' data-agent="<%=agent%>">
   <main>
     <div>
       <h1><%=filename%></h1>
@@ -263,7 +273,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           <% if (item.description) { %>
             <div class='env-description'><%=item.description%></div>
           <% } %>
-          <input id="<%=item.env%>" type="text" value="<%=item.val%>">
+          <input id="<%=item.env%>" data-index="<%=item.index%>" data-host="<%=item.host%>" type="text" value="<%=item.val%>">
         </div>
       <% }) %>
       <div id='save' class='btn'>

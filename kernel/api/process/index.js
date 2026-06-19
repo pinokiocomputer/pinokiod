@@ -1,5 +1,6 @@
 const waitOn = require('wait-on');
 const axios = require('axios');
+const AppAPI = require('../app');
 async function checkUrlStatus(url, message, interval, ondata) {
   try {
     console.log({ check: url, interval })
@@ -30,6 +31,40 @@ async function waitForUrl(url, message, interval, ondata) {
   }
 }
 class Process {
+  constructor() {
+    this.appApi = new AppAPI()
+  }
+  isIndefiniteWait(params) {
+    return !params || !(
+      params.app ||
+      params.id ||
+      params.name ||
+      params.sec ||
+      params.min ||
+      params.uri ||
+      params.url ||
+      params.on
+    )
+  }
+  normalizeIndefiniteWaitParams(req) {
+    if (!req.params) {
+      req.params = {}
+    }
+    if (!req.params.title && !req.params.description && !req.params.message) {
+      req.params.title = "Waiting"
+      req.params.description = "Click Stop when done."
+    }
+  }
+  async waitIndefinitely(req, kernel) {
+    await new Promise((resolve, reject) => {
+      this.resolve = resolve
+
+      // register the process with the root uri so it can be manually resolved (with this.resolve()) later
+      if (kernel && kernel.procs && req && req.parent && req.parent.path) {
+        kernel.procs[req.parent.path] = this
+      }
+    })
+  }
 //  async start(req, ondata, kernel) {
 //    /*
 //      req := {
@@ -155,6 +190,8 @@ class Process {
     /*
     params := {
       sec: <SECONDS>,
+      title: (optional) Title to display in the footer while waiting,
+      description: (optional) Description to display in the footer while waiting,
       message: (optional) Description to display while waiting,
       menu: (optional) menu to display in the modal while waiting,
 //      ok: (optional) <ok button text> (if not specified, no ok button),
@@ -165,6 +202,8 @@ class Process {
 
     params := {
       min: <MINUTES>,
+      title: (optional) Title to display in the footer while waiting,
+      description: (optional) Description to display in the footer while waiting,
       message: (optional) Description to display while waiting,
       menu: (optional) menu to display in the modal while waiting,
 //      ok: (optional) <ok button text> (if not specified, no ok button),
@@ -176,14 +215,41 @@ class Process {
     params := {
       url: <URL>,
       interval: (optional) how often to retry checking (in seconds)
+      title: (optional) Title to display in the footer while waiting,
+      description: (optional) Description to display in the footer while waiting,
       message: (optional) the message to display while retrying (default: no message)
     }
+
+    or
+
+    params := {
+      app: <APP NAME OR ID>,
+      install: <INSTALL URL>,
+      installTimeoutMs: (optional) how long to wait for detection,
+      installPollIntervalMs: (optional) how often to poll for detection
+    }
+
+    If the app is already present, return immediately. If missing and install is
+    provided, show the install modal and poll until the app is detected, then
+    return (no launch). If missing and no install, throw.
+
+    or
+
+    params := {
+      title: (optional) Title to display in the footer while waiting,
+      description: (optional) Description to display in the footer while waiting,
+    }
+
+    This waits indefinitely until the script is stopped or the wait is manually
+    resolved.
 
     or
 
 
     params := {
       on: <wait-on condition https://github.com/jeffbski/wait-on>,
+      title: (optional) Title to display in the footer while waiting,
+      description: (optional) Description to display in the footer while waiting,
       message: (optional) Description to display while waiting,
       menu: (optional) menu to display in the modal while waiting,
 //      ok: (optional) <ok button text> (if not specified, no ok button),
@@ -195,46 +261,88 @@ class Process {
     if 'cancel' is pressed before the condition is met, stops the script
 
     */
-    let ms 
-    if (req.params) {
-      // Display modal
-      if (req.params.sec || req.params.min) {
-        // Wait
-        if (req.params.sec) {
-          ms = req.params.sec * 1000
-        } else if (req.params.min) {
-          ms = req.params.min * 60 * 1000
-        }
-        await new Promise((resolve, reject) => {
-          this.resolve = resolve
-
-          // register the process with the root uri so it can be manually resolved (with this.resolve()) later
-          kernel.procs[req.parent.path] = this
-
-          setTimeout(() => {
-            this.resolve()
-          }, ms)
-        })
-      } else if (req.params.url) {
-        let interval = req.params.interval ? req.params.interval * 1000 : 1000
-        await waitForUrl(req.params.url, req.params.message, interval, ondata)
-      } else if (req.params.on) {
-        // Wait
-        if (req.params.message) {
-          ondata({
-            raw: `\r\nWaiting: ${JSON.stringify(req.params.on)}\r\n`
-          })
-          ondata(req.params, "wait")
-        }
-        console.log("Wait", req.params.on)
-        await waitOn(req.params.on)
-        console.log("Wait finished")
-        ondata(req.params, "wait.end")
+    let ms
+    const waitPath = req && req.parent && req.parent.path
+    const indefiniteWait = this.isIndefiniteWait(req && req.params)
+    if (indefiniteWait && req) {
+      this.normalizeIndefiniteWaitParams(req)
+    }
+    if (waitPath && kernel) {
+      if (!kernel.activeProcessWaits) {
+        kernel.activeProcessWaits = {}
       }
-    } else {
-      await new Promise((resolve, reject) => {
-        this.resolve = resolve
-      })
+      kernel.activeProcessWaits[waitPath] = {
+        path: waitPath,
+        params: req.params || {},
+        title: req.params && req.params.title,
+        description: req.params && req.params.description,
+        message: req.params && req.params.message,
+        started: Date.now()
+      }
+    }
+    const showFooter = req.params && (req.params.title || req.params.description || req.params.message)
+    if (showFooter && typeof ondata === "function") {
+      ondata(req.params, "process.wait.start")
+    }
+    try {
+      if (req.params) {
+        if (req.params.app || req.params.id || req.params.name) {
+          await this.appApi.waitForAppPresence(req, ondata, kernel)
+          return
+        }
+        // Display modal
+        if (req.params.sec || req.params.min) {
+          // Wait
+          if (req.params.sec) {
+            ms = req.params.sec * 1000
+          } else if (req.params.min) {
+            ms = req.params.min * 60 * 1000
+          }
+          await new Promise((resolve, reject) => {
+            this.resolve = resolve
+
+            // register the process with the root uri so it can be manually resolved (with this.resolve()) later
+            kernel.procs[req.parent.path] = this
+
+            setTimeout(() => {
+              this.resolve()
+            }, ms)
+          })
+        } else if (req.params.uri) {
+          let interval = req.params.interval ? req.params.interval * 1000 : 1000
+          ondata(req.params, "loading.start")
+          await waitForUrl(req.params.uri, req.params.message, interval, ondata)
+          ondata(req.params, "loading.end")
+        } else if (req.params.url) {
+          let interval = req.params.interval ? req.params.interval * 1000 : 1000
+          ondata(req.params, "loading.start")
+          await waitForUrl(req.params.url, req.params.message, interval, ondata)
+          ondata(req.params, "loading.end")
+        } else if (req.params.on) {
+          // Wait
+          if (req.params.message) {
+            ondata({
+              raw: `\r\nWaiting: ${JSON.stringify(req.params.on)}\r\n`
+            })
+            ondata(req.params, "wait")
+          }
+          console.log("Wait", req.params.on)
+          await waitOn(req.params.on)
+          console.log("Wait finished")
+          ondata(req.params, "wait.end")
+        } else {
+          await this.waitIndefinitely(req, kernel)
+        }
+      } else {
+        await this.waitIndefinitely(req, kernel)
+      }
+    } finally {
+      if (waitPath && kernel && kernel.activeProcessWaits) {
+        delete kernel.activeProcessWaits[waitPath]
+      }
+      if (showFooter && typeof ondata === "function") {
+        ondata(req.params, "process.wait.end")
+      }
     }
   }
 }

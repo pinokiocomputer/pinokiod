@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skills</title>
+  <link href="/css/fontawesome.min.css" rel="stylesheet">
+  <link href="/css/solid.min.css" rel="stylesheet">
+  <link href="/css/brands.min.css" rel="stylesheet">
+  <link href="/noty.css" rel="stylesheet">
+  <link href="/style.css" rel="stylesheet">
+  <link href="/task-launcher.css" rel="stylesheet">
+  <% if (agent === "electron") { %>
+    <link href="/electron.css" rel="stylesheet"/>
+  <% } %>
+  <style>
+    body.skills-page .skills-overview {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+      gap: 16px;
+      align-items: start;
+    }
+    body.skills-page .skills-explainer {
+      display: grid;
+      gap: 8px;
+      max-width: 82ch;
+    }
+    body.skills-page .skills-explainer-title {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.25;
+      font-weight: 650;
+      color: var(--task-text);
+    }
+    body.skills-page .skills-explainer-copy {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--task-muted);
+    }
+    body.skills-page .skills-explainer-list {
+      display: grid;
+      gap: 5px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--task-muted);
+    }
+    body.skills-page .skills-explainer-list li {
+      position: relative;
+      padding-left: 14px;
+    }
+    body.skills-page .skills-explainer-list li::before {
+      content: "";
+      position: absolute;
+      top: 0.72em;
+      left: 0;
+      width: 4px;
+      height: 4px;
+      border-radius: 999px;
+      background: currentColor;
+      opacity: 0.56;
+    }
+    body.skills-page .skills-path-stack {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      font-size: 12px;
+      color: var(--task-muted);
+    }
+    body.skills-page .skills-path-stack code {
+      overflow-wrap: anywhere;
+    }
+    body.skills-page .skills-install-form {
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) auto;
+      gap: 10px;
+      align-items: end;
+    }
+    body.skills-page .skills-install-submit {
+      min-width: 132px;
+      min-height: 38px;
+      padding: 0 16px;
+      gap: 7px;
+      font-size: 13px;
+      font-weight: 650;
+    }
+    body.skills-page .skills-list {
+      display: grid;
+      gap: 10px;
+    }
+    body.skills-page .skill-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: start;
+      border: 1px solid rgba(0, 0, 0, 0.09);
+      border-radius: 8px;
+      padding: 14px;
+      background: rgba(0, 0, 0, 0.025);
+    }
+    body.dark.skills-page .skill-row {
+      border-color: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    body.skills-page .skill-row.has-conflict {
+      border-color: rgba(190, 72, 20, 0.55);
+      background: rgba(190, 72, 20, 0.06);
+    }
+    body.dark.skills-page .skill-row.has-conflict {
+      border-color: rgba(251, 146, 60, 0.5);
+      background: rgba(251, 146, 60, 0.1);
+    }
+    body.skills-page .skill-main {
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
+    body.skills-page .skill-title-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+    body.skills-page .skill-title {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.2;
+      font-weight: 650;
+    }
+    body.skills-page .skill-description {
+      margin: 0;
+      max-width: 72ch;
+      font-size: 13px;
+      line-height: 1.45;
+      opacity: 0.72;
+    }
+    body.skills-page .skill-status {
+      display: inline-flex;
+      align-items: center;
+      font-size: 12px;
+      line-height: 1.2;
+      font-weight: 500;
+      color: var(--task-muted);
+      white-space: nowrap;
+    }
+    body.skills-page .skill-status.good {
+      color: #166534;
+    }
+    body.skills-page .skill-status.warn {
+      color: #9a3412;
+    }
+    body.dark.skills-page .skill-status.good {
+      color: #86efac;
+    }
+    body.dark.skills-page .skill-status.warn {
+      color: #fdba74;
+    }
+    body.skills-page .skill-details {
+      display: grid;
+      gap: 7px;
+      font-size: 12px;
+    }
+    body.skills-page .skill-detail-line {
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+      min-width: 0;
+    }
+    body.skills-page .skill-detail-label {
+      flex: 0 0 auto;
+      width: 88px;
+      opacity: 0.58;
+    }
+    body.skills-page .skill-detail-value {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    body.skills-page .skill-targets {
+      display: grid;
+      gap: 4px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    body.skills-page .skill-target {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+      opacity: 0.72;
+    }
+    body.skills-page .skill-target i {
+      width: 13px;
+      text-align: center;
+    }
+    body.skills-page .skill-target.conflict {
+      color: rgb(154, 52, 18);
+      opacity: 1;
+    }
+    body.dark.skills-page .skill-target.conflict {
+      color: rgb(253, 186, 116);
+    }
+    body.skills-page .skill-actions {
+      display: grid;
+      gap: 8px;
+      justify-items: end;
+      min-width: 230px;
+    }
+    body.skills-page .skill-toggle-form {
+      margin: 0;
+    }
+    body.skills-page .skill-switch {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-width: 78px;
+      min-height: 28px;
+      box-sizing: border-box;
+      padding: 0 8px;
+      border: 1px solid var(--task-border);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+      color: var(--task-muted);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 650;
+      line-height: 1;
+      transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+    }
+    body.skills-page .skill-switch:hover {
+      background: color-mix(in srgb, var(--task-soft) 76%, var(--task-panel));
+      color: var(--task-text);
+    }
+    body.skills-page .skill-switch[aria-checked="true"] {
+      border-color: color-mix(in srgb, #22c55e 30%, transparent);
+      background: color-mix(in srgb, #22c55e 12%, var(--task-panel));
+      color: #166534;
+    }
+    body.dark.skills-page .skill-switch[aria-checked="true"] {
+      color: #86efac;
+    }
+    body.skills-page .skill-switch:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+    }
+    body.skills-page .skill-switch-track {
+      position: relative;
+      width: 30px;
+      height: 16px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--task-muted) 24%, transparent);
+      transition: background 140ms ease;
+    }
+    body.skills-page .skill-switch[aria-checked="true"] .skill-switch-track {
+      background: color-mix(in srgb, #22c55e 52%, transparent);
+    }
+    body.skills-page .skill-switch-thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: var(--task-panel);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+      transition: transform 140ms ease;
+    }
+    body.skills-page .skill-switch[aria-checked="true"] .skill-switch-thumb {
+      transform: translateX(14px);
+    }
+    body.skills-page .skill-switch-label {
+      min-width: 18px;
+      text-align: left;
+    }
+    body.skills-page .skill-publish-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 6px;
+      width: 230px;
+    }
+    body.skills-page .skill-remove-form {
+      margin: 0;
+    }
+    body.skills-page .skills-message {
+      margin-bottom: 12px;
+    }
+    @media (max-width: 980px) {
+      body.skills-page .skills-overview,
+      body.skills-page .skill-row {
+        grid-template-columns: 1fr;
+      }
+      body.skills-page .skill-actions {
+        justify-items: stretch;
+        min-width: 0;
+      }
+      body.skills-page .skill-publish-form,
+      body.skills-page .skill-switch {
+        width: 100%;
+      }
+      body.skills-page .skills-install-form {
+        grid-template-columns: 1fr;
+      }
+      body.skills-page .skills-install-submit {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<%
+  const validCount = skills.filter((skill) => skill.valid).length;
+  const hasIndexError = Boolean(indexError);
+  const targetIcon = (status) => {
+    if (status === "published" || status === "legacy-managed") return "fa-solid fa-circle-check";
+    if (status === "conflict") return "fa-solid fa-triangle-exclamation";
+    if (status === "missing") return "fa-regular fa-circle";
+    return "fa-regular fa-circle";
+  };
+  const targetClass = (status) => status === "conflict" ? "conflict" : "";
+%>
+<body class="<%= theme %> main-sidebar-page task-launcher-page task-page skills-page" data-agent="<%= agent %>">
+  <%- include('partials/app_navheader', { agent }) %>
+  <main>
+    <div class="task-container">
+      <section class="task-shell">
+        <header class="task-shell-header">
+          <div class="task-shell-header-main">
+            <p class="task-eyebrow">Skills</p>
+            <h1 class="task-title">Skills</h1>
+            <p class="task-description">Stored in <code><%= skillsRootPath %></code>.</p>
+          </div>
+        </header>
+
+        <div class="task-shell-body">
+          <% if (notice) { %>
+            <div class="task-status skills-message"><%= notice %></div>
+          <% } %>
+          <% if (error) { %>
+            <div class="task-status error skills-message"><%= error %></div>
+          <% } %>
+          <% if (hasIndexError) { %>
+            <div class="task-status error skills-message">
+              Managed skills are not being synced because <code><%= indexPath %></code> could not be read. Fix the JSON file, then reload this page. <%= indexError %>
+            </div>
+          <% } %>
+
+          <section class="task-section skills-overview" aria-label="How managed skills work">
+            <div class="skills-explainer">
+              <h2 class="skills-explainer-title">How this works</h2>
+              <p class="skills-explainer-copy">
+                Pinokio keeps the source copy of each managed skill in <code><%= skillsRootPath %></code>. When a skill is ON, Pinokio syncs its <code>SKILL.md</code> into the target skill folders used by agent tools.
+              </p>
+              <ul class="skills-explainer-list">
+                <li>Sync runs when Pinokio starts and after changes made on this page.</li>
+                <li>Turning a skill OFF removes only Pinokio-managed synced copies from the target folders.</li>
+                <li>The source skill stays in the managed library, so it can be turned on again later.</li>
+                <li>If a target folder already contains a non-Pinokio skill, Pinokio leaves it untouched and marks a conflict.</li>
+                <li>Downloaded repositories must contain a root <code>SKILL.md</code> before they can be turned on.</li>
+              </ul>
+            </div>
+            <div class="skills-path-stack">
+              <div><strong>Index</strong> <code><%= indexPath %></code></div>
+              <div><strong>Sync targets</strong></div>
+              <% publishRoots.forEach((root) => { %>
+                <code><%= root %></code>
+              <% }) %>
+            </div>
+          </section>
+
+          <% if (!hasIndexError) { %>
+          <section class="task-section" aria-label="Download skill">
+            <form class="skills-install-form" method="post" action="/skills/install">
+              <label class="task-field">
+                <span class="task-label">Git URL</span>
+                <input class="task-input" type="url" name="ref" placeholder="https://github.com/org/skill.git" required>
+              </label>
+              <button class="task-button primary skills-install-submit" type="submit">
+                <i class="fa-solid fa-download" aria-hidden="true"></i>
+                <span>Download</span>
+              </button>
+            </form>
+          </section>
+          <% } %>
+
+          <section class="task-section" aria-label="Installed skills">
+            <div class="task-section-head">
+              <div>
+                <h2 class="task-section-title">Library</h2>
+                <p class="task-section-subcopy"><%= hasIndexError ? 'Unavailable until the index is readable.' : `${validCount} valid, ${skills.length - validCount} invalid.` %></p>
+              </div>
+            </div>
+            <% if (hasIndexError) { %>
+              <div class="task-empty-state">
+                <p class="task-empty-copy">No managed skill changes were applied.</p>
+              </div>
+            <% } else if (!skills.length) { %>
+              <div class="task-empty-state">
+                <p class="task-empty-copy">No managed skills installed.</p>
+              </div>
+            <% } else { %>
+              <div class="skills-list">
+                <% skills.forEach((skill) => { %>
+                  <% const canRenamePublishName = !skill.builtin && skill.hasConflict; %>
+                  <article class="skill-row <%= skill.hasConflict ? 'has-conflict' : '' %>">
+                    <div class="skill-main">
+                      <div>
+                        <div class="skill-title-line">
+                          <h2 class="skill-title"><%= skill.label || skill.id %></h2>
+                          <% if (skill.builtin) { %><span class="skill-status">Built-in</span><% } %>
+                          <% if (skill.enabled) { %><span class="skill-status good">On</span><% } else { %><span class="skill-status">Off</span><% } %>
+                          <% if (skill.valid) { %><span class="skill-status good">Valid</span><% } else { %><span class="skill-status warn">Invalid</span><% } %>
+                          <% if (skill.hasConflict) { %><span class="skill-status warn">Conflict</span><% } %>
+                        </div>
+                        <% if (skill.description) { %>
+                          <p class="skill-description"><%= skill.description %></p>
+                        <% } %>
+                      </div>
+                      <div class="skill-details">
+                        <div class="skill-detail-line">
+                          <span class="skill-detail-label">Skill ID</span>
+                          <span class="skill-detail-value"><code><%= skill.id %></code></span>
+                        </div>
+                        <div class="skill-detail-line">
+                          <span class="skill-detail-label">Synced as</span>
+                          <span class="skill-detail-value"><code><%= skill.publishName %></code></span>
+                        </div>
+                        <div class="skill-detail-line">
+                          <span class="skill-detail-label">Source</span>
+                          <span class="skill-detail-value"><code><%= skill.path %></code></span>
+                        </div>
+                        <% if (skill.ref) { %>
+                          <div class="skill-detail-line">
+                            <span class="skill-detail-label">Remote</span>
+                            <span class="skill-detail-value"><code><%= skill.ref %></code></span>
+                          </div>
+                        <% } %>
+                        <% if (!skill.valid && skill.errors.length) { %>
+                          <div class="skill-detail-line">
+                            <span class="skill-detail-label">Error</span>
+                            <span class="skill-detail-value"><%= skill.errors.join(" ") %></span>
+                          </div>
+                        <% } %>
+                        <div class="skill-detail-line">
+                          <span class="skill-detail-label">Synced to</span>
+                          <ul class="skill-targets">
+                            <% skill.targets.forEach((target) => { %>
+                              <li class="skill-target <%= targetClass(target.status) %>">
+                                <i class="<%= targetIcon(target.status) %>" aria-hidden="true"></i>
+                                <span><code><%= target.path %></code><%= target.message ? ` - ${target.message}` : '' %></span>
+                              </li>
+                            <% }) %>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="skill-actions">
+                      <form class="skill-toggle-form" method="post" action="/skills/<%= encodeURIComponent(skill.id) %>/toggle">
+                        <input type="hidden" name="enabled" value="<%= skill.enabled ? '0' : '1' %>">
+                        <button class="skill-switch" type="submit" role="switch" aria-checked="<%= skill.enabled ? 'true' : 'false' %>" aria-label="<%= skill.enabled ? 'Turn skill off' : 'Turn skill on' %>" title="<%= skill.enabled ? 'Turn skill off' : 'Turn skill on' %>" <%= !skill.enabled && !skill.valid ? 'disabled' : '' %>>
+                          <span class="skill-switch-track" aria-hidden="true"><span class="skill-switch-thumb"></span></span>
+                          <span class="skill-switch-label"><%= skill.enabled ? 'ON' : 'OFF' %></span>
+                        </button>
+                      </form>
+                      <% if (canRenamePublishName) { %>
+                        <form class="skill-publish-form" method="post" action="/skills/<%= encodeURIComponent(skill.id) %>/publish-name">
+                          <input class="task-input" type="text" name="publishName" value="<%= skill.publishName %>" aria-label="Sync folder name">
+                          <button class="task-link-button" type="submit" aria-label="Save sync folder name">
+                            <i class="fa-solid fa-check" aria-hidden="true"></i>
+                          </button>
+                        </form>
+                      <% } %>
+                      <% if (skill.removable) { %>
+                        <form class="skill-remove-form" method="post" action="/skills/<%= encodeURIComponent(skill.id) %>/remove" data-skill-remove>
+                          <button class="task-link-button" type="submit">
+                            <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                            <span>Remove</span>
+                          </button>
+                        </form>
+                      <% } %>
+                    </div>
+                  </article>
+                <% }) %>
+              </div>
+            <% } %>
+          </section>
+        </div>
+      </section>
+    </div>
+    <%- include('partials/main_sidebar', { selected: 'skills' }) %>
+  </main>
+  <%- include('partials/app_common_scripts') %>
+  <script>
+    document.querySelectorAll("[data-skill-remove]").forEach((form) => {
+      form.addEventListener("submit", (event) => {
+        if (!window.confirm("Remove this downloaded skill?")) {
+          event.preventDefault()
+        }
+      })
+    })
+  </script>
+</body>
+</html>

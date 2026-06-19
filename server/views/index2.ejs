@@ -1,0 +1,520 @@
+<html>
+<head>
+<title>Pinokio</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/filepond.min.css" rel="stylesheet" />
+<link href="/filepond-plugin-image-preview.min.css" rel="stylesheet" />
+<link href="/filepond-plugin-image-edit.min.css" rel="stylesheet" />
+<link href="/style.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+.line2 {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0,0,100,0.04);
+}
+.line2 a {
+  text-decoration: none;
+  color: black;
+}
+.status {
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
+}
+.status.offline {
+  background: silver;
+}
+.status.online {
+  background: yellowgreen;
+}
+.switch {
+  padding: 10px;
+  margin: 10px 0;
+}
+.switch[data-online=true] {
+  color: yellowgreen;
+}
+.button {
+  padding: 10px;
+}
+.on, .off {
+  display: flex;
+  align-items: center;
+}
+header .runner {
+  padding: 10px 0 0;
+}
+.proxy {
+  padding: 0 10px;
+  text-align: right;
+}
+.proxy a {
+  text-decoration: none;
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 2px;
+  background: black;
+  color: white;
+}
+.browser-options-btns {
+  display: flex;
+  padding-top: 5px;
+}
+.browser-options-row {
+/*
+  border-top: 1px solid rgba(0,0,0,0.1);
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  */
+  display: flex;
+  padding: 10px;
+  align-items: flex-start;
+}
+.browser-options-row h3 {
+  margin: 0;
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+.browser-options-row .btn.disabled {
+  opacity: 0.7;
+}
+.browser-options-row .btn {
+  font-weight: bold;
+  width: 100px;
+  text-align: center;
+  display: block;
+  margin-right: 10px;
+  flex-shrink: 0;
+  padding: 5px;
+}
+.badge {
+  font-size: 12px;
+  padding: 5px 10px;
+  background: rgba(0,0,100,0.1);
+  border-radius: 5px;
+  display: inline-block;
+  margin-top: 5px;
+}
+a.badge {
+  color: royalblue;
+  text-decoration: none;
+  cursor: pointer;
+}
+.badge a {
+  color: royalblue;
+  text-decoration: none;
+}
+body.dark .btn {
+  color: white;
+}
+body.dark .badge {
+  background: rgba(255,255,255,0.1);
+}
+/*
+body.dark .browser-options-row {
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+*/
+body.dark .context-menu-wrapper {
+  background: rgba(0,0,0,0.9) !important;
+  color: white !important;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+}
+.context-menu-wrapper {
+  background: rgba(0,0,0,0.06) !important;
+}
+.context-menu {
+ /* 
+  max-height: 10000px;
+  overflow: hidden;
+  transition: max-height 1s ease-in-out;
+  */
+  display: flex;
+  margin: 0 5px 0 0;
+}
+.context-menu .btn:hover {
+  color: cornflowerblue !important;
+}
+.context-menu .btn {
+  background: none !important;
+  border: none !important;
+  display: block;
+  width: 80px;
+  padding: 6px 10px !important;
+  text-align: left;
+  color: black;
+}
+body.dark .context-menu .btn {
+  color: white;
+}
+.context-menu.collapsed {
+/*
+  max-height: 0; 
+  */
+  display: none;
+}
+body.dark .open-menu, body.dark .browse {
+  border: none !important;
+  background: black !important;
+  color: white !important;
+}
+.open-menu:hover, .browse:hover, body.dark .open-menu:hover, body.dark .browse:hover {
+  color: royalblue !important;
+}
+.open-menu, .browse {
+  width: 80px;
+  border-radius: 0 !important;
+  background: rgba(0,0,0,0.04) !important;
+  color: black !important;
+  /*
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  */
+}
+.open-menu.selected {
+  border: none !important;
+  /*
+  background: none !important;
+  */
+}
+.open-menu.selected span {
+  display: none;
+}
+@media only screen and (max-width: 480px) {
+  .btn2 {
+    padding: 5px;
+    font-size: 11px;
+  }
+  .nav-btns {
+    flex-grow: 1;
+    justify-content: center;
+    padding: 0;
+  }
+}
+</style>
+<script src="/hotkeys.min.js"></script>
+<script src="/sweetalert2.js"></script>
+<script src="/noty.js"></script>
+<script src="/notyq.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/Socket.js"></script>
+<script src="/install.js"></script>
+<script src="/common.js"></script>
+<script src="/opener.js"></script>
+<script src="/nav.js"></script>
+<script src="/fuse.js"></script>
+<script src="/report.js"></script>
+<script src="/filepond-plugin-file-validate-type.min.js"></script>
+<script src="/filepond-plugin-image-exif-orientation.min.js"></script>
+<script src="/filepond-plugin-image-preview.min.js"></script>
+<script src="/filepond-plugin-image-edit.min.js"></script>
+<script src="/filepond-plugin-image-crop.min.js"></script>
+<script src="/filepond-plugin-image-resize.min.js"></script>
+<script src="/filepond-plugin-image-transform.min.js"></script>
+<script src="/filepond.min.js"></script>
+<script src="/fscreator.js"></script>
+<script src="/fseditor.js"></script>
+</head>
+<body class='<%=theme%>' data-agent="<%=agent%>">
+<% if (error) { %>
+<nav class='error-message'>
+  <div><%=error%></div>
+  <div class='flexible'></div>
+  <a class='btn' target="_blank" href="<%=install%>">Download</a>
+</nav>
+<% } %>
+<!--
+<header class='grabbable'>
+-->
+<header class='navheader grabbable'>
+<h1>
+<% if (ishome) { %>
+<a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
+<button class='btn2' id='back'><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward'><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page'><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<div class='url-bar'>
+  <% if (current_urls.https) { %>
+    <a class='https-url' target="_blank" href="<%=current_urls.https%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.https%></a>
+  <% } %>
+  <% if (current_urls.http) { %>
+    <a class='http-url' target="_blank" href="<%=current_urls.http%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%=current_urls.http%></a>
+  <% } %>
+</div>
+<a href="/network" class='btn2'><div><i class="fa-solid fa-wifi"></i></div><div>Network</div></a>
+<!--
+<button id='newfolder' class='btn2'><div><i class="fa-solid fa-folder-plus"></i></div><div>New Folder</div></button>
+-->
+<% } %>
+<% paths.forEach((path) => { %>
+  <% if (path.action) { %>
+    <a class='path nav-button' id="<%=path.id%>" onclick="<%=path.action%>"><%-path.name%></a>
+  <% } else if (path.path) { %>
+    <a class='path' href="<%=path.path%>"><%-path.name%></a>
+  <% } %>
+<% }) %>
+<% if (ishome) { %>
+    <button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+      <div><i class="fa-solid fa-expand"></i></div>
+    </button>
+  <div class='nav-btns'>
+    <a class='btn2' href="<%=portal%>" target="_blank"><div><i class="fa-solid fa-question"></i></div><div>Help</div></a>
+    <a class='btn2' id='genlog' href="/logs"><div><i class="fa-solid fa-laptop-code"></i></div><div>Logs</div></a>
+    <a class='btn2' href="/home?mode=settings"><div><i class="fa-solid fa-gear"></i></div><div>Settings</div></a>
+    <button id='new-window' title='open a new window' class='btn2' data-agent="<%=agent%>"><div><i class="fa-solid fa-plus"></i></div><div>Window</div></button>
+  </div>
+<% } %>
+</h1>
+<% if (!ishome) { %>
+  <div class='runner'>
+    <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> View Folder</button>
+  </div>
+<% } %>
+<% if (display.includes("dependencies") && config) { %>
+<div class='dependencies'>
+  <h2>Prerequisites</h2>
+  <div class='item'>Download and install the following dependencies first</div>
+  <div class='requirements'>
+  <% config.dependencies.forEach((dep) => { %>
+    <% if (dep.downloaded) { %>
+      <div class='item'><i class="fa-solid fa-check"></i> <a class='downloaded' href="<%=dep.downloaded%>" target="_blank"><%=dep.uri%></a><div class='flexible'></div></div>
+    <% } else { %>
+      <div class='item'><a class='btn' href="/?mode=download&uri=<%= encodeURIComponent(dep.uri) %>" target="_blank"><i class="fa-solid fa-download"></i> Download</a> <%=dep.uri%><div class='flexible'></div></div>
+    <% } %>
+  <% }) %>
+  </div>
+</div>
+<% } %>
+</header>
+<main>
+<div id='terminal' class='hidden'></div>
+<div class='container'>
+<% if (ishome) { %>
+  <form class='search'>
+  <div class='app-btns'>
+    <a class='btn create-new' id='create-new-folder'><i class="fa-solid fa-plus"></i> New</a>
+    <!--
+    <a class='btn create-new' href="/create"><i class="fa-solid fa-folder-plus"></i> Create</a>
+    -->
+    <a class='btn' id='explore' href="/home?mode=explore"><i class="fa-solid fa-magnifying-glass"></i> Community</a>
+  </div>
+    <% if (display.includes("form")) { %>
+      <input type='search' class="flexible" placeholder='Filter downloaded apps'>
+    <% } else { %>
+    <% } %>
+  </form>
+  <% if (running.length > 0) { %>
+    <div class='running-apps'>
+    <!--
+      <div class='header-label'>Running</div>
+      -->
+      <% running.forEach((item) => { %>
+        <a href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" class='line align-top'>
+          <h3>
+            <div class='item-icon'>
+              <% if (item.icon) { %>
+                <img src="<%=item.icon%>">
+              <% } else { %>
+                <% if (theme === 'dark') { %>
+                  <img src="/pinokio-white.png">
+                <% } else { %>
+                  <img src="/pinokio-black.png">
+                <% } %>
+              <% } %>
+            </div>
+            <div class='col'>
+              <div class='uri'><%=item.filepath%></div>
+              <div class='title'><%=item.name%></div>
+              <div class='description'><%=item.description%></div>
+              <div class='menu-btns'>
+                <button class='btn browse' data-src="<%=item.browser_url%>/dev">
+                  <i class='fa-solid fa-code'></i> Dev
+                </button>
+                <button class='btn open-menu'>
+                  <i class="fa-solid fa-bars"></i><span> Menu</span>
+                </button>
+                <div class='context-menu collapsed'>
+                  <div class='context-menu-wrapper'>
+                    <button class='btn' data-filepath="<%=item.filepath%>">
+                      <i class="fa-solid fa-folder-open"></i> Open</button>
+                    </button>
+                    <button class='btn copy-menu' data-src="<%=item.browser_url%>/dev">
+                      <i class='fa-solid fa-copy'></i> Copy
+                    </button>
+                    <button class='btn move-menu' data-src="<%=item.browser_url%>/dev" data-disable="To move the folder, the app should not be running.">
+                      <i class="fa-solid fa-right-to-bracket"></i> Move
+                    </button>
+                    <button class='btn edit-menu' data-src="<%=item.browser_url%>/dev">
+                      <i class='fa-solid fa-pen-to-square'></i> Edit
+                    </button>
+                    <button class='btn del' data-src="<%=item.url%>" data-disable="To delete the folder, the app should not be running.">
+                      <i class="fa-solid fa-trash-can"></i> Delete
+                    </button>
+                  </div>
+                </div>
+                <% if (item.running_scripts) { %>
+                  <% item.running_scripts.forEach((s) => { %>
+                    <% if (s.id) { %>
+                      <button class='btn shutdown' data-id="<%=s.id%>">
+                        <i class="fa-solid fa-stop"></i> Stop <%=s.name%>&nbsp;
+                        <i class='fa-solid fa-spin fa-circle-notch'></i>
+                      </button>
+                    <% } else { %>
+                      <button class='btn shutdown' data-src="<%=s.path%>">
+                        <i class="fa-solid fa-stop"></i> Stop <%=s.name%>&nbsp;
+                        <i class='fa-solid fa-spin fa-circle-notch'></i>
+                      </button>
+                    <% } %>
+                  <% }) %>
+                <% } %>
+              </div>
+              <% if (item.shortcuts && item.shortcuts.length > 0) { %>
+                <div class='btns'>
+                  <% item.shortcuts.forEach((btn) => { %>
+                    <% if (btn.btn) { %>
+                      <button data-action="<%=btn.action ? JSON.stringify(btn.action) : ''%>" class='btn menu-btn'><%-btn.btn%></button>
+                    <% } %>
+                  <% }) %>
+                </div>
+              <% } %>
+            </div>
+            <!--
+            <div class='spinner'>
+              <i class="fa-solid fa-chevron-right"></i>
+            </div>
+            -->
+          </h3>
+        </a>
+      <% }) %>
+    </div>
+  <% } %>
+  <% if (notRunning.length > 0) { %>
+    <div class='not-running-apps'>
+      <!--
+      <div class='header-label'>Not Running</div>
+      -->
+      <% notRunning.forEach((item) => { %>
+        <a href="<%=item.browser_url%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" class='line align-top'>
+          <h3>
+            <div class='item-icon'>
+              <% if (item.icon) { %>
+                <img src="<%=item.icon%>">
+              <% } else { %>
+                <% if (theme === 'dark') { %>
+                  <img src="/pinokio-white.png">
+                <% } else { %>
+                  <img src="/pinokio-black.png">
+                <% } %>
+              <% } %>
+            </div>
+            <div class='col'>
+              <div class='uri'><%=item.filepath%></div>
+              <div class='title'><%=item.name%></div>
+              <div class='description'><%=item.description%></div>
+              <div class='menu-btns'>
+                <button class='btn browse' data-src="<%=item.browser_url%>/dev">
+                  <i class='fa-solid fa-code'></i> Dev
+                </button>
+                <button class='btn open-menu'>
+                  <i class="fa-solid fa-bars"></i><span> Menu</span>
+                </button>
+                <div class='context-menu collapsed'>
+                  <div class='context-menu-wrapper'>
+                    <button class='btn' data-filepath="<%=item.filepath%>">
+                      <i class="fa-solid fa-folder-open"></i> Open</button>
+                    </button>
+                    <button class='btn copy-menu' data-src="<%=item.browser_url%>/dev">
+                      <i class='fa-solid fa-copy'></i> Copy
+                    </button>
+                    <button class='btn move-menu' data-src="<%=item.browser_url%>/dev">
+                      <i class="fa-solid fa-right-to-bracket"></i> Move
+                    </button>
+                    <button class='btn edit-menu' data-src="<%=item.browser_url%>/dev">
+                      <i class='fa-solid fa-pen-to-square'></i> Edit
+                    </button>
+                    <button class='btn del' data-src="<%=item.url%>">
+                      <i class="fa-solid fa-trash-can"></i> Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class='fiexible'></div>
+              <% if (item.shortcuts && item.shortcuts.length > 0) { %>
+                <div class='btns'>
+                  <% item.shortcuts.forEach((btn) => { %>
+                    <% if (btn.btn) { %>
+                      <button data-action="<%=btn.action ? JSON.stringify(btn.action) : ''%>" class='btn menu-btn'><%-btn.btn%></button>
+                    <% } %>
+                  <% }) %>
+                </div>
+              <% } %>
+            </div>
+            <!--
+            <div class='spinner'>
+              <i class="fa-solid fa-chevron-right"></i>
+            </div>
+            -->
+          </h3>
+        </a>
+      <% }) %>
+    </div>
+  <% } %>
+  <% if (running.length === 0 && notRunning.length === 0) { %>
+    <div class='placeholder'>
+      <h1>Welcome.</h1>
+      <br>
+      <div>Get started by installing some Pinokio scripts.</div>
+      <a href="/home?mode=explore" class='btn'><i class="fa-solid fa-globe"></i> Visit Community Page</a>
+    </div>
+  <% } %>
+<% } else { %>
+  <% items.forEach((item, index) => { %>
+    <a data-description="<%=item.description%>" data-index="<%=index%>" data-name="<%=item.name%>" data-uri="<%=item.uri%>" class='line thick' href="<%=item.url%>">
+      <h3>
+        <% if (item.icon) { %>
+          <i class="<%=item.icon%>"></i>
+        <% } else { %>
+          <i class="fa-regular fa-folder"></i>
+        <% } %>
+          <%=item.name%>
+        </h3>
+      <div class='description'><%=item.description%></div>
+    </a>
+  <% }) %>
+<% } %>
+<% if (readme) { %>
+<div class='readme markdown-body'>
+  <div class='content'><%-readme%></div>
+</div>
+<% } %>
+<% if (display.includes("onboarding")) { %>
+<!--
+<div class='container'>
+  <div class='content'>
+    <h2>Quickstart</h2>
+    <div>Install llama</div>
+    <br>
+    <button class='btn' id='llama'>Install</button>
+  </div>
+</div>
+-->
+<% } %>
+</div>
+</main>
+</body>
+</html>

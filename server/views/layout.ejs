@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Pinokio</title>
+  <style>
+    :root {
+      --layout-gutter-size: 6px;
+      --layout-background: #ffffff;
+      --layout-gutter-bg: rgba(0, 0, 0, 0.04);
+      --layout-gutter-bg-hover: cornflowerblue;
+      --layout-dragger-bg: var(--layout-background);
+      --layout-dragger-border: rgba(15, 23, 42, 0.06);
+      --layout-shadow: rgba(0, 0, 0, 0.06);
+      --layout-viewport-height: 100vh;
+      --layout-dragger-height: 0px;
+      color-scheme: light dark;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: var(--layout-background);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    }
+
+    #dragger {
+      -webkit-app-region: drag;
+      cursor: grab;
+      display: none;
+      height: 32px;
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--layout-dragger-bg);
+    }
+    body.dark > #dragger {
+      background: var(--layout-dragger-bg);
+    }
+
+    body[data-agent="electron"] {
+      --layout-dragger-height: 32px;
+    }
+
+    body[data-agent="electron"] > #dragger {
+      display: block;
+    }
+
+    body.dark {
+      --layout-background: #1b1c1d;
+      --layout-dragger-bg: var(--layout-background);
+      --layout-gutter-bg: rgba(255, 255, 255, 0.04);
+      --layout-dragger-border: rgba(255, 255, 255, 0.055);
+      /*
+      --layout-background: #101010;
+      --layout-gutter-bg: #101010;
+      */
+      --layout-gutter-bg-hover: cornflowerblue;
+      --layout-shadow: rgba(0, 0, 0, 0.35);
+      color: #f3f3f3;
+    }
+
+    #layout-root {
+      position: relative;
+      width: 100%;
+      height: calc(100% - var(--layout-dragger-height, 0px));
+      background: var(--layout-background);
+      overflow: hidden;
+    }
+
+    .layout-leaf {
+      background: var(--layout-background);
+      position: absolute;
+      box-sizing: border-box;
+      /*
+      box-shadow: inset 0 0 0 1px var(--layout-shadow);
+      */
+      overflow: hidden;
+    }
+
+    .layout-leaf iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
+      display: block;
+    }
+
+    .layout-gutter {
+      position: absolute;
+      background: var(--layout-gutter-bg);
+      z-index: 10;
+      transition: background 0.15s ease;
+    }
+
+    .layout-gutter:hover {
+      background: var(--layout-gutter-bg-hover);
+    }
+
+    .layout-gutter-columns {
+      cursor: col-resize;
+    }
+
+    .layout-gutter-rows {
+      cursor: row-resize;
+    }
+
+    body.layout-resizing {
+      user-select: none;
+    }
+
+    body.layout-resize-columns {
+      cursor: col-resize;
+    }
+
+    body.layout-resize-rows {
+      cursor: row-resize;
+    }
+
+    body.layout-resizing iframe {
+      pointer-events: none;
+    }
+  </style>
+  <script>
+    (function () {
+      const root = document.documentElement;
+      let lastViewportHeight = null;
+      const updateViewportHeight = () => {
+        const viewport = window.visualViewport;
+        const height = viewport ? viewport.height : window.innerHeight;
+        if (!height || !Number.isFinite(height)) {
+          return;
+        }
+        const clampedHeight = Math.max(0, height);
+        const roundedHeight = Number(clampedHeight.toFixed(2));
+        if (lastViewportHeight === roundedHeight) {
+          return;
+        }
+        lastViewportHeight = roundedHeight;
+        root.style.setProperty('--layout-viewport-height', `${roundedHeight}px`);
+        window.dispatchEvent(new CustomEvent('pinokio:viewport-change', {
+          detail: { height: roundedHeight },
+        }));
+      };
+
+      const resizeEvents = ['resize', 'orientationchange'];
+      const boundUpdate = () => requestAnimationFrame(updateViewportHeight);
+
+      updateViewportHeight();
+
+      resizeEvents.forEach((eventName) => {
+        window.addEventListener(eventName, boundUpdate, { passive: true });
+      });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', boundUpdate, { passive: true });
+        window.visualViewport.addEventListener('scroll', boundUpdate, { passive: true });
+      }
+
+      window.addEventListener('pageshow', boundUpdate, { passive: true });
+    })();
+  </script>
+</head>
+<body class="<%= theme %>" data-agent="<%= agent %>">
+  <div id='dragger'></div>
+  <div id="layout-root"></div>
+  <script id="pinokio-layout-config" type="application/json">
+    <%- JSON.stringify({
+      initialPath: initialPath,
+      defaultPath: defaultPath,
+      sessionId: sessionId || null
+    }) %>
+  </script>
+  <script src="/Socket.js"></script>
+  <script src="/common.js"></script>
+  <script src="/layout.js"></script>
+</body>
+</html>

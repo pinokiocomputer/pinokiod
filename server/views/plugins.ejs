@@ -1,0 +1,1089 @@
+<html>
+<head>
+<title>Pinokio Plugins</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<link href="/xterm.min.css" rel="stylesheet" />
+<link href="/css/fontawesome.min.css" rel="stylesheet">
+<link href="/css/solid.min.css" rel="stylesheet">
+<link href="/css/regular.min.css" rel="stylesheet">
+<link href="/css/brands.min.css" rel="stylesheet">
+<link href="/markdown.css" rel="stylesheet"/>
+<link href="/noty.css" rel="stylesheet"/>
+<link href="/urldropdown.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<link href="/task-launcher.css" rel="stylesheet"/>
+<% if (agent === "electron") { %>
+  <link href="/electron.css" rel="stylesheet"/>
+<% } %>
+<style>
+body.plugin-page .plugin-container {
+  box-sizing: border-box;
+}
+body.plugin-page .btn-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+body.plugin-page .btn-tab .btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.plugin-container h1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 20px;
+}
+/*
+.plugin-container h1 i {
+  color: royalblue;
+}
+*/
+.plugin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+}
+.plugin-category-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.plugin-category {
+  display: flex;
+  flex-direction: column;
+}
+.plugin-category-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.plugin-category-title {
+  font-size: 30px;
+  font-weight: 700;
+  margin: 0;
+}
+.plugin-category-subtitle {
+  font-size: 12px;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.plugin-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+  text-decoration: none;
+  color: inherit;
+  min-height: 68px;
+}
+.plugin-card:hover,
+.plugin-card:focus-within {
+  background: rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+body.dark .plugin-card {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+body.dark .plugin-card:hover,
+body.dark .plugin-card:focus-within {
+  background: rgba(255, 255, 255, 0.12);
+}
+.plugin-card img,
+.plugin-card .plugin-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: white;
+}
+body.dark .plugin-card img,
+body.dark .plugin-card .plugin-icon {
+  background: rgba(255, 255, 255, 0.08);
+}
+.plugin-card .plugin-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: rgba(0, 0, 0, 0.65);
+}
+body.dark .plugin-card .plugin-icon {
+  color: rgba(255, 255, 255, 0.85);
+}
+.plugin-card .plugin-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+.plugin-card .plugin-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.plugin-card h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.plugin-card .subtitle {
+  font-size: 12px;
+  opacity: 0.65;
+}
+body.dark .plugin-card .subtitle {
+  opacity: 0.75;
+}
+.plugin-card .plugin-info {
+  background: none;
+  border: none;
+  color: rgba(0, 0, 0, 0.55);
+  padding: 6px;
+  border-radius: 18px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+body.dark .plugin-card .plugin-info {
+  color: rgba(255, 255, 255, 0.7);
+}
+.plugin-card .plugin-info:hover,
+.plugin-card .plugin-info:focus-visible {
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.9);
+}
+body.dark .plugin-card .plugin-info:hover,
+body.dark .plugin-card .plugin-info:focus-visible {
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.95);
+}
+.plugin-card .plugin-actions {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.plugin-card .plugin-action-button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: white;
+  color: rgba(0, 0, 0, 0.8);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+body.dark .plugin-card .plugin-action-button {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: white;
+}
+.plugin-card .plugin-action-button:hover,
+.plugin-card .plugin-action-button:focus-visible {
+  background: royalblue;
+  border-color: royalblue;
+  color: #fff;
+  outline: none;
+}
+body.dark .plugin-card .plugin-action-button:hover,
+body.dark .plugin-card .plugin-action-button:focus-visible {
+  color: white;
+  background: royalblue;
+  border-color: royalblue;
+}
+.plugin-card .plugin-action-button:active {
+  transform: translateY(1px);
+}
+:root {
+  --pinokio-modal-bg: #ffffff;
+  --pinokio-modal-text: #0f172a;
+  --pinokio-modal-icon-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0.03));
+  --pinokio-modal-icon-color: #2563eb;
+  --pinokio-modal-subtitle: rgba(71, 85, 105, 0.75);
+  --pinokio-modal-body-bg: rgba(241, 245, 249, 0.9);
+}
+body.dark {
+  --pinokio-modal-bg: #0f172a;
+  --pinokio-modal-text: #e2e8f0;
+  --pinokio-modal-icon-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.05));
+  --pinokio-modal-icon-color: #60a5fa;
+  --pinokio-modal-subtitle: rgba(148, 163, 184, 0.85);
+  --pinokio-modal-body-bg: rgba(15, 23, 42, 0.6);
+}
+.pinokio-modern-modal.swal2-popup {
+  padding: 0 !important;
+  border-radius: 20px !important;
+  background: var(--pinokio-modal-bg) !important;
+  box-shadow: 0 32px 80px rgba(15, 23, 42, 0.25);
+}
+body.dark .pinokio-modern-modal.swal2-popup {
+  box-shadow: 0 40px 120px rgba(2, 8, 23, 0.7);
+}
+.pinokio-modern-html {
+  padding: 0 !important;
+}
+.pinokio-modern-close {
+  color: rgba(71, 85, 105, 0.65) !important;
+  top: 12px !important;
+  right: 12px !important;
+}
+body.dark .pinokio-modern-close {
+  color: rgba(226, 232, 240, 0.6) !important;
+}
+.pinokio-modern-close:hover {
+  background: rgba(148, 163, 184, 0.18) !important;
+  color: #0f172a !important;
+}
+body.dark .pinokio-modern-close:hover {
+  background: rgba(148, 163, 184, 0.12) !important;
+  color: #f8fafc !important;
+}
+.pinokio-modal-surface {
+  background: var(--pinokio-modal-bg);
+  color: var(--pinokio-modal-text);
+  border-radius: 20px;
+  overflow: hidden;
+}
+.pinokio-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 22px 24px 10px;
+}
+.pinokio-modal-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--pinokio-modal-icon-bg);
+  color: var(--pinokio-modal-icon-color);
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+}
+.pinokio-modal-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pinokio-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--pinokio-modal-text);
+}
+.pinokio-modal-subtitle {
+  font-size: 13px;
+  color: var(--pinokio-modal-subtitle);
+}
+.pinokio-modal-body {
+  padding: 14px 24px 12px;
+  background: var(--pinokio-modal-body-bg);
+}
+.pinokio-modal-body--iframe {
+  padding: 14px 24px 12px;
+}
+.pinokio-modal-body--iframe iframe {
+  width: 100%;
+  height: 440px;
+  border: none;
+  border-radius: 12px;
+  background: inherit;
+}
+.pinokio-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 24px 18px;
+  background: var(--pinokio-modal-bg);
+}
+.pinokio-modal-footer--publish {
+  align-items: center;
+}
+.pinokio-publish-close-btn,
+.pinokio-modal-secondary-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--pinokio-modal-text);
+}
+body.dark .pinokio-publish-close-btn,
+body.dark .pinokio-modal-secondary-btn {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--pinokio-modal-text);
+}
+.pinokio-publish-close-btn:hover,
+.pinokio-modal-secondary-btn:hover {
+  background: royalblue;
+  color: #fff;
+}
+body.dark .pinokio-publish-close-btn:hover,
+body.dark .pinokio-modal-secondary-btn:hover {
+  background: royalblue;
+  color: #fff;
+}
+.plugin-card .disclosure-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  color: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.plugin-card:hover .disclosure-indicator,
+.plugin-card:focus-within .disclosure-indicator {
+  transform: translateX(2px);
+  color: rgba(0, 0, 0, 0.65);
+}
+body.dark .plugin-card .disclosure-indicator {
+  color: rgba(255, 255, 255, 0.4);
+}
+body.dark .plugin-card:hover .disclosure-indicator,
+body.dark .plugin-card:focus-within .disclosure-indicator {
+  color: rgba(255, 255, 255, 0.85);
+}
+.plugin-empty {
+  padding: 35px;
+  border-radius: 12px;
+  border: 1px dashed rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.02);
+  text-align: center;
+}
+.plugin-empty.plugin-empty-category {
+  padding: 20px;
+}
+body.dark .plugin-empty {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+}
+.plugin-empty p {
+  margin: 0 0 12px;
+}
+.plugin-empty code {
+  font-weight: 600;
+}
+.plugin-modal-overlay {
+  z-index: 900;
+}
+.plugin-modal-overlay .url-modal-content {
+  max-width: 520px;
+}
+.plugin-modal-overlay .plugin-modal-dropdown {
+  max-height: 360px;
+  overflow-y: auto;
+  margin-top: 14px;
+  position: static;
+  display: block;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  background: inherit;
+  top: auto;
+  left: auto;
+  right: auto;
+}
+.plugin-modal-overlay .plugin-modal-dropdown .url-dropdown-item {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+.plugin-modal-overlay .plugin-modal-dropdown .url-dropdown-item:last-child {
+  border-bottom: none;
+}
+body.dark .plugin-modal-overlay .url-modal-content {
+  background: rgba(25, 26, 27, 0.98);
+}
+body.dark .plugin-modal-overlay .plugin-modal-dropdown {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: inherit;
+}
+body.dark .plugin-modal-overlay .plugin-modal-dropdown .url-dropdown-item {
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+.plugin-option {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+}
+.plugin-option .option-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.plugin-option img.option-icon {
+  object-fit: cover;
+  background: white;
+}
+body.dark .plugin-option .option-icon {
+  background: rgba(255, 255, 255, 0.12);
+}
+.plugin-option .option-body {
+  display: flex;
+  flex-direction: column;
+}
+.plugin-option .option-name {
+  font-weight: 600;
+}
+.plugin-option .option-path {
+  font-size: 12px;
+  opacity: 0.7;
+}
+.plugin-option .option-description {
+  font-size: 12px;
+  opacity: 0.62;
+  margin-top: 2px;
+}
+.plugin-option.selected {
+  border: 1px solid royalblue;
+  background: royalblue;
+  color: #fff;
+}
+body.dark .plugin-option.selected {
+  border-color: royalblue;
+  background: royalblue;
+  color: #fff;
+}
+.plugin-option.selected .option-path,
+.plugin-option.selected .option-description {
+  opacity: 0.86;
+}
+.plugin-option.selected .option-icon {
+  background: rgba(255, 255, 255, 0.18);
+}
+.plugin-option:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+body.dark .plugin-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.plugin-modal-overlay .url-modal-input {
+  margin-top: 18px;
+}
+@media (max-width: 800px) {
+  .plugin-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+@media (max-width: 900px) {
+  .plugin-category-layout {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .plugin-container h1 {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding-right: 54px;
+    box-sizing: border-box;
+  }
+  .plugin-container h1 > .btn {
+    margin-left: 0 !important;
+  }
+}
+.pinokio-install-modal.swal2-popup {
+  padding: 30px;
+  text-align: left;
+}
+.pinokio-install-modal .swal2-title {
+  text-align: left;
+  padding: 0;
+  margin-bottom: 20px;
+  font-size: 20px;
+}
+.pinokio-install-modal .swal2-input-label {
+  text-align: left;
+  justify-content: flex-start;
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.pinokio-install-modal .swal2-input {
+  margin: 0 0 20px 0;
+  height: 44px;
+  font-size: 14px;
+}
+.pinokio-install-modal .swal2-actions {
+  justify-content: flex-end;
+  margin: 0;
+}
+
+/* Cleaner plugin index: keep the global task shell, make plugin browsing row-based. */
+body.plugin-page .plugin-shell-body {
+  padding-top: 18px;
+}
+
+body.plugin-page .plugin-category-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-top: 0;
+}
+
+body.plugin-page .plugin-category {
+  gap: 0;
+}
+
+body.plugin-page .plugin-category-header {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 8px;
+}
+
+body.plugin-page .plugin-category-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+body.plugin-page .plugin-category-title {
+  margin: 0;
+  color: var(--task-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+body.plugin-page .plugin-category-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  padding: 0 7px;
+  border: 1px solid var(--task-border);
+  border-radius: 999px;
+  color: var(--task-muted);
+  font-size: 11px;
+  line-height: 1;
+}
+
+body.plugin-page .plugin-category-subtitle {
+  color: var(--task-muted);
+  font-size: 12px;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: none;
+}
+
+body.plugin-page .plugin-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--task-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+}
+
+body.plugin-page .plugin-card {
+  display: block;
+  min-height: 0;
+  padding: 7px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--task-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--task-text);
+  text-decoration: none;
+  transform: none;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+body.plugin-page .plugin-card:last-child {
+  border-bottom: 0;
+}
+
+body.plugin-page .plugin-card:hover,
+body.plugin-page .plugin-card:focus-visible,
+body.plugin-page .plugin-card:focus-within {
+  background: color-mix(in srgb, var(--task-soft) 60%, transparent);
+  border-color: var(--task-border);
+  transform: none;
+  outline: none;
+}
+
+body.plugin-page .plugin-card:focus-visible {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--task-accent) 55%, transparent);
+}
+
+body.plugin-page .plugin-card .plugin-top {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+body.plugin-page .plugin-card img,
+body.plugin-page .plugin-card .plugin-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+body.plugin-page .plugin-card .plugin-icon {
+  font-size: 13px;
+}
+
+body.plugin-page .plugin-card .plugin-details {
+  gap: 1px;
+  min-width: 0;
+}
+
+body.plugin-page .plugin-card h2 {
+  overflow: hidden;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 450;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.plugin-page .plugin-card .subtitle {
+  overflow: hidden;
+  color: var(--task-muted);
+  font-size: 11px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.plugin-page .plugin-row-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--task-muted);
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.7;
+  transition: color 140ms ease, opacity 140ms ease, transform 140ms ease;
+}
+
+body.plugin-page .plugin-card:hover .plugin-row-action,
+body.plugin-page .plugin-card:focus-visible .plugin-row-action,
+body.plugin-page .plugin-card:focus-within .plugin-row-action {
+  color: var(--task-text);
+  opacity: 1;
+  transform: translateX(1px);
+}
+
+body.plugin-page .plugin-row-action i {
+  font-size: 12px;
+}
+
+body.plugin-page .plugin-card .disclosure-indicator {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  body.plugin-page .plugin-category-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  body.plugin-page .plugin-card {
+    padding-inline: 10px;
+  }
+
+  body.plugin-page .plugin-row-action span {
+    display: none;
+  }
+}
+</style>
+</head>
+<body class='<%=theme%> main-sidebar-page task-launcher-page task-page plugin-page' data-agent="<%=agent%>">
+<%- include('partials/app_navheader', { agent }) %>
+<main class='plugin-main'>
+  <div class='task-container plugin-container'>
+    <section class='task-shell plugin-shell'>
+      <header class='task-shell-header'>
+        <div class='task-shell-header-main'>
+          <p class='task-eyebrow'>Plugins</p>
+          <h1 class='task-title'>Plugins</h1>
+          <p class='task-description'>Open desktop editors externally or launch coding tools inside Pinokio.</p>
+        </div>
+      </header>
+      <div class='task-shell-body plugin-shell-body'>
+    <% if (plugins.length === 0) { %>
+      <div class='plugin-empty task-empty-state'>
+        <p>No plugins found. Clone or add plugin definitions under <code>~/pinokio/plugin</code> to see them listed here.</p>
+        <a class='task-link-button primary' href="/home?mode=download"><i class="fa-solid fa-download"></i> Download plugins</a>
+      </div>
+    <% } else { %>
+      <div class='plugin-category-layout'>
+        <% pluginCategories.forEach(({ title, subtitle, items }) => { %>
+          <section class='plugin-category task-section' aria-label="<%=title%>">
+            <div class='plugin-category-header'>
+              <div class='plugin-category-heading'>
+                <h2 class='plugin-category-title'><%=title%></h2>
+                <span class='plugin-category-count'><%= items.length %></span>
+              </div>
+              <div class='plugin-category-subtitle'><%=subtitle%></div>
+            </div>
+            <% if (items.length) { %>
+              <div class='plugin-grid'>
+                <% items.forEach((pluginItem) => { %>
+                  <a class='plugin-card' href="<%= pluginItem.detailUrl || '#' %>">
+                    <div class="plugin-top">
+                      <% if (pluginItem.image) { %>
+                        <img src="<%=pluginItem.image%>" alt="<%=pluginItem.title || pluginItem.text || 'Plugin'%> icon">
+                      <% } else if (pluginItem.icon) { %>
+                        <div class='plugin-icon'><i class="<%=pluginItem.icon%>"></i></div>
+                      <% } else { %>
+                        <div class='plugin-icon'><i class="fa-solid fa-plug-circle-bolt"></i></div>
+                      <% } %>
+                      <div class='plugin-details'>
+                        <h2><%=pluginItem.title || pluginItem.text || pluginItem.name || 'Plugin'%></h2>
+                        <% if (pluginItem.description) { %>
+                          <div class='subtitle'><%=pluginItem.description%></div>
+                        <% } %>
+                      </div>
+                      <div class="plugin-row-action" aria-hidden="true">
+                        <i class="fa-solid fa-gear"></i>
+                        <span>Manage</span>
+                      </div>
+                    </div>
+                  </a>
+                <% }) %>
+              </div>
+            <% } else { %>
+              <div class='plugin-empty plugin-empty-category'>
+                <p>No <%=title%> available.</p>
+              </div>
+            <% } %>
+          </section>
+        <% }) %>
+      </div>
+    <% } %>
+      </div>
+    </section>
+  </div>
+  <%- include('partials/main_sidebar', { selected: 'plugins' }) %>
+</main>
+<%- include('partials/app_common_scripts') %>
+<script>
+  const installPluginModal = (() => {
+    let overlay
+    let inputEl
+    let errorEl
+    let formEl
+
+    function ensureStyles() {
+      if (document.getElementById('install-plugin-styles')) return
+      const style = document.createElement('style')
+      style.id = 'install-plugin-styles'
+      style.textContent = `
+        .install-plugin-overlay {
+          position: fixed;
+          inset: 0;
+          display: none;
+          align-items: center;
+          justify-content: center;
+          padding: 18px;
+          background: rgba(8, 12, 20, 0.55);
+          backdrop-filter: blur(4px);
+          z-index: 2200;
+        }
+        .install-plugin-overlay.is-visible {
+          display: flex;
+        }
+        .install-plugin-dialog {
+          width: min(540px, 100%);
+          background: #ffffff;
+          color: #0f172a;
+          border-radius: 16px;
+          padding: 22px 22px 18px;
+          box-shadow: 0 20px 70px rgba(0, 0, 0, 0.22);
+          border: 1px solid rgba(15, 23, 42, 0.06);
+        }
+        body.dark .install-plugin-dialog {
+          background: #0b1221;
+          color: #e5e7eb;
+          border-color: rgba(255, 255, 255, 0.08);
+          box-shadow: 0 20px 70px rgba(0, 0, 0, 0.55);
+        }
+        .install-plugin-header {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+        .install-plugin-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #22c55e, #0ea5e9);
+          color: #0b1221;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          box-shadow: 0 12px 30px rgba(14, 165, 233, 0.25);
+        }
+        .install-plugin-heading {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          flex: 1;
+          min-width: 0;
+        }
+        .install-plugin-title {
+          font-size: 18px;
+          font-weight: 700;
+          margin: 0;
+        }
+        .install-plugin-subtitle {
+          margin: 0;
+          opacity: 0.72;
+          font-size: 13px;
+        }
+        .install-plugin-close {
+          background: none;
+          border: none;
+          color: inherit;
+          opacity: 0.6;
+          cursor: pointer;
+          padding: 6px;
+          border-radius: 8px;
+          transition: opacity 0.15s ease, background 0.15s ease;
+        }
+        .install-plugin-close:hover,
+        .install-plugin-close:focus-visible {
+          opacity: 1;
+          background: rgba(15, 23, 42, 0.07);
+        }
+        body.dark .install-plugin-close:hover,
+        body.dark .install-plugin-close:focus-visible {
+          background: rgba(255, 255, 255, 0.08);
+        }
+        .install-plugin-body {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-top: 4px;
+        }
+        .install-plugin-label {
+          font-weight: 600;
+          font-size: 13px;
+        }
+        .install-plugin-body input {
+          width: 100%;
+          padding: 12px 14px;
+          border-radius: 10px;
+          border: 1px solid rgba(15, 23, 42, 0.12);
+          background: #f8fafc;
+          color: #0f172a;
+          font-size: 14px;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .install-plugin-body input:focus-visible {
+          outline: none;
+          border-color: #0ea5e9;
+          box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
+        }
+        body.dark .install-plugin-body input {
+          background: #111827;
+          border-color: rgba(255, 255, 255, 0.08);
+          color: #e5e7eb;
+        }
+        body.dark .install-plugin-body input:focus-visible {
+          border-color: #38bdf8;
+          box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+        }
+        .install-plugin-hint {
+          font-size: 12px;
+          opacity: 0.65;
+        }
+        .install-plugin-error {
+          color: #ef4444;
+          font-size: 12px;
+          min-height: 16px;
+        }
+        body.dark .install-plugin-error {
+          color: #f87171;
+        }
+        .install-plugin-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 8px;
+          margin-top: 6px;
+        }
+        .install-plugin-button {
+          border: none;
+          border-radius: 10px;
+          padding: 10px 14px;
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        }
+        .install-plugin-button.primary {
+          background: linear-gradient(135deg, #0ea5e9, #22c55e);
+          color: #0b1221;
+          box-shadow: 0 12px 30px rgba(14, 165, 233, 0.22);
+        }
+        .install-plugin-button.primary:hover {
+          transform: translateY(-1px);
+        }
+        .install-plugin-button.ghost {
+          background: transparent;
+          color: inherit;
+          border: 1px solid rgba(15, 23, 42, 0.12);
+        }
+        body.dark .install-plugin-button.ghost {
+          border-color: rgba(255, 255, 255, 0.12);
+        }
+        .install-plugin-button:focus-visible {
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
+        }
+      `
+      document.head.appendChild(style)
+    }
+
+    function handleKeydown(event) {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        close()
+      }
+    }
+
+    function showError(message) {
+      if (!errorEl) return
+      errorEl.textContent = message || ''
+    }
+
+    function close() {
+      if (!overlay) return
+      overlay.classList.remove('is-visible')
+      if (formEl) formEl.reset()
+      showError('')
+      document.removeEventListener('keydown', handleKeydown, true)
+    }
+
+    function handleSubmit() {
+      if (!inputEl) return
+      const value = (inputEl.value || '').trim()
+      if (!value) {
+        showError('Please enter a Git URL to continue.')
+        inputEl.focus()
+        return
+      }
+      try {
+        new URL(value)
+      } catch (err) {
+        showError('That URL does not look valid.')
+        inputEl.focus()
+        return
+      }
+      close()
+      window.location.href = `/?mode=download&uri=${encodeURIComponent(value)}&path=plugin`
+    }
+
+    function createModal() {
+      ensureStyles()
+      overlay = document.createElement('div')
+      overlay.className = 'install-plugin-overlay'
+      overlay.innerHTML = `
+        <div class="install-plugin-dialog" role="dialog" aria-modal="true" aria-labelledby="install-plugin-title">
+          <div class="install-plugin-header">
+            <div class="install-plugin-icon"><i class="fa-solid fa-plug"></i></div>
+            <div class="install-plugin-heading">
+              <div class="install-plugin-title" id="install-plugin-title">Install Plugin</div>
+              <p class="install-plugin-subtitle">Add a plugin directly from a Git repository URL.</p>
+            </div>
+            <button class="install-plugin-close" type="button" data-install-close aria-label="Close install dialog">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <form class="install-plugin-body" novalidate>
+            <label class="install-plugin-label" for="install-plugin-url">Git URL</label>
+            <input id="install-plugin-url" type="url" name="pluginUrl" placeholder="https://github.com/user/repo.git" autocomplete="off" required />
+            <div class="install-plugin-hint">The plugin will be downloaded into <code>~/pinokio/plugin</code>.</div>
+            <div class="install-plugin-error" data-install-error></div>
+            <div class="install-plugin-actions">
+              <button class="install-plugin-button ghost" type="button" data-install-cancel>Cancel</button>
+              <button class="install-plugin-button primary" type="submit">Install</button>
+            </div>
+          </form>
+        </div>
+      `
+      document.body.appendChild(overlay)
+      inputEl = overlay.querySelector('#install-plugin-url')
+      errorEl = overlay.querySelector('[data-install-error]')
+      formEl = overlay.querySelector('form')
+      const closeButtons = overlay.querySelectorAll('[data-install-close], [data-install-cancel]')
+      closeButtons.forEach((button) => {
+        button.addEventListener('click', close)
+      })
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) {
+          close()
+        }
+      })
+      formEl.addEventListener('submit', (event) => {
+        event.preventDefault()
+        handleSubmit()
+      })
+      inputEl.addEventListener('input', () => {
+        showError('')
+      })
+    }
+
+    function open() {
+      if (!overlay) createModal()
+      overlay.classList.add('is-visible')
+      document.addEventListener('keydown', handleKeydown, true)
+      requestAnimationFrame(() => {
+        if (inputEl) {
+          inputEl.focus()
+          inputEl.select()
+        }
+      })
+    }
+
+    return {
+      open
+    }
+  })()
+
+  function installPlugin(e) {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    installPluginModal.open()
+  }
+</script>
+<script src="/opener.js"></script>
+</body>
+</html>

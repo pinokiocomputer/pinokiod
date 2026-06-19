@@ -1,0 +1,20 @@
+{
+  "run": [{
+    "when": "{{args.org}}",
+    "method": "github.fork",
+    "params": {
+      "path": "{{args.cwd}}",
+      "cwd": "{{args.cwd}}",
+      "name": "{{args.name}}",
+      "org": "{{args.org}}"
+    }
+  }, {
+    "when": "{{!args.org}}",
+    "method": "github.fork",
+    "params": {
+      "path": "{{args.cwd}}",
+      "cwd": "{{args.cwd}}",
+      "name": "{{args.name}}"
+    }
+  }]
+}
