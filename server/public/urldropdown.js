@@ -4,6 +4,15 @@
  */
 
 function initUrlDropdown(config = {}) {
+  const I18N = window.PINOKIO_I18N || {};
+  const t = (key, fallback, replacements = {}) => {
+    let value = typeof I18N[key] === 'string' ? I18N[key] : `[missing translation: ${key}]`;
+    Object.entries(replacements || {}).forEach(([name, replacement]) => {
+      value = value.replace(new RegExp(`\\{${name}\\}`, 'g'), String(replacement));
+    });
+    return value;
+  };
+
   if (window.PinokioUrlDropdown && typeof window.PinokioUrlDropdown.destroy === 'function') {
     try {
       window.PinokioUrlDropdown.destroy();
@@ -194,9 +203,9 @@ function initUrlDropdown(config = {}) {
   const buildProjectModeButtons = (projectCtx) => {
     if (!projectCtx) return '';
     const modes = [
-      { key: 'run', label: 'Run', icon: 'fa-solid fa-circle-play', suffix: '' },
-      { key: 'dev', label: 'Dev', icon: 'fa-solid fa-code', suffix: '/dev' },
-      { key: 'files', label: 'Files', icon: 'fa-solid fa-file-lines', suffix: '/files' },
+      { key: 'run', label: t('home.run', 'Run'), icon: 'fa-solid fa-circle-play', suffix: '' },
+      { key: 'dev', label: t('home.dev', 'Dev'), icon: 'fa-solid fa-code', suffix: '/dev' },
+      { key: 'files', label: t('home.files', 'Files'), icon: 'fa-solid fa-file-lines', suffix: '/files' },
     ];
 
     const buildTarget = (suffix) => {
@@ -215,7 +224,7 @@ function initUrlDropdown(config = {}) {
       `;
     }).join('');
 
-    return `<div class="url-mode-buttons" role="group" aria-label="Project views">${buttonsHtml}</div>`;
+    return `<div class="url-mode-buttons" role="group" aria-label="${escapeAttribute(t('url_dropdown.project_views', 'Project views'))}">${buttonsHtml}</div>`;
   };
 
   const getAppBasePath = (app) => {
@@ -224,8 +233,8 @@ function initUrlDropdown(config = {}) {
   };
 
   const getAppDisplayTitle = (app) => {
-    if (!app) return 'Untitled app';
-    return app.title || app.name || 'Untitled app';
+    if (!app) return t('url_dropdown.untitled_app', 'Untitled app');
+    return app.title || app.name || t('url_dropdown.untitled_app', 'Untitled app');
   };
 
   const buildAppProjectContext = (app, origin) => {
@@ -242,7 +251,7 @@ function initUrlDropdown(config = {}) {
   const buildAppsSectionHtml = (apps, {
     includeCurrentTab = true,
     currentUrl = '',
-    currentTitle = 'Current tab',
+    currentTitle = t('url_dropdown.current_tab', 'Current tab'),
     currentProject = null,
     origin = ''
   } = {}) => {
@@ -310,7 +319,7 @@ function initUrlDropdown(config = {}) {
 
     return `
       <div class="url-dropdown-host-header current-tab">
-        <span class="host-name">Apps</span>
+        <span class="host-name">${escapeHtml(t('nav.apps', 'Apps'))}</span>
       </div>
       ${entries.join('')}
     `;
@@ -328,7 +337,7 @@ function initUrlDropdown(config = {}) {
   let createLauncherModal = null;
   let pendingCreateDetail = null;
   let mobileModalKeydownHandler = null;
-  const EMPTY_STATE_DESCRIPTION = 'enter a prompt to create a launcher';
+  const EMPTY_STATE_DESCRIPTION = t('url_dropdown.empty_description', 'enter a prompt to create a launcher');
 
   // Initialize input field state based on clear behavior
   initializeInputValue();
@@ -481,7 +490,7 @@ function initUrlDropdown(config = {}) {
     }
 
     if (!hasAnyData) {
-      dropdown.innerHTML = '<div class="url-dropdown-loading">Loading apps and running processes...</div>';
+      dropdown.innerHTML = `<div class="url-dropdown-loading">${escapeHtml(t('url_dropdown.loading', 'Loading apps and running processes...'))}</div>`;
     }
 
     Promise.allSettled([fetchApps(), fetchProcesses()])
@@ -579,11 +588,11 @@ function initUrlDropdown(config = {}) {
     
     processes.forEach(process => {
       // Create a normalized host key based only on name for grouping
-      const hostKey = process.host ? process.host.name : 'Unknown';
+      const hostKey = process.host ? process.host.name : t('common.unknown', 'Unknown');
       
       if (!grouped[hostKey]) {
         grouped[hostKey] = {
-          host: process.host || { name: 'Unknown', platform: 'unknown', arch: 'unknown' },
+          host: process.host || { name: t('common.unknown', 'Unknown'), platform: 'unknown', arch: 'unknown' },
           processes: [],
           isLocal: false
         };
@@ -635,7 +644,9 @@ function initUrlDropdown(config = {}) {
         platformIcon = 'fa-solid fa-desktop';
         break;
     }
-    const hostName = isLocal ? `${host.name} (This Machine)` : `${host.name} (Peer)`;
+    const hostName = isLocal
+      ? t('url_dropdown.host_this_machine', '{name} (This Machine)', { name: host.name })
+      : t('url_dropdown.host_peer', '{name} (Peer)', { name: host.name });
     
     return `
       <div class="url-dropdown-host-header">
@@ -659,7 +670,7 @@ function initUrlDropdown(config = {}) {
         <div class="url-dropdown-item non-selectable">
           <div class="url-dropdown-name">
             ${onlineIndicator}
-            <button class="peer-network-button" data-network-url="${escapeAttribute(networkUrl)}"><i class="fa-solid fa-toggle-on"></i> Turn on peer network</button>
+            <button class="peer-network-button" data-network-url="${escapeAttribute(networkUrl)}"><i class="fa-solid fa-toggle-on"></i> ${escapeHtml(t('url_dropdown.turn_on_peer_network', 'Turn on peer network'))}</button>
             ${escapeHtml(process.name)}
           </div>
         </div>
@@ -709,7 +720,7 @@ function initUrlDropdown(config = {}) {
 
   const buildDropdownHtml = (processes, { includeCurrentTab = true, apps = [], inputElement } = {}) => {
     const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
-    const currentTitle = typeof document !== 'undefined' ? (document.title || 'Current tab') : 'Current tab';
+    const currentTitle = typeof document !== 'undefined' ? (document.title || t('url_dropdown.current_tab', 'Current tab')) : t('url_dropdown.current_tab', 'Current tab');
     const currentProject = parseProjectContext(currentUrl);
     const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
 
@@ -912,17 +923,17 @@ function initUrlDropdown(config = {}) {
     const closeButton = document.createElement('button');
     closeButton.type = 'button';
     closeButton.className = 'url-modal-close';
-    closeButton.setAttribute('aria-label', 'Close');
+    closeButton.setAttribute('aria-label', t('common.close', 'Close'));
     closeButton.innerHTML = '&times;';
 
     const heading = document.createElement('h3');
-    heading.textContent = 'Open a URL';
+    heading.textContent = t('url_dropdown.open_url', 'Open a URL');
     heading.id = 'url-modal-title';
 
     const description = document.createElement('p');
     description.className = 'url-modal-description';
     description.id = 'url-modal-description';
-    description.textContent = 'Enter a local URL or choose from apps and running processes.';
+    description.textContent = t('url_dropdown.open_url_description', 'Enter a local URL or choose from apps and running processes.');
 
     content.setAttribute('aria-labelledby', heading.id);
     content.setAttribute('aria-describedby', description.id);
@@ -930,7 +941,7 @@ function initUrlDropdown(config = {}) {
     const modalInput = document.createElement('input');
     modalInput.type = 'url';
     modalInput.className = 'url-modal-input';
-    modalInput.placeholder = 'Example: http://localhost:7860';
+    modalInput.placeholder = t('url_dropdown.url_placeholder', 'Example: http://localhost:7860');
 
     const modalDropdown = document.createElement('div');
     modalDropdown.className = 'url-dropdown';
@@ -942,12 +953,12 @@ function initUrlDropdown(config = {}) {
     const cancelButton = document.createElement('button');
     cancelButton.type = 'button';
     cancelButton.className = 'url-modal-button cancel';
-    cancelButton.textContent = 'Cancel';
+    cancelButton.textContent = t('common.cancel', 'Cancel');
 
     const confirmButton = document.createElement('button');
     confirmButton.type = 'button';
     confirmButton.className = 'url-modal-button confirm';
-    confirmButton.textContent = 'Open';
+    confirmButton.textContent = t('common.open', 'Open');
     confirmButton.disabled = true;
 
     actions.append(cancelButton, confirmButton);
@@ -1025,9 +1036,9 @@ function initUrlDropdown(config = {}) {
     if (!modalInput || !updateConfirmState) return undefined;
 
     const defaults = refs.defaults || {};
-    const title = customOptions.title || defaults.title || 'Open a URL';
-    const descriptionText = customOptions.description || defaults.description || 'Enter a local URL or choose from running processes.';
-    const confirmLabel = customOptions.confirmLabel || defaults.confirmLabel || 'Open';
+    const title = customOptions.title || defaults.title || t('url_dropdown.open_url', 'Open a URL');
+    const descriptionText = customOptions.description || defaults.description || t('url_dropdown.open_url_description_short', 'Enter a local URL or choose from running processes.');
+    const confirmLabel = customOptions.confirmLabel || defaults.confirmLabel || t('common.open', 'Open');
     const includeCurrent = customOptions.includeCurrent !== false;
     const initialValue = customOptions.initialValue !== undefined
       ? customOptions.initialValue
@@ -1167,7 +1178,7 @@ function initUrlDropdown(config = {}) {
     }
 
     if (!hasAnyData) {
-      modalDropdown.innerHTML = '<div class="url-dropdown-loading">Loading apps and running processes...</div>';
+      modalDropdown.innerHTML = `<div class="url-dropdown-loading">${escapeHtml(t('url_dropdown.loading', 'Loading apps and running processes...'))}</div>`;
     }
 
     Promise.allSettled([fetchApps(), fetchProcesses()])
@@ -1249,9 +1260,9 @@ function initUrlDropdown(config = {}) {
     filter: handleInputChange,
     openSplitModal: function(modalOptions = {}) {
       return showMobileModal({
-        title: modalOptions.title || 'Split View',
-        description: modalOptions.description || 'Choose an app, a running process, or use the current tab URL for the new pane.',
-        confirmLabel: modalOptions.confirmLabel || 'Split',
+        title: modalOptions.title || t('url_dropdown.split_view', 'Split View'),
+        description: modalOptions.description || t('url_dropdown.split_description', 'Choose an app, a running process, or use the current tab URL for the new pane.'),
+        confirmLabel: modalOptions.confirmLabel || t('url_dropdown.split', 'Split'),
         includeCurrent: modalOptions.includeCurrent !== false,
         awaitSelection: true,
         context: 'split'
@@ -1297,7 +1308,9 @@ function initUrlDropdown(config = {}) {
 
   function getEmptyStateMessage(inputElement) {
     const rawValue = inputElement.value.trim();
-    return rawValue ? `No apps or processes match "${rawValue}"` : 'No apps or running processes found';
+    return rawValue
+      ? t('url_dropdown.no_matches', 'No apps or processes match "{query}"', { query: rawValue })
+      : t('url_dropdown.no_apps_or_processes', 'No apps or running processes found');
   }
 
   function createEmptyStateHtml(message) {
@@ -1305,7 +1318,7 @@ function initUrlDropdown(config = {}) {
       <div class="url-dropdown-empty">
         <div class="url-dropdown-empty-message">${escapeHtml(message)}</div>
         <div class="url-dropdown-empty-actions">
-          <button type="button" class="url-dropdown-create-button">Create</button>
+          <button type="button" class="url-dropdown-create-button">${escapeHtml(t('common.create', 'Create'))}</button>
           <div class="url-dropdown-empty-description">${escapeHtml(EMPTY_STATE_DESCRIPTION)}</div>
         </div>
       </div>
@@ -1354,8 +1367,8 @@ function initUrlDropdown(config = {}) {
 //    const defaultName = generateFolderName(detail.prompt);
     modal.input.value = '';
     modal.description.textContent = detail.prompt
-      ? `Prompt: ${detail.prompt}`
-      : 'Enter a prompt in the search bar to describe your launcher.';
+      ? t('url_dropdown.prompt_label', 'Prompt: {prompt}', { prompt: detail.prompt })
+      : t('url_dropdown.enter_prompt', 'Enter a prompt in the search bar to describe your launcher.');
 
     requestAnimationFrame(() => {
       modal.overlay.classList.add('is-visible');
@@ -1380,7 +1393,7 @@ function initUrlDropdown(config = {}) {
     if (!createLauncherModal || !pendingCreateDetail) return;
     const folderName = createLauncherModal.input.value.trim();
     if (!folderName) {
-      createLauncherModal.error.textContent = 'Please enter a folder name.';
+      createLauncherModal.error.textContent = t('url_dropdown.enter_folder_name_error', 'Please enter a folder name.');
       createLauncherModal.input.focus();
       return;
     }
@@ -1421,29 +1434,29 @@ function initUrlDropdown(config = {}) {
     const closeButton = document.createElement('button');
     closeButton.type = 'button';
     closeButton.className = 'create-launcher-modal-close';
-    closeButton.setAttribute('aria-label', 'Close create launcher modal');
+    closeButton.setAttribute('aria-label', t('url_dropdown.close_create_launcher', 'Close create launcher modal'));
     closeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
 
     const title = document.createElement('h3');
     title.id = 'quick-create-launcher-title';
-    title.textContent = 'Create';
+    title.textContent = t('common.create', 'Create');
 
     const description = document.createElement('p');
     description.className = 'create-launcher-modal-description';
     description.id = 'quick-create-launcher-description';
-    description.textContent = 'Enter a prompt in the search bar to describe your launcher.';
+    description.textContent = t('url_dropdown.enter_prompt', 'Enter a prompt in the search bar to describe your launcher.');
 
     modalContent.setAttribute('aria-labelledby', title.id);
     modalContent.setAttribute('aria-describedby', description.id);
 
     const label = document.createElement('label');
     label.className = 'create-launcher-modal-label';
-    label.textContent = 'Folder name';
+    label.textContent = t('url_dropdown.folder_name', 'Folder name');
 
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'create-launcher-modal-input';
-    input.placeholder = 'example: my-launcher';
+    input.placeholder = t('url_dropdown.folder_name_placeholder', 'example: my-launcher');
 
     const error = document.createElement('div');
     error.className = 'create-launcher-modal-error';
@@ -1454,12 +1467,12 @@ function initUrlDropdown(config = {}) {
     const cancelButton = document.createElement('button');
     cancelButton.type = 'button';
     cancelButton.className = 'create-launcher-modal-button cancel';
-    cancelButton.textContent = 'Cancel';
+    cancelButton.textContent = t('common.cancel', 'Cancel');
 
     const confirmButton = document.createElement('button');
     confirmButton.type = 'button';
     confirmButton.className = 'create-launcher-modal-button confirm';
-    confirmButton.textContent = 'Create';
+    confirmButton.textContent = t('common.create', 'Create');
 
     actions.appendChild(cancelButton);
     actions.appendChild(confirmButton);

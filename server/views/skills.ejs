@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Skills</title>
+  <title><%= typeof t === "function" ? t("skills.title") : "Skills" %></title>
   <link href="/css/fontawesome.min.css" rel="stylesheet">
   <link href="/css/solid.min.css" rel="stylesheet">
   <link href="/css/brands.min.css" rel="stylesheet">
@@ -312,6 +312,8 @@
   </style>
 </head>
 <%
+  const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") });
+  const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements));
   const validCount = skills.filter((skill) => skill.valid).length;
   const hasIndexError = Boolean(indexError);
   const targetIcon = (status) => {
@@ -329,9 +331,9 @@
       <section class="task-shell">
         <header class="task-shell-header">
           <div class="task-shell-header-main">
-            <p class="task-eyebrow">Skills</p>
-            <h1 class="task-title">Skills</h1>
-            <p class="task-description">Stored in <code><%= skillsRootPath %></code>.</p>
+            <p class="task-eyebrow"><%= tr("skills.title") %></p>
+            <h1 class="task-title"><%= tr("skills.title") %></h1>
+            <p class="task-description"><%= tr("skills.stored_in", { path: skillsRootPath }) %></p>
           </div>
         </header>
 
@@ -344,27 +346,27 @@
           <% } %>
           <% if (hasIndexError) { %>
             <div class="task-status error skills-message">
-              Managed skills are not being synced because <code><%= indexPath %></code> could not be read. Fix the JSON file, then reload this page. <%= indexError %>
+              <%= tr("skills.index_read_failed", { path: indexPath, message: indexError }) %>
             </div>
           <% } %>
 
-          <section class="task-section skills-overview" aria-label="How managed skills work">
+          <section class="task-section skills-overview" aria-label="<%= tr("skills.how_managed_work") %>">
             <div class="skills-explainer">
-              <h2 class="skills-explainer-title">How this works</h2>
+              <h2 class="skills-explainer-title"><%= tr("skills.how_this_works") %></h2>
               <p class="skills-explainer-copy">
-                Pinokio keeps the source copy of each managed skill in <code><%= skillsRootPath %></code>. When a skill is ON, Pinokio syncs its <code>SKILL.md</code> into the target skill folders used by agent tools.
+                <%= tr("skills.managed_copy_explanation", { path: skillsRootPath, file: "SKILL.md" }) %>
               </p>
               <ul class="skills-explainer-list">
-                <li>Sync runs when Pinokio starts and after changes made on this page.</li>
-                <li>Turning a skill OFF removes only Pinokio-managed synced copies from the target folders.</li>
-                <li>The source skill stays in the managed library, so it can be turned on again later.</li>
-                <li>If a target folder already contains a non-Pinokio skill, Pinokio leaves it untouched and marks a conflict.</li>
-                <li>Downloaded repositories must contain a root <code>SKILL.md</code> before they can be turned on.</li>
+                <li><%= tr("skills.sync_runs") %></li>
+                <li><%= tr("skills.turning_off_removes_synced") %></li>
+                <li><%= tr("skills.source_stays") %></li>
+                <li><%= tr("skills.conflict_untouched") %></li>
+                <li><%= tr("skills.downloaded_requires_root", { file: "SKILL.md" }) %></li>
               </ul>
             </div>
             <div class="skills-path-stack">
-              <div><strong>Index</strong> <code><%= indexPath %></code></div>
-              <div><strong>Sync targets</strong></div>
+              <div><strong><%= tr("skills.index") %></strong> <code><%= indexPath %></code></div>
+              <div><strong><%= tr("skills.sync_targets") %></strong></div>
               <% publishRoots.forEach((root) => { %>
                 <code><%= root %></code>
               <% }) %>
@@ -372,34 +374,34 @@
           </section>
 
           <% if (!hasIndexError) { %>
-          <section class="task-section" aria-label="Download skill">
+          <section class="task-section" aria-label="<%= tr("skills.download_skill") %>">
             <form class="skills-install-form" method="post" action="/skills/install">
               <label class="task-field">
-                <span class="task-label">Git URL</span>
+          <span class="task-label"><%= tr("common.git_url") %></span>
                 <input class="task-input" type="url" name="ref" placeholder="https://github.com/org/skill.git" required>
               </label>
               <button class="task-button primary skills-install-submit" type="submit">
                 <i class="fa-solid fa-download" aria-hidden="true"></i>
-                <span>Download</span>
+                <span><%= tr("common.download") %></span>
               </button>
             </form>
           </section>
           <% } %>
 
-          <section class="task-section" aria-label="Installed skills">
+          <section class="task-section" aria-label="<%= tr("skills.installed_skills") %>">
             <div class="task-section-head">
               <div>
-                <h2 class="task-section-title">Library</h2>
-                <p class="task-section-subcopy"><%= hasIndexError ? 'Unavailable until the index is readable.' : `${validCount} valid, ${skills.length - validCount} invalid.` %></p>
+                <h2 class="task-section-title"><%= tr("skills.library") %></h2>
+                <p class="task-section-subcopy"><%= hasIndexError ? tr("skills.unavailable_until_index") : tr("skills.valid_invalid_count", { valid: validCount, invalid: skills.length - validCount }) %></p>
               </div>
             </div>
             <% if (hasIndexError) { %>
               <div class="task-empty-state">
-                <p class="task-empty-copy">No managed skill changes were applied.</p>
+                <p class="task-empty-copy"><%= tr("skills.no_changes_applied") %></p>
               </div>
             <% } else if (!skills.length) { %>
               <div class="task-empty-state">
-                <p class="task-empty-copy">No managed skills installed.</p>
+                <p class="task-empty-copy"><%= tr("skills.none_installed") %></p>
               </div>
             <% } else { %>
               <div class="skills-list">
@@ -410,10 +412,10 @@
                       <div>
                         <div class="skill-title-line">
                           <h2 class="skill-title"><%= skill.label || skill.id %></h2>
-                          <% if (skill.builtin) { %><span class="skill-status">Built-in</span><% } %>
-                          <% if (skill.enabled) { %><span class="skill-status good">On</span><% } else { %><span class="skill-status">Off</span><% } %>
-                          <% if (skill.valid) { %><span class="skill-status good">Valid</span><% } else { %><span class="skill-status warn">Invalid</span><% } %>
-                          <% if (skill.hasConflict) { %><span class="skill-status warn">Conflict</span><% } %>
+                          <% if (skill.builtin) { %><span class="skill-status"><%= tr("skills.builtin") %></span><% } %>
+                          <% if (skill.enabled) { %><span class="skill-status good"><%= tr("common.on") %></span><% } else { %><span class="skill-status"><%= tr("common.off") %></span><% } %>
+                          <% if (skill.valid) { %><span class="skill-status good"><%= tr("skills.valid") %></span><% } else { %><span class="skill-status warn"><%= tr("skills.invalid") %></span><% } %>
+                          <% if (skill.hasConflict) { %><span class="skill-status warn"><%= tr("skills.conflict") %></span><% } %>
                         </div>
                         <% if (skill.description) { %>
                           <p class="skill-description"><%= skill.description %></p>
@@ -421,31 +423,31 @@
                       </div>
                       <div class="skill-details">
                         <div class="skill-detail-line">
-                          <span class="skill-detail-label">Skill ID</span>
+                          <span class="skill-detail-label"><%= tr("skills.skill_id") %></span>
                           <span class="skill-detail-value"><code><%= skill.id %></code></span>
                         </div>
                         <div class="skill-detail-line">
-                          <span class="skill-detail-label">Synced as</span>
+                          <span class="skill-detail-label"><%= tr("skills.synced_as") %></span>
                           <span class="skill-detail-value"><code><%= skill.publishName %></code></span>
                         </div>
                         <div class="skill-detail-line">
-                          <span class="skill-detail-label">Source</span>
+                          <span class="skill-detail-label"><%= tr("common.source") %></span>
                           <span class="skill-detail-value"><code><%= skill.path %></code></span>
                         </div>
                         <% if (skill.ref) { %>
                           <div class="skill-detail-line">
-                            <span class="skill-detail-label">Remote</span>
+                            <span class="skill-detail-label"><%= tr("skills.remote") %></span>
                             <span class="skill-detail-value"><code><%= skill.ref %></code></span>
                           </div>
                         <% } %>
                         <% if (!skill.valid && skill.errors.length) { %>
                           <div class="skill-detail-line">
-                            <span class="skill-detail-label">Error</span>
+                            <span class="skill-detail-label"><%= tr("common.error") %></span>
                             <span class="skill-detail-value"><%= skill.errors.join(" ") %></span>
                           </div>
                         <% } %>
                         <div class="skill-detail-line">
-                          <span class="skill-detail-label">Synced to</span>
+                          <span class="skill-detail-label"><%= tr("skills.synced_to") %></span>
                           <ul class="skill-targets">
                             <% skill.targets.forEach((target) => { %>
                               <li class="skill-target <%= targetClass(target.status) %>">
@@ -460,15 +462,15 @@
                     <div class="skill-actions">
                       <form class="skill-toggle-form" method="post" action="/skills/<%= encodeURIComponent(skill.id) %>/toggle">
                         <input type="hidden" name="enabled" value="<%= skill.enabled ? '0' : '1' %>">
-                        <button class="skill-switch" type="submit" role="switch" aria-checked="<%= skill.enabled ? 'true' : 'false' %>" aria-label="<%= skill.enabled ? 'Turn skill off' : 'Turn skill on' %>" title="<%= skill.enabled ? 'Turn skill off' : 'Turn skill on' %>" <%= !skill.enabled && !skill.valid ? 'disabled' : '' %>>
+                        <button class="skill-switch" type="submit" role="switch" aria-checked="<%= skill.enabled ? 'true' : 'false' %>" aria-label="<%= skill.enabled ? tr("skills.turn_off") : tr("skills.turn_on") %>" title="<%= skill.enabled ? tr("skills.turn_off") : tr("skills.turn_on") %>" <%= !skill.enabled && !skill.valid ? 'disabled' : '' %>>
                           <span class="skill-switch-track" aria-hidden="true"><span class="skill-switch-thumb"></span></span>
-                          <span class="skill-switch-label"><%= skill.enabled ? 'ON' : 'OFF' %></span>
+                          <span class="skill-switch-label"><%= skill.enabled ? tr("common.on") : tr("common.off") %></span>
                         </button>
                       </form>
                       <% if (canRenamePublishName) { %>
                         <form class="skill-publish-form" method="post" action="/skills/<%= encodeURIComponent(skill.id) %>/publish-name">
-                          <input class="task-input" type="text" name="publishName" value="<%= skill.publishName %>" aria-label="Sync folder name">
-                          <button class="task-link-button" type="submit" aria-label="Save sync folder name">
+                          <input class="task-input" type="text" name="publishName" value="<%= skill.publishName %>" aria-label="<%= tr("skills.sync_folder_name") %>">
+                          <button class="task-link-button" type="submit" aria-label="<%= tr("skills.save_sync_folder_name") %>">
                             <i class="fa-solid fa-check" aria-hidden="true"></i>
                           </button>
                         </form>
@@ -477,7 +479,7 @@
                         <form class="skill-remove-form" method="post" action="/skills/<%= encodeURIComponent(skill.id) %>/remove" data-skill-remove>
                           <button class="task-link-button" type="submit">
                             <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
-                            <span>Remove</span>
+                            <span><%= tr("common.remove") %></span>
                           </button>
                         </form>
                       <% } %>
@@ -496,7 +498,7 @@
   <script>
     document.querySelectorAll("[data-skill-remove]").forEach((form) => {
       form.addEventListener("submit", (event) => {
-        if (!window.confirm("Remove this downloaded skill?")) {
+        if (!window.confirm(<%- trj("skills.remove_confirm") %>)) {
           event.preventDefault()
         }
       })

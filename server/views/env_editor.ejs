@@ -1,5 +1,9 @@
 <html class='columns'>
 <head>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <script src="/hotkeys.min.js"></script>
 <script src="/ace/ace.js"></script>
@@ -13,6 +17,9 @@
 <script src="/xterm-addon-search-bar.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/he.js"></script>
 <script src="/opener.js"></script>
@@ -379,7 +386,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!protectionInput || !protectionState) {
       return
     }
-    protectionState.textContent = protectionInput.checked ? "On" : "Off"
+    protectionState.textContent = protectionInput.checked ? <%-trj("common.on")%> : <%-trj("common.off")%>
   }
   if (protectionInput) {
     protectionInput.addEventListener("change", syncProtectionState)
@@ -413,7 +420,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       location.href = "/p/<%=encodeURIComponent(name)%>?install_protection=1"
     <% } else { %>
       n.Noty({
-        text: `Updated!`
+        text: <%-trj("editor.updated")%>
       })
     <% } %>
   })
@@ -432,12 +439,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       deleteBtn.addEventListener("click", async (e) => {
         e.preventDefault()
         e.stopPropagation()
-        const confirmed = confirm("Are you sure you wish to delete?")
+        const confirmed = confirm(<%-trj("editor.delete_project_confirm")%>)
         if (!confirmed) {
           return
         }
         Swal.fire({
-          html: '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting',
+          html: '<i class="fa-solid fa-circle-notch fa-spin"></i> <%=tr("common.deleting")%>',
           customClass: {
             container: "loader-container",
             popup: "loader-popup",
@@ -460,11 +467,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           } else if (res && res.error) {
             alert(res.error)
           } else {
-            alert("Failed to delete project")
+            alert(<%-trj("editor.failed_delete_project")%>)
           }
         } catch (err) {
           Swal.close()
-          alert(err.message || "Failed to delete project")
+          alert(err.message || <%-trj("editor.failed_delete_project")%>)
         }
       })
     }
@@ -476,7 +483,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   <main>
     <% if (init) { %>
       <div>
-        <h1>Install</h1>
+        <h1><%=tr("common.install")%></h1>
         <% if (config) { %>
           <div class='card'>
             <% if (config.icon) { %>
@@ -489,31 +496,31 @@ document.addEventListener("DOMContentLoaded", async () => {
           </div>
         <% } %>
         <div class='warning'>
-          This will execute the 3rd party script downloaded from <a href="<%=gitRemote%>" target="_blank"><%=gitRemote%>.</a>
+          <%=tr("editor.third_party_warning_prefix")%> <a href="<%=gitRemote%>" target="_blank"><%=gitRemote%>.</a>
         </div>
         <div class='install-options'>
           <div class='install-option'>
             <div class='install-option-copy'>
-              <div class='install-option-title'>Protection <span class='beta-badge'>Beta</span></div>
+              <div class='install-option-title'><%=tr("editor.protection")%> <span class='beta-badge'><%=tr("editor.beta")%></span></div>
               <ul class='install-option-list'>
-                <li>Blocks packages newer than 72 hours for new runs in this app.</li>
-                <li>Can reduce risk, but some installs may fail.</li>
-                <li>You can change this later in the app.</li>
+                <li><%=tr("editor.protection_blocks")%></li>
+                <li><%=tr("editor.protection_risk")%></li>
+                <li><%=tr("editor.protection_change_later")%></li>
               </ul>
             </div>
             <label class='toggle-switch' for='protection-enabled'>
               <input id='protection-enabled' type='checkbox' <%= protection_enabled ? 'checked' : '' %>>
               <span class='toggle-slider' aria-hidden='true'></span>
-              <span class='toggle-switch-text' data-protection-state><%= protection_enabled ? 'On' : 'Off' %></span>
+              <span class='toggle-switch-text' data-protection-state><%= protection_enabled ? tr("common.on") : tr("common.off") %></span>
             </label>
           </div>
         </div>
         <footer>
-          <a href="/home" class='btn go-home'><i class='fa-solid fa-home'></i> home</a>
+          <a href="/home" class='btn go-home'><i class='fa-solid fa-home'></i> <%=tr("common.home")%></a>
           <div class='flexible'></div>
-          <button id='customize' class='btn'><i class="fa-solid fa-gear"></i> Customize</button>
+          <button id='customize' class='btn'><i class="fa-solid fa-gear"></i> <%=tr("editor.customize")%></button>
           <div id='save' class='btn'>
-            <span class='save'><i class="fa-solid fa-check"></i> Install</span>
+            <span class='save'><i class="fa-solid fa-check"></i> <%=tr("common.install")%></span>
           </div>
         </footer>
       </div>
@@ -525,10 +532,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           <% } %>
           <div class='flexible'></div>
           <div class='nav-btns'>
-            <a class='btn' href="<%=editorpath%>"><i class="fa-solid fa-pen-to-square"></i> Edit file</a>
-            <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> Open in File Explorer</button>
+            <a class='btn' href="<%=editorpath%>"><i class="fa-solid fa-pen-to-square"></i> <%=tr("editor.edit_file")%></a>
+            <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> <%=tr("app.open_in_file_explorer")%></button>
             <div id='save' class='btn'>
-              <span class='save'><i class="fa-solid fa-check"></i> Save</span>
+              <span class='save'><i class="fa-solid fa-check"></i> <%=tr("common.save")%></span>
             </div>
           </div>
         </h1>
@@ -547,7 +554,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       <% }) %>
       <% if (name) { %>
         <button class='btn' id='delete-project'>
-          <i class="fa-solid fa-trash"></i> Delete Project
+          <i class="fa-solid fa-trash"></i> <%=tr("editor.delete_project")%>
         </button>
       <% } %>
     </div>

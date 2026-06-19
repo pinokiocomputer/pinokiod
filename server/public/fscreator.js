@@ -1,4 +1,7 @@
 const FSCreator = async (config) => {
+  const t = (key, fallback, replacements) => {
+    return typeof window.pinokioT === 'function' ? window.pinokioT(key, fallback, replacements) : `[missing translation: ${key}]`
+  }
   const compare = async (file1, file2) => {
     if (file1.size !== file2.size) return false;
     console.log({ file1, file2 })
@@ -38,22 +41,22 @@ const FSCreator = async (config) => {
 </div>
 <div class='folder-rows'>
   <div class='folder-row'>
-    <label for='new-folder-path'>Folder Path</label>
+    <label for='new-folder-path'>${t('common.folder_path', 'Folder Path')}</label>
     <div class='field-row'>
-      <input id="new-folder-path" class="swal2-input" placeholder="Folder Path" autofocus  />
+      <input id="new-folder-path" class="swal2-input" placeholder="${t('common.folder_path', 'Folder Path')}" autofocus  />
     </div>
   </div>
   ${els.join('')}
   <div class='folder-row hidden'>
-    <label for='new-folder-title'>Title (optional)</label>
+    <label for='new-folder-title'>${t('common.title_optional', 'Title (optional)')}</label>
     <div class='field-row'>
-      <input id="new-folder-title" class="swal2-input" placeholder="Title" />
+      <input id="new-folder-title" class="swal2-input" placeholder="${t('common.title', 'Title')}" />
     </div>
   </div>
   <div class='folder-row hidden'>
-    <label for='new-folder-description'>Description (optional)</label>
+    <label for='new-folder-description'>${t('common.description_optional', 'Description (optional)')}</label>
     <div class='field-row'>
-      <input id="new-folder-description" class="swal2-input" placeholder="Description" />
+      <input id="new-folder-description" class="swal2-input" placeholder="${t('common.description', 'Description')}" />
     </div>
   </div>
 </div>
@@ -61,7 +64,7 @@ const FSCreator = async (config) => {
     allowOutsideClick: true,
     focusConfirm: false,
 //    showCancelButton: true,
-    confirmButtonText: 'Create',
+    confirmButtonText: t('common.create', 'Create'),
     didOpen: () => {
       let textareas = Swal.getPopup().querySelectorAll("textarea")
       for(let textarea of textareas) {
@@ -95,7 +98,7 @@ const FSCreator = async (config) => {
           allowImageTransform: true,
 
 
-          labelIdle: `Drag & Drop your picture or <span class="filepond--label-action">Browse</span>`,
+          labelIdle: t('common.drag_drop_picture_browse_html', 'Drag & Drop your picture or <span class="filepond--label-action">Browse</span>'),
 //          imagePreviewHeight: 170,
           imageCropAspectRatio: '1:1',
 //          imageResizeTargetWidth: 200,
@@ -158,11 +161,11 @@ const FSCreator = async (config) => {
       let path = Swal.getPopup().querySelector('#new-folder-path').value
       if (path && path.length > 0) {
       } else {
-        alert("Please enter a folder name")
+        alert(t('common.enter_folder_name', 'Please enter a folder name'))
         return false
       }
       if (path && path.includes(" ")) {
-        alert("Please use a folder path without a space")
+        alert(t('common.folder_path_no_space', 'Please use a folder path without a space'))
         return false
       }
       pond.processFile()

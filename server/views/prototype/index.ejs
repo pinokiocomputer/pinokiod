@@ -1,4 +1,8 @@
 <html>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
@@ -976,12 +980,16 @@ body.dark .appcanvas {
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/nav.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/report.js"></script>
 <script src="/normalize.js"></script>
 <script src="/Socket.js"></script>
 <script src="/resizeSync.js"></script>
+
 <script src="/terminal-settings.js"></script>
 <script src="/pinokio-touch.js"></script>
 <script src="/noty.js"></script>
@@ -1007,32 +1015,32 @@ body.dark .appcanvas {
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
-<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+<button class='btn2' id='minimize-header' data-tippy-content="<%=tr("common.fullscreen")%>" title='<%=tr("common.fullscreen")%>'>
   <div><i class="fa-solid fa-expand"></i></div>
 </button>
-<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
-<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
-<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+<button class='btn2' id='back' data-tippy-content="<%=tr("common.back")%>"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="<%=tr("common.forward")%>"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="<%=tr("common.refresh")%>"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="<%=tr("common.screen_capture")%>"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="<%=tr("common.xray_mode")%>"><i class="fa-solid fa-eye"></i></button>
 <div class='flexible'></div>
-<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+<a class='btn2' href="/columns" data-tippy-content="<%=tr("common.split_columns")%>">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
-<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+<a class='btn2' href="/rows" data-tippy-content="<%=tr("common.split_rows")%>">
   <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
 </a>
-<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+<button class='btn2' id='new-window' data-tippy-content="<%=tr("common.open_new_window")%>" title='<%=tr("common.open_new_window")%>' data-agent="<%=agent%>">
   <div><i class="fa-solid fa-plus"></i></div>
 </button>
-<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+<button class='btn2 hidden' id='close-window' data-tippy-content='<%=tr("common.close_section")%>'>
   <div><i class="fa-solid fa-xmark"></i></div>
 </button>
 </h1>
 </header>
 <main>
   <div class="container">
-      <h1><img class='logo2' src="/pinokio-black.png"/> Project Setup</h1>
+      <h1><img class='logo2' src="/pinokio-black.png"/> <%=tr("prototype.project_setup")%></h1>
 
       <div class="progress-bar">
           <div class="step active" data-step="1">1</div>
@@ -1043,33 +1051,33 @@ body.dark .appcanvas {
       <form id="bootstrap-form">
           <!-- Step 1: New vs Clone -->
           <div class="step-content active" id="step-1">
-              <h2>Step 1: Choose Your Starting Point</h2>
+              <h2><%=tr("prototype.step_choose_starting_point")%></h2>
               <div class="radio-group">
                   <label>
                       <input type="radio" name="startType" value="new" required>
-                      <span>New Project</span>
-                      <p class="description">Start with a fresh project</p>
+                      <span><%=tr("prototype.new_project")%></span>
+                      <p class="description"><%=tr("prototype.start_fresh_project")%></p>
                   </label>
                   <label>
                       <input type="radio" name="startType" value="clone" required>
-                      <span>Clone Repository</span>
-                      <p class="description">Clone an existing git repository</p>
+                      <span><%=tr("prototype.clone_repository")%></span>
+                      <p class="description"><%=tr("prototype.clone_existing_repo")%></p>
                   </label>
               </div>
               <div class="button-group">
-                  <button type="button" class="btn btn-primary" onclick="nextStep()">Next <i class="fa-solid fa-chevron-right"></i></button>
+                  <button type="button" class="btn btn-primary" onclick="nextStep()"><%=tr("common.next")%> <i class="fa-solid fa-chevron-right"></i></button>
               </div>
           </div>
 
           <!-- Step 2: Project Type -->
           <div class="step-content" id="step-2">
-              <h2>Step 2: Select Project Type</h2>
+              <h2><%=tr("prototype.step_select_project_type")%></h2>
 
               <!-- Clone Project Options -->
               <div id="clone-options" class="project-options">
                   <div class="git-url-input">
-                      <label for="gitUrl">Git Repository URL:</label>
-                      <input type="url" name="gitUrl" id="gitUrl" placeholder="https://github.com/username/repository.git">
+                      <label for="gitUrl"><%=tr("prototype.git_repository_url")%></label>
+                      <input type="url" name="gitUrl" id="gitUrl" placeholder="<%=tr("prototype.git_url_placeholder")%>">
                   </div>
 
                   <div class="radio-group">
@@ -1083,13 +1091,13 @@ body.dark .appcanvas {
                       </label>
                       <label>
                           <input type="radio" name="projectType" value="empty">
-                          <span>Others</span>
+                          <span><%=tr("prototype.others")%></span>
                       </label>
                   </div>
 
                   <!-- Python Options for Clone -->
                   <div id="python-options-clone" class="conditional-options">
-                      <h3>Python Options</h3>
+                      <h3><%=tr("prototype.python_options")%></h3>
                       <div class="checkbox-group">
                           <label>
                               <input type="checkbox" name="pythonOptions" value="gradio">
@@ -1108,11 +1116,11 @@ body.dark .appcanvas {
                   <div class="radio-group">
                       <label>
                           <input type="radio" name="projectType" value="empty">
-                          <span>Empty Project</span>
+                          <span><%=tr("prototype.empty_project")%></span>
                       </label>
                       <label>
                           <input type="radio" name="projectType" value="cli">
-                          <span>CLI App Launcher</span>
+                          <span><%=tr("prototype.cli_app_launcher")%></span>
                       </label>
 
                       <!-- CLI App Launcher Options -->
@@ -1120,20 +1128,20 @@ body.dark .appcanvas {
                           <div class="radio-group">
                               <label>
                                   <input type="radio" name="cliType" value="instant">
-                                  <span>Instant Command Launcher</span>
+                                  <span><%=tr("prototype.instant_command_launcher")%></span>
                                   <p class="description">npx, uvx, etc.</p>
                               </label>
                               <label>
                                   <input type="radio" name="cliType" value="installable">
-                                  <span>Installable CLI App Launcher</span>
-                                  <p class="description">CLI apps that require an installation step</p>
+                                  <span><%=tr("prototype.installable_cli_app_launcher")%></span>
+                                  <p class="description"><%=tr("prototype.cli_install_step")%></p>
                               </label>
                           </div>
 
                           <!-- Instant CLI Options -->
                           <div id="instant-cli-options" class="conditional-options">
-                              <h4>Launch Command</h4>
-                              <input type="text" name="launchCommand" placeholder="e.g., npx create-react-app">
+                              <h4><%=tr("prototype.launch_command")%></h4>
+                              <input type="text" name="launchCommand" placeholder="<%=tr("prototype.launch_command_placeholder")%>">
                               <!--
                               <h4>Path to Run Command From (optional)</h4>
                               <input type="text" name="launchPath" placeholder="e.g., /home/user/projects">
@@ -1142,28 +1150,28 @@ body.dark .appcanvas {
 
                           <!-- Installable CLI Options -->
                           <div id="installable-cli-options" class="conditional-options">
-                              <h4>Install Command</h4>
-                              <input type="text" name="installCommand" placeholder="e.g., npm install -g @my/cli-tool">
-                              <h4>Path to Run Install Command From (optional)</h4>
-                              <input type="text" name="installPath" placeholder="e.g., /home/user">
-                              <h4>Launch Command</h4>
-                              <input type="text" name="installableLaunchCommand" placeholder="e.g., my-cli-tool start">
-                              <h4>Path to Run Launch Command From (optional)</h4>
-                              <input type="text" name="launchPath" placeholder="e.g., /home/user/projects">
+                              <h4><%=tr("prototype.install_command")%></h4>
+                              <input type="text" name="installCommand" placeholder="<%=tr("prototype.install_command_placeholder")%>">
+                              <h4><%=tr("prototype.install_path_optional")%></h4>
+                              <input type="text" name="installPath" placeholder="<%=tr("prototype.install_path_placeholder")%>">
+                              <h4><%=tr("prototype.launch_command")%></h4>
+                              <input type="text" name="installableLaunchCommand" placeholder="<%=tr("prototype.installable_launch_command_placeholder")%>">
+                              <h4><%=tr("prototype.launch_path_optional")%></h4>
+                              <input type="text" name="launchPath" placeholder="<%=tr("prototype.launch_path_placeholder")%>">
                           </div>
 
                           <!-- Virtual Environment Option -->
                           <div class="checkbox-group">
                               <label>
                                   <input type="checkbox" name="useVenv" value="true">
-                                  <span>Use virtual environment (venv)</span>
+                                  <span><%=tr("prototype.use_venv")%></span>
                               </label>
                           </div>
                       </div>
 
                       <label>
                           <input type="radio" name="projectType" value="documentation">
-                          <span>Documentation</span>
+                          <span><%=tr("prototype.documentation")%></span>
                       </label>
 
                       <!-- Documentation Options -->
@@ -1171,20 +1179,20 @@ body.dark .appcanvas {
                           <div class="radio-group">
                               <label>
                                   <input type="radio" name="docType" value="local">
-                                  <span>Documentation from Local Project</span>
+                                  <span><%=tr("prototype.docs_from_local_project")%></span>
                               </label>
                               <div id="local-doc-options" class="conditional-options">
-                                  <h4>Local Project Path</h4>
-                                  <input type="text" name="localDocPath" placeholder="e.g., /home/user/my-project" id='local'>
+                                  <h4><%=tr("prototype.local_project_path")%></h4>
+                                  <input type="text" name="localDocPath" placeholder="<%=tr("prototype.local_project_path_placeholder")%>" id='local'>
                               </div>
 
                               <label>
                                   <input type="radio" name="docType" value="remote">
-                                  <span>Documentation from Remote Git Repository</span>
+                                  <span><%=tr("prototype.docs_from_remote_repo")%></span>
                               </label>
                               <div id="remote-doc-options" class="conditional-options">
-                                  <h4>Remote Git Repository URL</h4>
-                                  <input type="text" name="remoteDocUrl" placeholder="e.g., https://github.com/user/repo.git">
+                                  <h4><%=tr("prototype.remote_git_repo_url")%></h4>
+                                  <input type="text" name="remoteDocUrl" placeholder="<%=tr("prototype.remote_git_repo_placeholder")%>">
                               </div>
                           </div>
                       </div>
@@ -1201,7 +1209,7 @@ body.dark .appcanvas {
 
                   <!-- Python Options -->
                   <div id="python-options" class="conditional-options">
-                      <h3>Python Options</h3>
+                      <h3><%=tr("prototype.python_options")%></h3>
                       <div class="checkbox-group">
                           <label>
                               <input type="checkbox" name="pythonOptions" value="gradio">
@@ -1216,26 +1224,26 @@ body.dark .appcanvas {
               </div>
 
               <div class="button-group">
-                  <button type="button" class="btn btn-secondary" onclick="prevStep()"><i class="fa-solid fa-chevron-left"></i> Back</button>
-                  <button type="button" class="btn btn-primary" onclick="nextStep()">Next <i class="fa-solid fa-chevron-right"></i></button>
+                  <button type="button" class="btn btn-secondary" onclick="prevStep()"><i class="fa-solid fa-chevron-left"></i> <%=tr("common.back")%></button>
+                  <button type="button" class="btn btn-primary" onclick="nextStep()"><%=tr("common.next")%> <i class="fa-solid fa-chevron-right"></i></button>
               </div>
           </div>
 
           <!-- Step 3: AI Prompt -->
           <div class="step-content" id="step-3">
-              <h2>Step 3: AI Prompt (Optional)</h2>
-              <p>Enter a prompt to build your app with AI assistance.</p>
-              <blockquote>The prompt will be stored in README.md, which can be used by any AI coding tool to build the app and the launcher.</blockquote>
+              <h2><%=tr("prototype.step_ai_prompt")%></h2>
+              <p><%=tr("prototype.ai_prompt_help")%></p>
+              <blockquote><%=tr("prototype.ai_prompt_note")%></blockquote>
               <textarea
                   name="aiPrompt"
                   id="aiPrompt"
                   rows="4"
-                  placeholder="Describe what you want to build... (optional)"
+                  placeholder="<%=tr("prototype.ai_prompt_placeholder")%>"
               ></textarea>
 
               <div class="button-group">
-                  <button type="button" class="btn btn-secondary" onclick="prevStep()"><i class="fa-solid fa-chevron-left"></i> Back</button>
-                  <button type="submit" class="btn btn-success">Create</button>
+                  <button type="button" class="btn btn-secondary" onclick="prevStep()"><i class="fa-solid fa-chevron-left"></i> <%=tr("common.back")%></button>
+                  <button type="submit" class="btn btn-success"><%=tr("common.create")%></button>
               </div>
           </div>
       </form>
@@ -1281,7 +1289,7 @@ document.addEventListener('DOMContentLoaded', function() {
         method: "kernel.bin.filepicker",
         params: {
           cwd: "<%-JSON.stringify(cwd).slice(1, -1)%>",
-          title: "Select a path",
+          title: <%-trj("prototype.select_path")%>,
           type: "folder",
         }
       }, async (packet) => {
@@ -1338,7 +1346,7 @@ function validateCurrentStep() {
     if (currentStep === 1) {
         const startType = document.querySelector('input[name="startType"]:checked');
         if (!startType) {
-            alert('Please select whether to start with a new project or clone a repository.');
+            alert(<%-trj("prototype.select_starting_point_alert")%>);
             return false;
         }
         return true;
@@ -1349,14 +1357,14 @@ function validateCurrentStep() {
         const projectType = document.querySelector('input[name="projectType"]:checked');
 
         if (!projectType) {
-            alert('Please select a project type.');
+            alert(<%-trj("prototype.select_project_type_alert")%>);
             return false;
         }
 
         if (startType.value === 'clone') {
             const gitUrl = document.getElementById('gitUrl').value.trim();
             if (!gitUrl) {
-                alert('Please enter a Git repository URL.');
+                alert(<%-trj("prototype.enter_git_repository_url")%>);
                 return false;
             }
         }
@@ -1365,25 +1373,25 @@ function validateCurrentStep() {
         if (projectType.value === 'cli') {
             const cliType = document.querySelector('input[name="cliType"]:checked');
             if (!cliType) {
-                alert('Please select a CLI app launcher type.');
+                alert(<%-trj("prototype.select_cli_launcher_type")%>);
                 return false;
             }
 
             if (cliType.value === 'instant') {
                 const launchCommand = document.querySelector('input[name="launchCommand"]').value.trim();
                 if (!launchCommand) {
-                    alert('Please enter a launch command.');
+                    alert(<%-trj("prototype.enter_launch_command")%>);
                     return false;
                 }
             } else if (cliType.value === 'installable') {
                 const installCommand = document.querySelector('input[name="installCommand"]').value.trim();
                 const launchCommand = document.querySelector('input[name="installableLaunchCommand"]').value.trim();
                 if (!installCommand) {
-                    alert('Please enter an install command.');
+                    alert(<%-trj("prototype.enter_install_command")%>);
                     return false;
                 }
                 if (!launchCommand) {
-                    alert('Please enter a launch command.');
+                    alert(<%-trj("prototype.enter_launch_command")%>);
                     return false;
                 }
             }
@@ -1393,20 +1401,20 @@ function validateCurrentStep() {
         if (projectType.value === 'documentation') {
             const docType = document.querySelector('input[name="docType"]:checked');
             if (!docType) {
-                alert('Please select a documentation source.');
+                alert(<%-trj("prototype.select_documentation_source")%>);
                 return false;
             }
 
             if (docType.value === 'local') {
                 const localDocPath = document.querySelector('input[name="localDocPath"]').value.trim();
                 if (!localDocPath) {
-                    alert('Please enter a local project path.');
+                    alert(<%-trj("prototype.enter_local_project_path")%>);
                     return false;
                 }
             } else if (docType.value === 'remote') {
                 const remoteDocUrl = document.querySelector('input[name="remoteDocUrl"]').value.trim();
                 if (!remoteDocUrl) {
-                    alert('Please enter a remote Git repository URL.');
+                    alert(<%-trj("prototype.enter_remote_git_repository_url")%>);
                     return false;
                 }
             }

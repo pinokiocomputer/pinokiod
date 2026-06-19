@@ -1,3 +1,7 @@
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <html>
 <head>
 <title>Pinokio</title>
@@ -992,6 +996,9 @@ body.net-page .dns-modal-terminal-container {
 <script src="/xterm-theme.js"></script>
 <script src="/Socket.js"></script>
 <script src="/install.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
@@ -1022,38 +1029,38 @@ document.addEventListener('DOMContentLoaded', function() {
 <nav class='error-message'>
   <div><%=error%></div>
   <div class='flexible'></div>
-  <a class='btn' target="_blank" href="<%=install%>">Download</a>
+  <a class='btn' target="_blank" href="<%=install%>"><%= tr("common.download") %></a>
 </nav>
 <% } %>
 <header class='navheader grabbable'>
   <h1>
     <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
-    <button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+    <button class='btn2' id='minimize-header' data-tippy-content="<%= tr("common.fullscreen") %>" title='<%= tr("common.fullscreen") %>'>
       <div><i class="fa-solid fa-expand"></i></div>
     </button>
-    <button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-    <button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-    <button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
-    <button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
-    <button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
-    <button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
+    <button class='btn2' id='back' data-tippy-content="<%= tr("common.back") %>"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+    <button class='btn2' id='forward' data-tippy-content="<%= tr("common.forward") %>"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+    <button class='btn2' id='refresh-page' data-tippy-content="<%= tr("common.refresh") %>"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+    <button class='btn2' id='screenshot' data-tippy-content="<%= tr("common.screen_capture") %>"><i class="fa-solid fa-camera"></i></button>
+    <button class='btn2' id='inspector' data-tippy-content="<%= tr("common.xray_mode") %>"><i class="fa-solid fa-eye"></i></button>
+    <button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="<%= tr("common.enter_url") %>"><i class="fa-solid fa-link"></i></button>
     <div class='mobile-flexible'></div>
     <form class='urlbar'>
       <div class='url-input-container'>
-        <input type='url' placeholder='enter any local url to open in pinokio'>
+        <input type='url' placeholder='<%= tr("common.url_placeholder") %>'>
         <div class='url-dropdown' id='url-dropdown'></div>
       </div>
     </form>
-    <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+    <a class='btn2' href="/columns" data-tippy-content="<%= tr("common.split_columns") %>">
       <div><i class="fa-solid fa-table-columns"></i></div>
     </a>
-    <a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+    <a class='btn2' href="/rows" data-tippy-content="<%= tr("common.split_rows") %>">
       <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
     </a>
-    <button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+    <button class='btn2' id='new-window' data-tippy-content="<%= tr("common.open_new_window") %>" title='<%= tr("common.open_new_window") %>' data-agent="<%=agent%>">
       <div><i class="fa-solid fa-plus"></i></div>
     </button>
-    <button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+    <button class='btn2 hidden' id='close-window' data-tippy-content='<%= tr("common.close_section") %>'>
       <div><i class="fa-solid fa-xmark"></i></div>
     </button>
   </h1>
@@ -1063,9 +1070,9 @@ document.addEventListener('DOMContentLoaded', function() {
   <section class='task-shell net-shell'>
     <header class='task-shell-header'>
       <div class='task-shell-header-main'>
-        <p class='task-eyebrow'>Network</p>
+        <p class='task-eyebrow'><%= tr("network.title") %></p>
         <h1 class='task-title'><%= peer && peer.name ? peer.name : host %></h1>
-        <p class='task-description'><%= current_host === host ? 'Live local, LAN, and peer routes for apps on this machine.' : 'Available routes and installed apps exposed by this peer.' %></p>
+        <p class='task-description'><%= current_host === host ? tr("network.local_routes_description") : tr("network.peer_routes_description") %></p>
       </div>
     </header>
     <div class='task-shell-body net-shell-body'>
@@ -1073,11 +1080,11 @@ document.addEventListener('DOMContentLoaded', function() {
   <form class='search'>
     <!--
     <div class='app-btns'>
-      <a class='btn create-new' href="/init"><i class="fa-solid fa-plus"></i> Build</a>
-      <a class='btn' id='explore' href="/home?mode=explore"><i class="fa-solid fa-magnifying-glass"></i> Community</a>
+      <a class='btn create-new' href="/init"><i class="fa-solid fa-plus"></i> <%=tr("build.build")%></a>
+      <a class='btn' id='explore' href="/home?mode=explore"><i class="fa-solid fa-magnifying-glass"></i> <%=tr("errors.community")%></a>
     </div>
     -->
-    <input type='search' class="flexible" placeholder='Search apps'>
+    <input type='search' class="flexible" placeholder='<%= tr("common.search_apps") %>'>
   </form>
   <div class='running-apps'>
     <% if (current_host === host) { %>
@@ -1099,7 +1106,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <div class='title'><i class="fa-solid fa-circle"></i><span><%=item.title || item.name%></span></div>
               <div class='grid-3'>
                 <div class='section'>
-                  <h2><i class='fas fa-laptop-code'></i> This machine</h2>
+                  <h2><i class='fas fa-laptop-code'></i> <%= tr("network.this_machine") %></h2>
                   <% 
                     let default_dns_name = ''
                     if (item.internal_router && item.internal_router.length > 0) {
@@ -1127,12 +1134,12 @@ document.addEventListener('DOMContentLoaded', function() {
                   <% if (allow_dns_creation && item.port) { %>
                     <button type='button' class='btn get-dns-btn' data-port="<%=item.port%>" data-default-dns="<%=default_dns_name%>" data-process-title="<%=item.title || item.name%>">
                       <i class="fa-solid fa-globe"></i>
-                      <span>Get .localhost domain</span>
+                      <span><%= tr("network.get_localhost_domain") %></span>
                     </button>
                   <% } %>
                 </div>
                 <div class='section'>
-                  <h2><i class="fa-solid fa-wifi"></i> Local network</h2>
+                  <h2><i class="fa-solid fa-wifi"></i> <%= tr("network.local_network") %></h2>
                   <%
                     const directHosts = []
                     if (Array.isArray(item.external_hosts)) {
@@ -1179,7 +1186,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   <% } %>
                 </div>
                 <div class='section'>
-                  <h2><i class="fa-solid fa-podcast"></i> Peer</h2>
+                  <h2><i class="fa-solid fa-podcast"></i> <%= tr("network.peer") %></h2>
                   <% item.external_router.forEach((domain) => { %>
                     <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
                   <% }) %>
@@ -1201,7 +1208,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <div class='title'><i class="fa-solid fa-circle"></i><span><%=route.name%></span></div>
               <div class='grid-3'>
                 <div class='section'>
-                  <h2><i class='fas fa-laptop-code'></i> This machine</h2>
+                  <h2><i class='fas fa-laptop-code'></i> <%= tr("network.this_machine") %></h2>
                   <% route.internal_router.forEach((domain) => { %>
                     <% if (domain.endsWith(".localhost")) { %>
                       <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
@@ -1211,13 +1218,13 @@ document.addEventListener('DOMContentLoaded', function() {
                   <% }) %>
                 </div>
                 <div class='section'>
-                  <h2><i class="fa-solid fa-wifi"></i> Local network</h2>
+                  <h2><i class="fa-solid fa-wifi"></i> <%= tr("network.local_network") %></h2>
                   <% if (route.external_ip) { %>
                     <a class='net' target="_blank" href="http://<%=route.external_ip%>">http://<%=route.external_ip%></a>
                   <% } %>
                 </div>
                 <div class='section'>
-                  <h2><i class="fa-solid fa-podcast"></i> Peer</h2>
+                  <h2><i class="fa-solid fa-podcast"></i> <%= tr("network.peer") %></h2>
                   <% route.external_router.forEach((domain) => { %>
                     <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
                   <% }) %>
@@ -1235,7 +1242,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <div class='col'>
                 <div class='grid-1'>
                   <div class='section'>
-                    <h2><i class="fa-solid fa-plug-circle-check"></i> Online</h2><div>Use these URLs to access the online remote servers.</div>
+                    <h2><i class="fa-solid fa-plug-circle-check"></i> <%= tr("network.online") %></h2><div><%= tr("network.online_description") %></div>
                   </div>
                 </div>
               </div>
@@ -1278,7 +1285,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <div class='col'>
                 <div class='grid-1'>
                   <div class='section'>
-                    <h2><i class="fa-solid fa-folder-tree"></i> Installed</h2><div>Remotely launch the installed apps.</div>
+                    <h2><i class="fa-solid fa-folder-tree"></i> <%= tr("network.installed") %></h2><div><%= tr("network.installed_description") %></div>
                   </div>
                 </div>
               </div>
@@ -1321,7 +1328,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <div class='col'>
                 <div class='grid-1'>
                   <div class='section'>
-                    <h2>Serverless</h2><div>Static websites or serverless apps that connect to 3rd party APIs</div>
+                    <h2><%= tr("network.serverless") %></h2><div><%= tr("network.serverless_description") %></div>
                   </div>
                 </div>
               </div>
@@ -1361,8 +1368,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <template id='dns-modal-template'>
   <div class='dns-modal'>
     <div class='address-section'>
-      <input type='text' placeholder='domain name' id='dns-modal-name'>
-      <input type='number' placeholder='port number' id='dns-modal-port' min='1'>
+      <input type='text' placeholder='<%= tr("network.domain_name") %>' id='dns-modal-name'>
+      <input type='number' placeholder='<%= tr("network.port_number") %>' id='dns-modal-port' min='1'>
     </div>
     <div class='address-result' id='dns-modal-result'>
       <div>https://[NAME].localhost</div>
@@ -1460,14 +1467,14 @@ const renderDnsPreview = (popup, name, port) => {
 
 const promptForDnsMapping = async ({ port, name, title }) => {
   if (!dnsModalTemplate) {
-    alert('DNS modal unavailable')
+    alert(<%- trj("network.dns_modal_unavailable") %>)
     return null
   }
   const html = dnsModalTemplate.innerHTML
   const result = await Swal.fire({
-    title: 'Get .localhost domain',
+    title: <%- trj("network.get_localhost_domain") %>,
     html,
-    confirmButtonText: 'Create domain',
+    confirmButtonText: <%- trj("network.create_domain") %>,
 //    showCancelButton: true,
 //    focusConfirm: false,
 //    allowOutsideClick: false,
@@ -1499,15 +1506,15 @@ const promptForDnsMapping = async ({ port, name, title }) => {
       const dnsName = nameInput ? nameInput.value.trim() : ''
       const dnsPort = portInput ? portInput.value.trim() : ''
       if (!dnsName) {
-        Swal.showValidationMessage('Enter a domain name')
+        Swal.showValidationMessage(<%- trj("network.enter_domain_name") %>)
         return false
       }
       if (!dnsPort) {
-        Swal.showValidationMessage('Enter a port number')
+        Swal.showValidationMessage(<%- trj("network.enter_port_number") %>)
         return false
       }
       if (!/^\d+$/.test(dnsPort)) {
-        Swal.showValidationMessage('Port must be numeric')
+        Swal.showValidationMessage(<%- trj("network.port_must_numeric") %>)
         return false
       }
       return { dnsName, dnsPort }
@@ -1521,10 +1528,10 @@ const promptForDnsMapping = async ({ port, name, title }) => {
 
 const createDnsTerminal = async (container) => {
   if (!container) {
-    throw new Error('Terminal container missing')
+    throw new Error(<%- trj("network.terminal_container_missing") %>)
   }
   if (typeof Terminal === 'undefined') {
-    throw new Error('Terminal unavailable')
+    throw new Error(<%- trj("network.terminal_unavailable") %>)
   }
   let config = {
     scrollback: 9999999,
@@ -1570,7 +1577,7 @@ const createDnsTerminal = async (container) => {
 
 const showDnsError = (message) => {
   Swal.close()
-  Swal.fire('Domain error', message, 'error')
+  Swal.fire(<%- trj("network.domain_error") %>, message, 'error')
 }
 
 const startDnsCreationSocket = (term, dnsName, dnsPort) => {
@@ -1615,19 +1622,19 @@ const startDnsCreationSocket = (term, dnsName, dnsPort) => {
         write(`\r\n${packet.data.error}\r\n`)
         showDnsError(packet.data.error)
       } else {
-        write('\r\nDomain created. Waiting for router to update...\r\n')
+        write('\r\n' + <%- trj("network.domain_created_waiting") %> + '\r\n')
         const hostname = `${dnsName}.localhost`
         waitForDnsPropagation(dnsName)
           .then((ready) => {
             if (ready) {
-              write(`Router detected ${hostname}. Reloading...\r\n`)
+              write(<%- trj("network.router_detected_reloading") %>.replace('{hostname}', hostname) + '\r\n')
             } else {
-              write('Router update took longer than expected. Reloading anyway...\r\n')
+              write(<%- trj("network.router_update_slow") %> + '\r\n')
             }
           })
           .catch((err) => {
             console.warn('dns propagation wait failed', err)
-            write('Unable to confirm router update. Reloading...\r\n')
+            write(<%- trj("network.router_confirm_failed") %> + '\r\n')
           })
           .finally(() => {
             setTimeout(() => {
@@ -1636,7 +1643,7 @@ const startDnsCreationSocket = (term, dnsName, dnsPort) => {
           })
       }
     } else if (packet.type === 'error') {
-      const message = (packet.data && (packet.data.error || packet.data.message)) || 'Unknown error'
+      const message = (packet.data && (packet.data.error || packet.data.message)) || <%- trj("common.unknown_error") %>
       write(`\r\n${message}\r\n`)
       showDnsError(message)
     }
@@ -1644,13 +1651,13 @@ const startDnsCreationSocket = (term, dnsName, dnsPort) => {
     dnsSocketInstance = null
   }).catch((err) => {
     console.error('DNS creation failed', err)
-    showDnsError(err.message || 'Unable to create domain')
+    showDnsError(err.message || <%- trj("network.unable_create_domain") %>)
   })
 }
 
 const runDnsCreation = ({ dnsName, dnsPort }) => {
   Swal.fire({
-    title: 'Creating domain',
+    title: <%- trj("network.creating_domain") %>,
     html: `<div class='dns-progress-modal'><div class='dns-modal-terminal-container'></div></div>`,
     showConfirmButton: false,
     allowOutsideClick: false,
@@ -1667,7 +1674,7 @@ const runDnsCreation = ({ dnsName, dnsPort }) => {
         startDnsCreationSocket(term, dnsName, dnsPort)
       } catch (err) {
         console.error('Failed to initialize DNS terminal', err)
-        showDnsError(err.message || 'Unable to start terminal')
+        showDnsError(err.message || <%- trj("network.unable_start_terminal") %>)
       }
     },
     willClose: () => {
@@ -1886,7 +1893,7 @@ document.addEventListener("click", async (e) => {
           target.querySelector("i.fa-stop").className = "fa-solid fa-check"
           target.querySelector("i.fa-spin").classList.add("hidden")
           n.Noty({
-            text: `stopped`,
+            text: <%-trj("common.stopped")%>,
             silent: true
           })
           setTimeout(() => {
@@ -1905,7 +1912,7 @@ document.addEventListener("click", async (e) => {
           target.querySelector("i.fa-stop").className = "fa-solid fa-check"
           target.querySelector("i.fa-spin").classList.add("hidden")
           n.Noty({
-            text: `stopped ${src}`,
+            text: <%-trj("common.stopped_named", { name: "__NAME__" })%>.replace('__NAME__', () => src),
             silent: true
           })
           setTimeout(() => {
@@ -2057,13 +2064,13 @@ document.addEventListener("click", async (e) => {
       return
     }
 
-    let confirmed = confirm("Are you sure you want to delete the folder? All files in the folder will be gone.")
+    let confirmed = confirm(<%- trj("home.delete_confirm") %>)
     if (confirmed) {
       let itemEl = target.closest(".line[data-uri]")
       let name = itemEl.getAttribute("data-uri")
       console.log("delete", name)
       Swal.fire({
-        html: '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting',
+        html: `<i class="fa-solid fa-circle-notch fa-spin"></i> ${<%- trj("home.deleting") %>}`,
         customClass: {
           container: "loader-container",
           popup: "loader-popup",

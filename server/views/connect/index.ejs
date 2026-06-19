@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -319,27 +323,27 @@
             <img class='logo' src="/pinokio-black.png"/>
           <% } %>
         </div>
-        <h1><%=name%> Connect</h1>
+        <h1><%=tr("connect.connect_title", { name })%></h1>
       </header>
       <div class="container">
         <div id="status" class="status hidden">
         </div>
 
         <div id="login-section" class="hidden">
-          <p>Click below to authenticate with <%=name%>:</p>
-          <button class="btn" id="login-button">Login</button>
+          <p><%=tr("connect.auth_prompt", { name })%></p>
+          <button class="btn" id="login-button"><%=tr("connect.login_button")%></button>
         </div>
 
         <div id="http-section" class="hidden">
-          <p>Click below to open the secure connection flow:</p>
-          <button class='btn' id="get-started-button">Get started</button>
+          <p><%=tr("connect.secure_prompt")%></p>
+          <button class='btn' id="get-started-button"><%=tr("connect.get_started")%></button>
         </div>
 
         <div id="user-section" class="hidden">
             <div class="user-info">
-                <h3>Logged In</h3>
+                <h3><%=tr("connect.logged_in")%></h3>
                 <div id="user-details"></div>
-                <button class="btn secondary" onclick="logout()">Logout</button>
+                <button class="btn secondary" onclick="logout()"><%=tr("connect.logout")%></button>
             </div>
         </div>
 
@@ -348,8 +352,8 @@
 
     <div id="connect-loader" class="loader-overlay hidden">
       <div class="loader-spinner"></div>
-      <div id="loader-message" class="loader-message">Connecting...</div>
-      <button id="loader-cancel" class="loader-cancel hidden">Cancel</button>
+      <div id="loader-message" class="loader-message"><%=tr("connect.connecting")%></div>
+      <button id="loader-cancel" class="loader-cancel hidden"><%=tr("common.cancel")%></button>
     </div>
 
     <script>
@@ -381,7 +385,7 @@
             statusElement.classList.remove('hidden')
         }
 
-        function showLoader(message = 'Connecting...', options = {}) {
+        function showLoader(message = <%-trj("connect.connecting")%>, options = {}) {
             if (!loaderElement) return
             loaderElement.classList.remove('hidden')
             if (loaderMessageElement) {
@@ -424,7 +428,7 @@
                 if (httpSection) {
                     httpSection.classList.add('hidden')
                 }
-                setStatus('Checking authentication status...', 'warning')
+                setStatus(<%-trj("connect.checking_auth")%>, 'warning')
             } else {
                 if (loginSection) {
                     loginSection.classList.add('hidden')
@@ -464,7 +468,7 @@
                 return true
             } catch (err) {
                 console.error('Failed to fetch user info', err)
-                setStatus('Failed to fetch user info: ' + err.message, 'error')
+                setStatus(<%-trj("connect.failed_fetch_user_info")%> + ': ' + err.message, 'error')
                 hideLoader()
                 return false
             }
@@ -476,7 +480,7 @@
             }
             const res = await fetch(CONNECT_PROFILE_URL)
             if (!res.ok) {
-                throw new Error('Profile fetch failed')
+                throw new Error(<%-trj("connect.profile_fetch_failed")%>)
             }
             const profile = await res.json()
             const rows = profile.items.map((row) => {
@@ -501,17 +505,17 @@
 
         async function logout() {
             try {
-                showLoader('Disconnecting...', { cancellable: false })
+                showLoader(<%-trj("connect.disconnecting")%>, { cancellable: false })
                 const res = await fetch(CONNECT_LOGOUT_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({})
                 })
                 await res.json()
-                setStatus('Logged out', 'warning')
+                setStatus(<%-trj("connect.logged_out")%>, 'warning')
             } catch (err) {
                 console.error('Failed to logout', err)
-                setStatus('Failed to logout: ' + err.message, 'error')
+                setStatus(<%-trj("connect.failed_logout")%> + ': ' + err.message, 'error')
             } finally {
                 hideLoader()
                 if (userSection) {
@@ -617,25 +621,25 @@
 
                 if (CONNECT_AGENT === 'electron') {
                     startSecureConnectPolling();
-                    setStatus(`Continue the ${name} login in your browser.`, 'warning');
+                    setStatus(<%-trj("connect.continue_login_browser")%>.replace("{name}", name), 'warning');
                     try {
                         window.open(authUrl, '_blank', 'browser');
                     } catch (openError) {
                         hideLoader();
-                        setStatus(`Could not open the browser. Please open ${authUrl} manually.`, 'error');
+                        setStatus(<%-trj("connect.open_browser_failed")%>.replace("{url}", authUrl), 'error');
                         return;
                     }
                     return;
                 }
 
-                showLoader('Connecting...');
-                setStatus(`Redirecting to ${name}...`, 'warning');
+                showLoader(<%-trj("connect.connecting")%>);
+                setStatus(<%-trj("connect.redirecting_provider")%>.replace("{name}", name), 'warning');
                 window.location.href = authUrl;
                 
             } catch (error) {
                 console.error('Login error:', error);
                 hideLoader();
-                setStatus('Failed to start login', 'error');
+                setStatus(<%-trj("connect.failed_start_login")%>, 'error');
             }
         }
 
@@ -663,26 +667,26 @@
             localStorage.removeItem('oauth_state');
             localStorage.removeItem('code_verifier');
             await fetchUserInfo(token);
-            setStatus('Connected.', 'success');
+            setStatus(<%-trj("connect.connected_status")%>, 'success');
             return true;
         }
 
         function startSecureConnectPolling() {
             stopSecureConnectPolling();
-            showLoader('Waiting for authentication in the browser...', {
+            showLoader(<%-trj("connect.waiting_browser")%>, {
                 cancellable: true,
-                onCancel: () => stopSecureConnectPolling('Connection cancelled.', 'warning')
+                onCancel: () => stopSecureConnectPolling(<%-trj("connect.cancelled")%>, 'warning')
             });
-            setStatus(`Waiting for ${name} authentication to finish...`, 'warning');
+            setStatus(<%-trj("connect.waiting_provider")%>.replace("{name}", name), 'warning');
             pollSecureConnectStatus();
             secureConnectPollTimer = setInterval(pollSecureConnectStatus, SECURE_CONNECT_POLL_INTERVAL);
             secureConnectTimeoutHandle = setTimeout(() => {
-                stopSecureConnectPolling('Timed out waiting for the browser login to finish. Please try again.', 'error');
+                stopSecureConnectPolling(<%-trj("connect.timed_out")%>, 'error');
             }, SECURE_CONNECT_TIMEOUT);
         }
 
         async function handleOAuthCallback(code) {
-            showLoader('Finishing connection...');
+            showLoader(<%-trj("connect.finishing")%>);
             try {
                 // Verify state
                 const urlParams = new URLSearchParams(window.location.search);
@@ -690,13 +694,13 @@
                 const storedState = localStorage.getItem('oauth_state');
                 
                 if (returnedState !== storedState) {
-                    throw new Error('Invalid state parameter');
+                    throw new Error(<%-trj("connect.invalid_state")%>);
                 }
                 
                 // Get code verifier
                 const codeVerifier = localStorage.getItem('code_verifier');
                 if (!codeVerifier) {
-                    throw new Error('Code verifier not found');
+                    throw new Error(<%-trj("connect.code_verifier_not_found")%>);
                 }
 
                 const res = await fetch(`/connect/${name}/login`, {
@@ -722,16 +726,16 @@
                     
                     // Get user info
                     await fetchUserInfo();
-                    setStatus('Connection complete. Refreshing...', 'success');
+                    setStatus(<%-trj("connect.connection_complete_refreshing")%>, 'success');
                     window.location.reload();
                 } else {
-                    throw new Error('No access token received');
+                    throw new Error(<%-trj("connect.no_access_token")%>);
                 }
                 
             } catch (error) {
                 console.error('OAuth callback error:', error);
                 hideLoader();
-                setStatus('Authentication failed: ' + error.message, 'error');
+                setStatus(<%-trj("connect.auth_failed")%> + ': ' + error.message, 'error');
             }
         }
 
@@ -739,7 +743,7 @@
         async function makeAuthenticatedRequest(url, options = {}) {
             const token = await ensureValidToken();
             if (!token) {
-                throw new Error('No valid token available');
+                throw new Error(<%-trj("connect.no_valid_token")%>);
             }
             
             return fetch(url, {
@@ -758,7 +762,7 @@
             const error = urlParams.get('error');
             
             if (error) {
-                setStatus('OAuth error: ' + error, 'error');
+                setStatus(<%-trj("connect.oauth_error")%> + ': ' + error, 'error');
                 return;
             }
             
@@ -774,7 +778,7 @@
             } else if (CONNECT_AGENT === 'electron' && localStorage.getItem('oauth_state')) {
                 startSecureConnectPolling();
             } else {
-                setStatus('Not authenticated', 'warning');
+                setStatus(<%-trj("connect.not_authenticated")%>, 'warning');
             }
         });
 
@@ -820,22 +824,22 @@
                     connectTimeoutHandle = null
                 }
                 await fetchUserInfo(token)
-                setStatus('Connected.', 'success')
+                setStatus(<%-trj("connect.connected_status")%>, 'success')
             }
         }
 
         function startHttpConnect() {
             stopConnectPolling()
-            showLoader(`Connecting... Complete the login in the ${CONNECT_AGENT === 'electron' ? 'browser' : 'secure window'}.`, {
+            showLoader(<%-trj("connect.complete_login_in_context")%>.replace("{context}", CONNECT_AGENT === 'electron' ? <%-trj("connect.browser")%> : <%-trj("connect.secure_window")%>), {
                 cancellable: true,
-                onCancel: () => stopConnectPolling('Connection cancelled.', 'warning')
+                onCancel: () => stopConnectPolling(<%-trj("connect.cancelled")%>, 'warning')
             })
-            setStatus('Waiting for connection...', 'warning')
+            setStatus(<%-trj("connect.waiting_connection")%>, 'warning')
             window.open(SECURE_CONNECT_URL, '_blank', 'browser')
             pollConnectStatus()
             connectPollTimer = setInterval(pollConnectStatus, CONNECT_POLL_INTERVAL)
             connectTimeoutHandle = setTimeout(() => {
-                stopConnectPolling('Timed out waiting for connection. Please try again.', 'error')
+                stopConnectPolling(<%-trj("connect.connection_timed_out")%>, 'error')
             }, CONNECT_TIMEOUT)
         }
 

@@ -1,4 +1,7 @@
 <html>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+%>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -27,8 +30,8 @@ h1 {
 </head>
 <body>
 <main>
-<h1><i class="fa-regular fa-folder-closed"></i> File System</h1>
-<div>Opened <strong><%=path%></strong></div>
+<h1><i class="fa-regular fa-folder-closed"></i> <%= tr("fs.file_system") %></h1>
+<div><%- tr("fs.opened_path", { path: `<strong>${path}</strong>` }) %></div>
 </main>
 </body>
 </html>

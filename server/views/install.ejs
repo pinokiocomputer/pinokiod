@@ -1,4 +1,8 @@
 <html>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
@@ -474,6 +478,9 @@ body.dark {
 <script src="/xterm-addon-web-links.js"></script>
 <script src="/xterm-theme.js"></script>
 <script src="/Socket.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/terminal-settings.js"></script>
 <script src="/pinokio-touch.js"></script>
 <!--
@@ -507,8 +514,8 @@ body.dark {
       <span class="install-status-grid-pixel"></span>
     </span>
     <div class="install-status-copy">
-      <div class="install-status-title">Setting up...</div>
-      <div class="install-status-detail">Setting up core modules including conda, uv, git, etc.</div>
+      <div class="install-status-title"><%= tr("install.setting_up") %></div>
+      <div class="install-status-detail"><%= tr("install.setting_up_detail") %></div>
     </div>
   </div>
 </div>
@@ -575,7 +582,7 @@ const normalizeInstallStatusHtml = (html) => {
       <div class="install-status-shell">
         ${INSTALL_STATUS_SPINNER_HTML}
         <div class="install-status-copy">
-          <div class="install-status-title">Setting up...</div>
+          <div class="install-status-title">${<%- trj("install.setting_up") %>}</div>
         </div>
       </div>
     `
@@ -587,7 +594,7 @@ const normalizeInstallStatusHtml = (html) => {
   container.innerHTML = html
   const titleNode = container.querySelector("b, strong")
   let leadMarkup = INSTALL_STATUS_SPINNER_HTML
-  let titleMarkup = "Setting up..."
+  let titleMarkup = <%- trj("install.setting_up") %>
   if (titleNode) {
     const clonedTitle = titleNode.cloneNode(true)
     const titleIcon = clonedTitle.querySelector("i")
@@ -628,8 +635,8 @@ const setRestartStatus = () => {
     <div class="install-status-shell">
       ${INSTALL_STATUS_SPINNER_HTML}
       <div class="install-status-copy">
-        <div class="install-status-title">Restarting Pinokio...</div>
-        <div class="install-status-detail">Applying the updated system tools. Pinokio will continue automatically.</div>
+        <div class="install-status-title">${<%- trj("install.restarting_pinokio") %>}</div>
+        <div class="install-status-detail">${<%- trj("install.restarting_detail") %>}</div>
       </div>
     </div>
   `)
@@ -766,10 +773,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           let audio = new Audio("/chime.mp3")
           audio.play()
           await ModalInput({
-            title: "Notice",
+            title: <%-trj("common.notice")%>,
             type: "modal",
             description: packet.data.html,
-            confirm: "OK",
+            confirm: <%-trj("common.ok")%>,
           })
           if (packet.data.blocker) {
             location.href = document.querySelector("#callback").value

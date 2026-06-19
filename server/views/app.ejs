@@ -1,3 +1,7 @@
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <html>
 <head>
 <title><%=config.title%></title>
@@ -6708,6 +6712,9 @@ header.navheader h1 {
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/nav.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/report.js"></script>
@@ -6750,7 +6757,7 @@ header.navheader h1 {
 <a class='home' href="/home">
   <img class='icon' src="/pinokio-black.png">
 </a>
-<button class='btn2 sidebar-toggle' id='sidebar-toggle' type='button' data-tippy-content="Hide sidebar" title='Hide sidebar' aria-label="Hide sidebar" aria-controls="app-sidebar" aria-expanded="true">
+<button class='btn2 sidebar-toggle' id='sidebar-toggle' type='button' data-tippy-content="<%=tr("app.hide_sidebar")%>" title='<%=tr("app.hide_sidebar")%>' aria-label="<%=tr("app.hide_sidebar")%>" aria-controls="app-sidebar" aria-expanded="true">
   <span class="sidebar-toggle-glyph" aria-hidden="true">
     <span class="sidebar-toggle-frame">
       <span class="sidebar-toggle-panel"></span>
@@ -6758,14 +6765,14 @@ header.navheader h1 {
     </span>
   </span>
 </button>
-<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='back' data-tippy-content="<%=tr("common.back")%>"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="<%=tr("common.forward")%>"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="<%=tr("common.refresh")%>"><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <!-- Screen capture and X-ray mode are hidden for now.
 <button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
 <button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
 -->
-<button class='btn2' id='menu-mobile' data-tippy-content="Tabs">
+<button class='btn2' id='menu-mobile' data-tippy-content="<%=tr("app.tabs")%>">
   <div><i class="fa-solid fa-list"></i></div>
 </button>
 <div class='sep'></div>
@@ -6776,7 +6783,7 @@ header.navheader h1 {
   <div class='app-header-identity-title'><%=config.title || name%></div>
   <span class='app-header-identity-separator' aria-hidden="true"></span>
   <div class="resource-usage" data-resource-usage-root data-workspace="<%=name%>">
-    <button type="button" class="resource-usage-trigger" data-resource-usage-trigger aria-haspopup="dialog" aria-expanded="false" aria-label="Resource usage">
+    <button type="button" class="resource-usage-trigger" data-resource-usage-trigger aria-haspopup="dialog" aria-expanded="false" aria-label="<%=tr("app.resource_usage")%>">
       <span class="resource-chip resource-chip--disk">
         <span class="disk-usage app-header-identity-disk" data-path="/" data-filepath="<%=path%>" data-metric-label="Disk">--</span>
       </span>
@@ -6784,21 +6791,21 @@ header.navheader h1 {
       <span class="resource-chip resource-chip--ram hidden" data-resource-chip="ram">RAM --</span>
       <span class="resource-chip resource-chip--vram hidden" data-resource-chip="vram">VRAM --</span>
     </button>
-    <div class="resource-usage-popover hidden" data-resource-usage-popover role="dialog" aria-label="Resource usage settings">
-      <div class="resource-usage-popover-head">Resources</div>
+    <div class="resource-usage-popover hidden" data-resource-usage-popover role="dialog" aria-label="<%=tr("app.resource_usage_settings")%>">
+      <div class="resource-usage-popover-head"><%=tr("app.resources")%></div>
       <button type="button" class="resource-toggle" data-resource-toggle="show_ram" role="switch" aria-checked="true">
-        <span class="resource-toggle-label">Show RAM</span>
+        <span class="resource-toggle-label"><%=tr("app.show_ram")%></span>
         <span class="resource-toggle-track" aria-hidden="true"><span class="resource-toggle-thumb"></span></span>
       </button>
       <button type="button" class="resource-toggle" data-resource-toggle="show_vram" role="switch" aria-checked="true">
-        <span class="resource-toggle-label">Show VRAM</span>
+        <span class="resource-toggle-label"><%=tr("app.show_vram")%></span>
         <span class="resource-toggle-track" aria-hidden="true"><span class="resource-toggle-thumb"></span></span>
       </button>
       <button type="button" class="resource-toggle" data-resource-toggle="show_cpu" role="switch" aria-checked="false">
-        <span class="resource-toggle-label">Show CPU</span>
+        <span class="resource-toggle-label"><%=tr("app.show_cpu")%></span>
         <span class="resource-toggle-track" aria-hidden="true"><span class="resource-toggle-thumb"></span></span>
       </button>
-      <div class="resource-usage-status" data-resource-usage-status>Waiting for usage data</div>
+      <div class="resource-usage-status" data-resource-usage-status><%=tr("app.waiting_usage")%></div>
     </div>
   </div>
 </div>
@@ -6817,12 +6824,12 @@ header.navheader h1 {
   data-workspace="<%=name%>"
   data-workspace-cwd="<%=path%>"
   data-ask-ai-trigger="true"
-  data-tippy-content="Ask AI"
-  aria-label="Ask AI"
+  data-tippy-content="<%=tr("app.ask_ai")%>"
+  aria-label="<%=tr("app.ask_ai")%>"
   aria-expanded="false"
   aria-controls="ask-ai-drawer">
   <span class="ask-ai-brand-icon" aria-hidden="true"></span>
-  <span class="nav-action-label">Ask AI</span>
+  <span class="nav-action-label"><%=tr("app.ask_ai")%></span>
 </button>
 <% } %>
 <% if (registryEnabled) { %>
@@ -6830,24 +6837,24 @@ header.navheader h1 {
   type='button'
   id='community-toggle'
   class="btn2 nav-labeled-action"
-  data-tippy-content="Project feed"
-  aria-label="Project feed"
+  data-tippy-content="<%=tr("app.project_feed")%>"
+  aria-label="<%=tr("app.project_feed")%>"
   aria-expanded="false"
   aria-controls="community-drawer">
   <i class="fa-solid fa-rss" aria-hidden="true"></i>
-  <span class="nav-action-label">Feed</span>
+  <span class="nav-action-label"><%=tr("app.project_feed")%></span>
 </button>
 <% } %>
-<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+<a class='btn2' href="/columns" data-tippy-content="<%=tr("common.split_columns")%>">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
-<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+<a class='btn2' href="/rows" data-tippy-content="<%=tr("common.split_rows")%>">
   <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
 </a>
-<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+<button class='btn2' id='new-window' data-tippy-content="<%=tr("common.open_new_window")%>" title='<%=tr("common.open_new_window")%>' data-agent="<%=agent%>">
   <div><i class="fa-solid fa-plus"></i></div>
 </button>
-<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+<button class='btn2 hidden' id='close-window' data-tippy-content='<%=tr("common.close_section")%>'>
   <div><i class="fa-solid fa-xmark"></i></div>
 </button>
 </h1>
@@ -6857,42 +6864,42 @@ header.navheader h1 {
   <aside id='app-sidebar' class='active'>
       <div class='menu-container'>
         <div class='menu-scroller'>
-        <div class='workspace-mode-switch' role="tablist" aria-label="Workspace mode">
+        <div class='workspace-mode-switch' role="tablist" aria-label="<%=tr("app.workspace_mode")%>">
           <a class="workspace-mode-link <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>" role="tab" aria-selected="<%=type === 'run' ? 'true' : 'false'%>">
             <i class="fa-solid fa-circle-play"></i>
-            <span>Run</span>
+            <span><%=tr("home.run")%></span>
           </a>
           <a class="workspace-mode-link <%=type === 'browse' || type === 'files' ? 'selected' : ''%>" href="<%=dev_tab%>" role="tab" aria-selected="<%=type === 'browse' || type === 'files' ? 'true' : 'false'%>">
             <i class="fa-solid fa-terminal"></i>
-            <span>Dev</span>
+            <span><%=tr("home.dev")%></span>
           </a>
         </div>
-        <div class='mobile-sheet-actions' aria-label="Workspace actions">
-          <button type='button' id='menu-mobile-close' class='btn mobile-sheet-action' data-tippy-content="Close menu" aria-label="Close menu" title="Close menu">
+        <div class='mobile-sheet-actions' aria-label="<%=tr("app.workspace_actions")%>">
+          <button type='button' id='menu-mobile-close' class='btn mobile-sheet-action' data-tippy-content="<%=tr("common.close")%>" aria-label="<%=tr("common.close")%>" title="<%=tr("common.close")%>">
             <i class="fa-solid fa-xmark"></i>
           </button>
-          <a class='btn mobile-sheet-action' href="/home" aria-label="Home" title="Home">
+          <a class='btn mobile-sheet-action' href="/home" aria-label="<%=tr("common.home")%>" title="<%=tr("common.home")%>">
             <i class="fa-solid fa-house"></i>
           </a>
-          <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#refresh-page" data-mobile-close-menu="true" aria-label="Refresh" title="Refresh">
+          <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#refresh-page" data-mobile-close-menu="true" aria-label="<%=tr("common.refresh")%>" title="<%=tr("common.refresh")%>">
             <i class="fa-solid fa-rotate-right"></i>
           </button>
-          <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#back" data-mobile-close-menu="true" aria-label="Back" title="Back">
+          <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#back" data-mobile-close-menu="true" aria-label="<%=tr("common.back")%>" title="<%=tr("common.back")%>">
             <i class="fa-solid fa-chevron-left"></i>
           </button>
-          <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#forward" data-mobile-close-menu="true" aria-label="Forward" title="Forward">
+          <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#forward" data-mobile-close-menu="true" aria-label="<%=tr("common.forward")%>" title="<%=tr("common.forward")%>">
             <i class="fa-solid fa-chevron-right"></i>
           </button>
-          <a class='btn mobile-sheet-action' href="/columns" aria-label="2 Columns" title="2 Columns">
+          <a class='btn mobile-sheet-action' href="/columns" aria-label="<%=tr("common.split_columns")%>" title="<%=tr("common.split_columns")%>">
             <i class="fa-solid fa-table-columns"></i>
           </a>
-          <a class='btn mobile-sheet-action' href="/rows" aria-label="2 Rows" title="2 Rows">
+          <a class='btn mobile-sheet-action' href="/rows" aria-label="<%=tr("common.split_rows")%>" title="<%=tr("common.split_rows")%>">
             <i class="fa-solid fa-table-columns fa-rotate-270"></i>
           </a>
-          <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#new-window" data-mobile-close-menu="true" aria-label="New Window" title="New Window">
+          <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#new-window" data-mobile-close-menu="true" aria-label="<%=tr("common.open_new_window")%>" title="<%=tr("common.open_new_window")%>">
             <i class="fa-solid fa-plus"></i>
           </button>
-          <button type='button' class='btn mobile-sheet-action mobile-close-window-action hidden' data-mobile-proxy="#close-window" data-mobile-close-menu="true" aria-label="Close Section" title="Close Section">
+          <button type='button' class='btn mobile-sheet-action mobile-close-window-action hidden' data-mobile-proxy="#close-window" data-mobile-close-menu="true" aria-label="<%=tr("common.close_section")%>" title="<%=tr("common.close_section")%>">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
@@ -6900,12 +6907,12 @@ header.navheader h1 {
           <div class='m n system' data-type="n">
             <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn frame-link <%=dev_initial_tab === 'files' ? '' : 'selected'%>" data-index="10">
               <div class="tab">
-                <i class="fa-solid fa-bars"></i> Plugins
+                <i class="fa-solid fa-bars"></i> <%=tr("app.plugins")%>
               </div>
             </a>
             <a id='filestab' target="pinokio-files" href="<%=editor_tab%>" class="btn frame-link <%=dev_initial_tab === 'files' ? 'selected' : ''%>" data-index="11">
               <div class="tab">
-                <i class="fa-solid fa-file-lines"></i> Files
+                <i class="fa-solid fa-file-lines"></i> <%=tr("app.files")%>
               </div>
             </a>
             
@@ -6926,7 +6933,7 @@ header.navheader h1 {
             <a id='settings-tab' data-mode="refresh" target="env-settings" href="/env/api/<%=name%>?host=app" class="btn header-item frame-link" data-index="settings" data-static="retain">
               <div class='tab'>
                 <i class="fa-solid fa-gear"></i>
-                <div class='display'>Settings</div>
+                <div class='display'><%=tr("app.settings")%></div>
                 <div class='flexible'></div>
               </div>
             </a>
@@ -6950,55 +6957,55 @@ header.navheader h1 {
         <% if (type === 'browse') { %>
           <%- include('./partials/fs_status') %>
         <% } %>
-        <button type='button' id='logs-toggle' class="btn header-item" data-tippy-content="logs" aria-expanded="false" aria-controls="app-logs-drawer">
+        <button type='button' id='logs-toggle' class="btn header-item" data-tippy-content="<%=tr("app.logs")%>" aria-expanded="false" aria-controls="app-logs-drawer">
           <div class='tab'>
             <i class="fa-solid fa-laptop-code menu-action-leading-icon"></i>
-            <div class='display'>Logs</div>
+            <div class='display'><%=tr("app.logs")%></div>
             <div class='flexible'></div>
-            <span class='logs-new-badge hidden' id='logs-new-badge'>New</span>
+            <span class='logs-new-badge hidden' id='logs-new-badge'><%=tr("app.new")%></span>
           </div>
         </button>
-        <button type='button' id='sidebar-open-explorer' class="btn header-item" data-filepath="<%=path%>" data-tippy-content="Open in File Explorer">
+        <button type='button' id='sidebar-open-explorer' class="btn header-item" data-filepath="<%=path%>" data-tippy-content="<%=tr("common.open_in_file_explorer")%>">
           <div class='tab'>
             <i class="fa-solid fa-folder-open menu-action-leading-icon"></i>
-            <div class='display'>File Explorer</div>
+            <div class='display'><%=tr("app.file_explorer")%></div>
             <div class='flexible'></div>
           </div>
         </button>
         <% if (typeof autolaunch_app !== 'undefined' && autolaunch_app) { %>
           <div class="app-autolaunch" data-app-autolaunch data-app-id="<%=name%>">
             <button type="button" class="app-autolaunch-row" data-app-autolaunch-button data-enabled="<%= autolaunch_app.autolaunch_enabled ? 'true' : 'false' %>" aria-haspopup="dialog" aria-expanded="false">
-              <span class="app-autolaunch-label"><i class="fa-solid fa-power-off"></i><span>Autolaunch</span></span>
+              <span class="app-autolaunch-label"><i class="fa-solid fa-power-off"></i><span><%=tr("app.autolaunch")%></span></span>
               <span class="app-autolaunch-spacer" aria-hidden="true"></span>
-              <span class="app-autolaunch-status" data-app-autolaunch-status><%= autolaunch_app.autolaunch_enabled ? 'ON' : 'OFF' %></span>
+              <span class="app-autolaunch-status" data-app-autolaunch-status><%= autolaunch_app.autolaunch_enabled ? tr("common.on") : tr("common.off") %></span>
               <i class="fa-solid fa-angle-down app-autolaunch-chevron" aria-hidden="true"></i>
             </button>
-            <div class="app-autolaunch-modal hidden" data-app-autolaunch-modal role="dialog" aria-modal="true" aria-label="Autolaunch">
+            <div class="app-autolaunch-modal hidden" data-app-autolaunch-modal role="dialog" aria-modal="true" aria-label="<%=tr("nav.autolaunch")%>">
               <div class="app-autolaunch-panel" data-app-autolaunch-panel>
                 <div class="app-autolaunch-modal-head">
                   <div>
-                    <div class="app-autolaunch-title">Autolaunch</div>
-                    <div class="app-autolaunch-note">Run this app when Pinokio starts.</div>
+                    <div class="app-autolaunch-title"><%=tr("app.autolaunch")%></div>
+                    <div class="app-autolaunch-note"><%=tr("app.autolaunch_note")%></div>
                   </div>
                   <div class="app-autolaunch-modal-actions">
-                    <button type="button" class="app-autolaunch-switch" role="switch" aria-checked="<%= autolaunch_app.autolaunch_enabled ? 'true' : 'false' %>" data-app-autolaunch-switch aria-label="Autolaunch" title="Autolaunch is <%= autolaunch_app.autolaunch_enabled ? 'on' : 'off' %>">
-                      <span class="app-autolaunch-switch-label" data-app-autolaunch-switch-label><%= autolaunch_app.autolaunch_enabled ? 'ON' : 'OFF' %></span>
+                    <button type="button" class="app-autolaunch-switch" role="switch" aria-checked="<%= autolaunch_app.autolaunch_enabled ? 'true' : 'false' %>" data-app-autolaunch-switch aria-label="<%=tr("app.autolaunch")%>" title="<%=tr("app.autolaunch_is", { state: autolaunch_app.autolaunch_enabled ? tr("common.on") : tr("common.off") })%>">
+                      <span class="app-autolaunch-switch-label" data-app-autolaunch-switch-label><%= autolaunch_app.autolaunch_enabled ? tr("common.on") : tr("common.off") %></span>
                       <span class="app-autolaunch-switch-thumb" aria-hidden="true"></span>
                     </button>
-                    <button type="button" class="app-autolaunch-close" data-app-autolaunch-close aria-label="Close">
+                    <button type="button" class="app-autolaunch-close" data-app-autolaunch-close aria-label="<%=tr("common.close")%>">
                       <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                     </button>
                   </div>
                 </div>
                 <div class="app-autolaunch-modal-section">
-                  <div class="app-autolaunch-section-label">Script</div>
+                  <div class="app-autolaunch-section-label"><%=tr("common.script")%></div>
                   <div class="app-autolaunch-script-list" data-app-autolaunch-scripts>
-                    <div class="app-autolaunch-empty">Loading scripts...</div>
+                    <div class="app-autolaunch-empty"><%=tr("app.loading_scripts")%></div>
                   </div>
                 </div>
                 <div class="app-autolaunch-footer">
                   <div class="app-autolaunch-feedback" data-app-autolaunch-feedback></div>
-                  <a class="app-autolaunch-link" href="/autolaunch">Manage all</a>
+                  <a class="app-autolaunch-link" href="/autolaunch"><%=tr("app.manage_all")%></a>
                 </div>
               </div>
             </div>
@@ -7007,7 +7014,7 @@ header.navheader h1 {
       </div>
     </div>
   </aside>
-  <div class='appcanvas-resizer' id="appcanvas-resizer" role="separator" aria-orientation="vertical" aria-valuemin="140" aria-valuemax="560" aria-valuenow="150" tabindex="0" aria-label="Resize navigation sidebar"></div>
+  <div class='appcanvas-resizer' id="appcanvas-resizer" role="separator" aria-orientation="vertical" aria-valuemin="140" aria-valuemax="560" aria-valuenow="150" tabindex="0" aria-label="<%=tr("app.resize_navigation_sidebar")%>"></div>
   <% } %>
   <% if (type === "run") { %>
     <div class='appcanvas_filler'></div>
@@ -7031,7 +7038,7 @@ header.navheader h1 {
           <button class='fs-status-btn' data-filepath="<%=path%>" type='button'>
             <span class='fs-status-label'>
               <i class="fa-solid fa-folder-open"></i>
-              <span class='fs-status-title'>Open in File Explorer</span>
+              <span class='fs-status-title'><%=tr("common.open_in_file_explorer")%></span>
             </span>
           </button>
         </div>
@@ -7039,13 +7046,13 @@ header.navheader h1 {
           <button class='fs-status-btn' type='button'>
             <span class='fs-status-label'>
               <i class="fa-solid fa-laptop-code"></i>
-              <span class='fs-status-title'>Logs</span>
+              <span class='fs-status-title'><%=tr("app.logs")%></span>
             </span>
           </button>
         </div>
         <div class='fs-status-dropdown git-changes'>
           <button id='fs-changes-btn' class='fs-status-btn revealer' data-group='#fs-changes-menu' type='button'>
-            <span class='fs-status-label'><i class="fa-solid fa-code-compare"></i> Changes</span>
+            <span class='fs-status-label'><i class="fa-solid fa-code-compare"></i> <%=tr("app.changes")%></span>
             <div class='badge'></div>
           </button>
           <div class='fs-dropdown-menu submenu hidden' id='fs-changes-menu'></div>
@@ -7054,7 +7061,7 @@ header.navheader h1 {
           <button id='fs-fork-btn' class='fs-status-btn revealer' data-group='#fs-fork-menu' type='button'>
             <span class='fs-status-label'>
               <i class="fa-solid fa-code-branch"></i>
-              <span class='fs-status-title'>Fork</span>
+              <span class='fs-status-title'><%=tr("app.fork")%></span>
             </span>
           </button>
           <div class='fs-dropdown-menu submenu hidden' id='fs-fork-menu'></div>
@@ -7063,7 +7070,7 @@ header.navheader h1 {
           <button id='fs-push-btn' class='fs-status-btn revealer' data-group='#fs-push-menu' type='button'>
             <span class='fs-status-label'>
               <i class="fa-brands fa-github"></i>
-              <span class='fs-status-title'>Publish</span>
+              <span class='fs-status-title'><%=tr("app.publish")%></span>
             </span>
           </button>
           <div class='fs-dropdown-menu submenu hidden' id='fs-push-menu'></div>
@@ -7079,45 +7086,45 @@ header.navheader h1 {
         <%- include('./partials/browser_popout_surface') %>
       </main>
       <% if (type === 'run') { %>
-      <div class='ask-ai-resizer' id='ask-ai-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="9999" aria-valuenow="560" tabindex="0" aria-label="Resize panel"></div>
+      <div class='ask-ai-resizer' id='ask-ai-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="9999" aria-valuenow="560" tabindex="0" aria-label="<%=tr("app.resize_panel")%>"></div>
       <aside class='ask-ai-drawer' id='ask-ai-drawer' data-workspace="<%=name%>" data-workspace-cwd="<%=path%>">
         <div class='ask-ai-drawer-inner'>
           <div class='ask-ai-drawer-bar'>
             <div class='ask-ai-drawer-title'>
               <span class="ask-ai-brand-icon" aria-hidden="true"></span>
-              <span>Ask AI</span>
+              <span><%=tr("app.ask_ai")%></span>
             </div>
             <div class='ask-ai-drawer-actions'>
-              <button type='button' class='btn2 ask-ai-drawer-refresh' disabled data-tippy-content="Refresh" aria-label="Refresh Ask AI panel">
+              <button type='button' class='btn2 ask-ai-drawer-refresh' disabled data-tippy-content="<%=tr("common.refresh")%>" aria-label="<%=tr("common.refresh")%> <%=tr("app.ask_ai")%>">
                 <i class="fa-solid fa-rotate-right"></i>
               </button>
-              <button type='button' class='btn2 ask-ai-drawer-external' disabled data-tippy-content="Open in new tab" aria-label="Open Ask AI in new tab">
+              <button type='button' class='btn2 ask-ai-drawer-external' disabled data-tippy-content="<%=tr("app.open_new_tab")%>" aria-label="<%=tr("app.open_new_tab")%>">
                 <i class="fa-solid fa-up-right-from-square"></i>
               </button>
-              <button type='button' class='btn2 ask-ai-drawer-close' data-tippy-content="Close panel" aria-label="Close Ask AI panel">
+              <button type='button' class='btn2 ask-ai-drawer-close' data-tippy-content="<%=tr("app.close_panel")%>" aria-label="<%=tr("app.close_panel")%>">
                 <i class="fa-solid fa-xmark"></i>
               </button>
             </div>
           </div>
           <div class='ask-ai-drawer-location hidden'>
-            <input class='ask-ai-drawer-location-input' type='text' value="" readonly aria-label="Ask AI URL">
+            <input class='ask-ai-drawer-location-input' type='text' value="" readonly aria-label="<%=tr("app.ask_ai_url")%>">
           </div>
           <div class='ask-ai-drawer-body'>
             <div class='ask-ai-drawer-empty'>
               <div class='ask-ai-drawer-search'>
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                <input class='ask-ai-drawer-search-input' type='search' placeholder="Search shells and plugins" autocomplete="off" spellcheck="false" aria-label="Search shells and plugins">
+                <input class='ask-ai-drawer-search-input' type='search' placeholder="<%=tr("app.search_shells_plugins")%>" autocomplete="off" spellcheck="false" aria-label="<%=tr("app.search_shells_plugins")%>">
               </div>
-              <div class='ask-ai-drawer-empty-title'>Ask an AI agent about this project</div>
-              <div class='ask-ai-drawer-empty-subtitle'>Choose the shell or plugin the agent should use.</div>
-              <div class='ask-ai-drawer-picker-list' role="list" aria-label="Ask AI shells and plugins"></div>
-              <div class='ask-ai-drawer-picker-status muted'>Choose a shell or plugin to start an agent.</div>
+              <div class='ask-ai-drawer-empty-title'><%=tr("app.ask_ai_empty_title")%></div>
+              <div class='ask-ai-drawer-empty-subtitle'><%=tr("app.ask_ai_empty_subtitle")%></div>
+              <div class='ask-ai-drawer-picker-list' role="list" aria-label="<%=tr("app.ask_ai_shells_plugins")%>"></div>
+              <div class='ask-ai-drawer-picker-status muted'><%=tr("app.ask_ai_picker_status")%></div>
             </div>
-            <iframe class='ask-ai-frame hidden' title="Panel" allow="fullscreen *;" allowfullscreen></iframe>
+            <iframe class='ask-ai-frame hidden' title="<%=tr("app.panel")%>" allow="fullscreen *;" allowfullscreen></iframe>
           </div>
         </div>
       </aside>
-      <div class='event-launch-resizer' id='event-launch-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="9999" aria-valuenow="560" tabindex="0" aria-label="Resize event panel"></div>
+      <div class='event-launch-resizer' id='event-launch-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="9999" aria-valuenow="560" tabindex="0" aria-label="<%=tr("app.resize_event_panel")%>"></div>
       <aside class='event-launch-drawer' id='event-launch-drawer'>
         <div class='event-launch-drawer-inner'>
           <div class='event-launch-drawer-bar'>
@@ -7125,19 +7132,19 @@ header.navheader h1 {
               <i class="fa-solid fa-terminal"></i>
             </div>
             <div class='event-launch-drawer-actions'>
-              <button type='button' class='btn2 event-launch-drawer-refresh' disabled data-tippy-content="Refresh" aria-label="Refresh event panel">
+              <button type='button' class='btn2 event-launch-drawer-refresh' disabled data-tippy-content="<%=tr("common.refresh")%>" aria-label="<%=tr("common.refresh")%>">
                 <i class="fa-solid fa-rotate-right"></i>
               </button>
-              <button type='button' class='btn2 event-launch-drawer-external' disabled data-tippy-content="Open in new tab" aria-label="Open event panel in new tab">
+              <button type='button' class='btn2 event-launch-drawer-external' disabled data-tippy-content="<%=tr("app.open_new_tab")%>" aria-label="<%=tr("app.open_new_tab")%>">
                 <i class="fa-solid fa-up-right-from-square"></i>
               </button>
-              <button type='button' class='btn2 event-launch-drawer-close' data-tippy-content="Close panel" aria-label="Close event panel">
+              <button type='button' class='btn2 event-launch-drawer-close' data-tippy-content="<%=tr("app.close_panel")%>" aria-label="<%=tr("app.close_panel")%>">
                 <i class="fa-solid fa-xmark"></i>
               </button>
             </div>
           </div>
           <div class='event-launch-drawer-body'>
-            <iframe class='event-launch-frame hidden' title="Event panel" allow="fullscreen *;" allowfullscreen></iframe>
+            <iframe class='event-launch-frame hidden' title="<%=tr("app.event_panel")%>" allow="fullscreen *;" allowfullscreen></iframe>
           </div>
         </div>
       </aside>
@@ -7147,13 +7154,13 @@ header.navheader h1 {
           <div class='app-logs-drawer-bar'>
             <div class='app-logs-drawer-title'>
               <i class="fa-solid fa-laptop-code" aria-hidden="true"></i>
-              <span>Logs</span>
+              <span><%=tr("app.logs")%></span>
             </div>
             <div class='app-logs-drawer-actions'>
-              <button type='button' class='btn2 app-logs-refresh' data-tippy-content="Refresh" aria-label="Refresh report">
+              <button type='button' class='btn2 app-logs-refresh' data-tippy-content="<%=tr("common.refresh")%>" aria-label="<%=tr("common.refresh")%>">
                 <i class="fa-solid fa-rotate-right"></i>
               </button>
-              <button type='button' class='btn2 app-logs-close' data-tippy-content="Close panel" aria-label="Close logs panel">
+              <button type='button' class='btn2 app-logs-close' data-tippy-content="<%=tr("app.close_panel")%>" aria-label="<%=tr("app.close_panel")%>">
                 <i class="fa-solid fa-xmark"></i>
               </button>
             </div>
@@ -7163,69 +7170,69 @@ header.navheader h1 {
               <div class='app-logs-error-callout' role="alert">
                 <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
                 <div>
-                  <div class='app-logs-error-callout-title'>Error detected</div>
+                  <div class='app-logs-error-callout-title'><%=tr("app.error_detected")%></div>
                   <div class='app-logs-error-callout-message'><%=error%></div>
                 </div>
               </div>
             <% } %>
             <div class='app-logs-toolbar'>
               <button type='button' class='btn app-logs-copy' disabled>
-                <i class="fa-solid fa-copy"></i> Copy report
+                <i class="fa-solid fa-copy"></i> <%=tr("app.copy_report")%>
               </button>
             </div>
-            <div class='app-logs-status' role="status" aria-live="polite">Ready.</div>
-            <div class='app-logs-summary' aria-label="Log report summary">
+            <div class='app-logs-status' role="status" aria-live="polite"><%=tr("common.ready")%>.</div>
+            <div class='app-logs-summary' aria-label="<%=tr("app.log_report_summary")%>">
               <div class='app-logs-summary-item'>
-                <div class='app-logs-summary-label'>Sections</div>
+                <div class='app-logs-summary-label'><%=tr("logs.sections")%></div>
                 <div class='app-logs-summary-value' data-app-logs-summary="sections">--</div>
               </div>
               <div class='app-logs-summary-item'>
-                <div class='app-logs-summary-label'>Redactions</div>
+                <div class='app-logs-summary-label'><%=tr("logs.redactions")%></div>
                 <div class='app-logs-summary-value' data-app-logs-summary="redactions">--</div>
               </div>
             </div>
-            <div class='app-logs-section-list' aria-label="Included log files"></div>
+            <div class='app-logs-section-list' aria-label="<%=tr("logs.included_log_files")%>"></div>
             <pre class='app-logs-report-output' tabindex="0"></pre>
           </div>
         </div>
       </aside>
       <% if (registryEnabled) { %>
-      <div class='community-resizer' id='community-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="9999" aria-valuenow="360" tabindex="0" aria-label="Resize community panel"></div>
+      <div class='community-resizer' id='community-resizer' role="separator" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="9999" aria-valuenow="360" tabindex="0" aria-label="<%=tr("app.resize_community_panel")%>"></div>
       <aside class='community-drawer' id='community-drawer' data-community-url="<%=community_url%>">
         <div class='community-drawer-inner'>
           <div class='community-drawer-bar'>
             <div class='community-drawer-title'>
-              <button type="button" class="community-drawer-home" data-tippy-content="Project feed" aria-label="Project feed">
+              <button type="button" class="community-drawer-home" data-tippy-content="<%=tr("app.project_feed")%>" aria-label="<%=tr("app.project_feed")%>">
                 <i class="fa-solid fa-rss"></i>
-                <span>Feed</span>
+                <span><%=tr("app.project_feed")%></span>
               </button>
-              <span class='community-drawer-status' data-state="offline" data-tippy-content="Offline" aria-label="Offline" role="img"></span>
+              <span class='community-drawer-status' data-state="offline" data-tippy-content="<%=tr("common.offline")%>" aria-label="<%=tr("common.offline")%>" role="img"></span>
             </div>
             <div class='community-drawer-actions'>
-              <button type='button' class='btn2 community-drawer-back' disabled data-tippy-content="Back" aria-label="Back">
+              <button type='button' class='btn2 community-drawer-back' disabled data-tippy-content="<%=tr("common.back")%>" aria-label="<%=tr("common.back")%>">
                 <i class="fa-solid fa-chevron-left"></i>
               </button>
-              <button type='button' class='btn2 community-drawer-forward' disabled data-tippy-content="Forward" aria-label="Forward">
+              <button type='button' class='btn2 community-drawer-forward' disabled data-tippy-content="<%=tr("common.forward")%>" aria-label="<%=tr("common.forward")%>">
                 <i class="fa-solid fa-chevron-right"></i>
               </button>
-              <button type='button' class='btn2 community-drawer-refresh' disabled data-tippy-content="Refresh" aria-label="Refresh feed">
+              <button type='button' class='btn2 community-drawer-refresh' disabled data-tippy-content="<%=tr("common.refresh")%>" aria-label="<%=tr("common.refresh")%>">
                 <i class="fa-solid fa-rotate-right"></i>
               </button>
-              <button type='button' class='btn2 community-drawer-toggle' data-tippy-content="Connect to Pinokio Network" aria-label="Connect to Pinokio Network">
+              <button type='button' class='btn2 community-drawer-toggle' data-tippy-content="<%=tr("app.connect_pinokio_network")%>" aria-label="<%=tr("app.connect_pinokio_network")%>">
                 <i class="fa-solid fa-link"></i>
               </button>
-              <button type='button' class='btn2 community-drawer-expand' data-tippy-content="Expand panel" aria-label="Expand panel" aria-pressed="false">
+              <button type='button' class='btn2 community-drawer-expand' data-tippy-content="<%=tr("app.expand_panel")%>" aria-label="<%=tr("app.expand_panel")%>" aria-pressed="false">
                 <i class="fa-solid fa-expand"></i>
               </button>
-              <button type='button' class='btn2 community-drawer-close' data-tippy-content="Close panel" aria-label="Close feed panel">
+              <button type='button' class='btn2 community-drawer-close' data-tippy-content="<%=tr("app.close_panel")%>" aria-label="<%=tr("app.close_panel")%>">
                 <i class="fa-solid fa-xmark"></i>
               </button>
             </div>
           </div>
           <div class='community-drawer-location'>
-            <input class='community-drawer-location-input' type='text' value="" readonly aria-label="Feed URL">
+            <input class='community-drawer-location-input' type='text' value="" readonly aria-label="<%=tr("app.feed_url")%>">
             <div class='community-drawer-location-overlay' aria-hidden="true"></div>
-            <textarea class='community-drawer-location-textarea' rows="1" readonly aria-label="Feed URL"></textarea>
+            <textarea class='community-drawer-location-textarea' rows="1" readonly aria-label="<%=tr("app.feed_url")%>"></textarea>
           </div>
           <div class='community-drawer-body'>
             <div class='community-drawer-empty'>
@@ -7233,12 +7240,12 @@ header.navheader h1 {
                 <div class='community-drawer-empty-icon'>
                   <i class="fa-solid fa-plug-circle-xmark" aria-hidden="true"></i>
                 </div>
-                <div class='community-drawer-empty-title'>Load Feed</div>
+                <div class='community-drawer-empty-title'><%=tr("app.load_feed")%></div>
               </div>
-              <div class='community-drawer-empty-note muted'>Load https://pinokio.co in the panel (requires network)</div>
-              <button type='button' class='btn community-drawer-connect'>Load</button>
+              <div class='community-drawer-empty-note muted'><%=tr("app.load_feed_note")%></div>
+              <button type='button' class='btn community-drawer-connect'><%=tr("app.load")%></button>
             </div>
-            <iframe class='community-frame hidden' title="Project feed" allow="fullscreen *;" allowfullscreen></iframe>
+            <iframe class='community-frame hidden' title="<%=tr("app.project_feed")%>" allow="fullscreen *;" allowfullscreen></iframe>
           </div>
         </div>
       </aside>
@@ -7248,22 +7255,22 @@ header.navheader h1 {
     <% if (snapshotFooterAllowed) { %>
       <div class='snapshot-footer hidden' data-workspace="<%=name%>">
         <div class="snapshot-footer-save">
-          <div class='caption' title="Saves a tiny JSON checkpoint of exact commit hashes (no files).">
-            Snapshot installed modules information and restore later
+          <div class='caption' title="<%=tr("app.checkpoint_title")%>">
+            <%=tr("app.snapshot_footer_caption")%>
           </div>
           <div class="snapshot-footer-actions" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <button type="button" class="btn btn-primary snapshot-btn-save">
-              <i class="fa-solid fa-circle-check"></i> Save checkpoint
+              <i class="fa-solid fa-circle-check"></i> <%=tr("app.save_checkpoint")%>
             </button>
-            <button type="button" class="btn snapshot-btn-how"><i class="fa-solid fa-circle-info"></i> How it works</button>
-            <button type="button" class="btn snapshot-btn-dismiss"><i class="fa-solid fa-circle-xmark"></i> Dismiss</button>
+            <button type="button" class="btn snapshot-btn-how"><i class="fa-solid fa-circle-info"></i> <%=tr("app.how_it_works")%></button>
+            <button type="button" class="btn snapshot-btn-dismiss"><i class="fa-solid fa-circle-xmark"></i> <%=tr("app.dismiss")%></button>
           </div>
         </div>
       </div>
     <% } %>
   </div>
-  <nav class='mobile-bottom-nav' aria-label="Mobile navigation">
-    <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-menu' data-mobile-proxy="#menu-mobile" aria-expanded="false" aria-label="Open Pinokio menu">
+  <nav class='mobile-bottom-nav' aria-label="<%=tr("app.mobile_navigation")%>">
+    <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-menu' data-mobile-proxy="#menu-mobile" aria-expanded="false" aria-label="<%=tr("app.open_pinokio_menu")%>">
       <img class='mobile-bottom-nav__logo' src="/pinokio-black.png" alt="" aria-hidden="true">
     </button>
     <div class='mobile-bottom-nav__identity' title="<%=config.title || name%>" aria-label="<%=config.title || name%>">
@@ -7273,7 +7280,7 @@ header.navheader h1 {
       <span class='mobile-bottom-nav__identity-title'><%=config.title || name%></span>
       <span class='mobile-bottom-nav__identity-separator' aria-hidden="true"></span>
       <div class="resource-usage" data-resource-usage-root data-workspace="<%=name%>">
-        <button type="button" class="resource-usage-trigger" data-resource-usage-trigger aria-haspopup="dialog" aria-expanded="false" aria-label="Resource usage">
+        <button type="button" class="resource-usage-trigger" data-resource-usage-trigger aria-haspopup="dialog" aria-expanded="false" aria-label="<%=tr("app.resource_usage")%>">
           <span class="resource-chip resource-chip--disk">
             <span class="disk-usage mobile-bottom-nav__identity-disk" data-path="/" data-filepath="<%=path%>" data-metric-label="Disk">--</span>
           </span>
@@ -7281,34 +7288,34 @@ header.navheader h1 {
           <span class="resource-chip resource-chip--ram hidden" data-resource-chip="ram">RAM --</span>
           <span class="resource-chip resource-chip--vram hidden" data-resource-chip="vram">VRAM --</span>
         </button>
-        <div class="resource-usage-popover hidden" data-resource-usage-popover role="dialog" aria-label="Resource usage settings">
-          <div class="resource-usage-popover-head">Resources</div>
+        <div class="resource-usage-popover hidden" data-resource-usage-popover role="dialog" aria-label="<%=tr("app.resource_usage_settings")%>">
+          <div class="resource-usage-popover-head"><%=tr("app.resources")%></div>
           <button type="button" class="resource-toggle" data-resource-toggle="show_ram" role="switch" aria-checked="true">
-            <span class="resource-toggle-label">Show RAM</span>
+            <span class="resource-toggle-label"><%=tr("app.show_ram")%></span>
             <span class="resource-toggle-track" aria-hidden="true"><span class="resource-toggle-thumb"></span></span>
           </button>
           <button type="button" class="resource-toggle" data-resource-toggle="show_vram" role="switch" aria-checked="true">
-            <span class="resource-toggle-label">Show VRAM</span>
+            <span class="resource-toggle-label"><%=tr("app.show_vram")%></span>
             <span class="resource-toggle-track" aria-hidden="true"><span class="resource-toggle-thumb"></span></span>
           </button>
           <button type="button" class="resource-toggle" data-resource-toggle="show_cpu" role="switch" aria-checked="false">
-            <span class="resource-toggle-label">Show CPU</span>
+            <span class="resource-toggle-label"><%=tr("app.show_cpu")%></span>
             <span class="resource-toggle-track" aria-hidden="true"><span class="resource-toggle-thumb"></span></span>
           </button>
-          <div class="resource-usage-status" data-resource-usage-status>Waiting for usage data</div>
+          <div class="resource-usage-status" data-resource-usage-status><%=tr("app.waiting_usage")%></div>
         </div>
       </div>
     </div>
     <% if (registryEnabled) { %>
-    <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-community' data-mobile-proxy="#community-mode-toggle" data-mobile-close-menu="true" aria-pressed="false" aria-label="Project feed">
+    <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-community' data-mobile-proxy="#community-mode-toggle" data-mobile-close-menu="true" aria-pressed="false" aria-label="<%=tr("app.project_feed")%>">
       <i class="fa-solid fa-rss"></i>
     </button>
     <% } %>
-    <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-logs' data-mobile-proxy="#logs-toggle" data-mobile-close-menu="true" aria-pressed="false" aria-label="Logs">
+    <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-logs' data-mobile-proxy="#logs-toggle" data-mobile-close-menu="true" aria-pressed="false" aria-label="<%=tr("nav.logs")%>">
       <i class="fa-solid fa-laptop-code"></i>
     </button>
     <% if (type === 'run') { %>
-    <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-ask-ai' data-mobile-proxy="#ask-ai-tab" data-mobile-close-menu="true" aria-pressed="false" aria-label="Ask AI">
+    <button type='button' class='btn2 mobile-bottom-nav__button mobile-nav-ask-ai' data-mobile-proxy="#ask-ai-tab" data-mobile-close-menu="true" aria-pressed="false" aria-label="<%=tr("app.ask_ai")%>">
       <span class="ask-ai-brand-icon" aria-hidden="true"></span>
     </button>
     <% } %>
@@ -7316,46 +7323,46 @@ header.navheader h1 {
 </div>
 <div class='mobile-menu-fallback' aria-hidden="true">
   <div class='mobile-menu-fallback__header'>
-    <button type='button' class='btn2' data-mobile-proxy="#menu-mobile" aria-label="Close menu">
+    <button type='button' class='btn2' data-mobile-proxy="#menu-mobile" aria-label="<%=tr("common.close")%>">
       <i class="fa-solid fa-xmark"></i>
     </button>
     <img class='mobile-menu-fallback__logo' src="/pinokio-black.png" alt="" aria-hidden="true">
     <div>Pinokio</div>
   </div>
   <div class='mobile-menu-fallback__body'>
-    <div class='workspace-mode-switch' role="tablist" aria-label="Workspace mode">
+    <div class='workspace-mode-switch' role="tablist" aria-label="<%=tr("app.workspace_mode")%>">
       <a class="workspace-mode-link <%=type === 'run' ? 'selected' : ''%>" href="<%=run_tab%>" role="tab" aria-selected="<%=type === 'run' ? 'true' : 'false'%>">
         <i class="fa-solid fa-circle-play"></i>
-        <span>Run</span>
+        <span><%=tr("home.run")%></span>
       </a>
       <a class="workspace-mode-link <%=type === 'browse' || type === 'files' ? 'selected' : ''%>" href="<%=dev_tab%>" role="tab" aria-selected="<%=type === 'browse' || type === 'files' ? 'true' : 'false'%>">
         <i class="fa-solid fa-terminal"></i>
-        <span>Dev</span>
+        <span><%=tr("home.dev")%></span>
       </a>
     </div>
-    <div class='mobile-sheet-actions' aria-label="Workspace actions">
-      <a class='btn mobile-sheet-action' href="/home" aria-label="Home" title="Home">
+    <div class='mobile-sheet-actions' aria-label="<%=tr("app.workspace_actions")%>">
+      <a class='btn mobile-sheet-action' href="/home" aria-label="<%=tr("common.home")%>" title="<%=tr("common.home")%>">
         <i class="fa-solid fa-house"></i>
       </a>
-      <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#refresh-page" data-mobile-close-menu="true" aria-label="Refresh" title="Refresh">
+      <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#refresh-page" data-mobile-close-menu="true" aria-label="<%=tr("common.refresh")%>" title="<%=tr("common.refresh")%>">
         <i class="fa-solid fa-rotate-right"></i>
       </button>
-      <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#back" data-mobile-close-menu="true" aria-label="Back" title="Back">
+      <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#back" data-mobile-close-menu="true" aria-label="<%=tr("common.back")%>" title="<%=tr("common.back")%>">
         <i class="fa-solid fa-chevron-left"></i>
       </button>
-      <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#forward" data-mobile-close-menu="true" aria-label="Forward" title="Forward">
+      <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#forward" data-mobile-close-menu="true" aria-label="<%=tr("common.forward")%>" title="<%=tr("common.forward")%>">
         <i class="fa-solid fa-chevron-right"></i>
       </button>
-      <a class='btn mobile-sheet-action' href="/columns" aria-label="2 Columns" title="2 Columns">
+      <a class='btn mobile-sheet-action' href="/columns" aria-label="<%=tr("common.split_columns")%>" title="<%=tr("common.split_columns")%>">
         <i class="fa-solid fa-table-columns"></i>
       </a>
-      <a class='btn mobile-sheet-action' href="/rows" aria-label="2 Rows" title="2 Rows">
+      <a class='btn mobile-sheet-action' href="/rows" aria-label="<%=tr("common.split_rows")%>" title="<%=tr("common.split_rows")%>">
         <i class="fa-solid fa-table-columns fa-rotate-270"></i>
       </a>
-      <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#new-window" data-mobile-close-menu="true" aria-label="New Window" title="New Window">
+      <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#new-window" data-mobile-close-menu="true" aria-label="<%=tr("common.open_new_window")%>" title="<%=tr("common.open_new_window")%>">
         <i class="fa-solid fa-plus"></i>
       </button>
-      <button type='button' class='btn mobile-sheet-action mobile-close-window-action hidden' data-mobile-proxy="#close-window" data-mobile-close-menu="true" aria-label="Close Section" title="Close Section">
+      <button type='button' class='btn mobile-sheet-action mobile-close-window-action hidden' data-mobile-proxy="#close-window" data-mobile-close-menu="true" aria-label="<%=tr("common.close_section")%>" title="<%=tr("common.close_section")%>">
         <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
@@ -7446,7 +7453,7 @@ header.navheader h1 {
             currentSrc === 'about:blank' || 
             currentSrc.includes('data:'))) {
           Swal.fire({
-            html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
+            html: `<i class="fa-solid fa-circle-notch fa-spin"></i> ${<%-trj("common.loading_ellipsis")%>}`,
             customClass: {
               container: "loader-container",
               popup: "loader-popup",
@@ -8513,6 +8520,7 @@ header.navheader h1 {
     }
     tab.classList.remove("has-preview")
   }
+  const appLocale = <%- JSON.stringify(typeof locale === "string" && locale ? locale : "en") %>
   const formatRelativeTime = (timestamp) => {
     const value = Number(timestamp)
     if (!Number.isFinite(value)) {
@@ -8526,19 +8534,39 @@ header.navheader h1 {
     if (diffSeconds < 5) {
       return "just now"
     }
-    if (diffSeconds < 60) {
-      return `${diffSeconds} sec${diffSeconds === 1 ? "" : "s"} ago`
+    const normalizedLocale = String(appLocale || "en").toLowerCase()
+    if (normalizedLocale === "en" || normalizedLocale.startsWith("en-")) {
+      if (diffSeconds < 60) {
+        return `${diffSeconds} sec${diffSeconds === 1 ? "" : "s"} ago`
+      }
+      const diffMinutes = Math.floor(diffSeconds / 60)
+      if (diffMinutes < 60) {
+        return `${diffMinutes} min${diffMinutes === 1 ? "" : "s"} ago`
+      }
+      const diffHours = Math.floor(diffMinutes / 60)
+      if (diffHours < 24) {
+        return `${diffHours} hr${diffHours === 1 ? "" : "s"} ago`
+      }
+      const diffDays = Math.floor(diffHours / 24)
+      return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`
     }
-    const diffMinutes = Math.floor(diffSeconds / 60)
-    if (diffMinutes < 60) {
-      return `${diffMinutes} min${diffMinutes === 1 ? "" : "s"} ago`
+    const units = [
+      ["day", 86400],
+      ["hour", 3600],
+      ["minute", 60],
+      ["second", 1]
+    ]
+    for (const [unit, size] of units) {
+      if (diffSeconds >= size || size === 1) {
+        const count = Math.max(1, Math.floor(diffSeconds / size))
+        try {
+          return new Intl.RelativeTimeFormat(appLocale || undefined, { numeric: "auto" }).format(-count, unit)
+        } catch (_) {
+          return `${count} ${unit}${count === 1 ? "" : "s"} ago`
+        }
+      }
     }
-    const diffHours = Math.floor(diffMinutes / 60)
-    if (diffHours < 24) {
-      return `${diffHours} hr${diffHours === 1 ? "" : "s"} ago`
-    }
-    const diffDays = Math.floor(diffHours / 24)
-    return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`
+    return ""
   }
   const updateTabPreview = (frameName, previewText, hasContent, timestamp) => {
     if (!statusEnabled || !frameName || /\/shell\//.test(frameName)) {
@@ -8564,7 +8592,7 @@ header.navheader h1 {
       const isLive = (Date.now() - timestamp) < 3000
       updatedEl.classList.toggle('is-live', isLive)
       if (label) {
-        label.textContent = isLive ? `${relative} · live` : `idle · ${relative}`
+        label.textContent = isLive ? `${relative} · ${<%-trj("app.live")%>}` : `${<%-trj("app.idle")%>} · ${relative}`
       }
       ensureTimestampInterval()
     } else {
@@ -9002,7 +9030,7 @@ const rerenderMenuSection = (container, html) => {
           if (selectionProtocol !== pageProtocol) {
             if (!timeout_id) {
               Swal.fire({
-                html: `<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...`,
+                html: `<i class="fa-solid fa-circle-notch fa-spin"></i> ${<%-trj("common.loading_ellipsis")%>}`,
                 customClass: {
                   container: "loader-container",
                   popup: "loader-popup",
@@ -9580,7 +9608,7 @@ const rerenderMenuSection = (container, html) => {
 	      markLogsLinkInternal(existingLink)
 	      const display = existingLink.querySelector('.display')
 	      if (display) {
-	        display.textContent = 'Logs'
+	        display.textContent = <%-trj("logs.title")%>
 	      }
 	      try {
 	        const frameName = existingLink.getAttribute("target") || ""
@@ -9596,7 +9624,7 @@ const rerenderMenuSection = (container, html) => {
 	      existingLink.click()
 	      return
 	    }
-	    const { tab } = await addTab(relativeUrl, { label: 'Logs', target: 'pinokio-logs', persist: false, internal: true })
+	    const { tab } = await addTab(relativeUrl, { label: <%-trj("logs.title")%>, target: 'pinokio-logs', persist: false, internal: true })
 	    requestAnimationFrame(() => {
 	      tab.click()
 	    })
@@ -9746,8 +9774,8 @@ const rerenderMenuSection = (container, html) => {
         }
       },
       text: protectionEnabled
-        ? "Protection beta is on for this app. You can change it later from the Run tab."
-        : "Protection beta is off for this app. You can change it later from the Run tab."
+        ? <%-trj("app.protection_on")%>
+        : <%-trj("app.protection_off")%>
     })
   }
   maybeShowProtectionInstallToast()
@@ -10080,12 +10108,12 @@ const rerenderMenuSection = (container, html) => {
     document.querySelector("#delete").addEventListener("click", async (e) => {
       e.preventDefault()
       e.stopPropagation()
-      const confirmed = confirm("Are you sure you wish to delete the app?")
+      const confirmed = confirm(<%-trj("app.delete_confirm")%>)
       if (confirmed) {
         let name = document.querySelector("#delete").getAttribute("data-name")
         console.log("delete", name)
         Swal.fire({
-          html: '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting',
+          html: '<i class="fa-solid fa-circle-notch fa-spin"></i> ' + <%-trj("common.deleting")%>,
           customClass: {
             container: "loader-container",
             popup: "loader-popup",
@@ -10260,7 +10288,7 @@ const rerenderMenuSection = (container, html) => {
       if (shell) {
         let shell_id = shell.getAttribute("data-shell")
         n.Noty({
-          text: `stopping shell`,
+          text: <%-trj("app.stopping_shell")%>,
           silent: true,
           timeout: 2000
         })
@@ -10276,7 +10304,7 @@ const rerenderMenuSection = (container, html) => {
             socket.close()
             n.Noty({
               timeout: 2000,
-              text: `stopped`,
+              text: <%-trj("common.stopped")%>,
               silent: true
             })
             console.log("Refresh 4")
@@ -10292,7 +10320,7 @@ const rerenderMenuSection = (container, html) => {
           } catch (e) {
           }
           n.Noty({
-            text: `stopping script`,
+            text: <%-trj("app.stopping_script")%>,
             silent: true,
             timeout: 2000
           })
@@ -10309,7 +10337,7 @@ const rerenderMenuSection = (container, html) => {
               socket.close()
               n.Noty({
                 timeout: 2000,
-                text: `stopped`,
+                text: <%-trj("common.stopped")%>,
                 silent: true
               })
               console.log("Refresh 4")
@@ -10325,7 +10353,7 @@ const rerenderMenuSection = (container, html) => {
             } catch (e) {
             }
             n.Noty({
-              text: `stopping ${src}`,
+              text: <%-trj("app.stopping_item", { name: "__NAME__" })%>.replace('__NAME__', () => src),
               silent: true,
               timeout: 2000
             })
@@ -10342,7 +10370,7 @@ const rerenderMenuSection = (container, html) => {
                 socket.close()
                 n.Noty({
                   timeout: 2000,
-                  text: `stopped`,
+                  text: <%-trj("common.stopped")%>,
                   silent: true
                 })
                 console.log("Refresh 4")
@@ -11084,12 +11112,12 @@ const rerenderMenuSection = (container, html) => {
         existingLink.tabIndex = -1
         const display = existingLink.querySelector('.display')
         if (display) {
-          display.textContent = 'Logs'
+          display.textContent = <%-trj("logs.title")%>
         }
         existingLink.click()
         return
       }
-      const { tab } = await addTab(relativeUrl, { label: 'Logs', persist: false, internal: true })
+      const { tab } = await addTab(relativeUrl, { label: <%-trj("logs.title")%>, persist: false, internal: true })
       requestAnimationFrame(() => {
         tab.click()
       })
@@ -11326,24 +11354,24 @@ const rerenderMenuSection = (container, html) => {
 
       renderForkDropdown(repos, {
         emptyMessage: isConnected
-          ? 'No remotes available to fork'
-          : 'Connect GitHub to enable forking',
+          ? <%-trj("app.no_remotes_fork")%>
+          : <%-trj("app.connect_github_fork")%>,
       })
 
       if (!isConnected) {
         disableDropdown()
         if (labelEl) {
-          labelEl.textContent = 'Fork'
+          labelEl.textContent = <%-trj("app.fork")%>
         }
         forkBtn.disabled = false
         forkBtn.classList.remove('fs-status-btn--disabled')
-        forkBtn.setAttribute('title', 'Log in to GitHub to fork this workspace')
+        forkBtn.setAttribute('title', <%-trj("app.login_github_fork")%>)
         forkBtn.addEventListener('click', requireGitLogin)
         return
       }
 
       if (labelEl) {
-        labelEl.textContent = 'Fork'
+        labelEl.textContent = <%-trj("app.fork")%>
       }
 
       forkBtn.disabled = false
@@ -11351,12 +11379,12 @@ const rerenderMenuSection = (container, html) => {
       enableDropdown()
 
       if (!Array.isArray(repos) || repos.length === 0) {
-        forkBtn.setAttribute('title', 'No Git repositories detected')
+        forkBtn.setAttribute('title', <%-trj("app.no_git_repositories")%>)
         return
       }
 
       if (forkTargets.length === 0) {
-        forkBtn.setAttribute('title', 'No remotes available to fork')
+        forkBtn.setAttribute('title', <%-trj("app.no_remotes_fork")%>)
         return
       }
 
@@ -11443,7 +11471,7 @@ const rerenderMenuSection = (container, html) => {
       forkMenu.innerHTML = ''
 
       if (list.length === 0) {
-        setForkMenuMessage(opts.emptyMessage || 'No repositories available')
+        setForkMenuMessage(opts.emptyMessage || <%-trj("app.no_repositories")%>)
         return
       }
 
@@ -11451,7 +11479,7 @@ const rerenderMenuSection = (container, html) => {
 
       list.forEach((repo) => {
         const key = repo && typeof repo.repoParam === 'string' ? repo.repoParam : ''
-        const name = repo && repo.name ? repo.name : (key || 'Repository')
+        const name = repo && repo.name ? repo.name : (key || <%-trj("app.repository")%>)
         const remoteUrl = repo && repo.url ? repo.url : ''
         const forkUri = resolveForkUri(repo)
         const hasRemote = hasRemoteConfigured(repo)
@@ -11464,7 +11492,7 @@ const rerenderMenuSection = (container, html) => {
         const remoteClass = remoteUrl
           ? 'pinokio-fork-dropdown-remote'
           : 'pinokio-fork-dropdown-remote empty'
-        const remoteDisplay = remoteUrl ? escapeHtml(remoteUrl) : 'No remote detected'
+        const remoteDisplay = remoteUrl ? escapeHtml(remoteUrl) : <%-trj("app.no_remote_detected")%>
 
         item.innerHTML = `
           <div class="pinokio-fork-dropdown-title">${escapeHtml(name)}</div>
@@ -11560,7 +11588,7 @@ const rerenderMenuSection = (container, html) => {
     }
 
     async function ensureRemoteForPublish({ repoParam, repoName }) {
-      const label = repoName || repoParam || 'Repository'
+      const label = repoName || repoParam || <%-trj("app.repository")%>
       let repoCandidate = await getRepoData(repoParam)
       if (!hasRemoteConfigured(repoCandidate)) {
         repoCandidate = await refreshRepoData(repoParam)
@@ -11585,32 +11613,32 @@ const rerenderMenuSection = (container, html) => {
 
       Swal.fire({
         icon: 'info',
-        title: `${escapeHtml(label)} still needs a Git remote`,
-        text: 'Add a remote (for example, origin) and try publishing again.'
+        title: <%-trj("app.remote_still_needed_title")%>.replace("{name}", label),
+        text: <%-trj("app.remote_still_needed_text")%>
       })
       return { remoteReady: false, shouldOpenPublish: false }
     }
 
     const buildPublishPreflightCopy = (repoName, reason) => {
-      const name = repoName && repoName.trim().length > 0 ? repoName.trim() : 'Repository'
+      const name = repoName && repoName.trim().length > 0 ? repoName.trim() : <%-trj("app.repository")%>
       if (reason === 'missing-git') {
         return {
-          title: `${name} isn't a Git repository yet`,
-          message: 'Initialize git in this folder and save a version before publishing.',
-          actionLabel: 'Review files'
+          title: <%-trj("app.not_git_repository_title")%>.replace("{name}", name),
+          message: <%-trj("app.initialize_git_before_publish")%>,
+          actionLabel: <%-trj("app.review_files")%>
         }
       }
       if (reason === 'missing-commit') {
         return {
-          title: `Create your first commit for ${name}`,
-          message: 'Save a version on the main branch before publishing to GitHub.',
-          actionLabel: 'Review files'
+          title: <%-trj("app.first_commit_title")%>.replace("{name}", name),
+          message: <%-trj("app.save_version_before_publish")%>,
+          actionLabel: <%-trj("app.review_files")%>
         }
       }
       return {
-        title: 'Unable to publish',
-        message: 'Resolve the repository issues before retrying.',
-        actionLabel: 'Review files'
+        title: <%-trj("app.unable_publish")%>,
+        message: <%-trj("app.resolve_repository_issues")%>,
+        actionLabel: <%-trj("app.review_files")%>
       }
     }
 
@@ -11621,7 +11649,7 @@ const rerenderMenuSection = (container, html) => {
         return { proceed: true, action: 'skip', changeCount }
       }
 
-      const displayName = repoName || (repoData && repoData.name) || repoParam || 'Repository'
+      const displayName = repoName || (repoData && repoData.name) || repoParam || <%-trj("app.repository")%>
       const safeName = escapeHtml(displayName)
       const result = await Swal.fire({
         html: `
@@ -11629,8 +11657,8 @@ const rerenderMenuSection = (container, html) => {
             <div class="pinokio-modal-header">
               <div class="pinokio-modal-icon"><i class="fa-solid fa-code-commit"></i></div>
               <div class="pinokio-modal-heading">
-                <div class="pinokio-modal-title">Commit changes before publishing?</div>
-                <div class="pinokio-modal-subtitle">${safeName} has ${changeCount} uncommitted change${changeCount === 1 ? '' : 's'}.</div>
+                <div class="pinokio-modal-title">${<%-trj("app.commit_before_publish")%>}</div>
+                <div class="pinokio-modal-subtitle">${<%-trj("app.uncommitted_changes_count")%>.replace("{name}", safeName).replace("{count}", changeCount)}</div>
               </div>
             </div>
           </div>
@@ -11651,8 +11679,8 @@ const rerenderMenuSection = (container, html) => {
         allowOutsideClick: false,
         allowEscapeKey: false,
         reverseButtons: true,
-        confirmButtonText: 'Review & Commit',
-        cancelButtonText: 'Continue without committing',
+        confirmButtonText: <%-trj("app.review_and_commit")%>,
+        cancelButtonText: <%-trj("app.continue_without_committing")%>,
         focusConfirm: false
       })
 
@@ -11674,9 +11702,9 @@ const rerenderMenuSection = (container, html) => {
     }
 
     const showPublishPreflightModal = ({ title, message, actionLabel, onAction }) => {
-      const safeTitle = escapeHtml(title || 'Repository is not ready to publish')
-      const safeMessage = escapeHtml(message || 'Resolve the issue and try again.')
-      const safeLabel = escapeHtml(actionLabel || 'Review files')
+      const safeTitle = escapeHtml(title || <%-trj("app.repository_not_ready_publish")%>)
+      const safeMessage = escapeHtml(message || <%-trj("app.resolve_issue_try_again")%>)
+      const safeLabel = escapeHtml(actionLabel || <%-trj("app.review_files")%>)
       const html = `
         <div class="pinokio-modal-surface">
           <div class="pinokio-modal-header">
@@ -11724,8 +11752,8 @@ const rerenderMenuSection = (container, html) => {
       if (preflight.reason === 'network') {
         Swal.fire({
           icon: 'error',
-          title: 'Unable to check repository state',
-          text: 'Please try again in a moment.'
+          title: <%-trj("app.unable_check_repository")%>,
+          text: <%-trj("app.try_again_moment")%>
         })
         return
       }
@@ -11809,7 +11837,7 @@ const rerenderMenuSection = (container, html) => {
       publishMenu.innerHTML = ''
 
       if (list.length === 0) {
-        setPublishMenuMessage(opts.emptyMessage || 'No repositories available')
+        setPublishMenuMessage(opts.emptyMessage || <%-trj("app.no_repositories")%>)
         return
       }
 
@@ -11817,7 +11845,7 @@ const rerenderMenuSection = (container, html) => {
 
       list.forEach((repo) => {
         const key = repo && typeof repo.repoParam === 'string' ? repo.repoParam : ''
-        const name = repo && repo.name ? repo.name : (key || 'Repository')
+        const name = repo && repo.name ? repo.name : (key || <%-trj("app.repository")%>)
         const remoteUrl = repo && repo.url ? repo.url : ''
         const pushUri = resolvePushUri(repo)
         const hasRemote = hasRemoteConfigured(repo)
@@ -11833,13 +11861,13 @@ const rerenderMenuSection = (container, html) => {
         let remoteDisplay
         if (!canPublish) {
           remoteClass = 'pinokio-publish-dropdown-remote'
-          remoteDisplay = 'Create on GitHub'
+          remoteDisplay = <%-trj("app.create_on_github")%>
         } else if (remoteUrl) {
           remoteClass = 'pinokio-publish-dropdown-remote'
           remoteDisplay = escapeHtml(remoteUrl)
         } else {
           remoteClass = 'pinokio-publish-dropdown-remote empty'
-          remoteDisplay = 'No remote detected'
+          remoteDisplay = <%-trj("app.no_remote_detected")%>
         }
 
         item.innerHTML = `
@@ -11905,7 +11933,7 @@ const rerenderMenuSection = (container, html) => {
       }
 
       if (!Array.isArray(repos) || repos.length === 0) {
-        setChangesMenuMessage('No Git repositories detected')
+        setChangesMenuMessage(<%-trj("app.no_git_repositories")%>)
         updateChangesButtonState(false)
         return
       }
@@ -11930,7 +11958,7 @@ const rerenderMenuSection = (container, html) => {
             <span>${repo.name}</span>
           </span>
           <span class="git-changes-item-count ${repo.changeCount > 0 ? 'git-changes-item-count--dirty' : 'git-changes-item-count--clean'}">
-            ${repo.changeCount > 0 ? repo.changeCount : 'Clean'}
+            ${repo.changeCount > 0 ? repo.changeCount : <%-trj("app.clean")%>}
           </span>
         `
 
@@ -11945,7 +11973,7 @@ const rerenderMenuSection = (container, html) => {
 
     const updateFromLegacyMonitor = async () => {
       if (!monitorUri) {
-        setChangesMenuMessage('Git status data unavailable')
+        setChangesMenuMessage(<%-trj("app.git_status_unavailable")%>)
         updateCombinedBadge(0)
         updateChangesButtonState(false)
         return false
@@ -11958,7 +11986,7 @@ const rerenderMenuSection = (container, html) => {
         const data = await response.json()
         const repoKey = workspaceName || ''
         const fallbackRepo = {
-          name: workspaceName || 'Current workspace',
+          name: workspaceName || <%-trj("app.current_workspace")%>,
           main: true,
           repoParam: repoKey,
           changeCount: Array.isArray(data.changes) ? data.changes.length : 0,
@@ -11984,7 +12012,7 @@ const rerenderMenuSection = (container, html) => {
         return true
       } catch (error) {
         console.error('check_git fallback error:', error)
-        setChangesMenuMessage('Unable to load repositories')
+        setChangesMenuMessage(<%-trj("app.unable_load_repositories")%>)
         updateCombinedBadge(0)
         updateChangesButtonState(false)
         updateForkButton()
@@ -12004,7 +12032,7 @@ const rerenderMenuSection = (container, html) => {
       gitStatusRequestForce = Boolean(forceRefresh)
       gitStatusRequest = (async () => {
         if (repoStatusCache.size === 0) {
-          setChangesMenuMessage(statusUri ? 'Loading repositories...' : 'Loading changes...')
+          setChangesMenuMessage(statusUri ? <%-trj("app.loading_repositories")%> : <%-trj("app.loading_changes")%>)
           updateChangesButtonState(false)
         }
 
@@ -12178,7 +12206,7 @@ const rerenderMenuSection = (container, html) => {
 
     const formatResetFileCountLabel = (count) => {
       const safeCount = Number.isFinite(count) && count > 0 ? count : 0
-      return `${safeCount} file${safeCount === 1 ? '' : 's'}`
+      return (safeCount === 1 ? <%-trj("app.file_count")%> : <%-trj("app.file_count_plural")%>).replace("{count}", safeCount)
     }
 
     const showResetSelectedFilesConfirmModal = async (selectionCount) => {
@@ -12188,12 +12216,12 @@ const rerenderMenuSection = (container, html) => {
           <div class="pinokio-modal-header">
             <div class="pinokio-modal-icon pinokio-modal-icon--warning"><i class="fa-solid fa-circle-exclamation"></i></div>
             <div class="pinokio-modal-heading">
-              <div class="pinokio-modal-title">Reset ${escapeHtml(fileLabel)}?</div>
-              <div class="pinokio-modal-subtitle">This will discard local changes for the selected files.</div>
+              <div class="pinokio-modal-title">${escapeHtml(<%-trj("app.reset_files_title")%>.replace("{files}", fileLabel))}</div>
+              <div class="pinokio-modal-subtitle">${<%-trj("app.reset_files_subtitle")%>}</div>
             </div>
           </div>
           <div class="pinokio-modal-body">
-            <p class="pinokio-modal-note">Untracked files are deleted. Tracked files are restored to their Git state.</p>
+            <p class="pinokio-modal-note">${<%-trj("app.reset_files_note")%>}</p>
           </div>
         </div>
       `
@@ -12214,8 +12242,8 @@ const rerenderMenuSection = (container, html) => {
         buttonsStyling: false,
         focusCancel: true,
         reverseButtons: true,
-        confirmButtonText: 'Reset selected',
-        cancelButtonText: 'Cancel'
+        confirmButtonText: <%-trj("app.reset_selected")%>,
+        cancelButtonText: <%-trj("common.cancel")%>
       })
       return Boolean(result && result.isConfirmed)
     }
@@ -12226,7 +12254,7 @@ const rerenderMenuSection = (container, html) => {
       const trackedSet = new Set(tracked)
       const untracked = normalizeResetPathList(untrackedPaths).filter((entry) => !trackedSet.has(entry))
       if (!repoCwd || (tracked.length === 0 && untracked.length === 0)) {
-        throw new Error('No files selected to reset.')
+        throw new Error(<%-trj("app.no_files_selected_reset")%>)
       }
 
       const fileCount = Number.isFinite(selectionCount) && selectionCount > 0
@@ -12239,12 +12267,12 @@ const rerenderMenuSection = (container, html) => {
             <div class="pinokio-modal-header">
               <div class="pinokio-modal-icon"><i class="fa-solid fa-arrow-rotate-left"></i></div>
               <div class="pinokio-modal-heading">
-                <div class="pinokio-modal-title">Resetting ${escapeHtml(fileLabel)}</div>
-                <div class="pinokio-modal-subtitle">Applying your selection now...</div>
+                <div class="pinokio-modal-title">${escapeHtml(<%-trj("app.resetting_files")%>.replace("{files}", fileLabel))}</div>
+                <div class="pinokio-modal-subtitle">${<%-trj("app.applying_selection")%>}</div>
               </div>
             </div>
             <div class="pinokio-modal-body">
-              <p class="pinokio-modal-note pinokio-reset-progress-line"><i class="fa-solid fa-spinner fa-spin"></i> Discarding selected changes</p>
+              <p class="pinokio-modal-note pinokio-reset-progress-line"><i class="fa-solid fa-spinner fa-spin"></i> ${<%-trj("app.discarding_selected_changes")%>}</p>
             </div>
           </div>
         `,
@@ -12286,14 +12314,14 @@ const rerenderMenuSection = (container, html) => {
       }
 
       if (!response || !response.ok || !payload || payload.ok !== true) {
-        const message = payload && payload.error ? payload.error : 'Failed to reset selected files.'
+        const message = payload && payload.error ? payload.error : <%-trj("app.failed_reset_selected")%>
         throw new Error(message)
       }
       return payload
     }
     
     const generateCommitMessage = (changes) => {
-      if (!changes || changes.length === 0) return "Update files"
+      if (!changes || changes.length === 0) return <%-trj("app.update_files")%>
       
       const addedFiles = []
       const modifiedFiles = []
@@ -12386,8 +12414,8 @@ const rerenderMenuSection = (container, html) => {
 
       if (!repoParam) {
         Swal.fire({
-          title: 'No repositories',
-          text: 'No Git repositories were detected for this workspace.',
+          title: <%-trj("app.no_repositories")%>,
+          text: <%-trj("app.no_git_repositories")%>,
           icon: 'info'
         })
         return
@@ -12485,7 +12513,7 @@ const rerenderMenuSection = (container, html) => {
       currentChanges = changes || []
       gitCommitUrl = commitUrl
 
-      const title = modalTitle || `File Changes${repoDisplayName ? ` — ${repoDisplayName}` : ''}`
+      const title = modalTitle || `${<%-trj("app.file_changes")%>}${repoDisplayName ? ` - ${repoDisplayName}` : ''}`
 
       if (lastRepoList.length > 0) {
         renderChangesDropdown(lastRepoList)
@@ -12504,7 +12532,7 @@ const rerenderMenuSection = (container, html) => {
         return
       }
 
-      const changeSummary = `${changes.length} file${changes.length === 1 ? '' : 's'} changed`
+      const changeSummary = (changes.length === 1 ? <%-trj("app.file_changed")%> : <%-trj("app.files_changed")%>).replace("{count}", changes.length)
       const statusCounts = { added: 0, modified: 0, deleted: 0, renamed: 0 }
       changes.forEach(change => {
         const status = (change.status || '').toLowerCase()
@@ -12517,9 +12545,9 @@ const rerenderMenuSection = (container, html) => {
           const commitSection = showSaveButton ? `
         <div class="pinokio-modal-footer pinokio-modal-footer--commit">
           <div class="pinokio-commit-message-container">
-            <input type="text" class="pinokio-modal-input pinokio-commit-message-input" placeholder="Enter commit message..." value="${generateCommitMessage(changes)}">
+            <input type="text" class="pinokio-modal-input pinokio-commit-message-input" placeholder="${<%-trj("app.enter_commit_message")%>}" value="${generateCommitMessage(changes)}">
             <div class="pinokio-commit-actions">
-              <button type="button" class="pinokio-save-version-btn">Save selected</button>
+              <button type="button" class="pinokio-save-version-btn">${<%-trj("app.save_selected")%>}</button>
             </div>
           </div>
         </div>
@@ -12538,10 +12566,10 @@ const rerenderMenuSection = (container, html) => {
           </div>
           <div class="pinokio-modal-tabs">
             <button type="button" class="pinokio-modal-tab pinokio-modal-tab--active" data-tab-target="changes">
-              <i class="fa-solid fa-code-compare"></i> Changes
+              <i class="fa-solid fa-code-compare"></i> ${<%-trj("app.changes")%>}
             </button>
             <button type="button" class="pinokio-modal-tab"${historyTabDisabled} data-tab-target="history">
-              <i class="fa-solid fa-clock-rotate-left"></i> History
+              <i class="fa-solid fa-clock-rotate-left"></i> ${<%-trj("app.history")%>}
             </button>
           </div>
           <div class="pinokio-modal-body pinokio-modal-body--diff" data-tab-panel="changes">
@@ -12549,7 +12577,7 @@ const rerenderMenuSection = (container, html) => {
               <div class="pinokio-git-diff-file-list-panel">
                 <div class="pinokio-git-diff-file-item-row pinokio-git-diff-select-all">
                   <input type="checkbox" class="pinokio-git-diff-file-checkbox" data-select-all checked>
-                  <span class="pinokio-git-diff-file">Select all</span>
+                  <span class="pinokio-git-diff-file">${<%-trj("app.select_all")%>}</span>
                   <span></span>
                 </div>
                 ${changes.map((change, index) => `
@@ -12561,12 +12589,12 @@ const rerenderMenuSection = (container, html) => {
                 `).join('')}
               </div>
               <div class="pinokio-git-diff-viewer-panel">
-                <div class="pinokio-git-diff-empty-state">Select a file to view its changes</div>
+                <div class="pinokio-git-diff-empty-state">${<%-trj("app.select_file_changes")%>}</div>
               </div>
             </div>
           </div>
           <div class="pinokio-modal-body pinokio-modal-body--history" data-tab-panel="history" style="display:none">
-            <div class="pinokio-git-diff-empty-state">${historyUrl ? 'Loading history…' : 'History unavailable'}</div>
+            <div class="pinokio-git-diff-empty-state">${historyUrl ? <%-trj("app.loading_history")%> : <%-trj("app.history_unavailable")%>}</div>
           </div>
           ${commitSection}
         </div>
@@ -12629,12 +12657,12 @@ const rerenderMenuSection = (container, html) => {
             saveBtn.addEventListener('click', () => {
               const commitMessage = getCommitMessage()
               if (!commitUrl) {
-                Swal.showValidationMessage('No commit URL available')
+                Swal.showValidationMessage(<%-trj("app.no_commit_url_available")%>)
                 return
               }
               const selectedEntries = getSelectedEntries()
               if (!selectedEntries.length) {
-                Swal.showValidationMessage('No files selected')
+                Swal.showValidationMessage(<%-trj("app.no_files_selected_reset")%>)
                 return
               }
               const trackedPaths = []
@@ -12649,14 +12677,14 @@ const rerenderMenuSection = (container, html) => {
               const trackedArg = buildPathArgs(trackedPaths)
               const untrackedArg = buildPathArgs(untrackedPaths)
               if (!trackedArg && !untrackedArg) {
-                Swal.showValidationMessage('No files selected')
+                Swal.showValidationMessage(<%-trj("app.no_files_selected_reset")%>)
                 return
               }
 
               const commitUrlObj = new URL(commitUrl, window.location.origin)
               const viewerCwd = commitUrlObj.searchParams.get('cwd') || repoCwd || ''
               if (!viewerCwd) {
-                Swal.showValidationMessage('Repository path unavailable')
+                Swal.showValidationMessage(<%-trj("app.repository_path_unavailable")%>)
                 return
               }
 
@@ -12726,7 +12754,7 @@ const rerenderMenuSection = (container, html) => {
           bulkResetButton.type = 'button'
           bulkResetButton.className = 'pinokio-git-diff-revert-btn pinokio-git-diff-bulk-btn'
           bulkResetButton.disabled = true
-          bulkResetButton.innerHTML = `<i class="fa-solid fa-arrow-rotate-left"></i> Reset selected`
+          bulkResetButton.innerHTML = `<i class="fa-solid fa-arrow-rotate-left"></i> ${<%-trj("app.reset_selected")%>}`
           const bulkResetContainer = document.createElement('div')
           bulkResetContainer.className = 'pinokio-git-diff-bulk-bar'
           bulkResetContainer.setAttribute('data-bulk-bar', 'true')
@@ -12750,13 +12778,13 @@ const rerenderMenuSection = (container, html) => {
             const viewerCwd = (diffViewer && diffViewer.getAttribute('data-repo-cwd')) || repoCwd || ''
             const hasPaths = trackedPaths.length > 0 || untrackedPaths.length > 0
             const hasTarget = Boolean(viewerCwd && hasPaths && selectionCount > 0)
-            bulkResetButton.textContent = `Reset selected (${selectionCount})`
+            bulkResetButton.textContent = <%-trj("app.reset_selected_count", { count: "__COUNT__" })%>.replace('__COUNT__', () => selectionCount)
             bulkResetButton.disabled = selectionCount === 0
             bulkResetButton.onclick = null
             bulkResetButton.onclick = async () => {
               if (selectionCount === 0) return
               if (!viewerCwd || !hasPaths || !hasTarget) {
-                Swal.showValidationMessage('Cannot reset: missing repository context or paths')
+                Swal.showValidationMessage(<%-trj("app.cannot_reset_missing_repo_paths")%>)
                 return
               }
               const confirmed = await showResetSelectedFilesConfirmModal(selectionCount)
@@ -12778,8 +12806,8 @@ const rerenderMenuSection = (container, html) => {
               } catch (error) {
                 await Swal.fire({
                   icon: 'error',
-                  title: 'Reset failed',
-                  text: error && error.message ? error.message : 'Failed to reset selected files.'
+                  title: <%-trj("app.reset_failed")%>,
+                  text: error && error.message ? error.message : <%-trj("app.failed_reset_selected")%>
                 })
               }
             }
@@ -12788,7 +12816,7 @@ const rerenderMenuSection = (container, html) => {
           const renderFileDiff = async (item) => {
           const diffpath = item.getAttribute('data-diffpath')
           const filePath = item.getAttribute('data-filepath') || ''
-          const titleText = escapeHtml(filePath || 'Selected file')
+          const titleText = escapeHtml(filePath || <%-trj("app.selected_file")%>)
           const openHref = (repoParam && filePath)
             ? `/api/${encodeRepoPath(repoParam)}/${filePath.split('/').map(encodeURIComponent).join('/') }?fs=view`
             : null
@@ -12799,13 +12827,13 @@ const rerenderMenuSection = (container, html) => {
               ${openHref ? `
                 <button type="button" class="pinokio-git-diff-open-file" data-open-repo="${escapeHtml(repoParam || '')}" data-open-relpath="${escapeHtml(filePath || '')}">
                   <i class="fa-solid fa-folder-open"></i>
-                  Open in explorer
+                  ${<%-trj("app.open_in_explorer")%>}
                 </button>
               ` : ''}
             </div>
           `
 
-            diffViewer.innerHTML = `${headerHtml}<div class="pinokio-git-diff-viewer-body"><div class="pinokio-git-diff-empty-state">Loading…</div></div>`
+            diffViewer.innerHTML = `${headerHtml}<div class="pinokio-git-diff-viewer-body"><div class="pinokio-git-diff-empty-state">${<%-trj("common.loading_ellipsis")%>}</div></div>`
             const diffBody = diffViewer.querySelector('.pinokio-git-diff-viewer-body')
             try {
               const diffRes = await fetch(diffpath)
@@ -12832,7 +12860,7 @@ const rerenderMenuSection = (container, html) => {
             } catch (error) {
               console.error('Error fetching diff:', error)
               if (diffBody) {
-                diffBody.innerHTML = '<div class="pinokio-git-diff-empty-state">Error loading diff</div>'
+                diffBody.innerHTML = `<div class="pinokio-git-diff-empty-state">${<%-trj("app.error_loading_diff")%>}</div>`
               }
             }
           }
@@ -12918,14 +12946,14 @@ const rerenderMenuSection = (container, html) => {
             }
             const commitMarkup = commits.length
               ? `<div class="pinokio-git-history-list">${commits.map(commit => createCommitItem(commit)).join('')}</div>`
-              : '<div class="pinokio-history-empty">No commits found</div>'
+              : `<div class="pinokio-history-empty">${<%-trj("terminals.no_commits_found")%>}</div>`
 
             historyPanel.innerHTML = `
               <div class="pinokio-history-inline-head">
                 <div class="pinokio-history-meta">${metaBadges.join('')}</div>
                 <div class="pinokio-history-inline-actions">
                   <button type="button" class="pinokio-history-inline-btn" data-open-full-history>
-                    <i class="fa-solid fa-up-right-from-square"></i> Open full history
+                    <i class="fa-solid fa-up-right-from-square"></i> ${<%-trj("app.open_full_history")%>}
                   </button>
                 </div>
               </div>
@@ -12959,10 +12987,10 @@ const rerenderMenuSection = (container, html) => {
               return
             }
             if (!historyUrl) {
-              historyPanel.innerHTML = '<div class="pinokio-git-diff-empty-state">History unavailable</div>'
+              historyPanel.innerHTML = `<div class="pinokio-git-diff-empty-state">${<%-trj("app.history_unavailable")%>}</div>`
               return
             }
-            historyPanel.innerHTML = '<div class="pinokio-git-diff-empty-state">Loading history…</div>'
+            historyPanel.innerHTML = `<div class="pinokio-git-diff-empty-state">${<%-trj("app.loading_history")%>}</div>`
             try {
               const response = await fetch(historyUrl)
               if (!response.ok) {
@@ -12974,7 +13002,7 @@ const rerenderMenuSection = (container, html) => {
             } catch (error) {
               historyLoaded = false
               console.error('Error loading inline history:', error)
-              historyPanel.innerHTML = '<div class="pinokio-git-diff-empty-state">Unable to load history</div>'
+              historyPanel.innerHTML = `<div class="pinokio-git-diff-empty-state">${<%-trj("app.unable_load_history")%>}</div>`
             }
           }
 
@@ -13022,7 +13050,7 @@ const rerenderMenuSection = (container, html) => {
     
     const renderDiff = (diffData, container) => {
       if (!diffData.diff || diffData.diff.length === 0) {
-        container.innerHTML = '<div class="pinokio-git-diff-empty-state">No changes to display</div>'
+        container.innerHTML = `<div class="pinokio-git-diff-empty-state">${<%-trj("terminals.no_changes_display")%>}</div>`
         return
       }
       
@@ -13091,8 +13119,8 @@ const rerenderMenuSection = (container, html) => {
 
       if (!historyUrl) {
         Swal.fire({
-          title: 'Error',
-          text: 'Git history URL not available.',
+          title: <%-trj("common.error")%>,
+          text: <%-trj("app.git_history_unavailable")%>,
           icon: 'error'
         })
         return
@@ -13109,8 +13137,8 @@ const rerenderMenuSection = (container, html) => {
       } catch (error) {
         console.error('Failed to load git history:', error)
         Swal.fire({
-          title: 'Error',
-          text: `Failed to load git history: ${error.message}`,
+          title: <%-trj("common.error")%>,
+          text: <%-trj("app.failed_load_git_history")%>.replace("{message}", error.message),
           icon: 'error'
         })
       }
@@ -13132,7 +13160,7 @@ const rerenderMenuSection = (container, html) => {
       const subtitleParts = [commitCountLabel]
       if (lastCommit && typeof timeago !== 'undefined' && timeago) {
         const lastTs = new Date(lastCommit.commit.author.timestamp * 1000)
-        subtitleParts.push(`Updated ${timeago.format(lastTs)}`)
+        subtitleParts.push(<%-trj("app.updated_timeago")%>.replace("{time}", timeago.format(lastTs)))
       }
       const subtitleText = subtitleParts.join(' · ')
 
@@ -13141,7 +13169,7 @@ const rerenderMenuSection = (container, html) => {
         metaBadges.push(`<span class="pinokio-pill"><i class="fa-solid fa-cloud-arrow-up"></i>${remote}</span>`)
       }
 
-      const historyTitle = repoName ? `${repoName} history` : 'Repository history'
+      const historyTitle = repoName ? <%-trj("app.repository_history_named")%>.replace("{name}", repoName) : <%-trj("app.repository_history")%>
 
       const historyHtml = `
         <div class="pinokio-modal-surface pinokio-modal-surface--history">
@@ -13162,20 +13190,20 @@ const rerenderMenuSection = (container, html) => {
                 <i class="fa-solid fa-arrow-rotate-left"></i> Return to newest commit
               </button>
               ${realBranchEntries.length ? `
-                <select class="pinokio-modal-input pinokio-history-branch-select" data-history-branch-select aria-label="Select branch">
+                <select class="pinokio-modal-input pinokio-history-branch-select" data-history-branch-select aria-label="${<%-trj("terminals.select_branch")%>}">
                   ${realBranchEntries.map(e => `
                     <option value="${escapeHtml(e.branch)}"${selectedBranchName === e.branch ? ' selected' : ''}>${escapeHtml(e.branch)}</option>
                   `).join('')}
                 </select>
                 <button type="button" class="pinokio-history-latest-btn" data-history-branch-switch>
-                  <i class="fa-solid fa-code-branch"></i> Switch
+                  <i class="fa-solid fa-code-branch"></i> ${<%-trj("terminals.switch")%>}
                 </button>
               ` : ''}
             </div>
           </div>
           <div class="pinokio-modal-body pinokio-modal-body--history">
             ${commits.length === 0 ? 
-              '<div class="pinokio-history-empty">No commits found</div>' :
+              `<div class="pinokio-history-empty">${<%-trj("terminals.no_commits_found")%>}</div>` :
               `<div class="pinokio-git-history-list">${commits.map(commit => createCommitItem(commit)).join('')}</div>`
             }
           </div>
@@ -13280,8 +13308,8 @@ const rerenderMenuSection = (container, html) => {
     const showCommitDiffModal = async (commitInfoUrl) => {
       if (!commitInfoUrl) {
         Swal.fire({
-          title: 'Error',
-          text: 'Commit information URL not available.',
+          title: <%-trj("common.error")%>,
+          text: <%-trj("app.commit_info_unavailable")%>,
           icon: 'error'
         })
         return
@@ -13298,9 +13326,10 @@ const rerenderMenuSection = (container, html) => {
         
       } catch (error) {
         console.error('Failed to load commit diff:', error)
+        const commitChangesMessage = error && error.message ? error.message : ''
         Swal.fire({
-          title: 'Error',
-          text: `Failed to load commit changes: ${error.message}`,
+          title: <%-trj("common.error")%>,
+          text: <%-trj("app.failed_load_commit_changes", { message: "__MESSAGE__" })%>.replace('__MESSAGE__', () => commitChangesMessage),
           icon: 'error'
         })
       }
@@ -13310,7 +13339,7 @@ const rerenderMenuSection = (container, html) => {
       const changes = diffData.changes || []
       
       if (changes.length === 0) {
-        alert('No file changes detected.')
+        alert(<%-trj("app.no_file_changes")%>)
         return
       }
 
@@ -13334,7 +13363,7 @@ const rerenderMenuSection = (container, html) => {
       overlay.innerHTML = `
         <div class="pinokio-custom-commit-modal">
           <div class="pinokio-custom-commit-header">
-            <h3>Commit Changes</h3>
+            <h3>${<%-trj("app.commit_changes")%>}</h3>
             <button class="pinokio-custom-commit-close">×</button>
           </div>
           <div class="pinokio-custom-commit-content">
@@ -13348,13 +13377,13 @@ const rerenderMenuSection = (container, html) => {
                 `).join('')}
                 </div>
               <div class="pinokio-git-diff-viewer-panel">
-                <div class="pinokio-git-diff-empty-state">Select a file to view its changes</div>
+                <div class="pinokio-git-diff-empty-state">${<%-trj("app.select_file_changes")%>}</div>
               </div>
             </div>
             ${checkoutUrl ? `
               <div class="pinokio-git-commit-actions">
                 <button type="button" class="pinokio-git-commit-switch-btn">
-                  <i class="fa-solid fa-clock-rotate-left"></i> Switch to this version
+                  <i class="fa-solid fa-clock-rotate-left"></i> ${<%-trj("app.switch_version")%>}
                 </button>
               </div>
             ` : ''}
@@ -13404,14 +13433,14 @@ const rerenderMenuSection = (container, html) => {
           
           const diffpath = item.getAttribute('data-diffpath')
           const filePath = item.getAttribute('data-filepath') || ''
-          const titleText = escapeHtml(filePath || 'Selected file')
+          const titleText = escapeHtml(filePath || <%-trj("app.selected_file")%>)
           const headerHtml = `
             <div class="pinokio-git-diff-viewer-header">
               <div class="pinokio-git-diff-viewer-title">${titleText}</div>
             </div>
           `
 
-          diffViewer.innerHTML = `${headerHtml}<div class="pinokio-git-diff-viewer-body"><div class="pinokio-git-diff-empty-state">Loading...</div></div>`
+          diffViewer.innerHTML = `${headerHtml}<div class="pinokio-git-diff-viewer-body"><div class="pinokio-git-diff-empty-state">${<%-trj("common.loading_ellipsis")%>}</div></div>`
           const diffBody = diffViewer.querySelector('.pinokio-git-diff-viewer-body')
           
           try {
@@ -13421,7 +13450,7 @@ const rerenderMenuSection = (container, html) => {
             const resetBtn = diffViewer.querySelector('.pinokio-git-diff-revert-btn')
             if (resetBtn && revertUrl) {
               resetBtn.addEventListener('click', () => {
-                const confirmed = confirm('Reset this file to the previous version?')
+                const confirmed = confirm(<%-trj("app.reset_file_previous_confirm")%>)
                 if (confirmed) {
                   showIframeView(revertUrl)
                 }
@@ -13430,7 +13459,7 @@ const rerenderMenuSection = (container, html) => {
           } catch (error) {
             console.error('Error fetching diff:', error)
             if (diffBody) {
-              diffBody.innerHTML = '<div class="pinokio-git-diff-empty-state">Error loading diff</div>'
+              diffBody.innerHTML = `<div class="pinokio-git-diff-empty-state">${<%-trj("app.error_loading_diff")%>}</div>`
             }
           }
         })
@@ -13461,7 +13490,7 @@ const rerenderMenuSection = (container, html) => {
       overlay.innerHTML = `
         <div class="pinokio-custom-terminal-modal">
           <div class="pinokio-custom-terminal-header">
-            <h3>Git Checkout</h3>
+            <h3>${<%-trj("terminals.git_checkout")%>}</h3>
             <button class="pinokio-custom-terminal-close">×</button>
           </div>
           <div class="pinokio-custom-terminal-body">
@@ -13554,7 +13583,7 @@ const rerenderMenuSection = (container, html) => {
               })
             } else {
               viewBtn.disabled = true
-              viewBtn.setAttribute('title', 'Remote URL not available')
+              viewBtn.setAttribute('title', <%-trj("app.remote_url_unavailable")%>)
             }
           }
 
@@ -13626,14 +13655,14 @@ const rerenderMenuSection = (container, html) => {
         repoLabel = repoParam
       }
       if (!repoLabel) {
-        repoLabel = workspaceName || 'Repository'
+        repoLabel = workspaceName || <%-trj("app.repository")%>
       }
 
       const pushUri = resolvePushUri(repoData)
       if (!pushUri) {
         Swal.fire({
-          title: 'Error',
-          text: 'Publish URL not available for this repository.',
+          title: <%-trj("common.error")%>,
+          text: <%-trj("app.publish_url_unavailable")%>,
           icon: 'error'
         })
         return
@@ -13642,13 +13671,13 @@ const rerenderMenuSection = (container, html) => {
       const remoteUrl = repoData && typeof repoData.url === 'string' ? repoData.url.trim() : ''
       const remoteWebUrl = buildRemoteWebUrl(remoteUrl)
       const remoteDisplay = remoteUrl ? escapeHtml(remoteUrl) : null
-      const subtitle = `${escapeHtml(repoLabel)} — review your latest changes before publishing.`
+      const subtitle = escapeHtml(<%-trj("app.publish_review_subtitle")%>.replace("{name}", repoLabel))
       const remoteHtml = remoteDisplay ? `<div class="pinokio-fork-item-url">${remoteDisplay}</div>` : ''
       const timestampedUri = pushUri.includes('?')
         ? `${pushUri}&ts=${Date.now()}`
         : `${pushUri}?ts=${Date.now()}`
       const viewRemoteButton = remoteWebUrl
-        ? `<button type="button" class="pinokio-modal-secondary-btn" data-publish-view-remote data-remote-url="${escapeHtml(remoteWebUrl)}">View on GitHub</button>`
+        ? `<button type="button" class="pinokio-modal-secondary-btn" data-publish-view-remote data-remote-url="${escapeHtml(remoteWebUrl)}">${<%-trj("app.view_on_github")%>}</button>`
         : ''
       
       const modalHtml = `
@@ -13656,7 +13685,7 @@ const rerenderMenuSection = (container, html) => {
           <div class="pinokio-modal-header">
             <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
             <div class="pinokio-modal-heading">
-              <div class="pinokio-modal-title">Publish to GitHub</div>
+              <div class="pinokio-modal-title">${<%-trj("app.publish_to_github")%>}</div>
               <div class="pinokio-modal-subtitle">${subtitle}</div>
               ${remoteHtml}
             </div>
@@ -13666,7 +13695,7 @@ const rerenderMenuSection = (container, html) => {
           </div>
           <div class="pinokio-modal-footer pinokio-modal-footer--publish" data-publish-footer>
             ${viewRemoteButton}
-            <button type="button" class="pinokio-publish-close-btn" data-publish-close>Close</button>
+            <button type="button" class="pinokio-publish-close-btn" data-publish-close>${<%-trj("common.close")%>}</button>
           </div>
         </div>
       `
@@ -13710,21 +13739,21 @@ const rerenderMenuSection = (container, html) => {
           <div class="pinokio-modal-header">
             <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
             <div class="pinokio-modal-heading">
-              <div class="pinokio-modal-title">Publish to GitHub</div>
-              <div class="pinokio-modal-subtitle">Choose a remote and repository name for your push.</div>
+              <div class="pinokio-modal-title">${<%-trj("app.publish_to_github")%>}</div>
+              <div class="pinokio-modal-subtitle">${<%-trj("app.choose_remote_repo")%>}</div>
             </div>
           </div>
           <div class="pinokio-modal-body">
             <div class="pinokio-modal-form">
               <div>
-                <label class="pinokio-modal-label" for="remote-select">Select Remote</label>
+                <label class="pinokio-modal-label" for="remote-select">${<%-trj("app.select_remote")%>}</label>
                 <select id="remote-select" class="pinokio-modal-input">
                   ${remoteOptions}
                 </select>
               </div>
               <div>
-                <label class="pinokio-modal-label" for="repo-name-input">Repository Name</label>
-                <input id="repo-name-input" class="pinokio-modal-input" placeholder="Enter repository name" />
+                <label class="pinokio-modal-label" for="repo-name-input">${<%-trj("app.repository_name")%>}</label>
+                <input id="repo-name-input" class="pinokio-modal-input" placeholder="${<%-trj("app.enter_repository_name")%>}" />
               </div>
             </div>
           </div>
@@ -13746,15 +13775,15 @@ const rerenderMenuSection = (container, html) => {
         showCloseButton: true,
         showConfirmButton: true,
         showCancelButton: true,
-        confirmButtonText: 'Publish',
-        cancelButtonText: 'Cancel',
+        confirmButtonText: <%-trj("app.publish")%>,
+        cancelButtonText: <%-trj("common.cancel")%>,
         focusConfirm: false,
         preConfirm: () => {
           const selectedRemote = document.getElementById('remote-select').value
           const repoName = document.getElementById('repo-name-input').value.trim()
           
           if (!repoName) {
-            Swal.showValidationMessage('Repository name is required')
+            Swal.showValidationMessage(<%-trj("app.repository_name_required")%>)
             return false
           }
           
@@ -13786,15 +13815,15 @@ const rerenderMenuSection = (container, html) => {
             <div class="pinokio-modal-header">
               <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
               <div class="pinokio-modal-heading">
-                <div class="pinokio-modal-title">Publish to GitHub</div>
-                <div class="pinokio-modal-subtitle">Remote: ${remote} · Repository: ${name}</div>
+                <div class="pinokio-modal-title">${<%-trj("app.publish_to_github")%>}</div>
+                <div class="pinokio-modal-subtitle">${<%-trj("app.remote_repository")%>.replace("{remote}", remote).replace("{name}", name)}</div>
               </div>
             </div>
             <div class="pinokio-modal-body pinokio-modal-body--iframe">
               <iframe src="${finalUri}" allow="fullscreen *;" allowfullscreen></iframe>
             </div>
             <div class="pinokio-modal-footer pinokio-modal-footer--publish" data-publish-footer>
-              <button type="button" class="pinokio-publish-close-btn" data-publish-close>Close</button>
+              <button type="button" class="pinokio-publish-close-btn" data-publish-close>${<%-trj("common.close")%>}</button>
             </div>
           </div>
         `,
@@ -13824,19 +13853,19 @@ const rerenderMenuSection = (container, html) => {
           <div class="pinokio-modal-header">
             <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
             <div class="pinokio-modal-heading">
-              <div class="pinokio-modal-title">Create repository</div>
-              <div class="pinokio-modal-subtitle">Set up a new GitHub repository for this project.</div>
+              <div class="pinokio-modal-title">${<%-trj("app.create_repository")%>}</div>
+              <div class="pinokio-modal-subtitle">${<%-trj("app.create_repo_subtitle")%>}</div>
             </div>
           </div>
           <div class="pinokio-modal-body">
             <div class="pinokio-modal-form">
               <div>
-                <label class="pinokio-modal-label" for="create-repo-name-input">Repository Name</label>
-                <input id="create-repo-name-input" class="pinokio-modal-input" placeholder="Enter repository name" />
+                <label class="pinokio-modal-label" for="create-repo-name-input">${<%-trj("app.repository_name")%>}</label>
+                <input id="create-repo-name-input" class="pinokio-modal-input" placeholder="${<%-trj("app.enter_repository_name")%>}" />
               </div>
               <div class="pinokio-modal-checkbox-row">
                 <input type="checkbox" id="private-checkbox">
-                <label for="private-checkbox">Private repository</label>
+                <label for="private-checkbox">${<%-trj("app.private_repository")%>}</label>
               </div>
             </div>
           </div>
@@ -13858,8 +13887,8 @@ const rerenderMenuSection = (container, html) => {
         showCloseButton: false,
         showConfirmButton: true,
         showCancelButton: true,
-        confirmButtonText: 'Create on GitHub',
-        cancelButtonText: 'Cancel',
+        confirmButtonText: <%-trj("app.create_on_github")%>,
+        cancelButtonText: <%-trj("common.cancel")%>,
         allowOutsideClick: false,
         allowEscapeKey: false,
         focusConfirm: false,
@@ -13868,7 +13897,7 @@ const rerenderMenuSection = (container, html) => {
           const isPrivate = document.getElementById('private-checkbox').checked
           
           if (!repoName) {
-            Swal.showValidationMessage('Repository name is required')
+            Swal.showValidationMessage(<%-trj("app.repository_name_required")%>)
             return false
           }
           
@@ -13894,8 +13923,8 @@ const rerenderMenuSection = (container, html) => {
       
       if (!createUri) {
         Swal.fire({
-          title: 'Error',
-          text: 'Create repository URL not available.',
+          title: <%-trj("common.error")%>,
+          text: <%-trj("app.create_repo_url_unavailable")%>,
           icon: 'error'
         })
         return Promise.resolve({ completed: false })
@@ -13923,16 +13952,16 @@ const rerenderMenuSection = (container, html) => {
               <div class="pinokio-modal-header">
                 <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
                 <div class="pinokio-modal-heading">
-                  <div class="pinokio-modal-title">Create GitHub repository</div>
-                  <div class="pinokio-modal-subtitle">${name} · ${isPrivate ? 'Private' : 'Public'}</div>
+                  <div class="pinokio-modal-title">${<%-trj("app.create_github_repository")%>}</div>
+                  <div class="pinokio-modal-subtitle">${name} - ${isPrivate ? <%-trj("app.private")%> : <%-trj("app.public")%>}</div>
                 </div>
               </div>
               <div class="pinokio-modal-body pinokio-modal-body--iframe">
                 <iframe src="${finalUri}" allow="fullscreen *;" allowfullscreen></iframe>
               </div>
               <div class="pinokio-modal-footer pinokio-modal-footer--create">
-                <button type="button" class="pinokio-modal-secondary-btn" data-create-cancel>Cancel</button>
-                <button type="button" class="pinokio-publish-close-btn" data-create-close>Close</button>
+                <button type="button" class="pinokio-modal-secondary-btn" data-create-cancel>${<%-trj("common.cancel")%>}</button>
+                <button type="button" class="pinokio-publish-close-btn" data-create-close>${<%-trj("common.close")%>}</button>
               </div>
             </div>
           `,
@@ -13977,8 +14006,8 @@ const rerenderMenuSection = (container, html) => {
       const key = typeof repoParam === 'string' && repoParam.length > 0 ? repoParam : (activeRepoKey || null)
       if (!key) {
         Swal.fire({
-          title: 'No repository selected',
-          text: 'Select a repository to fork from the dropdown.',
+          title: <%-trj("app.no_repository_selected")%>,
+          text: <%-trj("app.select_repository_fork")%>,
           icon: 'info'
         })
         return
@@ -13992,8 +14021,8 @@ const rerenderMenuSection = (container, html) => {
 
       if (!repo) {
         Swal.fire({
-          title: 'Repository unavailable',
-          text: 'The selected repository could not be found. Refresh Git status and try again.',
+          title: <%-trj("app.repository_unavailable")%>,
+          text: <%-trj("app.repository_not_found")%>,
           icon: 'error'
         })
         return
@@ -14001,8 +14030,8 @@ const rerenderMenuSection = (container, html) => {
 
       if (!hasRemoteConfigured(repo)) {
         Swal.fire({
-          title: 'Remote required',
-          text: 'This repository does not have a remote configured, so it cannot be forked.',
+          title: <%-trj("app.remote_required")%>,
+          text: <%-trj("app.remote_required_fork")%>,
           icon: 'info'
         })
         return
@@ -14011,15 +14040,15 @@ const rerenderMenuSection = (container, html) => {
       const forkUri = resolveForkUri(repo)
       if (!forkUri) {
         Swal.fire({
-          title: 'Fork script unavailable',
-          text: 'Unable to locate the fork script for this repository.',
+          title: <%-trj("app.fork_script_unavailable")%>,
+          text: <%-trj("app.fork_script_missing")%>,
           icon: 'error'
         })
         return
       }
 
       const defaultName = deriveForkDefaultName(repo)
-      const remoteDisplay = repo.url ? escapeHtml(repo.url) : 'No remote detected'
+      const remoteDisplay = repo.url ? escapeHtml(repo.url) : <%-trj("app.no_remote_detected")%>
       const remoteClass = repo.url ? 'pinokio-fork-item-url' : 'pinokio-fork-item-url empty'
       const nameInputId = 'pinokio-fork-name-input'
       const orgToggleId = 'pinokio-fork-org-toggle'
@@ -14030,7 +14059,7 @@ const rerenderMenuSection = (container, html) => {
           <div class="pinokio-modal-header">
             <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
             <div class="pinokio-modal-heading">
-              <div class="pinokio-modal-title">Fork repository</div>
+              <div class="pinokio-modal-title">${<%-trj("app.fork_repository")%>}</div>
               <div class="pinokio-modal-subtitle">${escapeHtml(repo.name || key)}</div>
             </div>
           </div>
@@ -14039,17 +14068,17 @@ const rerenderMenuSection = (container, html) => {
                 <div class="pinokio-fork-item" data-disabled="false">
                   <div class="pinokio-fork-item-url ${remoteClass}">${remoteDisplay}</div>
                   <div class="pinokio-fork-name-input">
-                  <label for="${nameInputId}">Fork name</label>
+                  <label for="${nameInputId}">${<%-trj("app.fork_name")%>}</label>
                   <input id="${nameInputId}" class="pinokio-modal-input" value="${escapeHtml(defaultName || '')}">
                 </div>
                 <div class="pinokio-fork-checkbox-row">
                   <input type="checkbox" id="${orgToggleId}" data-fork-org-toggle>
-                  <label for="${orgToggleId}">Fork into organization</label>
+                  <label for="${orgToggleId}">${<%-trj("app.fork_into_org")%>}</label>
                 </div>
                 <div class="pinokio-fork-org-input hidden" data-fork-org-section>
-                  <label for="${orgInputId}">Organization</label>
+                  <label for="${orgInputId}">${<%-trj("app.organization")%>}</label>
                   <input id="${orgInputId}" class="pinokio-modal-input" placeholder="my-org">
-                  <p class="pinokio-fork-org-hint">Provide an organization where you have permission to create repositories.</p>
+                  <p class="pinokio-fork-org-hint">${<%-trj("app.organization_hint")%>}</p>
                 </div>
               </div>
             </div>
@@ -14072,8 +14101,8 @@ const rerenderMenuSection = (container, html) => {
         showCloseButton: true,
         showCancelButton: true,
         showConfirmButton: true,
-        confirmButtonText: 'Fork on GitHub',
-        cancelButtonText: 'Cancel',
+        confirmButtonText: <%-trj("app.fork_on_github")%>,
+        cancelButtonText: <%-trj("common.cancel")%>,
         focusConfirm: false,
         didOpen: (popup) => {
           const input = popup.querySelector(`#${nameInputId}`)
@@ -14121,7 +14150,7 @@ const rerenderMenuSection = (container, html) => {
               input.classList.add('pinokio-modal-input--error')
               setTimeout(() => input.focus(), 0)
             }
-            Swal.showValidationMessage('Enter a repository name for the fork')
+            Swal.showValidationMessage(<%-trj("app.enter_fork_repository_name")%>)
             return false
           }
           const orgToggle = document.getElementById(orgToggleId)
@@ -14134,7 +14163,7 @@ const rerenderMenuSection = (container, html) => {
                 orgInput.classList.add('pinokio-modal-input--error')
                 setTimeout(() => orgInput.focus(), 0)
               }
-              Swal.showValidationMessage('Enter the organization name or uncheck the option')
+              Swal.showValidationMessage(<%-trj("app.enter_org_or_uncheck")%>)
               return false
             }
           }
@@ -14177,8 +14206,8 @@ const rerenderMenuSection = (container, html) => {
       const separator = job.forkUri.includes('?') ? '&' : '?'
       const finalUri = `${job.forkUri}${separator}${queryParts.join('&')}`
 
-      const remoteDisplay = job.remoteUrl ? escapeHtml(job.remoteUrl) : 'No remote detected'
-      const titleDisplay = job.repoName ? escapeHtml(job.repoName) : 'Repository'
+      const remoteDisplay = job.remoteUrl ? escapeHtml(job.remoteUrl) : <%-trj("app.no_remote_detected")%>
+      const titleDisplay = job.repoName ? escapeHtml(job.repoName) : <%-trj("app.repository")%>
       const forkDisplay = escapeHtml(forkNameValue)
       const subtitleParts = [titleDisplay, forkDisplay]
       if (job.org) {
@@ -14191,7 +14220,7 @@ const rerenderMenuSection = (container, html) => {
             <div class="pinokio-modal-header">
               <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
               <div class="pinokio-modal-heading">
-                <div class="pinokio-modal-title">Fork on GitHub</div>
+                <div class="pinokio-modal-title">${<%-trj("app.fork_on_github")%>}</div>
                 <div class="pinokio-modal-subtitle">${subtitleHtml}</div>
                 <div class="pinokio-fork-item-url">${remoteDisplay}</div>
               </div>
@@ -14200,7 +14229,7 @@ const rerenderMenuSection = (container, html) => {
               <iframe src="${finalUri}" allow="fullscreen *;" allowfullscreen></iframe>
             </div>
             <div class="pinokio-modal-footer pinokio-modal-footer--publish" data-publish-footer>
-              <button type="button" class="pinokio-publish-close-btn" data-publish-close>Close</button>
+              <button type="button" class="pinokio-publish-close-btn" data-publish-close>${<%-trj("common.close")%>}</button>
             </div>
           </div>
         `,
@@ -14237,13 +14266,13 @@ const rerenderMenuSection = (container, html) => {
         html: `
           <div class="pinokio-github-login">
             <div class="pinokio-github-login__icon"><i class="fa-brands fa-github"></i></div>
-            <div class="pinokio-github-login__title">Log in to GitHub</div>
-            <div class="pinokio-github-login__body">Connect your GitHub account to fork or publish this workspace.</div>
+            <div class="pinokio-github-login__title">${<%-trj("app.login_github")%>}</div>
+            <div class="pinokio-github-login__body">${<%-trj("app.connect_github_publish_fork")%>}</div>
           </div>
         `,
         showCancelButton: true,
-        confirmButtonText: 'Log in',
-        cancelButtonText: 'Not now',
+        confirmButtonText: <%-trj("app.log_in")%>,
+        cancelButtonText: <%-trj("app.not_now")%>,
         reverseButtons: true,
         showCloseButton: true,
         focusConfirm: true,
@@ -14311,8 +14340,8 @@ const rerenderMenuSection = (container, html) => {
       }
 
       if (!historyUri) {
-        setPublishMenuMessage('Git integration unavailable')
-        setLabel('Publish')
+        setPublishMenuMessage(<%-trj("app.git_integration_unavailable")%>)
+        setLabel(<%-trj("app.publish")%>)
         disableDropdown()
         const hasRepos = Array.isArray(repos) && repos.length > 0
         pushBtn.disabled = !hasRepos
@@ -14321,17 +14350,17 @@ const rerenderMenuSection = (container, html) => {
         } else {
           pushBtn.classList.remove('fs-status-btn--disabled')
         }
-        pushBtn.setAttribute('title', 'Git integration is not available')
+        pushBtn.setAttribute('title', <%-trj("app.git_integration_unavailable")%>)
         latestGitIntegration = null
         syncForkButton()
         return
       }
 
       if (!publishMenu) {
-        setLabel('Publish')
+        setLabel(<%-trj("app.publish")%>)
         disableDropdown()
       } else if (!publishMenu.hasChildNodes()) {
-        setPublishMenuMessage('Loading repositories...')
+        setPublishMenuMessage(<%-trj("app.loading_repositories")%>)
       }
 
       try {
@@ -14344,15 +14373,15 @@ const rerenderMenuSection = (container, html) => {
 
         const isConnected = Boolean(data && data.connected)
         const emptyMessage = isConnected
-          ? 'No Git repositories detected'
-          : 'Connect GitHub to publish this workspace'
+          ? <%-trj("app.no_git_repositories")%>
+          : <%-trj("app.connect_github_publish")%>
         renderPublishDropdown(repos, { emptyMessage })
 
         if (!isConnected) {
-          setLabel('Publish')
+          setLabel(<%-trj("app.publish")%>)
           pushBtn.disabled = false
           pushBtn.classList.remove('fs-status-btn--disabled')
-          pushBtn.setAttribute('title', 'Log in to GitHub to publish this workspace')
+          pushBtn.setAttribute('title', <%-trj("app.login_github_publish")%>)
           disableDropdown()
           pushBtn.addEventListener('click', requireGitLogin)
           syncForkButton()
@@ -14360,10 +14389,10 @@ const rerenderMenuSection = (container, html) => {
         }
 
         if (!Array.isArray(repos) || repos.length === 0) {
-          setLabel('Publish')
+          setLabel(<%-trj("app.publish")%>)
           pushBtn.disabled = true
           pushBtn.classList.add('fs-status-btn--disabled')
-          pushBtn.setAttribute('title', 'No Git repositories detected')
+          pushBtn.setAttribute('title', <%-trj("app.no_git_repositories")%>)
           disableDropdown()
           syncForkButton()
           return
@@ -14372,17 +14401,17 @@ const rerenderMenuSection = (container, html) => {
         pushBtn.disabled = false
         pushBtn.classList.remove('fs-status-btn--disabled')
 
-        setLabel('Publish')
+        setLabel(<%-trj("app.publish")%>)
         pushBtn.removeAttribute('title')
         enableDropdown()
         syncForkButton()
       } catch (error) {
         console.error('Error checking remotes:', error)
-        setPublishMenuMessage('Git integration unavailable')
-        setLabel('Publish')
+        setPublishMenuMessage(<%-trj("app.git_integration_unavailable")%>)
+        setLabel(<%-trj("app.publish")%>)
         pushBtn.disabled = false
         pushBtn.classList.remove('fs-status-btn--disabled')
-        pushBtn.setAttribute('title', 'Log in to GitHub to publish this workspace')
+        pushBtn.setAttribute('title', <%-trj("app.login_github_publish")%>)
         disableDropdown()
         pushBtn.addEventListener('click', requireGitLogin)
         latestGitIntegration = null
@@ -14524,7 +14553,7 @@ const rerenderMenuSection = (container, html) => {
 
   const updateFromUsage = (usage) => {
     if (!usage || !usage.ok) {
-      setStatus("Usage unavailable")
+      setStatus(<%-trj("app.usage_unavailable")%>)
       setChip("cpu", false, "CPU --")
       setChip("ram", false, "RAM --")
       setChip("vram", false, "VRAM --")
@@ -14542,11 +14571,11 @@ const rerenderMenuSection = (container, html) => {
     setChip("vram", !!(vram.enabled && vram.available), `VRAM ${vram.formatted || "--"}`)
 
     if (!usage.running) {
-      setStatus("No running app process")
+      setStatus(<%-trj("app.no_running_app_process")%>)
     } else if (usage.stale) {
-      setStatus("Showing last sampled usage")
+      setStatus(<%-trj("app.showing_last_sampled_usage")%>)
     } else {
-      setStatus("Updated just now")
+      setStatus(<%-trj("app.updated_just_now")%>)
     }
   }
 
@@ -14561,7 +14590,7 @@ const rerenderMenuSection = (container, html) => {
       })
       updateFromUsage(await response.json())
     } catch (_) {
-      setStatus("Usage unavailable")
+      setStatus(<%-trj("app.usage_unavailable")%>)
     } finally {
       refreshInFlight = false
     }
@@ -14611,7 +14640,7 @@ const rerenderMenuSection = (container, html) => {
           applyPreferences(result.preferences || next)
           await fetchUsage()
         } catch (_) {
-          setStatus("Could not save resource settings")
+          setStatus(<%-trj("app.could_not_save_resource_settings")%>)
           applyPreferences(previous)
         }
       })
@@ -14669,7 +14698,7 @@ const rerenderMenuSection = (container, html) => {
 
   const updateToggle = (collapsed) => {
     const expanded = !collapsed
-    const label = expanded ? "Hide sidebar" : "Show sidebar"
+    const label = expanded ? <%-trj("app.hide_sidebar")%> : <%-trj("app.show_sidebar")%>
     toggle.setAttribute("aria-expanded", expanded ? "true" : "false")
     toggle.setAttribute("aria-label", label)
     toggle.setAttribute("title", label)
@@ -14805,16 +14834,16 @@ document.addEventListener("DOMContentLoaded", () => {
       <div class="pinokio-modal-header">
         <div class="pinokio-modal-icon"><i class="fa-solid fa-circle-info"></i></div>
         <div class="pinokio-modal-heading">
-          <div class="pinokio-modal-title">Checkpoint snapshot</div>
-          <div class="pinokio-modal-subtitle">Metadata only, restore exact module versions</div>
+          <div class="pinokio-modal-title">${<%-trj("app.checkpoint_snapshot")%>}</div>
+          <div class="pinokio-modal-subtitle">${<%-trj("app.snapshot_metadata_only")%>}</div>
         </div>
       </div>
       <div class="pinokio-modal-body">
-        <div class="snapshot-info-text">Creates a tiny JSON of exact commit hashes and install paths for installed modules (no files), so you can later restore exact versions from the <a href="/checkpoints">Checkpoints tab</a>. Use after all modules have finished installing.</div>
-        <div class="snapshot-info-label">Example snapshot JSON</div>
+        <div class="snapshot-info-text">${<%-trj("app.snapshot_info")%>}</div>
+        <div class="snapshot-info-label">${<%-trj("app.example_snapshot_json")%>}</div>
         <pre class="snapshot-info-code" data-snapshot-json="1"></pre>
-        <div class="snapshot-info-label spaced">Example restore UI</div>
-        <img class="snapshot-info-image" src="/checkpoint.png" alt="Checkpoint restore UI example" loading="lazy" />
+        <div class="snapshot-info-label spaced">${<%-trj("app.example_restore_ui")%>}</div>
+        <img class="snapshot-info-image" src="/checkpoint.png" alt="${<%-trj("app.example_restore_ui")%>}" loading="lazy" />
       </div>
     </div>
   `
@@ -14825,7 +14854,7 @@ document.addEventListener("DOMContentLoaded", () => {
       backdrop: 'rgba(9,11,15,0.65)',
       width: 'min(560px, 92vw)',
       showConfirmButton: true,
-      confirmButtonText: 'Got it',
+      confirmButtonText: <%-trj("app.got_it")%>,
       showCloseButton: true,
       buttonsStyling: false,
       focusConfirm: false,
@@ -14856,7 +14885,7 @@ document.addEventListener("DOMContentLoaded", () => {
     event.preventDefault()
     if (isSaving) return
     isSaving = true
-    setSaveLoading(true, `<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...`)
+    setSaveLoading(true, `<i class="fa-solid fa-circle-notch fa-spin"></i> ${<%-trj("app.saving")%>}`)
     try {
       const infoRes = await fetch(`/info/api/${encodeURIComponent(workspace)}`, {
         method: "GET",
@@ -14877,15 +14906,15 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="pinokio-modal-header">
               <div class="pinokio-modal-icon"><i class="fa-brands fa-github"></i></div>
               <div class="pinokio-modal-heading">
-                <div class="pinokio-modal-title">Publish this workspace first</div>
+                <div class="pinokio-modal-title">${<%-trj("app.publish_workspace_first")%>}</div>
                 <div class="pinokio-modal-subtitle">
-                  Backups are indexed by git remote. Publish this workspace to GitHub (or add a remote) before creating a snapshot.
+                  ${<%-trj("app.publish_workspace_first_subtitle")%>}
                 </div>
               </div>
             </div>
             <div class="pinokio-modal-body">
               <p class="pinokio-modal-text">
-                We couldn&apos;t find a Git remote for this workspace. Once you publish it, you&apos;ll be able to create snapshots and restore them from the Backups page.
+                ${<%-trj("app.no_git_remote_snapshot")%>}
               </p>
             </div>
           </div>
@@ -14905,8 +14934,8 @@ document.addEventListener("DOMContentLoaded", () => {
           showCloseButton: false,
           showConfirmButton: true,
           showCancelButton: true,
-          confirmButtonText: 'Open Publish',
-          cancelButtonText: 'Cancel',
+          confirmButtonText: <%-trj("app.open_publish")%>,
+          cancelButtonText: <%-trj("common.cancel")%>,
           focusConfirm: false,
         }).then((result) => {
           if (result && result.isConfirmed) {
@@ -14928,20 +14957,20 @@ document.addEventListener("DOMContentLoaded", () => {
       const payload = res.ok ? await res.json().catch(() => null) : null
       if (!payload || !payload.ok) {
         setSaveLoading(false, saveOriginal)
-        Swal.fire({ icon: "error", title: "Error", text: "Save failed" })
+        Swal.fire({ icon: "error", title: <%-trj("common.error")%>, text: <%-trj("common.failed_save")%> })
         return
       }
       const snapshotId = payload && payload.created && payload.created.id ? payload.created.id : null
       if (!snapshotId) {
         setSaveLoading(false, saveOriginal)
-        Swal.fire({ icon: "error", title: "Error", text: "Save failed" })
+        Swal.fire({ icon: "error", title: <%-trj("common.error")%>, text: <%-trj("common.failed_save")%> })
         return
       }
-      setSaveLoading(false, `<i class="fa-solid fa-circle-check"></i> Saved`)
+      setSaveLoading(false, `<i class="fa-solid fa-circle-check"></i> ${<%-trj("app.saved")%>}`)
       saveBtn.disabled = true
 	    } catch (_) {
 	      setSaveLoading(false, saveOriginal)
-	      Swal.fire({ icon: "error", title: "Error", text: "Save failed" })
+	      Swal.fire({ icon: "error", title: <%-trj("common.error")%>, text: <%-trj("common.failed_save")%> })
 	    } finally {
 	      isSaving = false
 	    }
@@ -15400,7 +15429,7 @@ document.addEventListener("DOMContentLoaded", () => {
     copy.className = "ask-ai-drawer-picker-copy"
     const name = document.createElement("div")
     name.className = "ask-ai-drawer-picker-name"
-    name.textContent = tool.label || tool.value || "Plugin"
+    name.textContent = tool.label || tool.value || <%-trj("plugins.plugin")%>
     copy.appendChild(name)
     if (tool.description) {
       const meta = document.createElement("div")
@@ -15414,7 +15443,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (tool.kind === "shell") {
         const opened = await openShellTool(tool)
         if (!opened) {
-          setPickerStatus("Could not open this shell.")
+          setPickerStatus(<%-trj("app.could_not_open_shell")%>)
         }
         return
       }
@@ -15423,7 +15452,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const opened = openWithUrl(tool.href, { workspaceCwd })
       if (!opened) {
-        setPickerStatus("Could not launch this plugin.")
+        setPickerStatus(<%-trj("app.could_not_launch_plugin")%>)
       }
     })
     return button
@@ -15449,7 +15478,7 @@ document.addEventListener("DOMContentLoaded", () => {
     clearPickerList()
     const sourceTools = Array.isArray(tools) ? tools : []
     if (sourceTools.length === 0) {
-      setPickerStatus("No shells or plugins available.")
+      setPickerStatus(<%-trj("app.no_shells_plugins_available")%>)
       return
     }
     const normalizedQuery = normalizePickerQuery(query)
@@ -15457,7 +15486,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ? sourceTools.filter((tool) => toolMatchesPickerQuery(tool, normalizedQuery))
       : sourceTools
     if (visibleTools.length === 0) {
-      setPickerStatus("No matching shells or plugins.")
+      setPickerStatus(<%-trj("app.no_matching_shells_plugins")%>)
       return
     }
     const groups = new Map()
@@ -15482,8 +15511,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return
       }
       const displayCategory = category === "SHELL"
-        ? "Project Shell"
-        : (category === "IDE" ? "Desktop Plugins" : (category === "CLI" ? "Terminal Plugins" : category))
+        ? <%-trj("build.project_shell")%>
+        : (category === "IDE" ? <%-trj("plugins.desktop_plugins")%> : (category === "CLI" ? <%-trj("plugins.terminal_plugins")%> : (category === "Other" ? <%-trj("common.other")%> : category)))
       const group = document.createElement("div")
       group.className = "ask-ai-drawer-picker-group"
       const label = document.createElement("div")
@@ -15499,7 +15528,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     })
     if (!renderedCount) {
-      setPickerStatus("No shells or plugins available.")
+      setPickerStatus(<%-trj("app.no_shells_plugins_available")%>)
       return
     }
     setPickerStatus("")
@@ -15555,7 +15584,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (searchInput) {
       searchInput.value = ""
     }
-    setPickerStatus("Loading shells and plugins...")
+    setPickerStatus(<%-trj("app.loading_shells_plugins")%>)
     getAskAiTools(workspaceCwd).then((tools) => {
       if (requestId !== pickerRequestId) {
         return
@@ -15845,7 +15874,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setLocation("")
   setActionState(false)
   setEmptyState(true)
-  setPickerStatus("Choose a shell or plugin to start an agent.")
+  setPickerStatus(<%-trj("app.choose_shell_plugin_start_agent")%>)
   setOpen(false)
   window.PinokioAskAiDrawer = {
     openWithAgent,
@@ -16359,12 +16388,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     renderSections(sections)
     if (outputEl) {
-      outputEl.textContent = payload && payload.markdown ? payload.markdown : "No app log files were found."
+      outputEl.textContent = payload && payload.markdown ? payload.markdown : <%-trj("app.no_app_log_files_found")%>
     }
     if (copyBtn) {
       copyBtn.disabled = !(payload && payload.markdown)
     }
-    setStatus(`Basic redaction applied. ${sections.length} latest log file${sections.length === 1 ? "" : "s"} included.`)
+    setStatus(<%-trj("app.basic_redaction_applied_count", { count: "__COUNT__" })%>.replace("__COUNT__", sections.length))
   }
 
   const renderError = (message) => {
@@ -16377,7 +16406,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (copyBtn) {
       copyBtn.disabled = true
     }
-    setStatus("Unable to build log report.")
+    setStatus(<%-trj("app.unable_build_log_report")%>)
   }
 
   async function loadReport(force) {
@@ -16392,7 +16421,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (refreshBtn) {
       refreshBtn.disabled = true
     }
-    setStatus("Building sanitized log report...")
+    setStatus(<%-trj("app.building_sanitized_log_report")%>)
     try {
       const response = await fetch(reportUrl, {
         headers: { "Accept": "application/json" },
@@ -16405,7 +16434,7 @@ document.addEventListener("DOMContentLoaded", () => {
       report = payload
       renderReport(report)
     } catch (error) {
-      renderError(error && error.message ? error.message : String(error || "Unknown error"))
+      renderError(error && error.message ? error.message : String(error || <%-trj("common.unknown_error")%>))
     } finally {
       loading = false
       if (refreshBtn) {
@@ -16420,7 +16449,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     try {
       await navigator.clipboard.writeText(report.markdown)
-      setStatus("Report copied.")
+      setStatus(<%-trj("app.report_copied")%>)
     } catch (_) {
       if (outputEl) {
         outputEl.focus()
@@ -16430,7 +16459,7 @@ document.addEventListener("DOMContentLoaded", () => {
         selection.removeAllRanges()
         selection.addRange(range)
       }
-      setStatus("Select the report text to copy.")
+      setStatus(<%-trj("app.select_report_text_copy")%>)
     }
   }
 
@@ -16699,7 +16728,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (icon) {
         icon.className = expanded ? "fa-solid fa-compress" : "fa-solid fa-expand"
       }
-      const label = expanded ? "Exit full screen" : "Expand panel"
+      const label = expanded ? <%-trj("common.exit_full_screen")%> : <%-trj("common.expand_panel")%>
       expandBtn.setAttribute("aria-label", label)
       setTooltip(expandBtn, label)
     }
@@ -16785,12 +16814,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const syncLocation = () => {
     if (!locationInput) return
     if (!url) {
-      locationInput.placeholder = "Unavailable"
+      locationInput.placeholder = <%-trj("common.unavailable")%>
       setLocationFull("")
       return
     }
     if (!enabled) {
-      locationInput.placeholder = "Not connected"
+      locationInput.placeholder = <%-trj("editor.not_connected")%>
       setLocationFull("")
       return
     }
@@ -16821,12 +16850,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!icon) return
     if (nextEnabled) {
       icon.className = "fa-solid fa-link-slash"
-      toggleBtn.setAttribute("aria-label", "Disconnect from Pinokio Network")
-      setTooltip(toggleBtn, "Disconnect from Pinokio Network")
+      toggleBtn.setAttribute("aria-label", <%-trj("app.disconnect_pinokio_network")%>)
+      setTooltip(toggleBtn, <%-trj("app.disconnect_pinokio_network")%>)
     } else {
       icon.className = "fa-solid fa-link"
-      toggleBtn.setAttribute("aria-label", "Connect to Pinokio Network")
-      setTooltip(toggleBtn, url ? "Connect to Pinokio Network" : "Unavailable")
+      toggleBtn.setAttribute("aria-label", <%-trj("app.connect_pinokio_network")%>)
+      setTooltip(toggleBtn, url ? <%-trj("app.connect_pinokio_network")%> : <%-trj("common.unavailable")%>)
     }
   }
 
@@ -16864,17 +16893,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const updateState = () => {
     if (!url) {
-      setStatusDot("unavailable", "Unavailable")
+      setStatusDot("unavailable", <%-trj("common.unavailable")%>)
       if (refreshBtn) {
         refreshBtn.disabled = true
       }
       if (homeBtn) {
         homeBtn.disabled = true
-        setTooltip(homeBtn, "Unavailable")
+        setTooltip(homeBtn, <%-trj("common.unavailable")%>)
       }
       if (toggleBtn) {
         toggleBtn.disabled = true
-        setTooltip(toggleBtn, "Unavailable")
+        setTooltip(toggleBtn, <%-trj("common.unavailable")%>)
       }
       setNavDisabled(true)
       if (empty) empty.classList.remove("hidden")
@@ -16883,13 +16912,13 @@ document.addEventListener("DOMContentLoaded", () => {
       return
     }
     if (enabled) {
-      setStatusDot("online", "Online")
+      setStatusDot("online", <%-trj("common.online")%>)
       if (refreshBtn) {
         refreshBtn.disabled = false
       }
       if (homeBtn) {
         homeBtn.disabled = false
-        setTooltip(homeBtn, "Project feed")
+        setTooltip(homeBtn, <%-trj("app.project_feed")%>)
       }
       setNavDisabled(false)
       setToggleState(true)
@@ -16902,13 +16931,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     } else {
-      setStatusDot("offline", "Offline")
+      setStatusDot("offline", <%-trj("common.offline")%>)
       if (refreshBtn) {
         refreshBtn.disabled = true
       }
       if (homeBtn) {
         homeBtn.disabled = true
-        setTooltip(homeBtn, "Connect to Pinokio Network")
+        setTooltip(homeBtn, <%-trj("app.connect_pinokio_network")%>)
       }
       setNavDisabled(true)
       setToggleState(false)
@@ -17112,13 +17141,13 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!url) {
     if (connectBtn) {
       connectBtn.disabled = true
-      connectBtn.textContent = "Unavailable"
+      connectBtn.textContent = <%-trj("common.unavailable")%>
     }
     if (emptyTitle) {
-      emptyTitle.textContent = "No Pinokio Network link for this workspace."
+      emptyTitle.textContent = <%-trj("app.no_pinokio_network_link")%>
     }
     if (emptyNote) {
-      emptyNote.textContent = "Publish the repo to enable Pinokio Network updates."
+      emptyNote.textContent = <%-trj("app.publish_enable_network_updates")%>
     }
   }
   initCommunityWidth()
@@ -17287,7 +17316,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   const renderScripts = () => {
     if (loadingCandidates) {
-      scriptsEl.innerHTML = '<div class="app-autolaunch-empty">Loading scripts...</div>'
+      scriptsEl.innerHTML = `<div class="app-autolaunch-empty">${<%-trj("app.loading_scripts")%>}</div>`
       setBusy(false)
       return
     }
@@ -17297,7 +17326,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return
     }
     if (!candidateState) {
-      scriptsEl.innerHTML = '<div class="app-autolaunch-empty">Open to load scripts.</div>'
+      scriptsEl.innerHTML = `<div class="app-autolaunch-empty">${<%-trj("app.open_to_load_scripts")%>}</div>`
       setBusy(false)
       return
     }
@@ -17306,7 +17335,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (current && !candidates.some((candidate) => candidate && candidate.script === current)) {
       candidates.unshift({
         script: current,
-        label: "Current",
+        label: <%-trj("common.current")%>,
         source: "current",
         current: true
       })
@@ -17315,7 +17344,7 @@ document.addEventListener("DOMContentLoaded", () => {
       selectedScript = chooseInitialScript(candidateState)
     }
     if (candidates.length === 0) {
-      scriptsEl.innerHTML = '<div class="app-autolaunch-empty">No local scripts were found for this app.</div>'
+      scriptsEl.innerHTML = `<div class="app-autolaunch-empty">${<%-trj("app.no_local_scripts")%>}</div>`
       setBusy(false)
       return
     }
@@ -17326,9 +17355,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const checked = script === selectedScript ? "checked" : ""
       const selected = script === selectedScript ? " selected" : ""
       const tags = [
-        candidate.current ? '<span class="app-autolaunch-tag">Current</span>' : "",
-        candidate.menu_default ? '<span class="app-autolaunch-tag">Default</span>' : "",
-        candidate.has_params ? '<span class="app-autolaunch-tag">Params ignored</span>' : ""
+        candidate.current ? `<span class="app-autolaunch-tag">${<%-trj("common.current")%>}</span>` : "",
+        candidate.menu_default ? `<span class="app-autolaunch-tag">${<%-trj("common.default")%>}</span>` : "",
+        candidate.has_params ? `<span class="app-autolaunch-tag">${<%-trj("app.params_ignored")%>}</span>` : ""
       ].filter(Boolean).join("")
       const pathLine = label === script
         ? ""
@@ -17369,14 +17398,14 @@ document.addEventListener("DOMContentLoaded", () => {
       })
       const data = await response.json()
       if (!response.ok || !data.ok) {
-        throw new Error(data.error || "Failed to load scripts.")
+        throw new Error(data.error || <%-trj("autolaunch.failed_load")%>)
       }
       candidateState = data
       syncState(data.app)
       selectedScript = chooseInitialScript(data)
       setFeedback("")
     } catch (error) {
-      candidateError = error && error.message ? error.message : "Failed to load scripts."
+      candidateError = error && error.message ? error.message : <%-trj("autolaunch.failed_load")%>
     } finally {
       loadingCandidates = false
       renderScripts()
@@ -17385,7 +17414,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveScript = async (script) => {
     if (saving) return
     setBusy(true)
-    setFeedback(script ? "Saving..." : "Disabling...")
+    setFeedback(script ? <%-trj("autolaunch.saving")%> : <%-trj("autolaunch.disabling")%>)
     try {
       const response = await fetch("/autolaunch", {
         method: "POST",
@@ -17397,13 +17426,13 @@ document.addEventListener("DOMContentLoaded", () => {
       })
       const data = await response.json()
       if (!response.ok || !data.ok) {
-        throw new Error(data.error || "Failed to save autolaunch.")
+        throw new Error(data.error || <%-trj("autolaunch.failed_save")%>)
       }
       syncState(data.app)
-      setFeedback(data.app && data.app.autolaunch_enabled ? "Saved." : "Disabled.")
+      setFeedback(data.app && data.app.autolaunch_enabled ? <%-trj("autolaunch.saved")%> : <%-trj("autolaunch.disabled")%>)
       renderScripts()
     } catch (error) {
-      setFeedback(error && error.message ? error.message : "Failed to save autolaunch.", true)
+      setFeedback(error && error.message ? error.message : <%-trj("autolaunch.failed_save")%>, true)
       renderStatus()
     } finally {
       setBusy(false)
@@ -17420,7 +17449,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     const script = selectedScript || chooseInitialScript(candidateState)
     if (!script) {
-      setFeedback("Choose a script first.", true)
+      setFeedback(<%-trj("autolaunch.choose_script_first")%>, true)
       return
     }
     selectedScript = script

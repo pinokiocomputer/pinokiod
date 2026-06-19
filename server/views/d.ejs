@@ -1,3 +1,7 @@
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <html>
 <head>
 <title>Pinokio</title>
@@ -839,6 +843,9 @@ body.dark .terminal-shell-options {
 </style>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
@@ -846,7 +853,7 @@ body.dark .terminal-shell-options {
 <body class='<%=theme%>' data-agent="<%=agent%>">
 <main>
 <form class='search'>
-  <input type='search' class="flexible" placeholder='Filter tools'>
+  <input type='search' class="flexible" placeholder='<%=tr("build.filter_tools")%>'>
 </form>
 <!--
 <header>
@@ -863,10 +870,10 @@ body.dark .terminal-shell-options {
 -->
 <div class='spec'>
   <div class='explain'>
-    <h3><i class="fa-regular fa-circle-check"></i> TODO</h3>
+    <h3><i class="fa-regular fa-circle-check"></i> <%=tr("build.todo")%></h3>
     <ol>
-      <li><strong>Build manually:</strong> Open the project files and start building. <a class='btn file-open' data-filepath="<%=filepath%>"><i class="fa-solid fa-folder-open"></i> open project folder</a></li>
-      <li><strong>Build with AI:</strong> Click any of the below AI tools to instantly start building with AI.</li>
+      <li><strong><%=tr("build.manually")%>:</strong> <%=tr("build.manually_copy")%> <a class='btn file-open' data-filepath="<%=filepath%>"><i class="fa-solid fa-folder-open"></i> <%=tr("build.open_project_folder")%></a></li>
+      <li><strong><%=tr("build.with_ai")%>:</strong> <%=tr("build.with_ai_copy")%></li>
     </ol>
   </div>
 </div>
@@ -919,7 +926,7 @@ body.dark .terminal-shell-options {
                 <% } %>
               </div>
               <div class='tab-actions'>
-                <button class="tab-action-link" type="button" data-plugin-settings="true" data-href="<%= i.href %>" title="Manage plugin" data-tippy-content="Manage plugin" aria-label="Manage plugin">
+                <button class="tab-action-link" type="button" data-plugin-settings="true" data-href="<%= i.href %>" title="<%=tr("build.manage_plugin")%>" data-tippy-content="<%=tr("build.manage_plugin")%>" aria-label="<%=tr("build.manage_plugin")%>">
                   <i class="fa-solid fa-gear"></i>
                 </button>
                 <div class='disclosure-indicator' aria-hidden="true">
@@ -962,7 +969,7 @@ body.dark .terminal-shell-options {
                 <% } %>
               </div>
               <div class='tab-actions'>
-                <button class="tab-action-link" type="button" data-plugin-settings="true" data-href="<%= i.href %>" title="Manage plugin" data-tippy-content="Manage plugin" aria-label="Manage plugin">
+                <button class="tab-action-link" type="button" data-plugin-settings="true" data-href="<%= i.href %>" title="<%=tr("build.manage_plugin")%>" data-tippy-content="<%=tr("build.manage_plugin")%>" aria-label="<%=tr("build.manage_plugin")%>">
                   <i class="fa-solid fa-gear"></i>
                 </button>
                 <div class='disclosure-indicator' aria-hidden="true">
@@ -997,7 +1004,7 @@ body.dark .terminal-shell-options {
                 <% } %>
               </div>
               <div class='tab-actions'>
-                <button class="tab-action-link" type="button" data-plugin-settings="true" data-href="<%= i.href %>" title="Manage plugin" data-tippy-content="Manage plugin" aria-label="Manage plugin">
+                <button class="tab-action-link" type="button" data-plugin-settings="true" data-href="<%= i.href %>" title="<%=tr("build.manage_plugin")%>" data-tippy-content="<%=tr("build.manage_plugin")%>" aria-label="<%=tr("build.manage_plugin")%>">
                   <i class="fa-solid fa-gear"></i>
                 </button>
                 <div class='disclosure-indicator' aria-hidden="true">
@@ -1024,7 +1031,7 @@ body.dark .terminal-shell-options {
             <% if (item.link) { %>
               <a class='btn' target="_blank" href="<%= item.link %>"><i class="fa-solid fa-circle-info"></i></a>
             <% } %>
-            <a class='run-btn btn' href="<%= item.href %>"><i class="fa-solid <%= item.type === "Start" ? 'fa-play' : 'fa-rocket' %>"></i> <%= item.type === "Start" ? "Run" : item.type %></a>
+            <a class='run-btn btn' href="<%= item.href %>"><i class="fa-solid <%= item.type === "Start" ? 'fa-play' : 'fa-rocket' %>"></i> <%= item.type === "Start" ? tr("home.run") : item.type %></a>
           </div>
         </div>
       </div>
@@ -1115,7 +1122,7 @@ const search = (items, value) => {
   let filtered = []
   for(let i=0; i<items.length; i++) {
     let item = items[i]
-    let re = new RegExp(value, "i")
+  let re = new RegExp(value, "i")
     if (re.test(item.text)) {
       filtered.push({ item })
     }
@@ -1376,17 +1383,17 @@ const toggleTerminalGroup = async (tab) => {
   group.dataset.loading = '1'
   setTerminalGroupExpanded(group, true)
   setTerminalGroupState(tab, 'loading')
-  panel.innerHTML = '<div class="terminal-shell-status"><i class="fa-solid fa-circle-notch fa-spin"></i><span>Loading shell options...</span></div>'
+  panel.innerHTML = `<div class="terminal-shell-status"><i class="fa-solid fa-circle-notch fa-spin"></i><span>${<%-trj("build.loading_shell_options")%>}</span></div>`
   try {
     const html = await fetch(url).then((res) => res.text())
     if (!html || html.trim().length === 0) {
-      panel.innerHTML = '<div class="terminal-shell-status"><span>No shell options available.</span></div>'
+      panel.innerHTML = `<div class="terminal-shell-status"><span>${<%-trj("build.no_shell_options")%>}</span></div>`
     } else {
       panel.innerHTML = html
       group.dataset.loaded = '1'
     }
   } catch (_) {
-    panel.innerHTML = '<div class="terminal-shell-status"><span>Unable to load shell options.</span></div>'
+    panel.innerHTML = `<div class="terminal-shell-status"><span>${<%-trj("build.unable_shell_options")%>}</span></div>`
   } finally {
     delete group.dataset.loading
     setTerminalGroupState(tab, 'idle')

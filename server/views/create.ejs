@@ -1,6 +1,9 @@
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+%>
 <html>
 <head>
-<title>Create Launcher</title>
+<title><%= tr("create.title") %></title>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <link href="/xterm.min.css" rel="stylesheet" />
@@ -28,9 +31,12 @@
   </div>
 </main>
 <script src="/Socket.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
+<script src="/common.js"></script>
 <script src="/urldropdown.js"></script>
 <script src="/create-launcher.js"></script>
-<script src="/common.js"></script>
 <script>
 (function() {
   const defaults = <%- JSON.stringify(defaults || {}) %>;

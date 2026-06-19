@@ -24,6 +24,20 @@
   const STORAGE_PREFIX = 'pinokio:layout:';
   const MIN_PANEL_SIZE = 120;
   const GUTTER_SIZE = 6;
+  const t = (key, fallback, replacements = {}) => {
+    if (typeof window.pinokioT === 'function') {
+      return window.pinokioT(key, fallback, replacements);
+    }
+    const catalog = window.PINOKIO_I18N && typeof window.PINOKIO_I18N === 'object' ? window.PINOKIO_I18N : {};
+    let value = Object.prototype.hasOwnProperty.call(catalog, key) ? catalog[key] : `[missing translation: ${key}]`;
+    if (typeof value !== 'string') {
+      value = `[missing translation: ${key}]`;
+    }
+    Object.entries(replacements || {}).forEach(([name, replacement]) => {
+      value = value.replace(new RegExp(`\\{${name}\\}`, 'g'), replacement == null ? '' : String(replacement));
+    });
+    return value;
+  };
 
   const state = {
     sessionId: typeof parsedConfig.sessionId === 'string' && parsedConfig.sessionId.trim() ? parsedConfig.sessionId.trim() : null,
@@ -836,7 +850,7 @@
           icon.textContent = '🔔';
           const text = document.createElement('span');
           text.className = 'text';
-          text.textContent = 'Notification received';
+          text.textContent = t('common.notification_received', 'Notification received');
           el.appendChild(icon);
           el.appendChild(text);
           document.body.appendChild(el);
@@ -849,7 +863,7 @@
       const node = ensureIndicator();
       const text = node.querySelector('.text');
       if (text) {
-        const msg = (message && typeof message === 'string' && message.trim()) ? message.trim() : 'Notification received';
+        const msg = (message && typeof message === 'string' && message.trim()) ? message.trim() : t('common.notification_received', 'Notification received');
         text.textContent = msg.length > 80 ? (msg.slice(0,77) + '…') : msg;
       }
       node.classList.remove('show');

@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <%
+  const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+  %>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <title>Files · <%=workspaceLabel%></title>
+  <title><%=tr("file_browser.title")%> · <%=workspaceLabel%></title>
   <link href="/css/fontawesome.min.css" rel="stylesheet">
   <link href="/css/solid.min.css" rel="stylesheet">
   <link href="/css/regular.min.css" rel="stylesheet">
@@ -21,13 +24,13 @@
 <body class="<%=theme%>" data-agent="<%=agent%>">
   <div class="files-app" data-theme="<%=theme%>">
     <header class="files-app__header">
-      <button class="files-app__mobile-back" id="files-app-mobile-back" type="button" aria-label="Back to files">
+      <button class="files-app__mobile-back" id="files-app-mobile-back" type="button" aria-label="<%=tr("file_browser.back_to_files")%>">
         <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
-        <span>Files</span>
+        <span><%=tr("file_browser.title")%></span>
       </button>
       <div class="files-app__header-title">
         <% if (workspaceMeta && workspaceMeta.icon) { %>
-          <img class="files-app__header-icon" src="<%= workspaceMeta.icon %>" onerror="this.onerror=null; this.src='/pinokio-black.png'" alt="Project icon" />
+          <img class="files-app__header-icon" src="<%= workspaceMeta.icon %>" onerror="this.onerror=null; this.src='/pinokio-black.png'" alt="<%=tr("file_browser.project_icon")%>" />
         <% } else { %>
           <i class="fa-regular fa-folder-open"></i>
         <% } %>
@@ -42,25 +45,25 @@
       <div class="files-app__header-actions">
         <button class="files-app__meta" type="button" id="files-app-edit-metadata">
           <i class="fa-solid fa-pen-to-square"></i>
-          <span>Edit metadata</span>
+          <span><%=tr("file_browser.edit_metadata")%></span>
         </button>
         <button class="files-app__save" id="files-app-save" disabled>
           <i class="fa-solid fa-floppy-disk"></i>
-          <span>Save</span>
+          <span><%=tr("common.save")%></span>
         </button>
       </div>
     </header>
     <section class="files-app__body">
-      <aside class="files-app__sidebar" aria-label="Project files">
+      <aside class="files-app__sidebar" aria-label="<%=tr("file_browser.project_files")%>">
         <div class="files-app__sidebar-scroll" id="files-app-tree">
         </div>
       </aside>
       <main class="files-app__main">
         <button class="files-app__sidebar-toggle" id="files-app-toggle-sidebar" type="button" aria-controls="files-app-tree" aria-expanded="true">
-          <span class="sr-only">Hide files</span>
+          <span class="sr-only"><%=tr("file_browser.hide_files")%></span>
           <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
         </button>
-        <div class="files-app__tabs" id="files-app-tabs" role="tablist" aria-label="Open files"></div>
+        <div class="files-app__tabs" id="files-app-tabs" role="tablist" aria-label="<%=tr("file_browser.open_files")%>"></div>
         <div class="files-app__editor" id="files-app-editor" role="presentation"></div>
         <div class="files-app__status" id="files-app-status" role="status" aria-live="polite"></div>
       </main>
@@ -86,7 +89,53 @@
       theme: <%- JSON.stringify(theme) %>,
       initialPath: <%- JSON.stringify(initialPath || '') %>,
       initialPathType: <%- JSON.stringify(initialPathType || null) %>,
-      workspaceRoot: <%- JSON.stringify(workspaceRootEncoded || '') %>
+      workspaceRoot: <%- JSON.stringify(workspaceRootEncoded || '') %>,
+      i18n: <%- JSON.stringify({
+        ready: tr("common.ready"),
+        opening: tr("file_browser.opening"),
+        opened: tr("file_browser.opened"),
+        failedOpenFile: tr("file_browser.failed_open_file"),
+        saving: tr("app.saving"),
+        saved: tr("file_browser.saved"),
+        savedNamed: tr("file_browser.saved_named"),
+        failedSaveFile: tr("file_browser.failed_save_file"),
+        discardUnsaved: tr("file_browser.discard_unsaved"),
+        showFiles: tr("file_browser.show_files"),
+        hideFiles: tr("file_browser.hide_files"),
+        openInFileExplorer: tr("app.open_in_file_explorer"),
+        renameFolder: tr("file_browser.rename_folder"),
+        renameFile: tr("file_browser.rename_file"),
+        deleteFolder: tr("file_browser.delete_folder"),
+        deleteFile: tr("file_browser.delete_file"),
+        moreActions: tr("common.more"),
+        noFilesYet: tr("file_browser.no_files_yet"),
+        chooseAction: tr("file_browser.choose_action"),
+        go: tr("file_browser.go"),
+        cancel: tr("common.cancel"),
+        actions: tr("file_browser.actions"),
+        deleteFolderConfirm: tr("file_browser.delete_folder_confirm"),
+        deleteFileConfirm: tr("file_browser.delete_file_confirm"),
+        unsavedLost: tr("file_browser.unsaved_lost"),
+        renameTo: tr("file_browser.rename_to"),
+        nameCannotEmpty: tr("file_browser.name_cannot_empty"),
+        nameNoSeparators: tr("file_browser.name_no_separators"),
+        renameUnavailable: tr("file_browser.rename_unavailable"),
+        renaming: tr("file_browser.renaming"),
+        renamed: tr("file_browser.renamed"),
+        renamedNamed: tr("file_browser.renamed_named"),
+        failedRename: tr("file_browser.failed_rename"),
+        deleteUnavailable: tr("file_browser.delete_unavailable"),
+        deleting: tr("file_browser.deleting"),
+        deleted: tr("file_browser.deleted"),
+        deletedNamed: tr("file_browser.deleted_named"),
+        failedDelete: tr("file_browser.failed_delete"),
+        unableLoadDirectory: tr("file_browser.unable_load_directory"),
+        changedOnDisk: tr("file_browser.changed_on_disk"),
+        changedOnDiskNamed: tr("file_browser.changed_on_disk_named"),
+        changedReload: tr("file_browser.changed_reload"),
+        changedReloadNamed: tr("file_browser.changed_reload_named"),
+        reloadedNamed: tr("file_browser.reloaded_named")
+      }).replace(/</g, '\\u003c') %>
     });
 
     const workspaceMetadata = {

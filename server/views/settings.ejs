@@ -1,3 +1,7 @@
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -888,6 +892,9 @@ body.settings-page .task-shell-topline {
 <script src="/xterm-theme.js"></script>
 <script src="/install.js"></script>
 <script src="/timeago.min.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
@@ -911,12 +918,12 @@ document.addEventListener('DOMContentLoaded', function() {
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
-<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+<button class='btn2' id='minimize-header' data-tippy-content="<%=tr("common.fullscreen")%>" title='<%=tr("common.fullscreen")%>'>
   <div><i class="fa-solid fa-expand"></i></div>
 </button>
-<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='back' data-tippy-content="<%=tr("common.back")%>"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="<%=tr("common.forward")%>"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="<%=tr("common.refresh")%>"><div><i class="fa-solid fa-rotate-right"></i></div></button>
 <% paths.forEach((path) => { %>
   <% if (path.action) { %>
     <a class='path nav-button' id="<%=path.id%>" onclick="<%=path.action%>"><%-path.name%></a>
@@ -924,26 +931,26 @@ document.addEventListener('DOMContentLoaded', function() {
     <a class='path' href="<%=path.path%>"><%-path.name%></a>
   <% } %>
 <% }) %>
-<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
-<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
-<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
+<button class='btn2' id='screenshot' data-tippy-content="<%=tr("common.screen_capture")%>"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="<%=tr("common.xray_mode")%>"><i class="fa-solid fa-eye"></i></button>
+<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="<%=tr("common.enter_url")%>"><i class="fa-solid fa-link"></i></button>
 <div class='mobile-flexible'></div>
 <form class='urlbar'>
   <div class='url-input-container'>
-    <input type='url' placeholder='enter any local url to open in pinokio'>
+    <input type='url' placeholder='<%=tr("common.url_placeholder")%>'>
     <div class='url-dropdown' id='url-dropdown'></div>
   </div>
 </form>
-<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+<a class='btn2' href="/columns" data-tippy-content="<%=tr("common.split_columns")%>">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
-<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+<a class='btn2' href="/rows" data-tippy-content="<%=tr("common.split_rows")%>">
   <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
 </a>
-<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+<button class='btn2' id='new-window' data-tippy-content="<%=tr("common.open_new_window")%>" title='<%=tr("common.open_new_window")%>' data-agent="<%=agent%>">
   <div><i class="fa-solid fa-plus"></i></div>
 </button>
-<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+<button class='btn2 hidden' id='close-window' data-tippy-content='<%=tr("common.close_section")%>'>
   <div><i class="fa-solid fa-xmark"></i></div>
 </button>
 </h1>
@@ -953,12 +960,12 @@ document.addEventListener('DOMContentLoaded', function() {
   <section class='task-shell settings-shell'>
     <header class='task-shell-header'>
       <div class='task-shell-header-main'>
-        <p class='task-eyebrow'>Settings</p>
-        <h1 class='task-title'>Settings</h1>
+        <p class='task-eyebrow'><%=tr("settings.title")%></p>
+        <h1 class='task-title'><%=tr("settings.title")%></h1>
         <% if (hasHome) { %>
-          <p class='task-description'>Manage Pinokio system preferences, storage paths, troubleshooting tools, and debug utilities.</p>
+          <p class='task-description'><%=tr("settings.description.has_home")%></p>
         <% } else { %>
-          <p class='task-description'>Set and save a Pinokio home folder before using apps, tools, plugins, or troubleshooting features.</p>
+          <p class='task-description'><%=tr("settings.description.needs_home")%></p>
         <% } %>
       </div>
     </header>
@@ -966,34 +973,36 @@ document.addEventListener('DOMContentLoaded', function() {
       <section class='task-section settings-section <%= hasHome ? "" : "settings-section-priority" %>'>
         <div class='task-section-head'>
           <div class='settings-section-heading'>
-            <h2 class='settings-section-title'>General</h2>
+            <h2 class='settings-section-title'><%=tr("settings.general")%></h2>
             <% if (!hasHome) { %>
-              <span class='settings-priority-badge'>Required First</span>
+              <span class='settings-priority-badge'><%=tr("settings.required_first")%></span>
             <% } %>
           </div>
           <% if (!hasHome) { %>
-            <p class='settings-priority-note'>Choose a Pinokio home folder and click Save to continue. Until then, the rest of the settings stay hidden.</p>
+            <p class='settings-priority-note'><%=tr("settings.choose_home_note")%></p>
           <% } %>
         </div>
         <div class='item settings-static'>
-          <span class='settings-static-label'>Version</span>
+          <span class='settings-static-label'><%=tr("settings.version")%></span>
           <% if (version.pinokio) { %>
-            <div class='settings-static-value'><%=version.pinokio%> (server: <%=version.pinokiod%>)</div>
+            <div class='settings-static-value'><%=version.pinokio%> (<%=tr("settings.server_version")%>: <%=version.pinokiod%>)</div>
           <% } else { %>
-            <div class='settings-static-value'>(server: <%=version.pinokiod%>)</div>
+            <div class='settings-static-value'>(<%=tr("settings.server_version")%>: <%=version.pinokiod%>)</div>
           <% } %>
         </div>
         <form class='settings-form'>
           <% config.forEach((c) => { %>
             <div class='item settings-item <%=c.show_on_click ? "hidden" : ""%>' <%=c.show_on_click ? "data-onclick=" + c.show_on_click : ""%>>
-              <label><%=c.key%></label>
+              <label><%=c.label || c.key%></label>
               <% if (c.options) { %>
                 <select name="<%=c.key%>">
                   <% c.options.forEach((o) => { %>
-                    <% if (o === c.val) { %>
-                      <option value="<%=o%>" selected><%=o%></option>
+                    <% const optionValue = (o && typeof o === "object") ? o.value : o %>
+                    <% const optionLabel = (o && typeof o === "object") ? o.label : o %>
+                    <% if (optionValue === c.val) { %>
+                      <option value="<%=optionValue%>" selected><%=optionLabel%></option>
                     <% } else { %>
-                      <option value="<%=o%>"><%=o%></option>
+                      <option value="<%=optionValue%>"><%=optionLabel%></option>
                     <% } %>
                   <% }) %>
                 </select>
@@ -1016,78 +1025,78 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
           <% }) %>
           <div class='item settings-item settings-actions'>
-            <button id='save' class='btn disabled'>Save</button>
-            <a id='proxy'>Running behind proxy?</a>
+            <button id='save' class='btn disabled'><%=tr("settings.save")%></button>
+            <a id='proxy'><%=tr("settings.proxy_question")%></a>
           </div>
         </form>
         <div class='loading hidden'>
-          <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
+          <i class="fa-solid fa-circle-notch fa-spin"></i> <%=tr("settings.loading")%>
         </div>
       </section>
       <% if (hasHome && locals.bin) { %>
         <section id='troubleshoot' class='task-section settings-section troubleshoot'>
           <div class='task-section-head'>
-            <h2 class='settings-section-title'>Troubleshoot</h2>
+            <h2 class='settings-section-title'><%=tr("settings.troubleshoot")%></h2>
           </div>
           <div class='item settings-item'>
-            <label>bin</label>
-            <div class='d'>Reset the bin folder and start fresh from scratch</div>
+            <label><%=tr("settings.bin")%></label>
+            <div class='d'><%=tr("settings.bin_description")%></div>
             <div class='reset-bin-loading hidden'>
-              <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
+              <i class="fa-solid fa-circle-notch fa-spin"></i> <%=tr("settings.loading")%>
             </div>
             <div class='settings-inline-actions'>
-              <button class='btn' data-filepath="<%=bin%>"><i class="fa-solid fa-up-right-from-square"></i> View Folder</button>
-              <button class='red btn' id='del-bin'><i class="fa-solid fa-trash-can"></i> Reset</button>
+              <button class='btn' data-filepath="<%=bin%>"><i class="fa-solid fa-up-right-from-square"></i> <%=tr("settings.view_folder")%></button>
+              <button class='red btn' id='del-bin'><i class="fa-solid fa-trash-can"></i> <%=tr("settings.reset")%></button>
             </div>
           </div>
           <div class='item settings-item'>
-            <label>server cache</label>
-            <div class='d'>Reset the pinokio server cache folder and start fresh from scratch</div>
+            <label><%=tr("settings.server_cache")%></label>
+            <div class='d'><%=tr("settings.server_cache_description")%></div>
             <div class='reset-cache-loading hidden'>
-              <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
+              <i class="fa-solid fa-circle-notch fa-spin"></i> <%=tr("settings.loading")%>
             </div>
             <div class='settings-inline-actions'>
-              <button class='btn' data-filepath="<%=cache%>"><i class="fa-solid fa-up-right-from-square"></i> View Folder</button>
-              <button class='red btn' id='del-cache'><i class="fa-solid fa-trash-can"></i> Reset</button>
+              <button class='btn' data-filepath="<%=cache%>"><i class="fa-solid fa-up-right-from-square"></i> <%=tr("settings.view_folder")%></button>
+              <button class='red btn' id='del-cache'><i class="fa-solid fa-trash-can"></i> <%=tr("settings.reset")%></button>
             </div>
           </div>
           <div class='item settings-item'>
-            <label>environment variables</label>
-            <div class='d'>Reset the pinokio environment variables and start fresh from scratch (Resets the ~/pinokio/ENVIRONMENT file)</div>
+            <label><%=tr("settings.environment_variables")%></label>
+            <div class='d'><%=tr("settings.environment_variables_description")%></div>
             <div class='reset-env-loading hidden'>
-              <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
+              <i class="fa-solid fa-circle-notch fa-spin"></i> <%=tr("settings.loading")%>
             </div>
             <div class='settings-inline-actions'>
-              <button class='btn' data-filepath="<%=env%>"><i class="fa-solid fa-up-right-from-square"></i> View ENVIRONMENT file</button>
-              <button class='red btn' id='del-env'><i class="fa-solid fa-trash-can"></i> Reset</button>
+              <button class='btn' data-filepath="<%=env%>"><i class="fa-solid fa-up-right-from-square"></i> <%=tr("settings.view_environment_file")%></button>
+              <button class='red btn' id='del-env'><i class="fa-solid fa-trash-can"></i> <%=tr("settings.reset")%></button>
             </div>
           </div>
           <% if (agent === "electron") { %>
             <div class='item settings-item'>
-              <label>browser cache</label>
-              <div class='d'>Reset the pinokio browser cache</div>
+              <label><%=tr("settings.browser_cache")%></label>
+              <div class='d'><%=tr("settings.browser_cache_description")%></div>
               <div class='reset-browser-cache-loading hidden'>
-                <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
+                <i class="fa-solid fa-circle-notch fa-spin"></i> <%=tr("settings.loading")%>
               </div>
               <div class='settings-inline-actions'>
-                <button class='red btn' id='del-browser-cache'><i class="fa-solid fa-trash-can"></i> Reset Browser Cache</button>
+                <button class='red btn' id='del-browser-cache'><i class="fa-solid fa-trash-can"></i> <%=tr("settings.reset_browser_cache")%></button>
               </div>
             </div>
           <% } %>
           <div class='item settings-item'>
-            <label>drive</label>
-            <div class='d'>Shared virtual drives</div>
+            <label><%=tr("settings.drive")%></label>
+            <div class='d'><%=tr("settings.drive_description")%></div>
             <div class='settings-inline-actions'>
-              <button class='btn' data-filepath="<%=drive%>"><i class="fa-solid fa-up-right-from-square"></i> View Folder</button>
+              <button class='btn' data-filepath="<%=drive%>"><i class="fa-solid fa-up-right-from-square"></i> <%=tr("settings.view_folder")%></button>
             </div>
           </div>
         </section>
         <section class='task-section settings-section keys'>
           <div class='task-section-head'>
-            <h2 class='settings-section-title'>Keys</h2>
+            <h2 class='settings-section-title'><%=tr("settings.keys")%></h2>
           </div>
           <div class='item settings-item'>
-            <div class='d'>Keys are array values stored for unique host names, stored at <code>~/pinokio/key.json</code>, and can be set through <code>pre</code> attributes in pinokio scripts. Here's an example:</div>
+            <div class='d'><%=tr("settings.keys_description")%></div>
             <pre>{
   "openai.com": [
     "12345678-FAKEaccesstoken1234567890abcdef"
@@ -1098,24 +1107,24 @@ document.addEventListener('DOMContentLoaded', function() {
   ]
 }</pre>
             <div class='settings-inline-actions'>
-              <a class='btn' href="/keys"><i class="fa-solid fa-key"></i> Edit Keys</a>
+              <a class='btn' href="/keys"><i class="fa-solid fa-key"></i> <%=tr("settings.edit_keys")%></a>
             </div>
           </div>
         </section>
         <section class='task-section settings-section advanced'>
           <div class='task-section-head'>
-            <h2 class='settings-section-title'>Advanced</h2>
+            <h2 class='settings-section-title'><%=tr("settings.advanced")%></h2>
           </div>
           <div class='item settings-item'>
-            <div class='d'>Edit the system ENVIRONMENT file to customize Pinokio system-wide settings, such as where files are stored and terminal behavior.</div>
+            <div class='d'><%=tr("settings.advanced_environment_description")%></div>
             <div class='settings-inline-actions'>
-              <a class='btn' href="/env"><i class="fa-regular fa-pen-to-square"></i> Edit ENVIRONMENT</a>
+              <a class='btn' href="/env"><i class="fa-regular fa-pen-to-square"></i> <%=tr("settings.edit_environment")%></a>
             </div>
           </div>
           <div class='item settings-item'>
-            <div class='d'>Test and debug indexed app search results used by pterm and agent workflows.</div>
+            <div class='d'><%=tr("settings.app_search_test_description")%></div>
             <div class='settings-inline-actions'>
-              <a class='btn' href="/apps/search/test"><i class="fa-solid fa-magnifying-glass"></i> Open App Search Test</a>
+              <a class='btn' href="/apps/search/test"><i class="fa-solid fa-magnifying-glass"></i> <%=tr("settings.open_app_search_test")%></a>
             </div>
           </div>
         </section>
@@ -1123,37 +1132,37 @@ document.addEventListener('DOMContentLoaded', function() {
       <% if (hasHome) { %>
         <section class='task-section settings-section docs'>
           <div class='task-section-head'>
-            <h2 class='settings-section-title'>Docs</h2>
+            <h2 class='settings-section-title'><%=tr("settings.docs")%></h2>
           </div>
           <div class='item settings-item'>
-            <div class='d'>Download SKILL.md guides used by Pinokio agents.</div>
+            <div class='d'><%=tr("settings.docs_description")%></div>
             <div class='settings-inline-actions'>
-              <a class='btn' href="/settings/docs/pinokio/download"><i class="fa-solid fa-download"></i> Download pinokio SKILL.md</a>
-              <a class='btn' href="/settings/docs/gepeto/download"><i class="fa-solid fa-download"></i> Download gepeto SKILL.md</a>
+              <a class='btn' href="/settings/docs/pinokio/download"><i class="fa-solid fa-download"></i> <%=tr("settings.download_pinokio_skill")%></a>
+              <a class='btn' href="/settings/docs/gepeto/download"><i class="fa-solid fa-download"></i> <%=tr("settings.download_gepeto_skill")%></a>
             </div>
           </div>
         </section>
         <section class='task-section settings-section debug'>
           <div class='task-section-head'>
-            <h2 class='settings-section-title'>Debug</h2>
+            <h2 class='settings-section-title'><%=tr("settings.debug")%></h2>
           </div>
           <div class='item settings-item'>
-            <label>Command Path</label>
-            <div class='d'>Find the resolved path for a command name using <code>/pinokio/path/:cmd</code>.</div>
+            <label><%=tr("settings.command_path")%></label>
+            <div class='d'><%=tr("settings.command_path_description")%></div>
             <form id='debug-path-form' class='debug-path-form'>
-              <input id='debug-path-cmd' type='text' placeholder='e.g. node, git, python3' autocomplete='off'>
-              <button id='debug-path-submit' class='btn' type='submit'><i class="fa-solid fa-magnifying-glass"></i> Lookup</button>
+              <input id='debug-path-cmd' type='text' placeholder='<%=tr("settings.debug_path_placeholder")%>' autocomplete='off'>
+              <button id='debug-path-submit' class='btn' type='submit'><i class="fa-solid fa-magnifying-glass"></i> <%=tr("settings.lookup")%></button>
             </form>
             <div id='debug-path-result' class='debug-path-result hidden'></div>
           </div>
           <div class='item settings-item'>
-            <label>Shell Environment</label>
-            <div class='d'>Select a running shell to inspect its current environment variables.</div>
+            <label><%=tr("settings.shell_environment")%></label>
+            <div class='d'><%=tr("settings.shell_environment_description")%></div>
             <div class='debug-shell-controls'>
               <select id='debug-shell-select'>
-                <option value="">No running shells</option>
+                <option value=""><%=tr("settings.no_running_shells")%></option>
               </select>
-              <button id='debug-shell-refresh' class='btn' type='button'><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+              <button id='debug-shell-refresh' class='btn' type='button'><i class="fa-solid fa-rotate-right"></i> <%=tr("settings.refresh")%></button>
             </div>
             <div id='debug-shell-result' class='debug-path-result hidden'></div>
             <pre id='debug-shell-env' class='debug-shell-env hidden'></pre>
@@ -1175,13 +1184,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const isFirstHome = homeInput ? homeInput.dataset.firstHome === 'true' : false
   if (homeInput) {
     const warning = document.createElement('div')
-    warning.className = 'home-warning hidden'
-    warning.innerHTML = `
-      <ul>
-        <li>Avoid exFAT; it can cause permission/metadata issues.</li>
-        <li>Avoid spaces in the path; they can break tooling.</li>
-      </ul>
-    `
+	    warning.className = 'home-warning hidden'
+	    warning.innerHTML = `
+	      <ul>
+	        <li><%=tr("settings.home_warning_exfat")%></li>
+	        <li><%=tr("settings.home_warning_spaces")%></li>
+	      </ul>
+	    `
     const parent = homeInput.parentElement
     if (parent) {
       parent.appendChild(warning)
@@ -1241,16 +1250,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       e.stopPropagation()
       const cmd = debugPathInput.value.trim()
       if (!cmd) {
-        showDebugPathResult("Enter a command name first.", true)
+        showDebugPathResult(<%-trj("settings.enter_command_name_first")%>, true)
         debugPathInput.focus()
         return
       }
       if (cmd.includes("/") || cmd.includes("\\") || /\s/.test(cmd)) {
-        showDebugPathResult("Use only a single command name (no spaces or slashes).", true)
+        showDebugPathResult(<%-trj("settings.single_command_name_only")%>, true)
         return
       }
       debugPathSubmit.setAttribute("disabled", "disabled")
-      showDebugPathResult(`Looking up ${cmd}...`)
+      showDebugPathResult(<%-trj("settings.looking_up_command", { command: "__COMMAND__" })%>.replace("__COMMAND__", cmd))
       try {
         const response = await fetch(`/pinokio/path/${encodeURIComponent(cmd)}`)
         const payload = await response.json().catch(() => {
@@ -1358,7 +1367,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           if (payload.error) {
             setDebugShellStatus(payload.error, true)
           } else {
-            setDebugShellStatus(`Request failed (${response.status})`, true)
+          setDebugShellStatus(<%-trj("settings.request_failed_status", { status: "__STATUS__" })%>.replace('__STATUS__', () => response.status), true)
           }
           return
         }
@@ -1367,19 +1376,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         const lines = keys.map((key) => {
           return `${key}=${env[key]}`
         })
-        debugShellEnv.textContent = lines.length > 0 ? lines.join("\n") : "(No environment variables)"
+        debugShellEnv.textContent = lines.length > 0 ? lines.join("\n") : <%-trj("settings.no_environment_variables")%>
         debugShellEnv.classList.remove("hidden")
         const resolvedShell = payload && payload.shell && payload.shell.id ? payload.shell.id : shellId
-        setDebugShellStatus(`${resolvedShell} (${keys.length} vars)`)
+        setDebugShellStatus(<%-trj("settings.shell_vars_count", { shell: "__SHELL__", count: "__COUNT__" })%>.replace('__SHELL__', () => resolvedShell).replace('__COUNT__', () => keys.length))
       } catch (err) {
         hideDebugShellEnv()
-        setDebugShellStatus(`Failed to load shell environment: ${err && err.message ? err.message : "Unknown error"}`, true)
+        const message = err && err.message ? err.message : <%-trj("common.unknown_error")%>
+        setDebugShellStatus(<%-trj("settings.failed_load_shell_environment", { message: "__MESSAGE__" })%>.replace('__MESSAGE__', () => message), true)
       }
     }
     const refreshShellList = async () => {
       const previousId = debugShellSelect.value
       debugShellRefresh.setAttribute("disabled", "disabled")
-      setDebugShellStatus("Loading running shells...")
+      setDebugShellStatus(<%-trj("settings.loading_running_shells")%>)
       try {
         const response = await fetch("/info/shells")
         const payload = await response.json().catch(() => {
@@ -1395,10 +1405,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (runningShells.length === 0) {
           const option = document.createElement("option")
           option.value = ""
-          option.textContent = "No running shells"
+          option.textContent = <%-trj("settings.no_running_shells")%>
           debugShellSelect.appendChild(option)
           hideDebugShellEnv()
-          setDebugShellStatus("No running shells found.")
+          setDebugShellStatus(<%-trj("settings.no_running_shells_found")%>)
           return
         }
         runningShells.forEach((shell, index) => {
@@ -1414,7 +1424,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         await loadShellEnv(selectedId)
       } catch (err) {
         hideDebugShellEnv()
-        setDebugShellStatus(`Failed to load shells: ${err && err.message ? err.message : "Unknown error"}`, true)
+        const message = err && err.message ? err.message : <%-trj("common.unknown_error")%>
+        setDebugShellStatus(<%-trj("settings.failed_load_shells", { message: "__MESSAGE__" })%>.replace('__MESSAGE__', () => message), true)
       } finally {
         debugShellRefresh.removeAttribute("disabled")
       }
@@ -1432,7 +1443,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   <% if (locals.bin) { %>
     document.querySelector("#del-bin").addEventListener("click", async (e) => {
       console.log("del-bin")
-      let proceed = confirm("Are you sure you wish to delete the bin folder?")
+      let proceed = confirm(<%-trj("terminal.delete_bin_confirm")%>)
       if (proceed) {
         document.querySelector(".reset-bin-loading").classList.remove("hidden")
         document.querySelector("#del-bin").classList.add("hidden")
@@ -1456,7 +1467,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     })
     document.querySelector("#del-cache").addEventListener("click", async (e) => {
       console.log("del-cache")
-      let proceed = confirm("Are you sure you wish to delete the cache folder?")
+      let proceed = confirm(<%-trj("settings.delete_cache_confirm")%>)
       if (proceed) {
         document.querySelector(".reset-cache-loading").classList.remove("hidden")
         document.querySelector("#del-cache").classList.add("hidden")
@@ -1480,7 +1491,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     })
     document.querySelector("#del-env").addEventListener("click", async (e) => {
       console.log("del-env")
-      let proceed = confirm("Are you sure you wish to reset the environment variables?")
+      let proceed = confirm(<%-trj("settings.reset_environment_confirm")%>)
       if (proceed) {
         document.querySelector(".reset-env-loading").classList.remove("hidden")
         document.querySelector("#del-env").classList.add("hidden")
@@ -1507,7 +1518,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (document.querySelector("#del-browser-cache")) {
       document.querySelector("#del-browser-cache").addEventListener("click", async (e) => {
         console.log("del-browser-cache")
-        let proceed = confirm("Are you sure you wish to delete the browser cache? This will remove all cookies and site data")
+        let proceed = confirm(<%-trj("settings.delete_browser_cache_confirm")%>)
         if (proceed) {
           document.querySelector(".reset-browser-cache-loading").classList.remove("hidden")
           document.querySelector("#del-browser-cache").classList.add("hidden")
@@ -1546,23 +1557,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     showHomeWarning()
     let val = document.querySelector(`[name=home]`).value
     if (/.*\s+.*/.test(val)) {
-      alert("Please use a home path that does NOT include a space")
+      alert(<%-trj("settings.home_path_no_spaces")%>)
       document.querySelector("[name=home]").focus()
       return
     }
     if (val.length === 0) {
-      alert("Please set the home path")
+      alert(<%-trj("settings.home_path_required")%>)
       document.querySelector("[name=home]").focus()
       return
     }
     const isChanged = val !== originalHome
     if (homeInput && (isFirstHome || isChanged)) {
-      const confirmResult = await Swal.fire({
-        title: 'Reminder',
-        html: 'exFAT drives often break permissions/metadata.<br>Please double-check the path isn\u2019t on exFAT. If it looks good, click \u201cSelect\u201d to continue.',
-        showCancelButton: true,
-        confirmButtonText: 'Select',
-        cancelButtonText: 'Cancel',
+	      const confirmResult = await Swal.fire({
+	        title: <%- JSON.stringify(tr("settings.home_modal_title")) %>,
+	        html: <%- JSON.stringify(tr("settings.home_modal_html")) %>,
+	        showCancelButton: true,
+	        confirmButtonText: <%- JSON.stringify(tr("settings.select")) %>,
+	        cancelButtonText: <%- JSON.stringify(tr("settings.cancel")) %>,
         reverseButtons: true,
         allowOutsideClick: false,
         allowEscapeKey: false,
@@ -1623,7 +1634,7 @@ console.log("body", body)
           allowOutsideClick: false,
           allowEscapeKey: false,
           allowEnterKey: false,
-          confirmButtonText: "Restart",
+	          confirmButtonText: <%- JSON.stringify(tr("settings.restart")) %>,
 //          showConfirmButton: false,
 //          didOpen: () => {
 //            Swal.showLoading();

@@ -1,3 +1,6 @@
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+%>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -38,14 +41,14 @@ body.error-body footer.error-footer a {
 </style>
 </head>
 <body class='error-body'>
-<h1>Error</h1>
+<h1><%=tr("common.error")%></h1>
 <pre><%=stack%></pre>
 <footer class='error-footer'>
-  <div>You may want to try:</div>
+  <div><%=tr("errors.try_intro")%></div>
   <ol>
-    <li>Update Pinokio: Simply install the latest version, it should only update the app binary while keeping all the data in tact. <a href="<%=install%>" target="_blank">Go to Download Page</a></li>
-    <li>Try troubleshooting: <a href="/home?mode=settings#troubleshoot">Troubleshoot</a></li>
-    <li>Ask in community Discord: <a href="http://localhost/home?mode=help" target="_blank">Community</a></li>
+    <li><%=tr("errors.update_pinokio")%> <a href="<%=install%>" target="_blank"><%=tr("errors.download_page")%></a></li>
+    <li><%=tr("errors.try_troubleshooting")%> <a href="/home?mode=settings#troubleshoot"><%=tr("settings.troubleshoot")%></a></li>
+    <li><%=tr("errors.ask_community")%> <a href="http://localhost/home?mode=help" target="_blank"><%=tr("errors.community")%></a></li>
   </ol>
 </footer>
 </body>

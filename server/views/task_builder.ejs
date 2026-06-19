@@ -1,5 +1,8 @@
 <!doctype html>
 <html lang="en">
+<%
+  const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+%>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,10 +16,21 @@
   <% if (agent === "electron") { %>
     <link href="/electron.css" rel="stylesheet"/>
   <% } %>
+  <script>
+  window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+  </script>
   <script src="/task-launcher.js" defer></script>
 </head>
 <%
   const displayTarget = defaults.target || 'workspaces'
+  const targetLabel = (value) => {
+    const labels = {
+      workspaces: tr("tasks.target_workspaces"),
+      api: tr("tasks.target_api"),
+      plugin: tr("tasks.target_plugin")
+    }
+    return labels[value] || value
+  }
 %>
 <body class="<%= theme %> main-sidebar-page task-launcher-page task-page task-builder-page" data-agent="<%= agent %>">
   <%- include('partials/app_navheader', { agent }) %>
@@ -25,7 +39,7 @@
   <section class="task-shell task-builder-shell">
     <header class="task-shell-header">
       <div class="task-shell-header-main">
-        <p class="task-eyebrow">Tasks</p>
+        <p class="task-eyebrow"><%= tr("nav.tasks") %></p>
         <h1 class="task-title"><%= titleText %></h1>
         <p class="task-description"><%- descriptionText %></p>
       </div>
@@ -45,62 +59,62 @@
       <section class="task-section task-builder-meta-section">
         <div class="task-section-head">
           <div>
-            <h2 class="task-section-title">Task details</h2>
-            <p class="task-section-subcopy">These fields become the canonical metadata in <code>pinokio.json</code>.</p>
+            <h2 class="task-section-title"><%= tr("tasks.details") %></h2>
+            <p class="task-section-subcopy"><%- tr("tasks.details_description", { file: "<code>pinokio.json</code>" }) %></p>
           </div>
           <div class="task-section-note">pinokio.json</div>
         </div>
         <div class="task-grid two-up">
           <label class="task-field">
-            <span class="task-label">Title</span>
-            <input class="task-input" type="text" name="title" value="<%= defaults.title || '' %>" placeholder="Check if a repo is safe" required>
+            <span class="task-label"><%= tr("common.title") %></span>
+            <input class="task-input" type="text" name="title" value="<%= defaults.title || '' %>" placeholder="<%= tr("tasks.title_placeholder") %>" required>
           </label>
           <label class="task-field">
-            <span class="task-label">Target</span>
+            <span class="task-label"><%= tr("tasks.target") %></span>
             <% if (allowTargetSelection) { %>
               <select class="task-select" name="target" required>
                 <% ['workspaces', 'api', 'plugin'].forEach((targetOption) => { %>
-                  <option value="<%= targetOption %>" <%= (defaults.target || 'workspaces') === targetOption ? 'selected' : '' %>><%= targetOption %></option>
+                  <option value="<%= targetOption %>" <%= (defaults.target || 'workspaces') === targetOption ? 'selected' : '' %>><%= targetLabel(targetOption) %></option>
                 <% }) %>
               </select>
             <% } else { %>
               <input type="hidden" name="target" value="<%= defaults.target || 'workspaces' %>">
-              <div class="task-input task-input-readonly"><%= displayTarget %></div>
+              <div class="task-input task-input-readonly"><%= targetLabel(displayTarget) %></div>
             <% } %>
           </label>
         </div>
         <label class="task-field">
-          <span class="task-label">Description <span class="task-label-meta">Optional</span></span>
-          <textarea class="task-textarea task-textarea-compact" name="description" rows="3" placeholder="One short sentence explaining when this template is useful."><%= defaults.description || '' %></textarea>
+          <span class="task-label"><%= tr("common.description") %> <span class="task-label-meta"><%= tr("common.optional") %></span></span>
+          <textarea class="task-textarea task-textarea-compact" name="description" rows="3" placeholder="<%= tr("tasks.description_placeholder") %>"><%= defaults.description || '' %></textarea>
         </label>
       </section>
 
       <section class="task-section task-builder-template-section">
         <div class="task-section-head">
           <div>
-            <h2 class="task-section-title">Prompt template</h2>
-            <p class="task-section-subcopy">Use <code>{{repo_url}}</code>, <code>{{question}}</code>, or any other variable name to create inputs automatically.</p>
+            <h2 class="task-section-title"><%= tr("tasks.prompt_template") %></h2>
+            <p class="task-section-subcopy"><%- tr("tasks.prompt_template_description", { repo: "<code>{{repo_url}}</code>", question: "<code>{{question}}</code>" }) %></p>
           </div>
           <div class="task-section-note">task.md</div>
         </div>
         <label class="task-field">
-          <span class="task-label">Template text</span>
-          <textarea class="task-textarea task-builder-template-input" name="template" data-task-template placeholder="Check whether {{repo_url}} is trustworthy to install.&#10;&#10;If useful, use this context:&#10;{{selected_text}}" required><%= defaults.template || '' %></textarea>
+          <span class="task-label"><%= tr("tasks.template_text") %></span>
+          <textarea class="task-textarea task-builder-template-input" name="template" data-task-template placeholder="<%= tr("tasks.template_placeholder") %>" required><%= defaults.template || '' %></textarea>
         </label>
         <div class="task-builder-detected">
-          <div class="task-label">Detected inputs</div>
+          <div class="task-label"><%= tr("tasks.detected_inputs") %></div>
           <div class="task-variable-list" data-task-variable-list></div>
-          <p class="task-inline-help task-builder-variable-empty" data-task-variable-empty>Type a <code>{{variable}}</code> in the template to create an input.</p>
+          <p class="task-inline-help task-builder-variable-empty" data-task-variable-empty><%- tr("tasks.variable_empty_help", { variable: "<code>{{variable}}</code>" }) %></p>
         </div>
       </section>
 
       <section class="task-section task-builder-inputs-section task-hidden" data-task-inputs-section>
         <div class="task-section-head">
           <div>
-            <h2 class="task-section-title">Input settings</h2>
-            <p class="task-section-subcopy">Pinokio will ask for these values before running the task. You can rename the labels here without changing the template variables.</p>
+            <h2 class="task-section-title"><%= tr("tasks.input_settings") %></h2>
+            <p class="task-section-subcopy"><%= tr("tasks.input_settings_description") %></p>
           </div>
-          <div class="task-section-note" data-task-input-count-note>0 inputs</div>
+          <div class="task-section-note" data-task-input-count-note><%= tr("tasks.input_count", { count: 0 }) %></div>
         </div>
         <div class="task-input-editor" data-task-input-editor></div>
       </section>
@@ -114,15 +128,15 @@
         <section class="task-section task-builder-workspace-section">
           <div class="task-section-head">
             <div>
-              <h2 class="task-section-title">Workspace</h2>
-              <p class="task-section-subcopy">Optional. Keep the task generic unless you want it to remember this workspace.</p>
+              <h2 class="task-section-title"><%= tr("tasks.workspace") %></h2>
+              <p class="task-section-subcopy"><%= tr("tasks.workspace_description") %></p>
             </div>
           </div>
           <label class="task-toggle">
             <input type="checkbox" name="rememberCurrentWorkspace" value="1" <%= defaults.rememberCurrentWorkspace ? 'checked' : '' %>>
-            <span>Remember current workspace</span>
+            <span><%= tr("tasks.remember_current_workspace") %></span>
           </label>
-          <p class="task-inline-help">This lets the task offer "Continue in <%= defaults.sourceWorkspaceLabel || 'this workspace' %>" later. No files are copied or saved.</p>
+          <p class="task-inline-help"><%= tr("tasks.remember_workspace_help", { workspace: defaults.sourceWorkspaceLabel || tr("tasks.this_workspace") }) %></p>
         </section>
       <% } %>
 
@@ -132,7 +146,7 @@
           <span><%= submitLabel %></span>
         </button>
         <a class="task-link-button" href="<%= backHref %>">
-          <span>Cancel</span>
+          <span><%= tr("common.cancel") %></span>
         </a>
       </div>
     </form>

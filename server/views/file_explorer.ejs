@@ -1,5 +1,9 @@
 <html>
 <head>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <title>Pinokio</title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
@@ -163,6 +167,9 @@ body.dark .browser-options-row {
 <script src="/xterm-theme.js"></script>
 <script src="/Socket.js"></script>
 <script src="/install.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
@@ -174,7 +181,7 @@ body.dark .browser-options-row {
 <nav class='error-message'>
   <div><%=error%></div>
   <div class='flexible'></div>
-  <a class='btn' target="_blank" href="<%=install%>">Download</a>
+  <a class='btn' target="_blank" href="<%=install%>"><%=tr("common.download")%></a>
 </nav>
 <% } %>
 <!--
@@ -191,23 +198,23 @@ body.dark .browser-options-row {
 <% }) %>
 <% if (display.includes("form")) { %>
 <form class='search'>
-  <input type='search' class="flexible" placeholder='Filter downloaded apps'>
+  <input type='search' class="flexible" placeholder='<%=tr("file_browser.filter_downloaded_apps")%>'>
 </form>
 <% } %>
 </h1>
 <div class='runner'>
-  <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-square-arrow-up-right"></i>&nbsp;&nbsp;Open in File Explorer</button>
+  <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-square-arrow-up-right"></i>&nbsp;&nbsp;<%=tr("app.open_in_file_explorer")%></button>
 </div>
 <% if (display.includes("dependencies")) { %>
 <div class='dependencies'>
-  <h2>Prerequisites</h2>
-  <div class='item'>Download and install the following dependencies first</div>
+  <h2><%=tr("home.prerequisites")%></h2>
+  <div class='item'><%=tr("home.dependencies_first")%></div>
   <div class='requirements'>
   <% config.dependencies.forEach((dep) => { %>
     <% if (dep.downloaded) { %>
       <div class='item'><i class="fa-solid fa-check"></i> <a class='downloaded' href="<%=dep.downloaded%>" target="_blank"><%=dep.uri%></a><div class='flexible'></div></div>
     <% } else { %>
-      <div class='item'><a class='btn' href="/?mode=download&uri=<%= encodeURIComponent(dep.uri) %>" target="_blank"><i class="fa-solid fa-download"></i> Download</a> <%=dep.uri%><div class='flexible'></div></div>
+      <div class='item'><a class='btn' href="/?mode=download&uri=<%= encodeURIComponent(dep.uri) %>" target="_blank"><i class="fa-solid fa-download"></i> <%=tr("common.download")%></a> <%=dep.uri%><div class='flexible'></div></div>
     <% } %>
   <% }) %>
   </div>
@@ -281,7 +288,7 @@ const pull = async () => {
   })
   <% if (config && config.update) { %>
     n.Noty({
-      text: "Success! An update script exists. Click to visit and run the update script!",
+      text: <%-trj("home.update_success")%>,
       type: "success",
       callbacks: {
         onClose: () => {
@@ -291,7 +298,7 @@ const pull = async () => {
     })
   <% } else { %>
     n.Noty({
-      text: "Success! Click to refresh.",
+      text: <%-trj("home.refresh_success")%>,
       type: "success",
       callbacks: {
         onClose: () => {
@@ -585,7 +592,7 @@ document.addEventListener("click", async (e) => {
         target.querySelector("i.fa-stop").className = "fa-solid fa-check"
         target.querySelector("i.fa-spin").classList.add("hidden")
         n.Noty({
-          text: `stopped ${src}`,
+          text: <%-trj("file_browser.stopped_script")%>.replace("{name}", src),
           silent: true
         })
         setTimeout(() => {
@@ -621,13 +628,13 @@ document.addEventListener("click", async (e) => {
   if (target) {
     e.preventDefault()
     e.stopPropagation()
-    let confirmed = confirm("Are you sure you want to delete the folder? All files in the folder will be gone.")
+    let confirmed = confirm(<%-trj("home.delete_confirm")%>)
     if (confirmed) {
       let itemEl = target.closest(".line[data-uri]")
       let name = itemEl.getAttribute("data-uri")
       console.log("delete", name)
       Swal.fire({
-        html: '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting',
+        html: '<i class="fa-solid fa-circle-notch fa-spin"></i> <%=tr("common.deleting")%>',
         customClass: {
           container: "loader-container",
           popup: "loader-popup",
@@ -722,15 +729,15 @@ document.addEventListener("click", async (e) => {
   if (document.querySelector("#wifi-qr")) {
     document.querySelector("#wifi-qr").addEventListener("click", async (e) => {
       await Swal.fire({
-        title: "Local Share",
+        title: <%-trj("home.local_share")%>,
         customClass: {
           popup: "min-popup",
           title: "min-title"
         },
         showConfirmButton: false,
         html: `<div class='min-modal'>
-        <div>Access Pinokio from</div>
-        <div>any local network device</div>
+        <div>${<%-trj("share.access_from")%>}</div>
+        <div>${<%-trj("share.local_network_device")%>}</div>
         <div><img src="<%=qr%>"></div>
     <a href="<%=proxy.proxy%>" target="_blank"><%=proxy.proxy%></a>
     </div>`
@@ -759,15 +766,15 @@ document.addEventListener("click", async (e) => {
   if (document.querySelector("#cloudflare-qr")) {
     document.querySelector("#cloudflare-qr").addEventListener("click", async (e) => {
       await Swal.fire({
-        title: "Public Share",
+        title: <%-trj("home.public_share")%>,
         customClass: {
           popup: "min-popup",
           title: "min-title"
         },
         showConfirmButton: false,
         html: `<div class='min-modal'>
-        <div>Access Pinokio from anywhere</div>
-        <div>(powered by cloudflare tunnel)</div>
+        <div>${<%-trj("share.access_from_anywhere")%>}</div>
+        <div>${<%-trj("share.powered_by_cloudflare_tunnel")%>}</div>
         <div><img src="<%=qr_cloudflare%>"></div>
     <a href="<%=cloudflare_pub%>" target="_blank"><%=cloudflare_pub%></a>
     </div>`

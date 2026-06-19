@@ -1,3 +1,5 @@
+<% const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") }) %>
+<% const trj = typeof locals.trj === "function" ? locals.trj : ((key, replacements = {}) => JSON.stringify(tr(key, replacements))) %>
 <html>
 <head>
 <title>Pinokio</title>
@@ -1206,6 +1208,9 @@ body.dark aside .current.selected {
 <script src="/xterm-theme.js"></script>
 <script src="/Socket.js"></script>
 <script src="/install.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/nav.js"></script>
 <script src="/fuse.js"></script>
@@ -1230,36 +1235,36 @@ body.dark aside .current.selected {
 <nav class='error-message'>
   <div><%=error%></div>
   <div class='flexible'></div>
-  <a class='btn' target="_blank" href="<%=install%>">Download</a>
+  <a class='btn' target="_blank" href="<%=install%>"><%=tr("home.download")%></a>
 </nav>
 <% } %>
 <header class='navheader grabbable'>
 <h1>
 <% if (ishome) { %>
 <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
-<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+<button class='btn2' id='minimize-header' data-tippy-content="<%=tr("common.fullscreen")%>" title='<%=tr("common.fullscreen")%>'>
   <div><i class="fa-solid fa-expand"></i></div>
 </button>
-<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
-<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
-<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
-<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
+<button class='btn2' id='back' data-tippy-content="<%=tr("common.back")%>"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="<%=tr("common.forward")%>"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="<%=tr("common.refresh")%>"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="<%=tr("common.screen_capture")%>"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="<%=tr("common.xray_mode")%>"><i class="fa-solid fa-eye"></i></button>
+<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="<%=tr("common.enter_url")%>"><i class="fa-solid fa-link"></i></button>
 <div class='mobile-flexible'></div>
 <form class='urlbar'>
   <div class='url-input-container'>
-    <input type='url' placeholder='enter any local url to open in pinokio'>
+    <input type='url' placeholder='<%=tr("common.url_placeholder")%>'>
     <div class='url-dropdown' id='url-dropdown'></div>
   </div>
 </form>
-<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+<a class='btn2' href="/columns" data-tippy-content="<%=tr("common.split_columns")%>">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
-<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+<a class='btn2' href="/rows" data-tippy-content="<%=tr("common.split_rows")%>">
   <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
 </a>
-<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+<button class='btn2' id='new-window' data-tippy-content="<%=tr("common.open_new_window")%>" title='<%=tr("common.open_new_window")%>' data-agent="<%=agent%>">
   <div><i class="fa-solid fa-plus"></i></div>
 </button>
 <% } %>
@@ -1270,25 +1275,25 @@ body.dark aside .current.selected {
     <a class='path' href="<%=path.path%>"><%-path.name%></a>
   <% } %>
 <% }) %>
-<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+<button class='btn2 hidden' id='close-window' data-tippy-content='<%=tr("common.close_section")%>'>
   <div><i class="fa-solid fa-xmark"></i></div>
 </button>
 </h1>
 <% if (!ishome) { %>
   <div class='runner'>
-    <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> View Folder</button>
+    <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> <%=tr("home.view_folder")%></button>
   </div>
 <% } %>
 <% if (display.includes("dependencies") && config) { %>
 <div class='dependencies'>
-  <h2>Prerequisites</h2>
-  <div class='item'>Download and install the following dependencies first</div>
+  <h2><%=tr("home.prerequisites")%></h2>
+  <div class='item'><%=tr("home.dependencies_first")%></div>
   <div class='requirements'>
   <% config.dependencies.forEach((dep) => { %>
     <% if (dep.downloaded) { %>
       <div class='item'><i class="fa-solid fa-check"></i> <a class='downloaded' href="<%=dep.downloaded%>" target="_blank"><%=dep.uri%></a><div class='flexible'></div></div>
     <% } else { %>
-      <div class='item'><a class='btn' href="/?mode=download&uri=<%= encodeURIComponent(dep.uri) %>" target="_blank"><i class="fa-solid fa-download"></i> Download</a> <%=dep.uri%><div class='flexible'></div></div>
+      <div class='item'><a class='btn' href="/?mode=download&uri=<%= encodeURIComponent(dep.uri) %>" target="_blank"><i class="fa-solid fa-download"></i> <%=tr("home.download")%></a> <%=dep.uri%><div class='flexible'></div></div>
     <% } %>
   <% }) %>
   </div>
@@ -1302,16 +1307,16 @@ body.dark aside .current.selected {
   <% const currentHomeSort = (typeof home_sort === "string" ? home_sort : "most_used") %>
   <form class='search home-search-form'>
     <% if (display.includes("form")) { %>
-      <input type='search' class="flexible" placeholder='Search apps'>
+      <input type='search' class="flexible" placeholder='<%=tr("home.search_placeholder")%>'>
     <% } else { %>
     <% } %>
     <div class="home-apps-sort">
       <i class="fa-solid fa-sort home-apps-sort-icon" aria-hidden="true"></i>
-      <label for="home-apps-sort-select">Sort</label>
-      <select id="home-apps-sort-select" aria-label="Sort apps">
-        <option value="most_used" <%= currentHomeSort === "most_used" ? "selected" : "" %>>Most used</option>
-        <option value="last_opened" <%= currentHomeSort === "last_opened" ? "selected" : "" %>>Last opened</option>
-        <option value="az" <%= currentHomeSort === "az" ? "selected" : "" %>>A-Z</option>
+      <label for="home-apps-sort-select"><%=tr("home.sort")%></label>
+      <select id="home-apps-sort-select" aria-label="<%=tr("home.sort_apps")%>">
+        <option value="most_used" <%= currentHomeSort === "most_used" ? "selected" : "" %>><%=tr("home.sort_most_used")%></option>
+        <option value="last_opened" <%= currentHomeSort === "last_opened" ? "selected" : "" %>><%=tr("home.sort_last_opened")%></option>
+        <option value="az" <%= currentHomeSort === "az" ? "selected" : "" %>><%=tr("home.sort_az")%></option>
       </select>
       <i class="fa-solid fa-chevron-down home-apps-sort-caret" aria-hidden="true"></i>
     </div>
@@ -1347,16 +1352,16 @@ body.dark aside .current.selected {
                   class='btn home-icon-btn toggle-star <%=item.starred ? "is-starred" : ""%>'
                   data-app-id="<%=item.uri%>"
                   data-starred="<%=item.starred ? "1" : "0"%>"
-                  title="<%=item.starred ? "Unstar app" : "Star app"%>"
-                  aria-label="<%=item.starred ? "Unstar app" : "Star app"%>"
+                        title="<%=item.starred ? tr("home.unstar_app") : tr("home.star_app")%>"
+                        aria-label="<%=item.starred ? tr("home.unstar_app") : tr("home.star_app")%>"
                 >
                   <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star" aria-hidden="true"></i>
                 </button>
-                <button class='btn open-menu open-actions-modal' type='button' data-dialog-id="home-actions-running-<%=index%>" aria-haspopup="dialog" title="Actions" aria-label="Actions">
-                  <i class="fa-solid fa-ellipsis" aria-hidden="true"></i><span> menu</span>
+                <button class='btn open-menu open-actions-modal' type='button' data-dialog-id="home-actions-running-<%=index%>" aria-haspopup="dialog" title="<%=tr("common.actions")%>" aria-label="<%=tr("common.actions")%>">
+                  <i class="fa-solid fa-ellipsis" aria-hidden="true"></i><span> <%=tr("home.menu")%></span>
                 </button>
                 <% const runningTerminalOnlineCount = Number(item.terminal_online_count || 0) %>
-                <% const runningTerminalLabel = runningTerminalOnlineCount > 0 ? `${runningTerminalOnlineCount} terminal${runningTerminalOnlineCount === 1 ? "" : "s"} online` : "Terminals" %>
+                <% const runningTerminalLabel = runningTerminalOnlineCount > 0 ? tr("home.online_count", { count: runningTerminalOnlineCount }) : "" %>
                 <% if (runningTerminalOnlineCount > 0) { %>
                   <button class='btn browse terminals-link is-online' type='button' data-src="<%=item.dev_url%>" title="<%=runningTerminalLabel%>">
                     <i class="fa-solid fa-terminal" aria-hidden="true"></i>
@@ -1367,16 +1372,17 @@ body.dark aside .current.selected {
                 <% if (item.running_scripts) { %>
                   <% item.running_scripts.forEach((s) => { %>
                   <% const runningScriptName = s.name || "script" %>
+                  <% const runningScriptStopLabel = tr("home.stop_script", { name: runningScriptName }) %>
                   <% if (s.id) { %>
-                      <button class='btn shutdown' type='button' data-id="<%=s.id%>" data-type="<%=s.type ? s.type : ''%>" title="Stop <%=runningScriptName%>" aria-label="Stop <%=runningScriptName%>">
+                      <button class='btn shutdown' type='button' data-id="<%=s.id%>" data-type="<%=s.type ? s.type : ''%>" title="<%=runningScriptStopLabel%>" aria-label="<%=runningScriptStopLabel%>">
                         <i class="fa-solid fa-stop" aria-hidden="true"></i>
-                        <span>Stop <%=runningScriptName%></span>
+                        <span><%=runningScriptStopLabel%></span>
                         <i class='fa-solid fa-spin fa-circle-notch' aria-hidden='true'></i>
                       </button>
                     <% } else { %>
-                      <button class='btn shutdown' type='button' data-src="<%=s.path%>" title="Stop <%=runningScriptName%>" aria-label="Stop <%=runningScriptName%>">
+                      <button class='btn shutdown' type='button' data-src="<%=s.path%>" title="<%=runningScriptStopLabel%>" aria-label="<%=runningScriptStopLabel%>">
                         <i class="fa-solid fa-stop" aria-hidden="true"></i>
-                        <span>Stop <%=runningScriptName%></span>
+                        <span><%=runningScriptStopLabel%></span>
                         <i class='fa-solid fa-spin fa-circle-notch' aria-hidden='true'></i>
                       </button>
                     <% } %>
@@ -1429,16 +1435,16 @@ body.dark aside .current.selected {
                   class='btn home-icon-btn toggle-star <%=item.starred ? "is-starred" : ""%>'
                   data-app-id="<%=item.uri%>"
                   data-starred="<%=item.starred ? "1" : "0"%>"
-                  title="<%=item.starred ? "Unstar app" : "Star app"%>"
-                  aria-label="<%=item.starred ? "Unstar app" : "Star app"%>"
+                        title="<%=item.starred ? tr("home.unstar_app") : tr("home.star_app")%>"
+                        aria-label="<%=item.starred ? tr("home.unstar_app") : tr("home.star_app")%>"
                 >
                   <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star" aria-hidden="true"></i>
                 </button>
-                <button class='btn open-menu open-actions-modal' type='button' data-dialog-id="home-actions-not-running-<%=index%>" aria-haspopup="dialog" title="Actions" aria-label="Actions">
-                  <i class="fa-solid fa-ellipsis" aria-hidden="true"></i><span> menu</span>
+                <button class='btn open-menu open-actions-modal' type='button' data-dialog-id="home-actions-not-running-<%=index%>" aria-haspopup="dialog" title="<%=tr("common.actions")%>" aria-label="<%=tr("common.actions")%>">
+                  <i class="fa-solid fa-ellipsis" aria-hidden="true"></i><span> <%=tr("home.menu")%></span>
                 </button>
                 <% if (notRunningTerminalOnlineCount > 0) { %>
-                <% const notRunningTerminalLabel = notRunningTerminalOnlineCount > 0 ? `${notRunningTerminalOnlineCount} terminal${notRunningTerminalOnlineCount === 1 ? "" : "s"} online` : "Terminals" %>
+                <% const notRunningTerminalLabel = notRunningTerminalOnlineCount > 0 ? tr("home.online_count", { count: notRunningTerminalOnlineCount }) : "" %>
                   <button class='btn browse terminals-link is-online' type='button' data-src="<%=item.dev_url%>" title="<%=notRunningTerminalLabel%>">
                     <i class="fa-solid fa-terminal" aria-hidden="true"></i>
                     <span><%=notRunningTerminalLabel%></span>
@@ -1465,12 +1471,12 @@ body.dark aside .current.selected {
   <% } %>
   <% if (running.length === 0 && notRunning.length === 0) { %>
     <div class='placeholder'>
-      <h1>Welcome.</h1>
+      <h1><%=tr("home.welcome")%></h1>
       <br>
-      <div>Get started by installing or creating some pinokio scripts.</div>
-      <a href="/home?mode=explore" class='btn'><i class="fa-solid fa-globe"></i> Explore</a>
-      <span>&nbsp;or&nbsp;</span>
-      <button type='button' class='btn' data-universal-launcher-open="create_app"><i class="fa-solid fa-wand-magic-sparkles"></i> Create</button>
+      <div><%=tr("home.get_started")%></div>
+      <a href="/home?mode=explore" class='btn'><i class="fa-solid fa-globe"></i> <%=tr("home.explore")%></a>
+      <span>&nbsp;<%=tr("common.or")%>&nbsp;</span>
+      <button type='button' class='btn' data-universal-launcher-open="create_app"><i class="fa-solid fa-wand-magic-sparkles"></i> <%=tr("home.create")%></button>
     </div>
   <% } %>
 <% } else { %>
@@ -1590,7 +1596,7 @@ const pull = async () => {
   })
   <% if (config && config.update) { %>
     n.Noty({
-      text: "Success! An update script exists. Click to visit and run the update script!",
+      text: <%- JSON.stringify(tr("home.update_success")) %>,
       type: "success",
       callbacks: {
         onClose: () => {
@@ -1600,7 +1606,7 @@ const pull = async () => {
     })
   <% } else { %>
     n.Noty({
-      text: "Success! Click to refresh.",
+      text: <%- JSON.stringify(tr("home.refresh_success")) %>,
       type: "success",
       callbacks: {
         onClose: () => {
@@ -2131,7 +2137,7 @@ const stopHomeRunMenuItem = (target) => {
         icon.className = 'fa-solid fa-stop'
       }
       n.Noty({
-        text: packet.data || "Failed to stop",
+        text: packet.data || <%- JSON.stringify(tr("home.failed_to_stop")) %>,
         silent: true
       })
     }
@@ -2276,8 +2282,8 @@ const showHomeStarToast = () => {
           <i class="fa-solid fa-star"></i>
         </div>
         <div class="home-star-toast__content">
-          <div class="home-star-toast__title">Starred apps get priority</div>
-          <div class="home-star-toast__text">AI agents rank starred apps higher when searching for tools to use.</div>
+          <div class="home-star-toast__title">${<%- JSON.stringify(tr("home.star_toast_title")) %>}</div>
+          <div class="home-star-toast__text">${<%- JSON.stringify(tr("home.star_toast_text")) %>}</div>
         </div>
       </div>
     `
@@ -2384,7 +2390,7 @@ document.addEventListener("click", async (e) => {
       })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok || !payload || !payload.preference) {
-        throw new Error(payload && payload.error ? payload.error : "Failed to update app star")
+        throw new Error(payload && payload.error ? payload.error : <%- JSON.stringify(tr("home.failed_update_star")) %>)
       }
       target.setAttribute("data-starred", payload.preference.starred ? "1" : "0")
       if (payload.preference.starred) {
@@ -2396,12 +2402,12 @@ document.addEventListener("click", async (e) => {
       if (icon) {
         icon.className = payload.preference.starred ? "fa-solid fa-star" : "fa-regular fa-star"
       }
-      const starLabel = payload.preference.starred ? "Unstar app" : "Star app"
+      const starLabel = payload.preference.starred ? <%- JSON.stringify(tr("home.unstar_app")) %> : <%- JSON.stringify(tr("home.star_app")) %>
       target.setAttribute("title", starLabel)
       target.setAttribute("aria-label", starLabel)
       const label = target.querySelector("span")
       if (label) {
-        label.textContent = payload.preference.starred ? "Starred" : "Star"
+        label.textContent = payload.preference.starred ? <%- JSON.stringify(tr("home.starred")) %> : <%- JSON.stringify(tr("home.star")) %>
       }
       const line = target.closest(".line")
       if (line) {
@@ -2414,7 +2420,7 @@ document.addEventListener("click", async (e) => {
         showHomeStarToast()
       }
     } catch (error) {
-      alert(error && error.message ? error.message : "Failed to update app star")
+      alert(error && error.message ? error.message : <%- JSON.stringify(tr("home.failed_update_star")) %>)
     } finally {
       delete target.dataset.pending
     }
@@ -2457,7 +2463,7 @@ document.addEventListener("click", async (e) => {
           target.querySelector("i.fa-stop").className = "fa-solid fa-check"
           target.querySelector("i.fa-spin").classList.add("hidden")
           n.Noty({
-            text: `stopped`,
+            text: <%-trj("common.stopped")%>,
             silent: true
           })
           setTimeout(() => {
@@ -2476,7 +2482,7 @@ document.addEventListener("click", async (e) => {
           target.querySelector("i.fa-stop").className = "fa-solid fa-check"
           target.querySelector("i.fa-spin").classList.add("hidden")
           n.Noty({
-            text: `stopped ${src}`,
+            text: <%-trj("common.stopped_named", { name: "__NAME__" })%>.replace('__NAME__', () => src),
             silent: true
           })
           setTimeout(() => {
@@ -2700,13 +2706,13 @@ document.addEventListener("click", async (e) => {
       return
     }
 
-    let confirmed = confirm("Are you sure you want to delete the folder? All files in the folder will be gone.")
+    let confirmed = confirm(<%- JSON.stringify(tr("home.delete_confirm")) %>)
     if (confirmed) {
       let itemEl = target.closest(".line[data-uri]")
       let name = itemEl.getAttribute("data-uri")
       console.log("delete", name)
       Swal.fire({
-        html: '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting',
+        html: '<i class="fa-solid fa-circle-notch fa-spin"></i> ' + <%- JSON.stringify(tr("home.deleting")) %>,
         customClass: {
           container: "loader-container",
           popup: "loader-popup",
@@ -2822,15 +2828,15 @@ document.addEventListener("keydown", (e) => {
   if (document.querySelector("#wifi-qr")) {
     document.querySelector("#wifi-qr").addEventListener("click", async (e) => {
       await Swal.fire({
-        title: "Local Share",
+        title: <%- JSON.stringify(tr("home.local_share")) %>,
         customClass: {
           popup: "min-popup",
           title: "min-title"
         },
         showConfirmButton: false,
         html: `<div class='min-modal'>
-        <div>Access Pinokio from</div>
-        <div>any local network device</div>
+        <div>${<%- JSON.stringify(tr("home.local_share_line1")) %>}</div>
+        <div>${<%- JSON.stringify(tr("home.local_share_line2")) %>}</div>
         <div><img src="<%=qr%>"></div>
     <a href="<%=proxy.proxy%>" target="_blank"><%=proxy.proxy%></a>
     </div>`
@@ -2859,15 +2865,15 @@ document.addEventListener("keydown", (e) => {
   if (document.querySelector("#cloudflare-qr")) {
     document.querySelector("#cloudflare-qr").addEventListener("click", async (e) => {
       await Swal.fire({
-        title: "Public Share",
+        title: <%- JSON.stringify(tr("home.public_share")) %>,
         customClass: {
           popup: "min-popup",
           title: "min-title"
         },
         showConfirmButton: false,
         html: `<div class='min-modal'>
-        <div>Access Pinokio from anywhere</div>
-        <div>(powered by cloudflare tunnel)</div>
+        <div>${<%- JSON.stringify(tr("home.public_share_line1")) %>}</div>
+        <div>${<%- JSON.stringify(tr("home.public_share_line2")) %>}</div>
         <div><img src="<%=qr_cloudflare%>"></div>
     <a href="<%=cloudflare_pub%>" target="_blank"><%=cloudflare_pub%></a>
     </div>`

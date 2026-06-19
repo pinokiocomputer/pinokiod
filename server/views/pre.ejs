@@ -1,4 +1,7 @@
 <html class='columns'>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+%>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <script src="/hotkeys.min.js"></script>
@@ -13,6 +16,9 @@
 <script src="/xterm-addon-search-bar.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/he.js"></script>
 <script src="/opener.js"></script>
@@ -110,10 +116,10 @@ footer a.btn {
   <header class='navheader grabbable'>
   </header>
   <main>
-    <h1>Requirements</h1>
+    <h1><%= tr("pre.requirements") %></h1>
     <div class='e'>
-      <div>To run <%=name%>, you need to have the following programs installed.</div>
-      <div>Get the apps if you haven't already, and press "Done".</div>
+      <div><%= tr("pre.required_programs", { name }) %></div>
+      <div><%= tr("pre.get_apps_done") %></div>
     </div>
     <div class='items'>
       <% items.forEach((item) => { %>
@@ -126,9 +132,9 @@ footer a.btn {
               <div class='title'><%=item.title%></div>
               <div class='description'><%=item.description%></div>
               <% if (item.href.startsWith("http")) { %>
-                <a target="_blank" features="browser" href='<%=item.href%>' class='btn'><i class="fa-solid fa-square-arrow-up-right"></i> Install</a>
+                <a target="_blank" features="browser" href='<%=item.href%>' class='btn'><i class="fa-solid fa-square-arrow-up-right"></i> <%= tr("common.install") %></a>
               <% } else { %>
-                <button class='btn' data-filepath="<%=item.href%>"><i class="fa-solid fa-square-arrow-up-right"></i> Install</button>
+                <button class='btn' data-filepath="<%=item.href%>"><i class="fa-solid fa-square-arrow-up-right"></i> <%= tr("common.install") %></button>
               <% } %>
             </div>
             <!--
@@ -150,7 +156,7 @@ footer a.btn {
       <% }) %>
     </div>
     <footer>
-      <a class='btn' href="/env/api/<%=name%>?init=true">Next</a>
+      <a class='btn' href="/env/api/<%=name%>?init=true"><%= tr("common.next") %></a>
     </footer>
   </main>
 </body>

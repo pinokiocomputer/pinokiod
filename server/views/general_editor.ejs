@@ -1,3 +1,7 @@
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <html class='columns'>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
@@ -13,6 +17,9 @@
 <script src="/xterm-addon-search-bar.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/he.js"></script>
 <script src="/opener.js"></script>
@@ -167,7 +174,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.log("SAVE")
       await rpc.save()
       n.Noty({
-        text: `saved`,
+        text: <%-trj("app.saved")%>,
       })
     })
   }
@@ -193,9 +200,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   </h1>
   <div class='runner'>
     <div id='save' class='btn disabled'>
-      <span class='save'><i class="fa-solid fa-check"></i> Save</span>
+      <span class='save'><i class="fa-solid fa-check"></i> <%=tr("common.save")%></span>
     </div>
-    <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> Open in File Explorer</button>
+    <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> <%=tr("common.open_in_file_explorer")%></button>
   </div>
   </header>
   <div class='containers'>
@@ -203,6 +210,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       <div id='editor'><%=content%></div>
     </main>
   </div>
-  <footer><b>Ready</b></footer>
+  <footer><b><%=tr("common.ready")%></b></footer>
 </body>
 </html>

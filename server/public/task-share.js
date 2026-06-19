@@ -14,6 +14,7 @@
   const task = bootstrap.task || {};
   let share = bootstrap.share || {};
   const stateUrl = typeof bootstrap.stateUrl === "string" ? bootstrap.stateUrl : "";
+  const I18N = window.PINOKIO_I18N || {};
 
   const nextWrapEl = document.querySelector("[data-task-share-next-wrap]");
   const nextCopyEl = document.querySelector("[data-task-share-next-copy]");
@@ -47,14 +48,22 @@
   let currentPermalink = "";
   let historyReplaceTimer = 0;
 
+  function t(key, fallback, replacements = {}) {
+    let value = typeof I18N[key] === "string" ? I18N[key] : `[missing translation: ${key}]`;
+    Object.entries(replacements || {}).forEach(([name, replacement]) => {
+      value = value.replace(new RegExp(`\\{${name}\\}`, "g"), String(replacement));
+    });
+    return value;
+  }
+
   function humanizeCount(count) {
     const value = Number.isFinite(Number(count)) ? Number(count) : 0;
-    return `${value} local change${value === 1 ? "" : "s"}`;
+    return t(value === 1 ? "tasks.local_change_count_one" : "tasks.local_change_count", value === 1 ? "{count} local change" : "{count} local changes", { count: value });
   }
 
   function humanizeVersionCount(count) {
     const value = Number.isFinite(Number(count)) ? Number(count) : 0;
-    return `${value} saved version${value === 1 ? "" : "s"}`;
+    return t(value === 1 ? "tasks.saved_version_count_one" : "tasks.saved_version_count", value === 1 ? "{count} saved version" : "{count} saved versions", { count: value });
   }
 
   function escapeRegExp(value) {
@@ -267,8 +276,8 @@
       }
       return;
     }
-    overlayTitle.textContent = title || "GitHub flow";
-    overlayCopy.textContent = copy || "Finish the flow in this panel, then click Done, check again.";
+    overlayTitle.textContent = title || t("tasks.github_flow", "GitHub flow");
+    overlayCopy.textContent = copy || t("tasks.github_flow_panel_copy", "Finish the flow in this panel, then click Done, check again.");
     overlayFrame.src = src || "about:blank";
     overlay.classList.remove("task-hidden");
     document.body.classList.add("task-share-overlay-open");
@@ -290,7 +299,7 @@
     }
     refreshInFlight = true;
     if (!opts.quiet) {
-      showFeedback("Refreshing status...", "info");
+      showFeedback(t("tasks.refreshing_status", "Refreshing status..."), "info");
     }
     try {
       const response = await fetch(stateUrl, { cache: "no-store" });
@@ -301,11 +310,11 @@
       share = payload.share || {};
       render();
       if (!opts.quiet) {
-        showFeedback("Status updated.", "success");
+        showFeedback(t("tasks.status_updated", "Status updated."), "success");
       }
     } catch (error) {
       if (!opts.quiet) {
-        showFeedback(error && error.message ? error.message : "Failed to refresh status.", "error");
+        showFeedback(error && error.message ? error.message : t("tasks.failed_refresh_status", "Failed to refresh status."), "error");
       }
     } finally {
       refreshInFlight = false;
@@ -321,19 +330,19 @@
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.ok) {
-        throw new Error(payload && payload.error ? payload.error : "Failed to initialize git.");
+        throw new Error(payload && payload.error ? payload.error : t("tasks.failed_initialize_git", "Failed to initialize git."));
       }
-      showFeedback("Git tracking started.", "success");
+      showFeedback(t("tasks.git_tracking_started", "Git tracking started."), "success");
       refreshState({ quiet: true });
     } catch (error) {
-      showFeedback(error && error.message ? error.message : "Failed to initialize git.", "error");
+      showFeedback(error && error.message ? error.message : t("tasks.failed_initialize_git", "Failed to initialize git."), "error");
     }
   }
 
   function buildCreateRepoUrl() {
     const name = repoNameInput ? repoNameInput.value.trim() : "";
     if (!name) {
-      showFeedback("Repository name is required.", "error");
+      showFeedback(t("tasks.repository_name_required", "Repository name is required."), "error");
       if (repoNameInput) {
         repoNameInput.focus();
       }
@@ -347,60 +356,60 @@
   function computeNextStep() {
     if (!share.githubConnected) {
       return {
-        message: "Connect GitHub to publish this task.",
+        message: t("tasks.connect_github_to_publish_task", "Connect GitHub to publish this task."),
         actions: [
-          { label: "Open GitHub", icon: "fa-brands fa-github", href: "/github", newTab: true, primary: true },
-          { label: "Check again", icon: "fa-solid fa-rotate-right", action: "refresh" }
+          { label: t("tasks.open_github", "Open GitHub"), icon: "fa-brands fa-github", href: "/github", newTab: true, primary: true },
+          { label: t("tasks.check_again", "Check again"), icon: "fa-solid fa-rotate-right", action: "refresh" }
         ]
       };
     }
     if (!share.gitInitialized) {
       return {
-        message: "Start version tracking to publish this task.",
+        message: t("tasks.start_tracking_to_publish_task", "Start version tracking to publish this task."),
         actions: [
-          { label: "Start tracking", icon: "fa-solid fa-code-branch", action: "init", primary: true }
+          { label: t("tasks.start_tracking", "Start tracking"), icon: "fa-solid fa-code-branch", action: "init", primary: true }
         ]
       };
     }
     if (!share.hasCommit) {
       return {
-        message: "Save the first version to publish this task.",
+        message: t("tasks.save_first_version_to_publish_task", "Save the first version to publish this task."),
         actions: [
-          { label: "Save version", icon: "fa-solid fa-floppy-disk", action: "commit", primary: true }
+          { label: t("tasks.save_version", "Save version"), icon: "fa-solid fa-floppy-disk", action: "commit", primary: true }
         ]
       };
     }
     if (Number(share.changeCount || 0) > 0) {
       return {
-        message: `${humanizeCount(share.changeCount)} still need to be saved before publishing.`,
+        message: t("tasks.local_changes_need_save", "{count} still need to be saved before publishing.", { count: humanizeCount(share.changeCount) }),
         actions: [
-          { label: "Save version", icon: "fa-solid fa-floppy-disk", action: "commit", primary: true }
+          { label: t("tasks.save_version", "Save version"), icon: "fa-solid fa-floppy-disk", action: "commit", primary: true }
         ]
       };
     }
     if (!share.remoteUrl) {
       return {
         message: createFormOpen
-          ? "Choose the repository name, then continue."
-          : "Create a GitHub repo and publish the first version.",
+          ? t("tasks.choose_repo_name_then_continue", "Choose the repository name, then continue.")
+          : t("tasks.create_repo_publish_first", "Create a GitHub repo and publish the first version."),
         actions: [
-          { label: "Create on GitHub", icon: "fa-brands fa-github", action: "create", primary: true }
+          { label: t("tasks.create_on_github", "Create on GitHub"), icon: "fa-brands fa-github", action: "create", primary: true }
         ]
       };
     }
     if (!share.hasPublished) {
       return {
-        message: "Publish the first version to create a shareable link.",
+        message: t("tasks.publish_first_version_to_create_link", "Publish the first version to create a shareable link."),
         actions: [
-          { label: "Publish first version", icon: "fa-brands fa-github", action: "publish", primary: true }
+          { label: t("tasks.publish_first_version", "Publish first version"), icon: "fa-brands fa-github", action: "publish", primary: true }
         ]
       };
     }
     if (Number(share.aheadCount || 0) > 0) {
       return {
-        message: "Published link is behind local changes.",
+        message: t("tasks.published_link_behind", "Published link is behind local changes."),
         actions: [
-          { label: "Publish changes", icon: "fa-brands fa-github", action: "publish", primary: true }
+          { label: t("tasks.publish_changes", "Publish changes"), icon: "fa-brands fa-github", action: "publish", primary: true }
         ]
       };
     }
@@ -486,8 +495,8 @@
     }
     if (action === "commit") {
       openOverlay({
-        title: "Save version",
-        copy: "Finish saving a version in this panel, then click Done, check again.",
+        title: t("tasks.save_version", "Save version"),
+        copy: t("tasks.save_version_panel_copy", "Finish saving a version in this panel, then click Done, check again."),
         src: share.commitUrl
       });
       return;
@@ -514,30 +523,30 @@
         return;
       }
       openOverlay({
-        title: "Create GitHub repository",
-        copy: "Create the repository and publish the first version in this panel, then click Done, check again.",
+        title: t("tasks.create_github_repository", "Create GitHub repository"),
+        copy: t("tasks.create_repository_panel_copy", "Create the repository and publish the first version in this panel, then click Done, check again."),
         src: createUrl
       });
       return;
     }
     if (action === "publish") {
       openOverlay({
-        title: "Publish changes",
-        copy: "Publish the latest task changes in this panel, then click Done, check again.",
+        title: t("tasks.publish_changes", "Publish changes"),
+        copy: t("tasks.publish_changes_panel_copy", "Publish the latest task changes in this panel, then click Done, check again."),
         src: share.pushUrl
       });
       return;
     }
     if (action === "copy-link") {
       if (!currentPermalink) {
-        showFeedback("This task does not have a permalink yet.", "error");
+        showFeedback(t("tasks.no_permalink", "This task does not have a permalink yet."), "error");
         return;
       }
       try {
         await copyText(currentPermalink);
-        showFeedback("Permalink copied.", "success");
+        showFeedback(t("tasks.permalink_copied", "Permalink copied."), "success");
       } catch (_) {
-        showFeedback("Copy failed.", "error");
+        showFeedback(t("common.copy_failed", "Copy failed."), "error");
       }
       return;
     }

@@ -1,3 +1,19 @@
+const modalInputT = (key, fallback, replacements = {}) => {
+  const fn = typeof window !== "undefined" && typeof window.pinokioT === "function" ? window.pinokioT : null
+  if (fn) {
+    return fn(key, fallback, replacements)
+  }
+  const catalog = typeof window !== "undefined" && window.PINOKIO_I18N && typeof window.PINOKIO_I18N === "object" ? window.PINOKIO_I18N : {}
+  let value = Object.prototype.hasOwnProperty.call(catalog, key) ? catalog[key] : `[missing translation: ${key}]`
+  if (typeof value !== "string") {
+    value = `[missing translation: ${key}]`
+  }
+  Object.entries(replacements || {}).forEach(([name, replacement]) => {
+    value = value.replace(new RegExp(`\\{${name}\\}`, "g"), replacement == null ? "" : String(replacement))
+  })
+  return value
+}
+
 const normalizeSwalClasses = (value) => {
   if (!value) {
     return []
@@ -147,7 +163,7 @@ const ModalInput = async (params, uri) => {
       backdrop: "rgba(10, 10, 12, 0.42)"
     } : {}),
     //focusConfirm: false,
-    confirmButtonText: params.confirm || 'Done',
+    confirmButtonText: params.confirm || modalInputT("common.done", "Done"),
     didRender: () => {
       Swal.getPopup().querySelectorAll('[data-type=file]').forEach((el, index) => {
         const dz = new Dropzone(el, {
@@ -157,7 +173,7 @@ const ModalInput = async (params, uri) => {
           uploadMultiple: false,
           maxFiles: 1,
           addRemoveLinks: true,
-          dictDefaultMessage: "Drag and drop or click to upload a file",
+          dictDefaultMessage: modalInputT("common.drop_or_click_upload_file", "Drag and drop or click to upload a file"),
           init: function () {
             console.log(`Dropzone ${index + 1} ready`);
           }
@@ -184,7 +200,7 @@ const ModalInput = async (params, uri) => {
         if (type !== 'file' && type !== 'checkbox') {
           response[field.key] = input.value
           if (field.required && input.value.length === 0) {
-            alert(`${field.title || field.key} value must exist`) 
+            alert(modalInputT("common.value_must_exist", "{field} value must exist", { field: field.title || field.key }))
             return false
           }
         }

@@ -1,5 +1,9 @@
 <html>
 <head>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <link href="/xterm.min.css" rel="stylesheet" />
@@ -536,6 +540,9 @@ body.checkpoints-page .backups-empty {
 <script src="/xterm-addon-web-links.js"></script>
 <script src="/xterm-theme.js"></script>
 <script src="/Socket.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
@@ -600,12 +607,12 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="snapshot-option">
           <div class="snapshot-card snapshot-card--latest" data-snapshot-id="latest">
             <div class="snapshot-header">
-              <div class="snapshot-title"><i class="fa-solid fa-clock-rotate-left"></i> Latest</div>
+              <div class="snapshot-title"><i class="fa-solid fa-clock-rotate-left"></i> ${<%-trj("checkpoints.latest")%>}</div>
               <div class="snapshot-actions">
-                <button type="button" class="url-modal-button confirm snapshot-install" data-snapshot-id="latest">Install</button>
+                <button type="button" class="url-modal-button confirm snapshot-install" data-snapshot-id="latest">${<%-trj("common.install")%>}</button>
               </div>
             </div>
-            <div class="snapshot-meta">Clone the current default branch HEAD.</div>
+            <div class="snapshot-meta">${<%-trj("checkpoints.latest_meta")%>}</div>
           </div>
         </div>
       `
@@ -628,7 +635,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	        </div>
         `
       }).join("")
-	    const label = "Checkpoint"
+	    const label = <%-trj("checkpoints.checkpoint")%>
 		    const snapTimestamp = snap && snap.id != null ? Number(snap.id) : Number.NaN
 		    const whenRaw = Number.isFinite(snapTimestamp) && snapTimestamp > 0 ? new Date(snapTimestamp).toLocaleString() : ""
 		    const when = whenRaw ? escapeHtml(whenRaw) : ""
@@ -645,13 +652,13 @@ document.addEventListener("DOMContentLoaded", () => {
 		    if (vramVal != null && vramVal > 0) envParts.push(`${vramVal} GB VRAM`)
 	    const envText = envParts.join(" · ")
 	    const metaParts = []
-	    metaParts.push(`${repos.length} repo${repos.length === 1 ? '' : 's'}`)
+	    metaParts.push((repos.length === 1 ? <%-trj("checkpoints.repo_count")%> : <%-trj("checkpoints.repo_count_plural")%>).replace("{count}", repos.length))
 	    if (when) metaParts.push(when)
 	    const metaText = metaParts.join(" · ")
       const publishMarkup = ""
     const installed = Array.isArray(installedNames) ? installedNames : []
     const installedMarkup = installed.length
-      ? `<div class="installed-list"><span>Installed:</span> ${installed.map((name) => `<a href="/p/${encodeURIComponent(name)}" class="installed-link">/p/${escapeHtml(name)}</a>`).join(", ")}</div>`
+      ? `<div class="installed-list"><span>${<%-trj("checkpoints.installed")%>}:</span> ${installed.map((name) => `<a href="/p/${encodeURIComponent(name)}" class="installed-link">/p/${escapeHtml(name)}</a>`).join(", ")}</div>`
       : ""
       return `
         <div class="snapshot-option">
@@ -660,8 +667,8 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class="snapshot-title"><i class="fa-regular fa-clock"></i> ${label}</div>
               <div class="snapshot-actions">
                 ${publishMarkup}
-                <button type="button" class="url-modal-button danger snapshot-delete" data-snapshot-id="${snap.id}">Delete</button>
-                <button type="button" class="url-modal-button confirm snapshot-install" data-snapshot-id="${snap.id}">Install</button>
+                <button type="button" class="url-modal-button danger snapshot-delete" data-snapshot-id="${snap.id}">${<%-trj("common.delete")%>}</button>
+                <button type="button" class="url-modal-button confirm snapshot-install" data-snapshot-id="${snap.id}">${<%-trj("common.install")%>}</button>
               </div>
             </div>
 	            <div class="snapshot-meta">
@@ -697,16 +704,16 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="url-modal-content backup-modal-content" role="dialog" aria-modal="true" aria-labelledby="backup-modal-title" aria-describedby="backup-modal-description">
           <div class="backup-loading hidden" id="backup-loading">
             <div class="spinner"></div>
-            <div class="backup-loading-text">Installing…</div>
+            <div class="backup-loading-text">${<%-trj("checkpoints.installing")%>}</div>
           </div>
-          <button type="button" class="url-modal-close" aria-label="Close">&times;</button>
+          <button type="button" class="url-modal-close" aria-label="${<%-trj("common.close")%>}">&times;</button>
           <div class="backup-modal-header">
-            <h3 id="backup-modal-title">Install</h3>
-            <p class="backup-modal-description" id="backup-modal-description">Pick a version and, if needed, a new folder name.</p>
+            <h3 id="backup-modal-title">${<%-trj("common.install")%>}</h3>
+            <p class="backup-modal-description" id="backup-modal-description">${<%-trj("checkpoints.pick_version_folder")%>}</p>
           </div>
           <div class="backup-modal snapshot-options">${snapshots.join("")}</div>
           <div class="backup-modal folder-row hidden" id="folder-row">
-            <label for="folder-name">New folder name</label>
+            <label for="folder-name">${<%-trj("checkpoints.new_folder_name")%>}</label>
             <input id="folder-name" type="text" value="${escapeAttr(defaultFolder)}" autocomplete="off" />
             <div class="folder-hint" id="folder-hint"></div>
           </div>
@@ -753,19 +760,19 @@ document.addEventListener("DOMContentLoaded", () => {
             overlay.className = "modal-overlay url-modal-overlay backup-rename-overlay is-visible"
             overlay.innerHTML = `
               <div class="url-modal-content backup-modal-content" role="dialog" aria-modal="true" aria-labelledby="backup-rename-title">
-                <button type="button" class="url-modal-close" aria-label="Close">&times;</button>
+                <button type="button" class="url-modal-close" aria-label="${<%-trj("common.close")%>}">&times;</button>
                 <div class="backup-modal-header">
-                  <h3 id="backup-rename-title">Choose a new folder</h3>
-                  <p class="backup-modal-description">${escapeHtml(message || "Pick a different folder name for this install.")}</p>
+                  <h3 id="backup-rename-title">${<%-trj("checkpoints.choose_new_folder")%>}</h3>
+                  <p class="backup-modal-description">${escapeHtml(message || <%-trj("checkpoints.pick_different_folder")%>)}</p>
                 </div>
                 <div class="backup-modal folder-row" style="margin-top: 0;">
-                  <label for="rename-folder-name">Folder name</label>
+                  <label for="rename-folder-name">${<%-trj("checkpoints.folder_name")%>}</label>
                   <input id="rename-folder-name" type="text" value="${suggested}" autocomplete="off" />
                   <div class="folder-hint" id="rename-folder-hint"></div>
                 </div>
                 <div class="url-modal-actions">
-                  <button type="button" class="url-modal-button cancel" data-action="cancel">Cancel</button>
-                  <button type="button" class="url-modal-button confirm" data-action="confirm">Use name</button>
+                  <button type="button" class="url-modal-button cancel" data-action="cancel">${<%-trj("common.cancel")%>}</button>
+                  <button type="button" class="url-modal-button confirm" data-action="confirm">${<%-trj("checkpoints.use_name")%>}</button>
                 </div>
               </div>
             `
@@ -782,11 +789,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const validate = () => {
               const val = input.value.trim()
               if (!val) {
-                hintEl.textContent = "Folder name required."
+                hintEl.textContent = <%-trj("checkpoints.folder_name_required")%>
                 return null
               }
               if (val.includes('/') || val.includes('\\')) {
-                hintEl.textContent = "Folder name cannot contain slashes."
+                hintEl.textContent = <%-trj("checkpoints.folder_name_no_slashes")%>
                 return null
               }
               hintEl.textContent = ""
@@ -822,10 +829,10 @@ document.addEventListener("DOMContentLoaded", () => {
           const sameFolder = snapshotId !== 'latest' && alreadyInstalled.includes(name)
           if (!name || name.includes('/') || name.includes('\\') || nameConflict || sameFolder) {
             const reason = nameConflict
-              ? "Folder exists. Pick a different name."
+              ? <%-trj("checkpoints.folder_exists")%>
               : sameFolder
-              ? `Snapshot already installed in: ${alreadyInstalled.join(", ")}. Choose a different folder.`
-              : "Folder name required."
+              ? <%-trj("checkpoints.snapshot_already_installed")%>.replace("{names}", alreadyInstalled.join(", "))
+              : <%-trj("checkpoints.folder_name_required")%>
             const rename = await openRenameModal(name || defaultFolder, reason)
             if (!rename) return
             name = rename
@@ -833,9 +840,9 @@ document.addEventListener("DOMContentLoaded", () => {
           const installBtn = installButtons.find((b) => b.dataset.snapshotId === String(snapshotId))
           if (installBtn) {
             installBtn.disabled = true
-            installBtn.textContent = "Installing..."
+            installBtn.textContent = <%-trj("checkpoints.installing_ellipsis")%>
           }
-          setLoading(true, "Installing...")
+          setLoading(true, <%-trj("checkpoints.installing_ellipsis")%>)
           try {
             const res = await fetch("/checkpoints/install", {
               method: "POST",
@@ -854,21 +861,21 @@ document.addEventListener("DOMContentLoaded", () => {
               window.location = payload.redirect
             } else {
               if (payload && payload.code === "exists") {
-                const rename = await openRenameModal(name, "Folder exists. Pick a different name.")
+                const rename = await openRenameModal(name, <%-trj("checkpoints.folder_exists")%>)
                 if (rename) {
                   await handleInstall(snapshotId, rename)
                 }
                 return
               }
-              const msg = payload && payload.error ? payload.error : "Install failed"
-              Swal.fire({ icon: "error", title: "Error", text: msg })
+              const msg = payload && payload.error ? payload.error : <%-trj("checkpoints.install_failed")%>
+              Swal.fire({ icon: "error", title: <%-trj("common.error")%>, text: msg })
             }
           } catch (error) {
-            Swal.fire({ icon: "error", title: "Error", text: error && error.message ? error.message : "Install failed" })
+            Swal.fire({ icon: "error", title: <%-trj("common.error")%>, text: error && error.message ? error.message : <%-trj("checkpoints.install_failed")%> })
           } finally {
             if (installBtn) {
               installBtn.disabled = false
-              installBtn.textContent = "Install"
+              installBtn.textContent = <%-trj("common.install")%>
             }
             setLoading(false)
           }
@@ -885,8 +892,8 @@ document.addEventListener("DOMContentLoaded", () => {
             if (badges.length > 1) {
               const count = snapshots.length
               badges[1].textContent = count
-                ? `${count} snapshot${count === 1 ? '' : 's'}`
-                : "No snapshots yet"
+                ? (count === 1 ? <%-trj("checkpoints.snapshot_count")%> : <%-trj("checkpoints.snapshot_count_plural")%>).replace("{count}", count)
+                : <%-trj("checkpoints.no_snapshots_yet")%>
             }
           }
           const latestRow = Array.from(row.querySelectorAll(".description.backup-meta"))
@@ -896,7 +903,7 @@ document.addEventListener("DOMContentLoaded", () => {
               latestRow.remove()
             } else {
               const span = latestRow.querySelector("span")
-              if (span) span.textContent = `Latest checkpoint: ${new Date(Number(snapshots[0].id)).toLocaleString()}`
+              if (span) span.textContent = <%-trj("checkpoints.latest_checkpoint")%>.replace("{date}", new Date(Number(snapshots[0].id)).toLocaleString())
             }
           }
         }
@@ -910,22 +917,22 @@ document.addEventListener("DOMContentLoaded", () => {
             ? item.snapshots.find((snap) => snap && String(snap.id) === idStr)
             : null
           const confirmLines = [
-            "Delete this checkpoint locally?",
-            "This removes the local snapshot file and manifest entry."
+            <%-trj("checkpoints.delete_confirm")%>,
+            <%-trj("checkpoints.delete_confirm_detail")%>
           ]
           if (installed.length) {
-            confirmLines.push(`Installed in: ${installed.join(", ")}`)
+            confirmLines.push(<%-trj("checkpoints.installed_in")%>.replace("{names}", installed.join(", ")))
           }
           if (snapInfo && snapInfo.sync && snapInfo.sync.status === "published") {
-            confirmLines.push("Cloud copy will remain in the registry.")
+            confirmLines.push(<%-trj("checkpoints.cloud_copy_remains")%>)
           }
           const confirmed = confirm(confirmLines.join("\n"))
           if (!confirmed) return
           if (btn) {
             btn.disabled = true
-            btn.textContent = "Deleting..."
+            btn.textContent = <%-trj("common.deleting")%>
           }
-          setLoading(true, "Deleting...")
+          setLoading(true, <%-trj("common.deleting")%>)
           try {
             const res = await fetch("/checkpoints/delete", {
               method: "POST",
@@ -961,15 +968,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 updateItemRow(item)
               }
             } else {
-              const msg = payload && payload.error ? payload.error : "Delete failed"
-              Swal.fire({ icon: "error", title: "Error", text: msg })
+              const msg = payload && payload.error ? payload.error : <%-trj("checkpoints.delete_failed")%>
+              Swal.fire({ icon: "error", title: <%-trj("common.error")%>, text: msg })
             }
           } catch (error) {
-            Swal.fire({ icon: "error", title: "Error", text: error && error.message ? error.message : "Delete failed" })
+            Swal.fire({ icon: "error", title: <%-trj("common.error")%>, text: error && error.message ? error.message : <%-trj("checkpoints.delete_failed")%> })
           } finally {
             if (btn) {
               btn.disabled = false
-              btn.textContent = "Delete"
+              btn.textContent = <%-trj("common.delete")%>
             }
             setLoading(false)
             if (closeAfterDelete) {
@@ -1032,7 +1039,7 @@ document.addEventListener("DOMContentLoaded", () => {
   })
 
   if (importError) {
-    Swal.fire({ icon: "error", title: "Import failed", text: importError })
+    Swal.fire({ icon: "error", title: <%-trj("checkpoints.import_failed")%>, text: importError })
   } else if (autoInstall && autoInstall.remoteKey) {
     const item = items.find((i) => i.remoteKey === autoInstall.remoteKey)
     if (item) {
@@ -1049,19 +1056,19 @@ document.addEventListener("DOMContentLoaded", () => {
     <section class='task-shell checkpoints-shell'>
       <header class='task-shell-header'>
         <div class='task-shell-header-main'>
-          <p class='task-eyebrow'>Checkpoints</p>
-          <h1 class='task-title'>Checkpoints</h1>
-          <p class='task-description'>Local version history for workspaces on this machine.</p>
+          <p class='task-eyebrow'><%=tr("checkpoints.title")%></p>
+          <h1 class='task-title'><%=tr("checkpoints.title")%></h1>
+          <p class='task-description'><%=tr("checkpoints.description")%></p>
         </div>
       </header>
       <div class='task-shell-body checkpoints-shell-body'>
         <div class='content backups-container'>
-          <h2>Checkpoints</h2>
-          <p class="subtitle">Local version history for workspaces on this machine.</p>
+          <h2><%=tr("checkpoints.title")%></h2>
+          <p class="subtitle"><%=tr("checkpoints.description")%></p>
           <div class="checkpoints-toolbar">
             <% if (checkpointsDir) { %>
               <button type="button" class="task-button" data-filepath="<%= checkpointsDir %>">
-                <i class="fa-solid fa-folder-open"></i> Open checkpoints folder
+                <i class="fa-solid fa-folder-open"></i> <%=tr("checkpoints.open_folder")%>
               </button>
             <% } %>
           </div>
@@ -1087,20 +1094,20 @@ document.addEventListener("DOMContentLoaded", () => {
                         <div class='description'><%= item.description %></div>
                       <% } %>
                       <div class='description backup-meta'>
-                        <span class="badge"><%= (item.folders && item.folders.length) ? item.folders.length + ' local folder' + (item.folders.length === 1 ? '' : 's') : 'No local folders' %></span>
-                        <span class="badge"><%= (item.snapshots && item.snapshots.length) ? item.snapshots.length + ' snapshot' + (item.snapshots.length === 1 ? '' : 's') : 'No snapshots yet' %></span>
+                        <span class="badge"><%= (item.folders && item.folders.length) ? tr(item.folders.length === 1 ? "checkpoints.local_folder_count" : "checkpoints.local_folder_count_plural", { count: item.folders.length }) : tr("checkpoints.no_local_folders") %></span>
+                        <span class="badge"><%= (item.snapshots && item.snapshots.length) ? tr(item.snapshots.length === 1 ? "checkpoints.snapshot_count" : "checkpoints.snapshot_count_plural", { count: item.snapshots.length }) : tr("checkpoints.no_snapshots_yet") %></span>
                       </div>
                       <% if (item.folders && item.folders.length > 0) { %>
                         <div class="description backup-meta">
                           <i class="fa-solid fa-folder-open"></i>
-                          <span>Local: <%= item.folders.map((f) => f.name).join(", ") %></span>
+                          <span><%=tr("checkpoints.local")%>: <%= item.folders.map((f) => f.name).join(", ") %></span>
                         </div>
                       <% } %>
                       <% if (item.snapshots && item.snapshots.length > 0) { %>
                         <% const latest = item.snapshots[0]; %>
                         <div class="description backup-meta">
                           <i class="fa-regular fa-clock"></i>
-                          <span>Latest checkpoint: <%= new Date(Number(latest.id)).toLocaleString() %></span>
+                          <span><%=tr("checkpoints.latest_checkpoint", { date: new Date(Number(latest.id)).toLocaleString() })%></span>
                         </div>
                       <% } %>
                     </div>
@@ -1109,7 +1116,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <% }) %>
             </div>
           <% } else { %>
-            <p class="backups-empty">No history yet.</p>
+            <p class="backups-empty"><%=tr("checkpoints.no_history")%></p>
           <% } %>
         </div>
       </div>

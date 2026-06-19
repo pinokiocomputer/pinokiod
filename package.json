@@ -6,6 +6,8 @@
   "scripts": {
     "download_readme": "wget -O kernel/proto/PINOKIO.md https://raw.githubusercontent.com/pinokiocomputer/home/refs/heads/main/docs/README.md",
     "start": "node script/index",
+    "validate:i18n": "node script/i18n-validate.js",
+    "validate:i18n:drafts": "node script/i18n-validate.js --include-drafts",
     "verify:ffmpeg": "node script/verify-ffmpeg.js"
   },
   "author": "",

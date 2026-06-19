@@ -1,4 +1,7 @@
 <html>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+%>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <script src="/hotkeys.min.js"></script>
@@ -15,6 +18,9 @@
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
 <script src="/resizeSync.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/terminal-settings.js"></script>
 <script src="/pinokio-touch.js"></script>
 <script src="/common.js"></script>
@@ -191,16 +197,16 @@ body.dark #status-window b {
       <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
       <% } %>
       <div class='hidden btn run play-btn'>
-        <span class='play'><i class="fa-solid fa-play"></i> Run</span>
+        <span class='play'><i class="fa-solid fa-play"></i> <%=tr("terminal.run")%></span>
       </div>
       <div class='hidden btn run starting-btn'>
-        <span class='starting'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
+        <span class='starting'><i class="fa-solid fa-circle-notch fa-spin"></i> <%=tr("terminal.starting")%></span>
       </div>
       <div class='hidden btn run stop-btn'>
-        <span class='stop'><i class="fa-solid fa-stop"></i> Stop</span>
+        <span class='stop'><i class="fa-solid fa-stop"></i> <%=tr("terminal.stop")%></span>
       </div>
       <div class='hidden btn stopped-btn'>
-        <span class='stopped'><i class="fa-solid fa-hand"></i> Stopped</span>
+        <span class='stopped'><i class="fa-solid fa-hand"></i> <%=tr("common.stopped")%></span>
       </div>
       <div id='status-window'></div>
       <div id='progress-window' class='hidden'><div id='progress-bar'></div></div>
@@ -209,7 +215,7 @@ body.dark #status-window b {
   <div class='terminal-container'>
     <div id='terminal'></div>
   </div>
-  <footer><b>Ready</b></footer>
+  <footer><b><%=tr("common.ready")%></b></footer>
 <script>
 let shell_id
 let socket = new Socket()

@@ -1,4 +1,8 @@
 <html>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
@@ -471,7 +475,7 @@ body.dark .gallery-empty-state .subtitle {
 }
 
 .gallery-item.deleting::after {
-  content: 'Deleting...';
+  content: attr(data-deleting-label);
 }
 
 body.dark .gallery-item {
@@ -847,6 +851,9 @@ body.screenshots-page .gallery-error .btn {
 <script src="/xterm-theme.js"></script>
 <script src="/install.js"></script>
 <script src="/timeago.min.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
@@ -870,32 +877,32 @@ document.addEventListener('DOMContentLoaded', function() {
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
-<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+<button class='btn2' id='minimize-header' data-tippy-content="<%=tr("common.fullscreen")%>" title='<%=tr("common.fullscreen")%>'>
   <div><i class="fa-solid fa-expand"></i></div>
 </button>
-<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
-<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
-<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
-<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
+<button class='btn2' id='back' data-tippy-content="<%=tr("common.back")%>"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="<%=tr("common.forward")%>"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="<%=tr("common.refresh")%>"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="<%=tr("common.screen_capture")%>"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="<%=tr("common.xray_mode")%>"><i class="fa-solid fa-eye"></i></button>
+<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="<%=tr("common.enter_url")%>"><i class="fa-solid fa-link"></i></button>
 <div class='mobile-flexible'></div>
 <form class='urlbar'>
   <div class='url-input-container'>
-    <input type='url' placeholder='enter any local url to open in pinokio'>
+    <input type='url' placeholder='<%=tr("common.url_placeholder")%>'>
     <div class='url-dropdown' id='url-dropdown'></div>
   </div>
 </form>
-<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+<a class='btn2' href="/columns" data-tippy-content="<%=tr("common.split_columns")%>">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
-<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+<a class='btn2' href="/rows" data-tippy-content="<%=tr("common.split_rows")%>">
   <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
 </a>
-<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+<button class='btn2' id='new-window' data-tippy-content="<%=tr("common.open_new_window")%>" title='<%=tr("common.open_new_window")%>' data-agent="<%=agent%>">
   <div><i class="fa-solid fa-plus"></i></div>
 </button>
-<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+<button class='btn2 hidden' id='close-window' data-tippy-content='<%=tr("common.close_section")%>'>
   <div><i class="fa-solid fa-xmark"></i></div>
 </button>
 </h1>
@@ -905,21 +912,21 @@ document.addEventListener('DOMContentLoaded', function() {
   <section class='task-shell screenshots-shell'>
     <header class='task-shell-header'>
       <div class='task-shell-header-main'>
-        <p class='task-eyebrow'>Screenshots</p>
-        <h1 class='task-title'>Screen Captures</h1>
-        <p class='task-description'>Saved screenshots and recordings captured from Pinokio.</p>
+        <p class='task-eyebrow'><%= tr("screenshots.title") %></p>
+        <h1 class='task-title'><%= tr("screenshots.captures") %></h1>
+        <p class='task-description'><%= tr("screenshots.description") %></p>
       </div>
     </header>
     <div class='task-shell-body screenshots-shell-body'>
-  <div id="gallery-loading" class="loading">Loading captures...</div>
+  <div id="gallery-loading" class="loading"><%= tr("screenshots.loading") %></div>
   <div id="gallery-error" class="gallery-error" style="display: none;">
-    <p>Failed to load captures. <button id="retry-btn" class="task-button">Retry</button></p>
+    <p><%= tr("screenshots.failed_load") %> <button id="retry-btn" class="task-button"><%= tr("common.retry") %></button></p>
   </div>
   <div id="gallery-container" class="gallery-container" style="display: none;">
     <div class="gallery-header">
-      <h2>Screen Captures</h2>
+      <h2><%= tr("screenshots.captures") %></h2>
       <div class="gallery-stats">
-        <span id="image-count">0 captures</span>
+        <span id="image-count"><%= tr("screenshots.capture_count", { count: 0 }) %></span>
       </div>
     </div>
     <div id="gallery-grid" class="gallery-grid">
@@ -990,7 +997,7 @@ class ScreenshotGallery {
     this.updateStats()
     
     const errorMsg = this.errorEl.querySelector('p')
-    errorMsg.innerHTML = `Failed to load captures: ${message}. <button id="retry-btn" class="btn">Retry</button>`
+    errorMsg.innerHTML = `${<%- trj("screenshots.failed_load_with_message") %>.replace('{message}', message)} <button id="retry-btn" class="btn">${<%- trj("common.retry") %>}</button>`
     
     // Re-attach event listener to new retry button
     const newRetryBtn = document.getElementById('retry-btn')
@@ -1029,12 +1036,12 @@ class ScreenshotGallery {
   }
 
   showEmptyState() {
-    this.imageCountEl.textContent = '0 captures'
+    this.imageCountEl.textContent = <%- trj("screenshots.capture_count", { count: 0 }) %>
     this.gridEl.innerHTML = `
       <div class="gallery-empty-state">
         <i class="fa-solid fa-camera"></i>
-        <p>No captures found</p>
-        <p class="subtitle">Use the camera button above to save a screenshot or recording</p>
+        <p>${<%- trj("screenshots.empty") %>}</p>
+        <p class="subtitle">${<%- trj("screenshots.empty_description") %>}</p>
       </div>
     `
   }
@@ -1046,15 +1053,15 @@ class ScreenshotGallery {
     const total = this.currentItems.length
 
     if (!total) {
-      this.imageCountEl.textContent = '0 captures'
+      this.imageCountEl.textContent = <%- trj("screenshots.capture_count", { count: 0 }) %>
       return
     }
 
     const parts = []
-    if (images) parts.push(`${images} image${images !== 1 ? 's' : ''}`)
-    if (videos) parts.push(`${videos} video${videos !== 1 ? 's' : ''}`)
+    if (images) parts.push((images === 1 ? <%- trj("screenshots.image_count_one") %> : <%- trj("screenshots.image_count") %>).replace('{count}', images))
+    if (videos) parts.push((videos === 1 ? <%- trj("screenshots.video_count_one") %> : <%- trj("screenshots.video_count") %>).replace('{count}', videos))
     if (!parts.length) {
-      parts.push(`${total} capture${total !== 1 ? 's' : ''}`)
+      parts.push((total === 1 ? <%- trj("screenshots.capture_count_one") %> : <%- trj("screenshots.capture_count") %>).replace('{count}', total))
     }
     this.imageCountEl.textContent = parts.join(' · ')
   }
@@ -1118,7 +1125,7 @@ class ScreenshotGallery {
         mediaWrapper.innerHTML = `
           <div class="gallery-item-media-fallback">
             <i class="fa-solid fa-image-slash"></i>
-            <span>Preview unavailable</span>
+            <span>${<%- trj("screenshots.preview_unavailable") %>}</span>
           </div>
         `
       })
@@ -1145,7 +1152,7 @@ class ScreenshotGallery {
         mediaWrapper.innerHTML = `
           <div class="gallery-item-media-fallback">
             <i class="fa-solid fa-video-slash"></i>
-            <span>Preview unavailable</span>
+            <span>${<%- trj("screenshots.preview_unavailable") %>}</span>
           </div>
         `
       })
@@ -1157,7 +1164,7 @@ class ScreenshotGallery {
     if (type === 'video') {
       const badge = document.createElement('div')
       badge.className = 'gallery-item-badge'
-      badge.innerHTML = '<i class="fa-solid fa-video"></i><span>Video</span>'
+      badge.innerHTML = '<i class="fa-solid fa-video"></i><span>' + <%- trj("screenshots.video") %> + '</span>'
       container.appendChild(badge)
     }
 
@@ -1165,7 +1172,7 @@ class ScreenshotGallery {
     actions.className = 'gallery-item-actions'
     const deleteBtn = document.createElement('button')
     deleteBtn.className = 'gallery-item-action-btn gallery-item-delete-btn'
-    deleteBtn.title = 'Delete capture'
+    deleteBtn.title = <%- trj("screenshots.delete_capture") %>
     deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>'
     actions.appendChild(deleteBtn)
     container.appendChild(actions)
@@ -1204,7 +1211,7 @@ class ScreenshotGallery {
 
     const closeBtn = document.createElement('button')
     closeBtn.className = 'image-modal-close'
-    closeBtn.title = 'Close (Esc)'
+    closeBtn.title = <%- trj("screenshots.close_esc") %>
     closeBtn.textContent = '×'
 
     let media
@@ -1258,25 +1265,25 @@ class ScreenshotGallery {
     const isVideo = type === 'video'
     const preview = isVideo
       ? `<video src="${filepath}" controls muted style="max-width: 200px; max-height: 150px; border-radius: 4px; margin-bottom: 10px; background: #000;"></video>`
-      : `<img src="${filepath}" style="max-width: 200px; max-height: 150px; border-radius: 4px; margin-bottom: 10px;" alt="Preview">`
-    const label = isVideo ? 'Video capture' : 'Screenshot'
+      : `<img src="${filepath}" style="max-width: 200px; max-height: 150px; border-radius: 4px; margin-bottom: 10px;" alt="${<%- trj("screenshots.preview") %>}">`
+    const label = isVideo ? <%- trj("screenshots.video_capture") %> : <%- trj("screenshots.screenshot") %>
 
     Swal.fire({
-      title: 'Delete Capture?',
+      title: <%- trj("screenshots.delete_confirm_title") %>,
       html: `
         <div style="text-align: center; margin: 20px 0;">
           ${preview}
           <p style="margin: 10px 0; font-weight: bold;">${filename}</p>
           <p style="margin: 0; color: #888; font-size: 13px;">${label}</p>
-          <p style="margin: 0; color: #666; font-size: 14px;">This action cannot be undone.</p>
+          <p style="margin: 0; color: #666; font-size: 14px;">${<%- trj("common.cannot_undone") %>}</p>
         </div>
       `,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#dc3545',
       cancelButtonColor: '#6c757d',
-      confirmButtonText: 'Delete',
-      cancelButtonText: 'Cancel'
+      confirmButtonText: <%- trj("common.delete") %>,
+      cancelButtonText: <%- trj("common.cancel") %>
     }).then((result) => {
       if (result.isConfirmed) {
         this.deleteScreenshot(filepath, filename, containerElement, type)
@@ -1287,6 +1294,7 @@ class ScreenshotGallery {
   async deleteScreenshot(filepath, filename, containerElement, type = 'image') {
     try {
       containerElement.classList.add('deleting')
+      containerElement.dataset.deletingLabel = <%- trj("screenshots.deleting") %>
 
       const response = await fetch('/snapshots', {
         method: 'POST',
@@ -1318,8 +1326,8 @@ class ScreenshotGallery {
       }, 260)
 
       Swal.fire({
-        title: 'Deleted!',
-        text: 'Capture has been deleted.',
+        title: <%- trj("screenshots.deleted_title") %>,
+        text: <%- trj("screenshots.deleted_text") %>,
         icon: 'success',
         timer: 1800,
         showConfirmButton: false
@@ -1329,7 +1337,7 @@ class ScreenshotGallery {
       console.error('Failed to delete capture:', error)
       containerElement.classList.remove('deleting')
       Swal.fire({
-        title: 'Delete Failed',
+        title: <%- trj("screenshots.delete_failed") %>,
         text: error.message,
         icon: 'error'
       })

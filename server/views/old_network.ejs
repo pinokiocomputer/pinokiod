@@ -1,4 +1,8 @@
 <html>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <head>
 <title>Pinokio</title>
 <meta charset="UTF-8">
@@ -395,6 +399,9 @@ input:checked + .slider:before {
 </style>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 </head>
@@ -634,9 +641,9 @@ document.querySelector("#advanced-label").addEventListener("click", (e) => {
     callback: "/network",
     path: "~/network",
     icon: "fa-solid fa-circle-down",
-    title: "Custom Router",
-    placeholder: "enter a custom router git url",
-    description: `<div>you can write your own custom routers to handle custom request handling for any port <a target="_blank" href="<%=docs%>">Learn more</a></div>`,
+    title: <%-trj("network.custom_router")%>,
+    placeholder: <%-trj("network.custom_router_placeholder")%>,
+    description: `<div>${<%-trj("network.custom_router_description")%>} <a target="_blank" href="<%=docs%>">${<%-trj("common.learn_more")%>}</a></div>`,
     target: "_top",
     message: (url) => {
       let name = new URL(url).pathname.split("/").slice(-2).join("_")
@@ -777,15 +784,15 @@ document.querySelector("main").addEventListener("click", async (e) => {
     let qr = target.getAttribute("data-qr")
     console.log({ url, qr })
     await Swal.fire({
-      title: "Local Share",
+      title: <%-trj("home.local_share")%>,
       customClass: {
         popup: "min-popup",
         title: "min-title"
       },
       showConfirmButton: false,
       html: `<div class='min-modal'>
-      <div>Access Pinokio from</div>
-      <div>any local network device</div>
+      <div>${<%-trj("share.access_from")%>}</div>
+      <div>${<%-trj("share.local_network_device")%>}</div>
       <div><img src="${qr}"></div>
   <a href="${url}" target="_blank">${url}</a>
   </div>`

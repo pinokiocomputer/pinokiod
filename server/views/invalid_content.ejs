@@ -1,9 +1,12 @@
 <!doctype html>
 <html lang="en">
+<%
+  const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+%>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><%= invalid && invalid.title ? invalid.title : "Invalid Content" %></title>
+  <title><%= invalid && invalid.title ? invalid.title : tr("invalid_content.title") %></title>
   <link href="/css/fontawesome.min.css" rel="stylesheet">
   <link href="/css/solid.min.css" rel="stylesheet">
   <link href="/css/brands.min.css" rel="stylesheet">
@@ -21,9 +24,9 @@
       <section class="task-shell">
         <header class="task-shell-header">
           <div class="task-shell-header-main">
-            <p class="task-eyebrow"><%= invalid && invalid.title ? invalid.title : "Invalid Content" %></p>
-            <h1 class="task-title"><%= invalid && invalid.subjectTitle ? invalid.subjectTitle : "This item" %></h1>
-            <p class="task-description"><%= invalid && invalid.summary ? invalid.summary : "Pinokio cannot use this item until it is fixed." %></p>
+            <p class="task-eyebrow"><%= invalid && invalid.title ? invalid.title : tr("invalid_content.title") %></p>
+            <h1 class="task-title"><%= invalid && invalid.subjectTitle ? invalid.subjectTitle : tr("invalid_content.this_item") %></h1>
+            <p class="task-description"><%= invalid && invalid.summary ? invalid.summary : tr("invalid_content.default_summary") %></p>
           </div>
           <div class="task-header-actions">
             <a class="task-link-button" href="<%= backHref %>">
@@ -33,13 +36,13 @@
             <% if (invalid && invalid.folderPath && invalid.folderExists) { %>
               <button class="task-button" type="button" data-filepath="<%= invalid.folderPath %>">
                 <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
-                <span>Open folder</span>
+                <span><%= tr("invalid_content.open_folder") %></span>
               </button>
             <% } %>
             <% if (invalid && invalid.manifestPath && invalid.manifestExists) { %>
               <button class="task-button" type="button" data-filepath="<%= invalid.manifestPath %>">
                 <i class="fa-solid fa-file-code" aria-hidden="true"></i>
-                <span>Open manifest</span>
+                <span><%= tr("invalid_content.open_manifest") %></span>
               </button>
             <% } %>
           </div>
@@ -55,16 +58,16 @@
               <section class="task-section">
                 <div class="task-section-head">
                   <div>
-                    <h2 class="task-section-title">Problems</h2>
-                    <p class="task-section-subcopy">Fix these issues before trying to use it again.</p>
+                    <h2 class="task-section-title"><%= tr("invalid_content.problems") %></h2>
+                    <p class="task-section-subcopy"><%= tr("invalid_content.fix_before_use") %></p>
                   </div>
                 </div>
                 <div class="task-context-list">
                   <% (invalid && Array.isArray(invalid.errors) ? invalid.errors : []).forEach((entry) => { %>
                     <div class="task-context-item">
-                      <strong><%= entry && entry.file ? entry.file : "Issue" %></strong>
+                      <strong><%= entry && entry.file ? entry.file : tr("invalid_content.issue") %></strong>
                       <span>
-                        <%= entry && entry.message ? entry.message : "Unknown problem." %>
+                        <%= entry && entry.message ? entry.message : tr("invalid_content.unknown_problem") %>
                         <% if (entry && entry.fix) { %>
                           <br>
                           <%= entry.fix %>
@@ -80,31 +83,31 @@
               <section class="task-section">
                 <div class="task-section-head">
                   <div>
-                    <h2 class="task-section-title">Source</h2>
-                    <p class="task-section-subcopy">These paths are safe to inspect and edit.</p>
+                    <h2 class="task-section-title"><%= tr("invalid_content.source") %></h2>
+                    <p class="task-section-subcopy"><%= tr("invalid_content.safe_paths") %></p>
                   </div>
                 </div>
                 <div class="task-context-list">
                   <% if (invalid && invalid.folderPath) { %>
                     <div class="task-context-item">
-                      <strong>Folder</strong>
+                      <strong><%= tr("tasks.folder") %></strong>
                       <span>
                         <%= invalid.folderPath %>
                         <% if (!invalid.folderExists) { %>
                           <br>
-                          Missing on disk
+                          <%= tr("invalid_content.missing_on_disk") %>
                         <% } %>
                       </span>
                     </div>
                   <% } %>
                   <% if (invalid && invalid.manifestPath) { %>
                     <div class="task-context-item">
-                      <strong>Manifest</strong>
+                      <strong><%= tr("invalid_content.manifest") %></strong>
                       <span>
                         <%= invalid.manifestPath %>
                         <% if (!invalid.manifestExists) { %>
                           <br>
-                          Missing on disk
+                          <%= tr("invalid_content.missing_on_disk") %>
                         <% } %>
                       </span>
                     </div>

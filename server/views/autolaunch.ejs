@@ -1,3 +1,7 @@
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -479,16 +483,16 @@ body.autolaunch-page .autolaunch-loading i {
     <section class="task-shell autolaunch-shell">
       <header class="task-shell-header">
         <div class="task-shell-header-main">
-          <p class="task-eyebrow">Autolaunch</p>
-          <h1 class="task-title">Startup scripts</h1>
-          <p class="task-description">Choose which installed app script runs when Pinokio starts. Script choices load when you select an app.</p>
+          <p class="task-eyebrow"><%=tr("autolaunch.eyebrow")%></p>
+          <h1 class="task-title"><%=tr("autolaunch.title")%></h1>
+          <p class="task-description"><%=tr("autolaunch.description")%></p>
         </div>
         <div class="task-header-actions autolaunch-summary">
-          <span class="autolaunch-summary-item"><strong data-enabled-count><%= enabledCount %></strong> enabled</span>
-          <span class="autolaunch-summary-item"><strong data-app-count><%= apps.length %></strong> apps</span>
+          <span class="autolaunch-summary-item"><%-tr("autolaunch.enabled_count", { count: enabledCount }).replace(String(enabledCount), `<strong data-enabled-count>${enabledCount}</strong>`)%></span>
+          <span class="autolaunch-summary-item"><%-tr("autolaunch.app_count", { count: apps.length }).replace(String(apps.length), `<strong data-app-count>${apps.length}</strong>`)%></span>
           <button type="button" class="task-button danger" data-disable-all <%= enabledCount ? '' : 'disabled' %>>
             <i class="fa-solid fa-power-off"></i>
-            Disable all
+            <%=tr("autolaunch.disable_all")%>
           </button>
         </div>
       </header>
@@ -497,23 +501,23 @@ body.autolaunch-page .autolaunch-loading i {
         <section class="task-section autolaunch-root">
           <div class="task-section-head">
             <div>
-              <h2 class="task-section-title">Installed apps</h2>
-              <p class="task-section-subcopy">Apps with autolaunch enabled appear first. Changes take effect the next time Pinokio starts.</p>
+              <h2 class="task-section-title"><%=tr("autolaunch.installed_apps")%></h2>
+              <p class="task-section-subcopy"><%=tr("autolaunch.installed_apps_note")%></p>
             </div>
           </div>
           <div class="autolaunch-toolbar">
             <label class="autolaunch-search-field">
               <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-              <input type="search" placeholder="Search apps" data-app-search autocomplete="off">
+              <input type="search" placeholder="<%=tr("common.search_apps")%>" data-app-search autocomplete="off">
             </label>
           </div>
           <div class="autolaunch-layout">
-            <aside class="autolaunch-apps" aria-label="Installed apps">
+            <aside class="autolaunch-apps" aria-label="<%=tr("autolaunch.installed_apps")%>">
               <div class="autolaunch-app-list" data-app-list></div>
             </aside>
 
             <section class="autolaunch-detail" data-detail>
-              <div class="autolaunch-empty">Select an app to configure its startup script.</div>
+              <div class="autolaunch-empty"><%=tr("autolaunch.select_app")%></div>
             </section>
           </div>
         </section>
@@ -602,7 +606,7 @@ const renderAppList = () => {
   if (visible.length === 0) {
     const empty = document.createElement("div");
     empty.className = "autolaunch-empty";
-    empty.textContent = "No apps match that search.";
+    empty.textContent = <%-trj("autolaunch.no_apps_match")%>;
     appListEl.appendChild(empty);
     return;
   }
@@ -610,7 +614,7 @@ const renderAppList = () => {
     const folderPath = formatAppFolderPath(app);
     const fullFolderPath = app.workspace_path || app.launcher_path || folderPath;
     const scriptLine = app.autolaunch_enabled && app.autolaunch
-      ? `<div class="autolaunch-app-script">Runs ${escapeHtml(app.autolaunch)}</div>`
+      ? `<div class="autolaunch-app-script">${escapeHtml(<%-trj("autolaunch.runs_script")%>.replace("{script}", app.autolaunch))}</div>`
       : "";
     const button = document.createElement("button");
     button.type = "button";
@@ -623,7 +627,7 @@ const renderAppList = () => {
         <div class="autolaunch-app-folder" title="${escapeHtml(fullFolderPath)}">${escapeHtml(folderPath)}</div>
         ${scriptLine}
       </div>
-      <span class="autolaunch-pill ${app.autolaunch_enabled ? "on" : ""}">${app.autolaunch_enabled ? "ON" : "OFF"}</span>
+      <span class="autolaunch-pill ${app.autolaunch_enabled ? "on" : ""}">${app.autolaunch_enabled ? <%-trj("common.on")%> : <%-trj("common.off")%>}</span>
     `;
     button.addEventListener("click", () => selectApp(app.id));
     appListEl.appendChild(button);
@@ -632,7 +636,7 @@ const renderAppList = () => {
 
 const renderDetailShell = (app, bodyHtml) => {
   const checked = app.autolaunch_enabled ? "true" : "false";
-  const label = app.autolaunch_enabled ? "ON" : "OFF";
+  const label = app.autolaunch_enabled ? <%-trj("common.on")%> : <%-trj("common.off")%>;
   detailEl.innerHTML = `
     <div class="autolaunch-detail-header">
       <img class="autolaunch-detail-icon" src="${escapeHtml(app.icon || "/pinokio-black.png")}" alt="" onerror="this.onerror=null; this.src='/pinokio-black.png'">
@@ -652,7 +656,7 @@ const renderDetailShell = (app, bodyHtml) => {
 const renderLoading = (app) => {
   renderDetailShell(app, `
     <div class="autolaunch-section">
-      <div class="autolaunch-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading script choices...</div>
+      <div class="autolaunch-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> ${<%-trj("app.loading_script_choices")%>}</div>
     </div>
   `);
 };
@@ -666,8 +670,8 @@ const renderScriptSection = (title, note, candidates) => {
     const selected = candidate.script === selectedScript ? " selected" : "";
     const icon = candidate.icon || "fa-regular fa-file-code";
     const tags = [
-      candidate.menu_default ? '<span class="autolaunch-tag">Default</span>' : "",
-      candidate.has_params ? '<span class="autolaunch-tag">Params ignored</span>' : ""
+      candidate.menu_default ? `<span class="autolaunch-tag">${<%-trj("common.default")%>}</span>` : "",
+      candidate.has_params ? `<span class="autolaunch-tag">${<%-trj("app.params_ignored")%>}</span>` : ""
     ].filter(Boolean).join("");
     const group = candidate.group ? `<div class="autolaunch-script-path">${escapeHtml(candidate.group)}</div>` : "";
     return `
@@ -754,25 +758,25 @@ const renderCandidates = () => {
   renderDetailShell(app, `
     <div class="autolaunch-section">
       <div class="autolaunch-section-header">
-        <h3 class="autolaunch-section-title">Current</h3>
-        <span class="autolaunch-section-note">Takes effect next time Pinokio starts</span>
+        <h3 class="autolaunch-section-title">${<%-trj("common.current")%>}</h3>
+        <span class="autolaunch-section-note">${<%-trj("autolaunch.current_note")%>}</span>
       </div>
-      <div class="autolaunch-current">${escapeHtml(currentValue || "OFF")}</div>
+      <div class="autolaunch-current">${escapeHtml(currentValue || <%-trj("common.off")%>)}</div>
       <div class="autolaunch-feedback" data-feedback></div>
     </div>
-    ${hasCandidates ? "" : '<div class="autolaunch-section"><div class="autolaunch-empty">No local scripts were found for this app.</div></div>'}
-    ${renderScriptSection("Menu scripts", "From pinokio.js", candidateState.menu || [])}
-    ${renderScriptSection("Other local scripts", "Advanced", candidateState.other || [])}
+    ${hasCandidates ? "" : `<div class="autolaunch-section"><div class="autolaunch-empty">${<%-trj("autolaunch.no_scripts")%>}</div></div>`}
+    ${renderScriptSection(<%-trj("autolaunch.menu_scripts")%>, <%-trj("autolaunch.from_pinokio")%>, candidateState.menu || [])}
+    ${renderScriptSection(<%-trj("autolaunch.other_local_scripts")%>, <%-trj("common.advanced")%>, candidateState.other || [])}
     <div class="autolaunch-manual">
       <div class="autolaunch-section-header">
-        <h3 class="autolaunch-section-title">Manual relative path</h3>
-        <span class="autolaunch-section-note">Advanced</span>
+        <h3 class="autolaunch-section-title">${<%-trj("autolaunch.manual_relative_path")%>}</h3>
+        <span class="autolaunch-section-note">${<%-trj("common.advanced")%>}</span>
       </div>
       <div class="autolaunch-manual-row">
         <input type="text" data-manual-script value="${escapeHtml(selectedScript)}" placeholder="start.js">
         <button type="button" class="task-button" data-apply-manual ${selectedScript ? "" : "disabled"}>
           <i class="fa-solid fa-check"></i>
-          Apply
+          ${<%-trj("autolaunch.apply")%>}
         </button>
       </div>
     </div>
@@ -790,7 +794,7 @@ const toggleAutolaunch = () => {
   const manual = detailEl.querySelector("[data-manual-script]");
   const script = manual && manual.value.trim() ? manual.value.trim() : selectedScript;
   if (!script) {
-    setFeedback("Choose a script first.", true);
+    setFeedback(<%-trj("autolaunch.choose_script_first")%>, true);
     return;
   }
   selectedScript = script;
@@ -809,7 +813,7 @@ const loadCandidates = async (appId) => {
     });
     const data = await response.json();
     if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Failed to load script choices.");
+      throw new Error(data.error || <%-trj("autolaunch.failed_load")%>);
     }
     candidateState = data;
     syncAppState(data.app);
@@ -818,7 +822,7 @@ const loadCandidates = async (appId) => {
   } catch (error) {
     renderDetailShell(app, `
       <div class="autolaunch-section">
-        <div class="autolaunch-empty">${escapeHtml(error && error.message ? error.message : "Failed to load script choices.")}</div>
+        <div class="autolaunch-empty">${escapeHtml(error && error.message ? error.message : <%-trj("autolaunch.failed_load")%>)}</div>
       </div>
     `);
   }
@@ -835,7 +839,7 @@ const saveScript = async (script) => {
   if (!app || savingAutolaunch) return;
   savingAutolaunch = true;
   setDetailBusy(true);
-  setFeedback(script ? "Saving..." : "Disabling...");
+  setFeedback(script ? <%-trj("autolaunch.saving")%> : <%-trj("autolaunch.disabling")%>);
   try {
     const response = await fetch("/autolaunch", {
       method: "POST",
@@ -850,7 +854,7 @@ const saveScript = async (script) => {
     });
     const data = await response.json();
     if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Failed to save autolaunch.");
+      throw new Error(data.error || <%-trj("autolaunch.failed_save")%>);
     }
     syncAppState(data.app);
     if (candidateState) {
@@ -858,9 +862,9 @@ const saveScript = async (script) => {
     }
     selectedScript = data.app.autolaunch || selectedScript;
     renderCandidates();
-    setFeedback(data.app.autolaunch_enabled ? "Saved." : "Disabled.");
+    setFeedback(data.app.autolaunch_enabled ? <%-trj("autolaunch.saved")%> : <%-trj("autolaunch.disabled")%>);
   } catch (error) {
-    setFeedback(error && error.message ? error.message : "Failed to save autolaunch.", true);
+    setFeedback(error && error.message ? error.message : <%-trj("autolaunch.failed_save")%>, true);
   } finally {
     savingAutolaunch = false;
     setDetailBusy(false);
@@ -871,14 +875,14 @@ const saveSelectedScript = () => {
   const manual = detailEl.querySelector("[data-manual-script]");
   const script = manual ? manual.value.trim() : selectedScript;
   if (!script) {
-    setFeedback("Choose a script first.", true);
+    setFeedback(<%-trj("autolaunch.choose_script_first")%>, true);
     return;
   }
   saveScript(script);
 };
 
 const disableAll = async () => {
-  if (!window.confirm("Disable autolaunch for every installed app?")) {
+  if (!window.confirm(<%-trj("autolaunch.disable_all_confirm")%>)) {
     return;
   }
   disableAllButton.disabled = true;
@@ -889,7 +893,7 @@ const disableAll = async () => {
     });
     const data = await response.json();
     if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Failed to disable autolaunch.");
+      throw new Error(data.error || <%-trj("autolaunch.failed_disable")%>);
     }
     autolaunchApps = data.apps || autolaunchApps.map((app) => ({ ...app, autolaunch: "", autolaunch_enabled: false }));
     updateStats();
@@ -898,7 +902,7 @@ const disableAll = async () => {
       loadCandidates(selectedAppId);
     }
   } catch (error) {
-    window.alert(error && error.message ? error.message : "Failed to disable autolaunch.");
+    window.alert(error && error.message ? error.message : <%-trj("autolaunch.failed_disable")%>);
     updateStats();
   }
 };

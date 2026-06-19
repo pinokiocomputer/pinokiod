@@ -1,9 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+<%
+  const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+  const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minimal Hugging Face OAuth</title>
+    <title><%= tr("connect.huggingface_title") %></title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -59,24 +63,24 @@
 </head>
 <body>
     <div class="container">
-        <h1>🤗 Hugging Face OAuth</h1>
+        <h1>🤗 <%= tr("connect.huggingface_oauth") %></h1>
         
         <div id="status" class="status warning">
-            Checking authentication status...
+            <%= tr("connect.checking_auth") %>
         </div>
         
         <!-- Login Section -->
         <div id="login-section">
-            <p>Click below to authenticate with Hugging Face:</p>
-            <button class="btn" onclick="login()">Login with Hugging Face</button>
+            <p><%= tr("connect.huggingface_prompt") %></p>
+            <button class="btn" onclick="login()"><%= tr("connect.login_with_huggingface") %></button>
         </div>
         
         <!-- User Section -->
         <div id="user-section" class="hidden">
             <div class="user-info">
-                <h3>Welcome!</h3>
+                <h3><%= tr("connect.welcome") %></h3>
                 <div id="user-details"></div>
-                <button class="btn secondary" onclick="logout()">Logout</button>
+                <button class="btn secondary" onclick="logout()"><%= tr("connect.logout") %></button>
             </div>
         </div>
     </div>
@@ -178,7 +182,7 @@
                 
             } catch (error) {
                 console.error('Login error:', error);
-                setStatus('Failed to start login', 'error');
+                setStatus(<%- trj("connect.failed_start_login") %>, 'error');
             }
         }
 
@@ -190,13 +194,13 @@
                 const storedState = localStorage.getItem('oauth_state');
                 
                 if (returnedState !== storedState) {
-                    throw new Error('Invalid state parameter');
+                    throw new Error(<%- trj("connect.invalid_state") %>);
                 }
                 
                 // Get code verifier
                 const codeVerifier = localStorage.getItem('code_verifier');
                 if (!codeVerifier) {
-                    throw new Error('Code verifier not found');
+                    throw new Error(<%- trj("connect.code_verifier_not_found") %>);
                 }
                 
                 // Exchange code for tokens
@@ -239,12 +243,12 @@
                     // Get user info
                     await fetchUserInfo();
                 } else {
-                    throw new Error('No access token received');
+                    throw new Error(<%- trj("connect.no_access_token") %>);
                 }
                 
             } catch (error) {
                 console.error('OAuth callback error:', error);
-                setStatus('Authentication failed: ' + error.message, 'error');
+                setStatus(<%- trj("connect.auth_failed") %> + ': ' + error.message, 'error');
             }
         }
 
@@ -253,7 +257,7 @@
                 // Use ensureValidToken to automatically refresh if needed
                 const token = await ensureValidToken();
                 if (!token) {
-                    throw new Error('No valid token available');
+                    throw new Error(<%- trj("connect.no_valid_token") %>);
                 }
                 
                 const response = await fetch(HF_API_URL, {
@@ -269,7 +273,7 @@
                 
             } catch (error) {
                 console.error('Error fetching user info:', error);
-                setStatus('Failed to fetch user info: ' + error.message, 'error');
+                setStatus(<%- trj("connect.failed_fetch_user_info") %> + ': ' + error.message, 'error');
                 logout();
             }
         }
@@ -277,21 +281,21 @@
         function displayUserInfo(userInfo) {
             const userDetails = document.getElementById('user-details');
             userDetails.innerHTML = `
-                <p><strong>Username:</strong> ${userInfo.name || 'N/A'}</p>
-                <p><strong>Full Name:</strong> ${userInfo.fullname || 'N/A'}</p>
-                <p><strong>Email:</strong> ${userInfo.email || 'N/A'}</p>
-                <p><strong>Avatar:</strong> <img src="${userInfo.avatarUrl || ''}" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%; vertical-align: middle;"></p>
+                <p><strong>${<%- trj("connect.username") %>}:</strong> ${userInfo.name || 'N/A'}</p>
+                <p><strong>${<%- trj("connect.full_name") %>}:</strong> ${userInfo.fullname || 'N/A'}</p>
+                <p><strong>${<%- trj("connect.email") %>}:</strong> ${userInfo.email || 'N/A'}</p>
+                <p><strong>${<%- trj("connect.avatar") %>}:</strong> <img src="${userInfo.avatarUrl || ''}" alt="<%- tr("connect.avatar") %>" style="width: 40px; height: 40px; border-radius: 50%; vertical-align: middle;"></p>
             `;
             
             document.getElementById('login-section').className = 'hidden';
             document.getElementById('user-section').className = '';
-            setStatus(`Logged in as ${userInfo.name}`, 'success');
+            setStatus(<%- trj("connect.logged_in_as") %>.replace('{name}', userInfo.name || ''), 'success');
         }
 
         async function logout() {
             document.getElementById('login-section').className = '';
             document.getElementById('user-section').className = 'hidden';
-            setStatus('Logged out', 'warning');
+            setStatus(<%- trj("connect.logged_out") %>, 'warning');
             const res = await fetch('/connect/huggingface/logout', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -305,7 +309,7 @@
         async function makeAuthenticatedRequest(url, options = {}) {
             const token = await ensureValidToken();
             if (!token) {
-                throw new Error('No valid token available');
+                throw new Error(<%- trj("connect.no_valid_token") %>);
             }
             
             return fetch(url, {
@@ -324,7 +328,7 @@
             const error = urlParams.get('error');
             
             if (error) {
-                setStatus('OAuth error: ' + error, 'error');
+                setStatus(<%- trj("connect.oauth_error") %> + ': ' + error, 'error');
                 return;
             }
             
@@ -338,7 +342,7 @@
             if (token) {
                 await fetchUserInfo();
             } else {
-                setStatus('Not authenticated', 'warning');
+                setStatus(<%- trj("connect.not_authenticated") %>, 'warning');
             }
         });
 

@@ -13,6 +13,14 @@
   let tabLinkPeerInfoExpiry = 0
   const TAB_LINK_TRIGGER_CLASS = "tab-link-popover-trigger"
   const TAB_LINK_TRIGGER_HOST_CLASS = "tab-link-popover-host"
+  const tabLinkT = (key, fallback, replacements = {}) => {
+    if (window.pinokioT) {
+      return window.pinokioT(key, fallback, replacements)
+    }
+    return `[missing translation: ${key}]`.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, name) => {
+      return Object.prototype.hasOwnProperty.call(replacements, name) ? replacements[name] : `{${name}}`
+    })
+  }
 
   const shouldAttachTabLinkTrigger = (link) => {
     if (!link || !link.classList || !link.classList.contains("frame-link")) {
@@ -30,7 +38,7 @@
     trigger.className = TAB_LINK_TRIGGER_CLASS
     trigger.setAttribute("role", "button")
     trigger.setAttribute("tabindex", "0")
-    trigger.setAttribute("aria-label", "Tab actions")
+    trigger.setAttribute("aria-label", tabLinkT("tab.actions", "Tab actions"))
     trigger.innerHTML = '<i class="fa-solid fa-ellipsis"></i>'
     return trigger
   }
@@ -1528,10 +1536,10 @@
       copy.className = 'tab-link-popover-action-copy'
       const label = document.createElement('span')
       label.className = 'label'
-      label.textContent = 'Loading…'
+      label.textContent = tabLinkT("common.loading_ellipsis", "Loading...")
       const value = document.createElement('span')
       value.className = 'value muted'
-      value.textContent = 'Preparing actions'
+      value.textContent = tabLinkT("tab.preparing_actions", "Preparing actions")
       copy.append(label, value)
       item.append(icon, copy)
       pop.append(header, item)
@@ -1668,16 +1676,16 @@
       actionItems.push({
         action: "notifications",
         icon: notificationState.enabled ? "fa-solid fa-bell" : "fa-solid fa-bell-slash",
-        label: "Desktop notifications",
-        value: notificationState.enabled ? "Enabled for this tab" : "Disabled for this tab"
+        label: tabLinkT("tab.desktop_notifications", "Desktop notifications"),
+        value: notificationState.enabled ? tabLinkT("tab.enabled_for_tab", "Enabled for this tab") : tabLinkT("tab.disabled_for_tab", "Disabled for this tab")
       })
     }
     if (canRefreshCurrentPage) {
       actionItems.push({
         action: "refresh",
         icon: "fa-solid fa-rotate-right",
-        label: "Refresh current page",
-        value: "Reload the live iframe content"
+        label: tabLinkT("tab.refresh_current_page", "Refresh current page"),
+        value: tabLinkT("tab.reload_live_iframe", "Reload the live iframe content")
       })
     }
     if (currentPageUrl) {
@@ -1685,7 +1693,7 @@
         url: currentPageUrl,
         target: "_blank",
         icon: "fa-solid fa-up-right-from-square",
-        label: "Open in browser",
+        label: tabLinkT("common.open_in_browser", "Open in browser"),
         value: currentPageDisplay || currentPageUrl
       })
     }
@@ -1712,7 +1720,11 @@
 
     const header = document.createElement("div")
     header.className = "tab-link-popover-header"
-    header.innerHTML = `<i class="fa-solid fa-ellipsis"></i><span>Tab actions</span>`
+    const headerIcon = document.createElement("i")
+    headerIcon.className = "fa-solid fa-ellipsis"
+    const headerText = document.createElement("span")
+    headerText.textContent = tabLinkT("tab.actions", "Tab actions")
+    header.append(headerIcon, headerText)
     popover.appendChild(header)
 
     actionItems.forEach((actionItem) => {
@@ -1757,7 +1769,7 @@
     if (routeEntries.length > 0) {
       const section = document.createElement("div")
       section.className = "tab-link-popover-section"
-      section.textContent = "Browser routes"
+      section.textContent = tabLinkT("tab.browser_routes", "Browser routes")
       popover.appendChild(section)
     }
 
@@ -1801,15 +1813,15 @@
       footerButton.className = "tab-link-popover-item tab-link-popover-footer"
       footerButton.setAttribute("data-url", "/network")
       footerButton.setAttribute("data-target", "_self")
-      footerButton.setAttribute("aria-label", "Open network settings to configure local HTTPS")
+      footerButton.setAttribute("aria-label", tabLinkT("tab.open_network_settings_https", "Open network settings to configure local HTTPS"))
 
       const footerLabel = document.createElement("span")
       footerLabel.className = "label"
-      footerLabel.textContent = "Custom domain not active"
+      footerLabel.textContent = tabLinkT("tab.custom_domain_not_active", "Custom domain not active")
 
       const footerValue = document.createElement("span")
       footerValue.className = "value"
-      footerValue.textContent = "Click to activate"
+      footerValue.textContent = tabLinkT("tab.click_to_activate", "Click to activate")
 
       footerButton.append(footerLabel, footerValue)
       popover.appendChild(footerButton)

@@ -1,4 +1,7 @@
 <html class='columns'>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+%>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <script src="/hotkeys.min.js"></script>
@@ -13,6 +16,9 @@
 <script src="/xterm-addon-search-bar.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/he.js"></script>
 <script src="/opener.js"></script>
@@ -261,7 +267,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   <main>
     <div>
       <h1><%=filename%></h1>
-      <div class='subtitle'>Please enter the required values to continue.</div>
+      <div class='subtitle'><%= tr("required_env.enter_values") %></div>
     </div>
     <div id='editor'>
       <% items.forEach((item) => { %>
@@ -277,7 +283,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         </div>
       <% }) %>
       <div id='save' class='btn'>
-        <span class='save'><i class="fa-solid fa-check"></i> Done</span>
+        <span class='save'><i class="fa-solid fa-check"></i> <%= tr("common.done") %></span>
       </div>
     </div>
   </main>

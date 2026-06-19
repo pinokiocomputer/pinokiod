@@ -6,6 +6,16 @@
     }
     return el
   }
+  const modalT = (key, fallback, replacements = {}) => {
+    if (typeof window.pinokioT === 'function') {
+      return window.pinokioT(key, fallback, replacements)
+    }
+    let value = `[missing translation: ${key}]`
+    Object.entries(replacements || {}).forEach(([name, replacement]) => {
+      value = value.replace(new RegExp(`\\{${name}\\}`, 'g'), replacement == null ? '' : String(replacement))
+    })
+    return value
+  }
 
   const ensureStyle = () => {
     if (document.getElementById('htmlmodal-style')) {
@@ -50,7 +60,7 @@
       this.header = createElement('div', 'htmlmodal-header')
       this.titleEl = createElement('div', 'htmlmodal-title')
       this.closeBtn = createElement('button', 'htmlmodal-close')
-      this.closeBtn.setAttribute('aria-label', 'Close dialog')
+      this.closeBtn.setAttribute('aria-label', modalT('common.close_dialog', 'Close dialog'))
       this.closeBtn.innerHTML = '&times;'
       this.body = createElement('div', 'htmlmodal-body')
       this.status = createElement('div', 'htmlmodal-status')

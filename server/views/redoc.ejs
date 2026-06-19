@@ -12,7 +12,7 @@
         Redoc.init(<%-spec.replace(/'/g, "&#39;")%>, {}, document.querySelector("#container"))
       </script>
     <% } else { %>
-      <h1>url required</h1>
+      <h1><%=tr("common.url_required")%></h1>
     <% } %>
   </body>
 </html>

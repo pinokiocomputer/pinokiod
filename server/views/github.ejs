@@ -1,4 +1,8 @@
 <html>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -228,6 +232,9 @@ ol {
 <script src="/tippy-bundle.umd.min.js"></script>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 </head>
@@ -235,42 +242,42 @@ ol {
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
-<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+<button class='btn2' id='minimize-header' data-tippy-content="<%=tr("common.fullscreen")%>" title='<%=tr("common.fullscreen")%>'>
   <div><i class="fa-solid fa-expand"></i></div>
 </button>
-<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
-<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
-<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+<button class='btn2' id='back' data-tippy-content="<%=tr("common.back")%>"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="<%=tr("common.forward")%>"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="<%=tr("common.refresh")%>"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="<%=tr("common.screen_capture")%>"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="<%=tr("common.xray_mode")%>"><i class="fa-solid fa-eye"></i></button>
 <div class='flexible'></div>
-<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+<a class='btn2' href="/columns" data-tippy-content="<%=tr("common.split_columns")%>">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
-<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+<a class='btn2' href="/rows" data-tippy-content="<%=tr("common.split_rows")%>">
   <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
 </a>
-<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+<button class='btn2' id='new-window' data-tippy-content="<%=tr("common.open_new_window")%>" title='<%=tr("common.open_new_window")%>' data-agent="<%=agent%>">
   <div><i class="fa-solid fa-plus"></i></div>
 </button>
-<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+<button class='btn2 hidden' id='close-window' data-tippy-content='<%=tr("common.close_section")%>'>
   <div><i class="fa-solid fa-xmark"></i></div>
 </button>
 </h1>
 </header>
 <main>
   <div class='head'>
-    <h3><i class="fa-brands fa-git-alt"></i><br><br>Configure Git</h3>
+    <h3><i class="fa-brands fa-git-alt"></i><br><br><%= tr("github.configure_git") %></h3>
   </div>
   <div class='cols'>
     <div class='column'>
       <h1><i class="fa-brands fa-github"></i> GitHub</h1>
-      <div>Connect with GitHub to publish projects to GitHub.</div>
+      <div><%= tr("github.connect_description") %></div>
       <div class='setup-items'>
         <% if (hosts.length > 0) { %>
           <pre><%=hosts%></pre>
         <% } else { %>
-          <pre>not logged in</pre>
+          <pre><%= tr("github.not_logged_in") %></pre>
         <% } %>
       </div>
       <div class='setup-items'>
@@ -285,23 +292,23 @@ ol {
       </div>
     </div>
     <div class='column'>
-      <h1><i class="fa-brands fa-square-git"></i> Git Config</h1>
-      <div>These credentials will show up on every commit.</div>
+      <h1><i class="fa-brands fa-square-git"></i> <%= tr("github.git_config") %></h1>
+      <div><%= tr("github.credentials_description") %></div>
       <div class='setup-items'>
         <form class='gitconfig'>
           <div class='pre'>
             <div class='field'>
-              <label>username</label>
+              <label><%= tr("github.username") %></label>
               <input id='username' type='text' value="<%=gitconfig.user && gitconfig.user.name ? gitconfig.user.name : ''%>">
             </div>
             <div class='field'>
-              <label>email</label>
+              <label><%= tr("github.email") %></label>
               <input id='email' type='text' value="<%=gitconfig.user && gitconfig.user.email ? gitconfig.user.email : ''%>">
             </div>
           </div>
           <div class='gitconfig-footer'>
-            <button class='btn'><i class="fa-solid fa-check"></i> Update</button>
-            <div>gitconfig stored in ~/pinokio/gitconfig file </div>
+            <button class='btn'><i class="fa-solid fa-check"></i> <%= tr("common.update") %></button>
+            <div><%= tr("github.gitconfig_stored") %></div>
           </div>
         </form>
       </div>
@@ -324,7 +331,7 @@ document.querySelector("form.gitconfig").addEventListener("submit", (e) => {
   }).then((res) => {
     return res.json()
   }).then((res) => {
-    alert("Updated")
+    alert(<%- trj("github.updated") %>)
     location.href = location.href
   })
 })

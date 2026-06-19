@@ -1,15 +1,21 @@
 <!doctype html>
 <html lang="en">
+<%
+  const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+%>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tasks</title>
+  <title><%= tr("nav.tasks") %></title>
   <link href="/css/fontawesome.min.css" rel="stylesheet">
   <link href="/css/solid.min.css" rel="stylesheet">
   <link href="/css/brands.min.css" rel="stylesheet">
   <link href="/noty.css" rel="stylesheet">
   <link href="/style.css" rel="stylesheet">
   <link href="/task-launcher.css" rel="stylesheet">
+  <script>
+  window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+  </script>
   <script src="/task-launcher.js" defer></script>
   <% if (agent === "electron") { %>
     <link href="/electron.css" rel="stylesheet"/>
@@ -17,7 +23,12 @@
 </head>
 <%
   const filterLabel = (value) => {
-    return value
+    const labels = {
+      workspaces: tr("tasks.target_workspaces"),
+      api: tr("tasks.target_api"),
+      plugin: tr("tasks.target_plugin")
+    }
+    return labels[value] || value
   }
 %>
 <body class="<%= theme %> main-sidebar-page task-launcher-page task-page task-library-page" data-agent="<%= agent %>">
@@ -27,18 +38,18 @@
   <section class="task-shell">
     <header class="task-shell-header">
       <div class="task-shell-header-main">
-        <p class="task-eyebrow">Tasks</p>
-        <h1 class="task-title">Tasks</h1>
-        <p class="task-description">Stored in <code><%= tasksRootPath %></code>.</p>
+        <p class="task-eyebrow"><%= tr("nav.tasks") %></p>
+        <h1 class="task-title"><%= tr("nav.tasks") %></h1>
+        <p class="task-description"><%- tr("tasks.stored_in", { path: `<code>${tasksRootPath}</code>` }) %></p>
       </div>
       <div class="task-header-actions">
         <button class="task-link-button" type="button" data-task-library-download-open>
           <i class="fa-solid fa-download" aria-hidden="true"></i>
-          <span>Download</span>
+          <span><%= tr("common.download") %></span>
         </button>
         <a class="task-link-button primary" href="/tasks/new">
           <i class="fa-solid fa-plus" aria-hidden="true"></i>
-          <span>Create</span>
+          <span><%= tr("common.create") %></span>
         </a>
       </div>
     </header>
@@ -51,18 +62,18 @@
       <section class="task-section" data-task-library>
         <div class="task-section-head">
           <div>
-            <h2 class="task-section-title">Library</h2>
-            <p class="task-section-subcopy">Search installed tasks as you type, then filter by target folder.</p>
+            <h2 class="task-section-title"><%= tr("tasks.library") %></h2>
+            <p class="task-section-subcopy"><%= tr("tasks.library_description") %></p>
           </div>
         </div>
         <div class="task-library-controls">
           <label class="task-library-search-field">
             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-            <input class="task-library-search-input" type="search" placeholder="Search by title, description, repo, or id" data-task-library-search <%= items.length ? '' : 'disabled' %>>
-            <button class="task-library-search-clear" type="button" data-task-library-clear hidden>Clear</button>
+            <input class="task-library-search-input" type="search" placeholder="<%= tr("tasks.search_placeholder") %>" data-task-library-search <%= items.length ? '' : 'disabled' %>>
+            <button class="task-library-search-clear" type="button" data-task-library-clear hidden><%= tr("common.clear") %></button>
           </label>
-          <div class="task-filter-row" role="tablist" aria-label="Task filters">
-            <a class="task-filter-chip <%= !currentFilter ? 'active' : '' %>" href="/tasks">All</a>
+          <div class="task-filter-row" role="tablist" aria-label="<%=tr("tasks.filters")%>">
+            <a class="task-filter-chip <%= !currentFilter ? 'active' : '' %>" href="/tasks"><%= tr("common.all") %></a>
             <% filterOptions.forEach((filter) => { %>
               <a class="task-filter-chip <%= currentFilter === filter ? 'active' : '' %>" href="/tasks?filter=<%= encodeURIComponent(filter) %>"><%= filterLabel(filter) %></a>
             <% }) %>
@@ -71,11 +82,11 @@
 
         <% if (!items.length) { %>
           <div class="task-empty-state">
-            <p class="task-empty-copy">No tasks installed yet. Create one locally or open a remote task URL to install it on demand.</p>
+            <p class="task-empty-copy"><%= tr("tasks.empty_library") %></p>
           </div>
         <% } else { %>
           <div class="task-empty-state task-library-search-empty" data-task-library-empty hidden>
-            <p class="task-empty-copy">No tasks match this search.</p>
+            <p class="task-empty-copy"><%= tr("tasks.no_search_matches") %></p>
           </div>
           <div class="task-list" data-task-library-list>
             <% items.forEach((item) => { %>
@@ -135,27 +146,27 @@
   </section>
   </div>
   <div class="task-tool-sheet-layer task-library-download-layer" data-task-library-download-layer hidden>
-    <button type="button" class="task-tool-sheet-backdrop" aria-label="Close download task dialog" data-task-library-download-close></button>
+    <button type="button" class="task-tool-sheet-backdrop" aria-label="<%= tr("tasks.close_download_dialog") %>" data-task-library-download-close></button>
     <section class="task-tool-sheet task-library-download-sheet" role="dialog" aria-modal="true" aria-labelledby="task-library-download-title">
       <div class="task-tool-sheet-header">
         <div class="task-tool-sheet-heading">
-          <div class="task-tool-sheet-title" id="task-library-download-title">Download task</div>
-          <div class="task-tool-sheet-description">Paste a task repo URL. Pinokio installs it if needed.</div>
+          <div class="task-tool-sheet-title" id="task-library-download-title"><%= tr("tasks.download_task") %></div>
+          <div class="task-tool-sheet-description"><%= tr("tasks.download_task_description") %></div>
         </div>
-        <button type="button" class="task-tool-sheet-close" aria-label="Close download task dialog" data-task-library-download-close>
+        <button type="button" class="task-tool-sheet-close" aria-label="<%= tr("tasks.close_download_dialog") %>" data-task-library-download-close>
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </div>
       <form class="task-tool-sheet-body task-library-download-form" action="/task" method="get">
         <label class="task-field">
-          <span class="task-label">Task repository URL</span>
+          <span class="task-label"><%= tr("tasks.repository_url") %></span>
           <input class="task-input" type="url" name="ref" placeholder="https://github.com/you/your-task" required data-task-library-download-input>
         </label>
         <div class="task-actions task-library-download-actions">
-          <button class="task-link-button" type="button" data-task-library-download-close>Cancel</button>
+          <button class="task-link-button" type="button" data-task-library-download-close><%= tr("common.cancel") %></button>
           <button class="task-button primary" type="submit">
             <i class="fa-solid fa-download" aria-hidden="true"></i>
-            <span>Download</span>
+            <span><%= tr("common.download") %></span>
           </button>
         </div>
       </form>

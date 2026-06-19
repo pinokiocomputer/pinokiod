@@ -1,4 +1,8 @@
 <html>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
@@ -229,16 +233,16 @@ footer .btn.go-home {
       <% if (launchable) { %>
         <% if (link) { %>
           <a href="<%=link%>" id='save' class='btn'>
-            <span class='save'><i class="fa-solid fa-play"></i> Launch</span>
+            <span class='save'><i class="fa-solid fa-play"></i> <%= tr("common.launch") %></span>
           </a>
         <% } %>
         <div class='auto'>
           <input type='checkbox' <%=autolaunch ? 'checked' : ''%> id='autolaunch' />
-          <label for='autolaunch'>automatically launch</label>
+          <label for='autolaunch'><%= tr("start.automatically_launch") %></label>
         </div>
       <% } else { %>
-        <h1>Offline</h1>
-        <div><%=url%> is not running.</div>
+        <h1><%= tr("start.offline") %></h1>
+        <div><%= tr("start.not_running", { url }) %></div>
       <% } %>
       <div class='message'></div>
     </div>
@@ -259,7 +263,7 @@ document.querySelector("#autolaunch").addEventListener("change", (e) => {
 })
 console.log({ checked: checkbox.checked })
 <% if (autolaunch) { %>
-document.querySelector(".message").innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> launching...`
+document.querySelector(".message").innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> ${<%- trj("start.launching") %>}`
 setTimeout(() => {
   if (checkbox.checked) {
     document.querySelector("#save").click()

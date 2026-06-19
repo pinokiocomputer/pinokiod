@@ -1,5 +1,6 @@
 <%
 const homeRunApp = typeof app !== "undefined" ? app : null
+const homeRunT = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
 const escapeAttr = (value) => String(value ?? "")
   .replace(/&/g, "&amp;")
   .replace(/"/g, "&quot;")
@@ -55,7 +56,7 @@ const buildHomeSelectionUrl = (menuItem, index) => {
         <i class='fa-solid fa-chevron-down' aria-hidden='true'></i>
       </summary>
       <div class='home-run-menu-children'>
-        <%- include('./home_run_menu', { menu: item.menu, app: homeRunApp }) %>
+        <%- include('./home_run_menu', { menu: item.menu, app: homeRunApp, t: homeRunT }) %>
       </div>
     </details>
   <% } else if (item && item.btn) { %>
@@ -67,14 +68,15 @@ const buildHomeSelectionUrl = (menuItem, index) => {
         <% if (item.confirm) { %>data-confirm="<%- escapeAttr(item.confirm) %>"<% } %>
       >
         <span class='home-run-menu-label'><%- item.btn %></span>
-        <% if (item.running) { %><span class='home-run-menu-status'>Running</span><% } %>
+        <% if (item.running) { %><span class='home-run-menu-status'><%=homeRunT("home.running")%></span><% } %>
         <i class='fa-solid fa-chevron-right' aria-hidden='true'></i>
       </a>
       <% if (item.running) { %>
+        <% const homeRunStopLabel = homeRunT("home.stop_script", { name: stripHtml(item.btn) || "script" }) %>
         <button
           type='button'
           class='home-run-stop'
-          title='Stop'
+          title='<%=homeRunStopLabel%>'
           <% if (item.shell_id) { %>data-shell-id='<%= item.shell_id %>'<% } %>
           <% if (item.script_id) { %>data-script-id='<%= item.script_id %>'<% } %>
           <% if (item.href) { %>data-href='<%= item.href %>'<% } %>

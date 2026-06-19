@@ -21,6 +21,20 @@
     SSH_ASKPASS: "",
     GCM_INTERACTIVE: "never"
   };
+  const I18N = window.PINOKIO_I18N || {};
+
+  function t(key, fallback, replacements = {}) {
+    let value = typeof I18N[key] === "string" ? I18N[key] : `[missing translation: ${key}]`;
+    Object.entries(replacements || {}).forEach(([name, replacement]) => {
+      value = value.replace(new RegExp(`\\{${name}\\}`, "g"), String(replacement));
+    });
+    return value;
+  }
+
+  function formatInputCount(count) {
+    const value = Number.isFinite(Number(count)) ? Number(count) : 0;
+    return t(value === 1 ? "tasks.input_count_one" : "tasks.input_count", value === 1 ? "{count} input" : "{count} inputs", { count: value });
+  }
 
   function extractTemplateVariableNames(template) {
     const regex = /{{\s*([a-zA-Z0-9_][a-zA-Z0-9_.-]*)\s*}}/g;
@@ -73,7 +87,7 @@
   }
 
   function getCategoryLabel(category) {
-    return category === "IDE" ? "Desktop app" : category;
+    return category === "IDE" ? t("tasks.desktop_app", "Desktop app") : category;
   }
 
   function normalizeToolValue(value) {
@@ -150,12 +164,12 @@
     const backdrop = document.createElement("button");
     backdrop.type = "button";
     backdrop.className = "task-tool-sheet-backdrop";
-    backdrop.setAttribute("aria-label", "Close tool selection");
+    backdrop.setAttribute("aria-label", t("tasks.close_tool_selection", "Close tool selection"));
     layer.appendChild(backdrop);
 
     const sheet = document.createElement("section");
     sheet.className = "task-tool-sheet";
-    sheet.setAttribute("aria-label", "Select tool");
+    sheet.setAttribute("aria-label", t("tasks.select_tool", "Select tool"));
     layer.appendChild(sheet);
 
     const sheetHeader = document.createElement("div");
@@ -168,18 +182,18 @@
 
     const sheetTitle = document.createElement("div");
     sheetTitle.className = "task-tool-sheet-title";
-    sheetTitle.textContent = "Select tool";
+    sheetTitle.textContent = t("tasks.select_tool", "Select tool");
     sheetHeading.appendChild(sheetTitle);
 
     const sheetDescription = document.createElement("div");
     sheetDescription.className = "task-tool-sheet-description";
-    sheetDescription.textContent = "Choose how Pinokio should run this task.";
+    sheetDescription.textContent = t("tasks.select_tool_description", "Choose how Pinokio should run this task.");
     sheetHeading.appendChild(sheetDescription);
 
     const closeButton = document.createElement("button");
     closeButton.type = "button";
     closeButton.className = "task-tool-sheet-close";
-    closeButton.setAttribute("aria-label", "Close tool selection");
+    closeButton.setAttribute("aria-label", t("tasks.close_tool_selection", "Close tool selection"));
     closeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
     sheetHeader.appendChild(closeButton);
 
@@ -250,7 +264,7 @@
           const icon = document.createElement("img");
           icon.className = "task-tool-icon";
           icon.src = tool.iconSrc;
-          icon.alt = `${tool.label} icon`;
+          icon.alt = t("universal.tool_icon_alt", "{tool} icon", { tool: tool.label });
           icon.onerror = () => {
             icon.style.display = "none";
           };
@@ -313,8 +327,8 @@
         triggerLabel.textContent = entry.meta.label;
         triggerMeta.textContent = getCategoryLabel(entry.meta.category || "CLI");
       } else {
-        triggerLabel.textContent = "Choose a tool";
-        triggerMeta.textContent = "Required before running";
+        triggerLabel.textContent = t("tasks.choose_tool", "Choose a tool");
+        triggerMeta.textContent = t("tasks.required_before_running", "Required before running");
       }
 
       entries.forEach((entryItem) => {
@@ -449,7 +463,7 @@
 
     const identityLabel = document.createElement("span");
     identityLabel.className = "task-input-identity-label";
-    identityLabel.textContent = "Template variable";
+    identityLabel.textContent = t("tasks.template_variable", "Template variable");
     identity.appendChild(identityLabel);
 
     const identityChip = document.createElement("span");
@@ -462,7 +476,7 @@
 
     const labelFieldLabel = document.createElement("span");
     labelFieldLabel.className = "task-label";
-    labelFieldLabel.textContent = "Label shown in Pinokio";
+    labelFieldLabel.textContent = t("tasks.label_shown_in_pinokio", "Label shown in Pinokio");
     labelField.appendChild(labelFieldLabel);
 
     const labelInput = document.createElement("input");
@@ -480,7 +494,7 @@
     requiredInput.setAttribute("data-task-input-required", "");
     requiredInput.checked = !values || values.required !== false;
     const requiredText = document.createElement("span");
-    requiredText.textContent = "Required";
+    requiredText.textContent = t("common.required", "Required");
     requiredToggle.appendChild(requiredInput);
     requiredToggle.appendChild(requiredText);
 
@@ -593,7 +607,7 @@
         section.setAttribute("aria-hidden", hasVariables ? "false" : "true");
       }
       if (countNote) {
-        countNote.textContent = `${variables.length} input${variables.length === 1 ? "" : "s"}`;
+        countNote.textContent = formatInputCount(variables.length);
       }
 
       variables.forEach((name) => {
@@ -729,7 +743,7 @@
     const forms = Array.from(document.querySelectorAll("form[data-task-confirm]"));
     forms.forEach((form) => {
       form.addEventListener("submit", (event) => {
-        const message = form.getAttribute("data-task-confirm") || "Are you sure?";
+        const message = form.getAttribute("data-task-confirm") || t("common.are_you_sure", "Are you sure?");
         if (!window.confirm(message)) {
           event.preventDefault();
         }
@@ -740,19 +754,19 @@
   function getTaskPendingCopy(kind) {
     if (kind === "install") {
       return {
-        button: "Installing...",
-        status: "Installing the task and reopening this page."
+        button: t("tasks.installing", "Installing..."),
+        status: t("tasks.installing_status", "Installing the task and reopening this page.")
       };
     }
     if (kind === "run") {
       return {
-        button: "Launching...",
-        status: "Preparing the workspace and opening your selected tool."
+        button: t("tasks.launching", "Launching..."),
+        status: t("tasks.launching_status", "Preparing the workspace and opening your selected tool.")
       };
     }
     return {
-      button: "Working...",
-      status: "Finishing your request."
+      button: t("common.working", "Working..."),
+      status: t("tasks.working_status", "Finishing your request.")
     };
   }
 
@@ -910,7 +924,7 @@
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok || !payload || !payload.ok) {
-      throw new Error(payload && payload.error ? payload.error : "Failed to prepare task install.");
+      throw new Error(payload && payload.error ? payload.error : t("tasks.failed_prepare_install", "Failed to prepare task install."));
     }
     return payload;
   }
@@ -929,7 +943,7 @@
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok || !payload || !payload.ok || !payload.url) {
-      throw new Error(payload && payload.error ? payload.error : "Failed to install task.");
+      throw new Error(payload && payload.error ? payload.error : t("tasks.failed_install", "Failed to install task."));
     }
     return payload;
   }
@@ -937,7 +951,7 @@
   async function runTaskInstallClone(form, prepared) {
     const clone = prepared && prepared.clone ? prepared.clone : null;
     if (!clone) {
-      throw new Error("Task install is unavailable right now.");
+      throw new Error(t("tasks.install_unavailable", "Task install is unavailable right now."));
     }
     appendTaskInstallOutput(form, `$ ${clone.message}\n\n`);
     await new Promise((resolve, reject) => {
@@ -979,7 +993,7 @@
         if (packet.type === "result") {
           const errors = packet.data && Array.isArray(packet.data.error) ? packet.data.error : [];
           if (errors.length > 0) {
-            const failureMessage = errors.join("\n").trim() || "Failed to install task.";
+            const failureMessage = errors.join("\n").trim() || t("tasks.failed_install", "Failed to install task.");
             appendTaskInstallOutput(form, `${failureMessage}\n`);
             settle(reject, new Error(failureMessage));
             return;
@@ -990,12 +1004,12 @@
         if (packet.type === "error") {
           const failureMessage = typeof packet.data === "string" && packet.data.trim()
             ? packet.data.trim()
-            : "Failed to install task.";
+            : t("tasks.failed_install", "Failed to install task.");
           appendTaskInstallOutput(form, `${failureMessage}\n`);
           settle(reject, new Error(failureMessage));
         }
       }).catch((error) => {
-        settle(reject, error instanceof Error ? error : new Error(String(error || "Failed to install task.")));
+        settle(reject, error instanceof Error ? error : new Error(String(error || t("tasks.failed_install", "Failed to install task."))));
       });
     });
   }
@@ -1017,7 +1031,7 @@
       const finalized = await finalizeTaskInstall(prepared);
       window.location.href = returnTo || finalized.url;
     } catch (error) {
-      setTaskInstallError(form, error && error.message ? error.message : "Failed to install task.");
+      setTaskInstallError(form, error && error.message ? error.message : t("tasks.failed_install", "Failed to install task."));
       clearTaskPendingState(form);
     }
   }

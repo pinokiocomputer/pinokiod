@@ -15,6 +15,16 @@
   let share = bootstrap.share || {};
   const apps = Array.isArray(bootstrap.apps) ? bootstrap.apps : [];
   const stateUrl = typeof bootstrap.stateUrl === "string" ? bootstrap.stateUrl : "";
+  const i18n = bootstrap.i18n && typeof bootstrap.i18n === "object" ? bootstrap.i18n : {};
+  const t = (key, fallback, replacements) => {
+    let value = typeof i18n[key] === "string" ? i18n[key] : `[missing translation: ${key}]`;
+    if (replacements && typeof replacements === "object") {
+      Object.keys(replacements).forEach((name) => {
+        value = value.replace(new RegExp(`\\{${name}\\}`, "g"), () => String(replacements[name]));
+      });
+    }
+    return value;
+  };
   const cwdFromUrl = (() => {
     try {
       return new URLSearchParams(window.location.search).get("cwd") || "";
@@ -25,9 +35,9 @@
   plugin.cwd = typeof plugin.cwd === "string" && plugin.cwd ? plugin.cwd : cwdFromUrl;
 
   const ACTION_LABELS = {
-    install: "Install",
-    uninstall: "Uninstall",
-    update: "Update"
+    install: t("actionInstall", "Install"),
+    uninstall: t("actionUninstall", "Uninstall"),
+    update: t("actionUpdate", "Update")
   };
   const ACTION_ICONS = {
     install: "fa-solid fa-download",
@@ -151,17 +161,17 @@
       return;
     }
     const key = aiPermissionKey();
-    let status = "No project permission context.";
+    let status = t("noProjectPermissionContext", "No project permission context.");
     try {
       if (!key || !window.localStorage) {
-        status = "Browser storage is unavailable.";
+        status = t("browserStorageUnavailable", "Browser storage is unavailable.");
       } else if (window.localStorage.getItem(key) !== null) {
-        status = "Saved permission exists for this project.";
+        status = t("savedPermissionExists", "Saved permission exists for this project.");
       } else {
-        status = "No saved permission for this project.";
+        status = t("noSavedPermission", "No saved permission for this project.");
       }
     } catch (_) {
-      status = "Browser storage is unavailable.";
+      status = t("browserStorageUnavailable", "Browser storage is unavailable.");
     }
     aiPermissionStatus.textContent = status;
   }
@@ -175,10 +185,10 @@
     try {
       window.localStorage.removeItem(key);
       updateAiPermissionStatus();
-      showFeedback("AI permission cleared for this project.", "success");
+      showFeedback(t("aiPermissionCleared", "AI permission cleared for this project."), "success");
     } catch (_) {
       updateAiPermissionStatus();
-      showFeedback("Unable to clear AI permission.", "error");
+      showFeedback(t("unableClearAiPermission", "Unable to clear AI permission."), "error");
     }
   }
 
@@ -240,11 +250,14 @@
   function showActionModal(actionType) {
     const targetUrl = buildActionUrl(actionType);
     if (!targetUrl) {
-      alert("This action is missing a target script.");
+      alert(t("missingTargetScript", "This action is missing a target script."));
       return;
     }
-    const pluginTitle = plugin && plugin.title ? plugin.title : "Plugin";
-    const title = `${ACTION_LABELS[actionType] || "Run"} ${escapeHtml(pluginTitle)}`;
+    const pluginTitle = plugin && plugin.title ? plugin.title : t("plugin", "Plugin");
+    const title = t("runPluginTitle", "{action} {name}", {
+      action: ACTION_LABELS[actionType] || t("run", "Run"),
+      name: escapeHtml(pluginTitle)
+    });
     const subtitle = plugin && plugin.description ? escapeHtml(plugin.description) : "";
     const iconClass = ACTION_ICONS[actionType] || "fa-solid fa-terminal";
     const modalHtml = `
@@ -312,7 +325,7 @@
   function createPluginModal(appList) {
     const overlay = document.createElement("div");
     overlay.className = "modal-overlay url-modal-overlay plugin-modal-overlay";
-    const pluginTitle = plugin && plugin.title ? plugin.title : "Plugin";
+    const pluginTitle = plugin && plugin.title ? plugin.title : t("plugin", "Plugin");
     let pluginArt = '<div class="plugin-modal-art plugin-modal-art-fallback" aria-hidden="true"><i class="fa-solid fa-plug"></i></div>';
     if (plugin && plugin.image) {
       pluginArt = `<img class="plugin-modal-art" src="${escapeHtml(plugin.image)}" alt="${escapeHtml(pluginTitle)} icon">`;
@@ -325,16 +338,16 @@
           <div class="plugin-modal-heading">
             <div class="plugin-modal-title-row">
               ${pluginArt}
-              <h3 id="plugin-modal-title">Run ${escapeHtml(pluginTitle)}</h3>
+              <h3 id="plugin-modal-title">${t("runPluginTitle", "Run {name}", { action: t("run", "Run"), name: escapeHtml(pluginTitle) })}</h3>
             </div>
-            <p class="url-modal-description plugin-modal-description" id="plugin-modal-description">Choose a project to launch this plugin in.</p>
+            <p class="url-modal-description plugin-modal-description" id="plugin-modal-description">${t("chooseProjectLaunch", "Choose a project to launch this plugin in.")}</p>
           </div>
           <button type="button" class="url-modal-close plugin-modal-close" aria-label="Close">&times;</button>
         </div>
         <div class="plugin-modal-search-shell">
           <div class="plugin-modal-input-wrap">
             <i class="fa-solid fa-magnifying-glass plugin-modal-search-icon" aria-hidden="true"></i>
-            <input type="search" class="url-modal-input plugin-modal-input" placeholder="Filter projects" autocomplete="off" />
+            <input type="search" class="url-modal-input plugin-modal-input" placeholder="${t("filterProjects", "Filter projects")}" autocomplete="off" />
           </div>
           <div class="url-dropdown plugin-modal-dropdown"></div>
         </div>
@@ -389,14 +402,14 @@
       option.setAttribute("data-app-index", index);
       option.tabIndex = 0;
       const iconHtml = app.icon
-        ? `<img class="option-icon" src="${escapeHtml(app.icon)}" alt="${escapeHtml(app.title || app.name || "App")} icon">`
+        ? `<img class="option-icon" src="${escapeHtml(app.icon)}" alt="${escapeHtml(app.title || app.name || t("project", "Project"))} icon">`
         : '<div class="option-icon"><i class="fa-solid fa-folder"></i></div>';
       const description = app.description ? `<div class="option-description">${escapeHtml(app.description)}</div>` : "";
       const pathLabel = app.displayPath || app.cwd || "";
       option.innerHTML = `
         ${iconHtml}
         <div class="option-body">
-          <div class="option-name">${escapeHtml(app.title || app.name || "Project")}</div>
+          <div class="option-name">${escapeHtml(app.title || app.name || t("project", "Project"))}</div>
           <div class="option-path">${escapeHtml(pathLabel)}</div>
           ${description}
         </div>
@@ -431,8 +444,8 @@
         overlay.classList.add("has-empty");
         dropdownEl.innerHTML = `
           <div class="url-dropdown-empty plugin-modal-empty">
-            <div class="plugin-modal-empty-title">No matching projects</div>
-            <div class="plugin-modal-empty-copy">Try a different name or create a project first.</div>
+            <div class="plugin-modal-empty-title">${t("noMatchingProjects", "No matching projects")}</div>
+            <div class="plugin-modal-empty-copy">${t("tryDifferentProject", "Try a different name or create a project first.")}</div>
           </div>
         `;
         return;
@@ -499,18 +512,18 @@
       const app = state.apps[state.selectedIndex];
       if (!plugin || !plugin.pluginPath) {
         closeModal();
-        alert("This plugin is missing a launch target.");
+        alert(t("missingLaunchTarget", "This plugin is missing a launch target."));
         return;
       }
       if (!app) {
         closeModal();
-        alert("Select a project to continue.");
+        alert(t("selectProjectContinue", "Select a project to continue."));
         return;
       }
       const target = buildPluginLaunchTarget(app);
       if (!target) {
         closeModal();
-        alert("This plugin is missing a launch target.");
+        alert(t("missingLaunchTarget", "This plugin is missing a launch target."));
         return;
       }
       closeModal();
@@ -555,11 +568,13 @@
 
     return {
       open() {
-        titleEl.textContent = plugin && plugin.title ? `Run ${plugin.title}` : "Run Plugin";
+        titleEl.textContent = plugin && plugin.title
+          ? t("runPluginTitle", "Run {name}", { action: t("run", "Run"), name: plugin.title })
+          : t("runPluginTitle", "Run {name}", { action: t("run", "Run"), name: t("plugin", "Plugin") });
         if (state.apps.length === 0) {
-          descriptionEl.textContent = "No projects found under ~/pinokio/api. Create or download a project to continue.";
+          descriptionEl.textContent = t("noProjectsFound", "No projects found under ~/pinokio/api. Create or download a project to continue.");
         } else {
-          descriptionEl.textContent = "Choose a project to launch this plugin in.";
+          descriptionEl.textContent = t("chooseProjectLaunch", "Choose a project to launch this plugin in.");
         }
         renderList("");
         dropdownEl.style.display = "grid";
@@ -582,8 +597,8 @@
       }
       return;
     }
-    overlayTitle.textContent = title || "GitHub flow";
-    overlayCopy.textContent = copy || "Finish the flow in this panel, then click Done, check again.";
+    overlayTitle.textContent = title || t("githubFlow", "GitHub flow");
+    overlayCopy.textContent = copy || t("githubFlowCopy", "Finish the flow in this panel, then click Done, check again.");
     overlayFrame.src = src || "about:blank";
     overlay.classList.remove("task-hidden");
     document.body.classList.add("task-share-overlay-open");
@@ -605,7 +620,7 @@
     }
     refreshInFlight = true;
     if (!opts.quiet) {
-      showFeedback("Refreshing status...", "info");
+      showFeedback(t("refreshingStatus", "Refreshing status..."), "info");
     }
     try {
       const response = await fetch(stateUrl, { cache: "no-store" });
@@ -616,11 +631,11 @@
       share = payload.share || {};
       render();
       if (!opts.quiet) {
-        showFeedback("Status updated.", "success");
+        showFeedback(t("statusUpdated", "Status updated."), "success");
       }
     } catch (error) {
       if (!opts.quiet) {
-        showFeedback(error && error.message ? error.message : "Failed to refresh status.", "error");
+        showFeedback(error && error.message ? error.message : t("failedRefreshStatus", "Failed to refresh status."), "error");
       }
     } finally {
       refreshInFlight = false;
@@ -636,19 +651,19 @@
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.ok) {
-        throw new Error(payload && payload.error ? payload.error : "Failed to initialize git.");
+        throw new Error(payload && payload.error ? payload.error : t("failedInitializeGit", "Failed to initialize git."));
       }
-      showFeedback("Git tracking started.", "success");
+      showFeedback(t("gitTrackingStarted", "Git tracking started."), "success");
       refreshState({ quiet: true });
     } catch (error) {
-      showFeedback(error && error.message ? error.message : "Failed to initialize git.", "error");
+      showFeedback(error && error.message ? error.message : t("failedInitializeGit", "Failed to initialize git."), "error");
     }
   }
 
   function buildCreateRepoUrl() {
     const name = repoNameInput ? repoNameInput.value.trim() : "";
     if (!name) {
-      showFeedback("Repository name is required.", "error");
+      showFeedback(t("repositoryNameRequired", "Repository name is required."), "error");
       if (repoNameInput) {
         repoNameInput.focus();
       }
@@ -662,73 +677,73 @@
   function computeNextStep() {
     if (!share.githubConnected) {
       return {
-        title: "Connect GitHub",
-        copy: "Connect GitHub to publish this plugin source.",
+        title: t("connectGithub", "Connect GitHub"),
+        copy: t("connectGithubCopy", "Connect GitHub to publish this plugin source."),
         actions: [
-          { label: "Open GitHub", icon: "fa-brands fa-github", href: "/github", newTab: true, primary: true },
-          { label: "Check again", icon: "fa-solid fa-rotate-right", action: "refresh" }
+          { label: t("openGithub", "Open GitHub"), icon: "fa-brands fa-github", href: "/github", newTab: true, primary: true },
+          { label: t("checkAgain", "Check again"), icon: "fa-solid fa-rotate-right", action: "refresh" }
         ]
       };
     }
     if (!share.gitInitialized) {
       return {
-        title: "Start tracking",
-        copy: "Start version tracking for this plugin folder.",
+        title: t("startTracking", "Start tracking"),
+        copy: t("startTrackingCopy", "Start version tracking for this plugin folder."),
         actions: [
-          { label: "Start tracking", icon: "fa-solid fa-code-branch", action: "init", primary: true }
+          { label: t("startTracking", "Start tracking"), icon: "fa-solid fa-code-branch", action: "init", primary: true }
         ]
       };
     }
     if (!share.hasCommit) {
       return {
-        title: "Save first version",
-        copy: "Save the first version before you connect a repository.",
+        title: t("saveFirstVersion", "Save first version"),
+        copy: t("saveFirstVersionCopy", "Save the first version before you connect a repository."),
         actions: [
-          { label: "Save version", icon: "fa-solid fa-floppy-disk", action: "commit", primary: true }
+          { label: t("saveVersion", "Save version"), icon: "fa-solid fa-floppy-disk", action: "commit", primary: true }
         ]
       };
     }
     if (Number(share.changeCount || 0) > 0) {
       return {
-        title: "Save changes",
-        copy: `${humanizeCount(share.changeCount)} still need to be saved before publishing.`,
+        title: t("saveChanges", "Save changes"),
+        copy: t("localChangesCount", "{count} local changes still need to be saved before publishing.", { count: Number(share.changeCount || 0) }),
         actions: [
-          { label: "Save version", icon: "fa-solid fa-floppy-disk", action: "commit", primary: true }
+          { label: t("saveVersion", "Save version"), icon: "fa-solid fa-floppy-disk", action: "commit", primary: true }
         ]
       };
     }
     if (!share.remoteUrl) {
       return {
-        title: "Create GitHub repo",
+        title: t("createGithubRepo", "Create GitHub repo"),
         copy: createFormOpen
-          ? "Choose the repository name, then continue."
-          : "Create a GitHub repo and publish the first version.",
+          ? t("chooseRepoNameContinue", "Choose the repository name, then continue.")
+          : t("createGithubRepoCopy", "Create a GitHub repo and publish the first version."),
         actions: [
-          { label: "Create on GitHub", icon: "fa-brands fa-github", action: "create", primary: true }
+          { label: t("createOnGithub", "Create on GitHub"), icon: "fa-brands fa-github", action: "create", primary: true }
         ]
       };
     }
     if (!share.hasPublished) {
       return {
-        title: "Publish first version",
-        copy: "The GitHub repo exists, but the first version is not live yet.",
+        title: t("publishFirstVersion", "Publish first version"),
+        copy: t("publishFirstVersionCopy", "The GitHub repo exists, but the first version is not live yet."),
         actions: [
-          { label: "Publish first version", icon: "fa-brands fa-github", action: "publish", primary: true }
+          { label: t("publishFirstVersion", "Publish first version"), icon: "fa-brands fa-github", action: "publish", primary: true }
         ]
       };
     }
     if (Number(share.aheadCount || 0) > 0) {
       return {
-        title: "Publish changes",
-        copy: `${humanizeVersionCount(share.aheadCount)} are still local.`,
+        title: t("publishChanges", "Publish changes"),
+        copy: t("localVersionsCount", "{count} saved versions are still local.", { count: Number(share.aheadCount || 0) }),
         actions: [
-          { label: "Publish changes", icon: "fa-brands fa-github", action: "publish", primary: true }
+          { label: t("publishChanges", "Publish changes"), icon: "fa-brands fa-github", action: "publish", primary: true }
         ]
       };
     }
     return {
-      title: "Source repo ready",
-      copy: "This plugin source is connected and up to date on GitHub.",
+      title: t("sourceRepoReady", "Source repo ready"),
+      copy: t("sourceRepoReadyCopy", "This plugin source is connected and up to date on GitHub."),
       actions: []
     };
   }
@@ -763,17 +778,17 @@
   function renderRemoteState() {
     if (noteEl) {
       if (!share.manageable) {
-        noteEl.textContent = "Read only";
+        noteEl.textContent = t("readOnly", "Read only");
       } else if (share.remoteWebUrl && !share.hasPublished) {
-        noteEl.textContent = "Remote created";
+        noteEl.textContent = t("remoteCreated", "Remote created");
       } else if (share.remoteWebUrl && (Number(share.changeCount || 0) > 0 || Number(share.aheadCount || 0) > 0)) {
-        noteEl.textContent = "Out of date";
+        noteEl.textContent = t("outOfDate", "Out of date");
       } else if (share.remoteWebUrl) {
-        noteEl.textContent = "Connected";
+        noteEl.textContent = t("connected", "Connected");
       } else if (share.gitInitialized) {
-        noteEl.textContent = "Local only";
+        noteEl.textContent = t("localOnly", "Local only");
       } else {
-        noteEl.textContent = "Setup needed";
+        noteEl.textContent = t("setupNeeded", "Setup needed");
       }
     }
     if (remoteLink) {
@@ -791,15 +806,15 @@
       if (!share.manageable) {
         shareCopyEl.textContent = "";
       } else if (!share.remoteUrl) {
-        shareCopyEl.textContent = "Create a GitHub repo when you're ready to publish this plugin source.";
+        shareCopyEl.textContent = t("createRepoWhenReady", "Create a GitHub repo when you're ready to publish this plugin source.");
       } else if (!share.hasPublished) {
-        shareCopyEl.textContent = "Publish the first version to put this plugin source on GitHub.";
+        shareCopyEl.textContent = t("publishFirstVersionGithub", "Publish the first version to put this plugin source on GitHub.");
       } else if (Number(share.changeCount || 0) > 0) {
-        shareCopyEl.textContent = "Save and publish if you want GitHub to match this plugin folder.";
+        shareCopyEl.textContent = t("savePublishGithub", "Save and publish if you want GitHub to match this plugin folder.");
       } else if (Number(share.aheadCount || 0) > 0) {
-        shareCopyEl.textContent = "Publish the latest saved version if you want GitHub to match this plugin folder.";
+        shareCopyEl.textContent = t("publishLatestGithub", "Publish the latest saved version if you want GitHub to match this plugin folder.");
       } else {
-        shareCopyEl.textContent = "GitHub is in sync with this local plugin folder.";
+        shareCopyEl.textContent = t("githubInSync", "GitHub is in sync with this local plugin folder.");
       }
     }
   }
@@ -832,14 +847,14 @@
       nextStepBanner.classList.remove("task-hidden");
       if (downloadState.downloaded) {
         nextStepBanner.textContent = nextAction === "install"
-          ? "Downloaded successfully. Next step: install this plugin."
+          ? t("downloadedInstallNext", "Downloaded successfully. Next step: install this plugin.")
           : nextAction === "open"
-            ? (plugin.installed === true ? "Installed. You can open this plugin in a project." : "Downloaded successfully. Next step: open this plugin in a project.")
-            : "Downloaded successfully.";
+            ? (plugin.installed === true ? t("installedOpenProject", "Installed. You can open this plugin in a project.") : t("downloadedOpenNext", "Downloaded successfully. Next step: open this plugin in a project."))
+            : t("downloadedSuccessfully", "Downloaded successfully.");
       } else {
         nextStepBanner.textContent = nextAction === "install"
-          ? "This plugin needs to be installed before it can run."
-          : "Next step: open this plugin in a project.";
+          ? t("needsInstallBeforeRun", "This plugin needs to be installed before it can run.")
+          : t("nextOpenProject", "Next step: open this plugin in a project.");
       }
     }
 
@@ -854,7 +869,7 @@
       if (actionCopy && actionLabel && !actionCopy.querySelector(".plugin-detail-next-step-chip")) {
         const chip = document.createElement("span");
         chip.className = "plugin-detail-next-step-chip";
-        chip.textContent = "Next step";
+        chip.textContent = t("nextStep", "Next step");
         actionCopy.insertBefore(chip, actionLabel);
       }
       if (actionsSection && typeof actionsSection.scrollIntoView === "function") {
@@ -881,8 +896,8 @@
     }
     if (action === "commit") {
       openOverlay({
-        title: "Save version",
-        copy: "Finish saving a version in this panel, then click Done, check again.",
+        title: t("saveVersion", "Save version"),
+        copy: t("saveVersionOverlayCopy", "Finish saving a version in this panel, then click Done, check again."),
         src: share.commitUrl
       });
       return;
@@ -909,16 +924,16 @@
         return;
       }
       openOverlay({
-        title: "Create GitHub repository",
-        copy: "Create the repository and publish the first version in this panel, then click Done, check again.",
+        title: t("createGithubRepository", "Create GitHub repository"),
+        copy: t("createGithubRepositoryOverlayCopy", "Create the repository and publish the first version in this panel, then click Done, check again."),
         src: createUrl
       });
       return;
     }
     if (action === "publish") {
       openOverlay({
-        title: "Publish changes",
-        copy: "Publish the latest plugin changes in this panel, then click Done, check again.",
+        title: t("publishChanges", "Publish changes"),
+        copy: t("publishChangesOverlayCopy", "Publish the latest plugin changes in this panel, then click Done, check again."),
         src: share.pushUrl
       });
     }
@@ -929,7 +944,7 @@
     openButton.addEventListener("click", (event) => {
       event.preventDefault();
       if (!apps.length) {
-        alert("No projects found under ~/pinokio/api.");
+        alert(t("noProjectsFound", "No projects found under ~/pinokio/api."));
         return;
       }
       pluginModal.open();

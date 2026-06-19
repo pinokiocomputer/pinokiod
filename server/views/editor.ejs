@@ -1,5 +1,9 @@
 <html class='columns'>
 <head>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <script src="/hotkeys.min.js"></script>
 <script src="/ace/ace.js"></script>
@@ -15,6 +19,9 @@
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
 <script src="/resizeSync.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/terminal-settings.js"></script>
 <script src="/pinokio-touch.js"></script>
 <script src="/common.js"></script>
@@ -321,11 +328,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       })
     }
     finished() {
-    /*
-      n.Noty({
-        text: `[Success] All steps complete`,
-      })
-      */
       document.querySelector(".run .play").classList.remove("hidden")
       document.querySelector(".run .stop").classList.add("hidden")
       document.querySelector(".run .starting").classList.add("hidden")
@@ -438,8 +440,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           } else if (packet.type === 'disconnect') {
 //            refreshParent(packet)
             reloadMemory()
-            this.term.write("\r\nNot connected...\r\n")
-            document.querySelector("footer").innerHTML = "<b>Ready</b>"
+            this.term.write("\r\n" + <%-trj("editor.not_connected")%> + "\r\n")
+            document.querySelector("footer").innerHTML = "<b><%=tr("common.ready")%></b>"
             this.socket.close()
             document.querySelector(".run .play").classList.remove("hidden")
             document.querySelector(".run .stop").classList.add("hidden")
@@ -690,7 +692,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
           } else if (packet.type === "event") {
             if (packet.data === "stop") {
-              document.querySelector("footer").innerHTML = "<b>Ready</b>"
+              document.querySelector("footer").innerHTML = "<b><%=tr("common.ready")%></b>"
               setTimeout(() => {
 
                 let params = new URLSearchParams(location.search)
@@ -719,12 +721,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                     }
                   })
                 }
-              /*
-                n.Noty({
-                  text: '[Notice] finished',
-                  type: 'success'
-                })
-                */
                 document.querySelector(".run .play").classList.remove("hidden")
                 document.querySelector(".run .starting").classList.add("hidden")
                 document.querySelector(".run .stop").classList.add("hidden")
@@ -738,13 +734,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     async run (mode) {
       this.mode = (mode ? mode : "run")
       
-//      if (dirty) {
-//        await this.save()
-//        n.Noty({
-//          text: `script updated`,
-//        })
-//      }
-
       <% if (theme === "dark") { %>
       await this.createTerm(xtermTheme.FrontEndDelight)
       <% } else { %>
@@ -861,7 +850,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.log("SAVE")
         await rpc.save()
         n.Noty({
-          text: `saved`,
+          text: <%-trj("app.saved")%>,
         })
       })
     }
@@ -935,7 +924,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (document.querySelector("#del-bin")) {
     document.querySelector("#del-bin").addEventListener("click", async (e) => {
       console.log("del-bin")
-      let proceed = confirm("Are you sure you wish to delete the bin folder?")
+      let proceed = confirm(<%-trj("terminal.delete_bin_confirm")%>)
       if (proceed) {
         document.querySelector(".reset-bin-loading").classList.remove("hidden")
         document.querySelector("#del-bin").classList.add("hidden")
@@ -1014,11 +1003,11 @@ const reloadMemory = async () => {
   <% if (!install_required) { %>
     <div class='runner'>
       <div class='btn run <%= mod && runnable ? "" : "hidden" %>'>
-        <span class='play'><i class="fa-solid fa-play"></i> Run</span>
-        <span class='starting hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
-        <span class='stop hidden'><i class="fa-solid fa-stop"></i> Stop</span>
+        <span class='play'><i class="fa-solid fa-play"></i> <%=tr("terminal.run")%></span>
+        <span class='starting hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> <%=tr("terminal.starting")%></span>
+        <span class='stop hidden'><i class="fa-solid fa-stop"></i> <%=tr("terminal.stop")%></span>
       </div>
-      <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> Script</button>
+      <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> <%=tr("editor.open_script")%></button>
       <!--
       <button class='btn' id='open-log' data-logpath="<%=logpath%>"><i class="fa-solid fa-align-left"></i> View Logs</button>
       -->
@@ -1026,7 +1015,7 @@ const reloadMemory = async () => {
       <button class='btn' id='source' data-editor-url="<%=editorUrl%>">Navigate</button>
       -->
       <div id='save' class='btn disabled <%= readonly ? "hidden" : "" %>'>
-        <span class='save'><i class="fa-solid fa-check"></i> Save</span>
+        <span class='save'><i class="fa-solid fa-check"></i> <%=tr("common.save")%></span>
       </div>
     </div>
   <% } %>
@@ -1043,18 +1032,18 @@ const reloadMemory = async () => {
     <% if (install_required) { %>
       <div class='requirements'>
         <div class='content'>
-          <div class='title'><i class="fa-solid fa-circle-exclamation"></i> Installation required</div>
+          <div class='title'><i class="fa-solid fa-circle-exclamation"></i> <%=tr("terminal.installation_required")%></div>
           <div class='btn-group'>
             <% requirements.map((r) => { %>
               <div class='requirement-item'>
                 <% if (r.installed) { %>
                   <div class='name'><%=r.type ? `${r.type} : ${r.name}` : r.name%></div>
                   <div class='flexible'></div>
-                  <div class='label'>Installed</div>
+                  <div class='label'><%=tr("terminal.installed")%></div>
                 <% } else { %>
                   <div class='name highlighted'><%=r.type ? `${r.type} : ${r.name}` : r.name%></div>
                   <div class='flexible'></div>
-                  <div class='label highlighted'>Not Installed</div>
+                  <div class='label highlighted'><%=tr("terminal.not_installed")%></div>
                 <% } %>
               </div>
             <% }) %>
@@ -1062,12 +1051,12 @@ const reloadMemory = async () => {
           <form id='install-form' method="post" action="/pinokio/install">
             <input type='hidden' name="requirements" value="<%=JSON.stringify(requirements)%>">
             <input type='hidden' name='callback' value="<%=current%>">
-            <button class='btn'>Install</button>
+            <button class='btn'><%=tr("common.install")%></button>
           </form>
           <div class='item'>
-            <div class='d'>Not working? <a id='del-bin'>Try a fresh install</a></div>
+            <div class='d'><%=tr("terminal.not_working")%> <a id='del-bin'><%=tr("terminal.try_fresh_install")%></a></div>
             <div class='reset-bin-loading hidden'>
-              <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
+              <i class="fa-solid fa-circle-notch fa-spin"></i> <%=tr("settings.loading")%>
             </div>
           </div>
         </div>
@@ -1084,7 +1073,7 @@ const reloadMemory = async () => {
           <% if (memory.length > 0) { %>
             <div class='memory'>
               <div class='memory-header'>
-                <div>Memory</div>
+                <div><%=tr("terminal.memory")%></div>
                 <div class='flexible'></div>
                 <div id='lv' class='btn2'><i class="fa-solid fa-sort-up"></i></div>
               </div>
@@ -1096,10 +1085,10 @@ const reloadMemory = async () => {
                   <% if (m.localhost) { %>
                     <% if (m.tunnel) { %>
                       <td><%=m.tunnel%></td>
-                      <td><a class='btn2' target="_blank" href="<%=m.tunnel%>"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a></td>
-                      <td><button data-url="<%=m.val%>" class='btn2 tunnel-stop'><i class="fa-solid fa-lock-closed"></i> Make Private</button></td>
+                      <td><a class='btn2' target="_blank" href="<%=m.tunnel%>"><i class="fa-solid fa-arrow-up-right-from-square"></i> <%=tr("common.open")%></a></td>
+                      <td><button data-url="<%=m.val%>" class='btn2 tunnel-stop'><i class="fa-solid fa-lock-closed"></i> <%=tr("terminal.make_private")%></button></td>
                     <% } else { %>
-                      <td><button data-url="<%=m.val%>" class='btn2 tunnel'><i class="fa-solid fa-lock-open"></i> Make Public</button></td>
+                      <td><button data-url="<%=m.val%>" class='btn2 tunnel'><i class="fa-solid fa-lock-open"></i> <%=tr("terminal.make_public")%></button></td>
                     <% } %>
                   <% } %>
                 </tr>
@@ -1109,7 +1098,7 @@ const reloadMemory = async () => {
           <% } else { %>
             <div class='memory'>
               <div class='memory-header'>
-                <div>Memory</div>
+                <div><%=tr("terminal.memory")%></div>
                 <div class='flexible'></div>
                 <div id='lv' class='btn2'><i class="fa-solid fa-sort-up"></i></div>
               </div>
@@ -1119,7 +1108,7 @@ const reloadMemory = async () => {
           <div id='terminal'></div>
         </div>
       </div>
-      <footer><b>Ready</b></footer>
+      <footer><b><%=tr("common.ready")%></b></footer>
     <% } %>
   <% } %>
   <div id='error-screen' class='hidden'>
@@ -1130,10 +1119,10 @@ const reloadMemory = async () => {
       </a>
       <div class='flexible'></div>
       <button type='button' class='btn' data-ask-ai-trigger="true" data-workspace="<%= (typeof projectName !== 'undefined' && projectName) ? projectName : '' %>" data-workspace-cwd="<%= (typeof cwd !== 'undefined' && cwd) ? cwd : '' %>">
-        <div><i class="fa-solid fa-robot"></i> Ask AI</div>
+        <div><i class="fa-solid fa-robot"></i> <%=tr("app.ask_ai")%></div>
       </button>
       <a class='btn' href="<%=portal%>" target="_blank">
-        <div><i class="fa-solid fa-question"></i> Ask Community</div>
+        <div><i class="fa-solid fa-question"></i> <%=tr("app.ask_community")%></div>
       </a>
     </div>
   </div>

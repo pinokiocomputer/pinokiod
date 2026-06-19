@@ -2,6 +2,14 @@ document.addEventListener("DOMContentLoaded", () => {
   // Logging disabled for production
   const log = () => {};
   const rectInfo = () => null;
+  const t = (key, fallback, replacements = {}) => {
+    if (window.pinokioT) {
+      return window.pinokioT(key, fallback, replacements);
+    }
+    return `[missing translation: ${key}]`.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, name) => {
+      return Object.prototype.hasOwnProperty.call(replacements, name) ? replacements[name] : `{${name}}`;
+    });
+  };
 
   const newWindowButton = document.querySelector("#new-window");
   const agent = document.body.getAttribute("data-agent");
@@ -121,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
     dragHandle = document.createElement("div");
     dragHandle.className = "header-drag-handle";
     dragHandle.setAttribute("aria-hidden", "true");
-    dragHandle.setAttribute("title", "Drag minimized header");
+    dragHandle.setAttribute("title", t("common.drag_minimized_header", "Drag minimized header"));
     headerTitle.insertBefore(dragHandle, homeLink ? homeLink.nextSibling : headerTitle.firstChild);
     log("init:drag-handle:created", {});
   }
@@ -579,7 +587,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   if (inspectorButton && !isDesktop) {
-    const message = 'The 1-click inspect feature is only available inside the Pinokio desktop app.';
+    const message = t("nav.desktop_inspect_required", "The 1-click inspect feature is only available inside the Pinokio desktop app.");
 
     inspectorButton.addEventListener('click', (event) => {
       event.preventDefault();
@@ -588,7 +596,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (window.Swal?.fire) {
         window.Swal.fire({
 //          icon: 'info',
-          title: 'Switch to Pinokio Desktop',
+          title: t("nav.switch_to_pinokio_desktop", "Switch to Pinokio Desktop"),
           html: `<div class="simple-modal-desc2"><div>${message}</div><img src="/inspect.gif"/></div>`,
           showConfirmButton: false,
           customClass: {

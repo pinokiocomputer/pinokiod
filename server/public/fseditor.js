@@ -1,4 +1,7 @@
 const FSEditor = async ({title, description, old_path, icon, iconpath, redirect, copy, move, edit }) => {
+  const t = (key, fallback, replacements) => {
+    return typeof window.pinokioT === 'function' ? window.pinokioT(key, fallback, replacements) : `[missing translation: ${key}]`
+  }
   const compare = async (file1, file2) => {
     if (file1.size !== file2.size) return false;
     const buffer1 = await file1.arrayBuffer();
@@ -77,20 +80,20 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
   let folderpath_html = ""
   if (copy) {
     mode = "copy"
-    title_label = "Copy to"
+    title_label = t('common.copy_to', 'Copy to')
   } else if (move) {
     mode = "move"
-    title_label = "Move to"
+    title_label = t('common.move_to', 'Move to')
   } else {
     mode = "edit"
-    title_label = "Edit"
+    title_label = t('common.edit', 'Edit')
   }
   if (copy || move) {
     folderpath_html = `<div class='folder-row'>
-  <label for='new-folder-description'>Folder Path</label>
+  <label for='new-folder-description'>${t('common.folder_path', 'Folder Path')}</label>
   <div class='field-row'>
     <label>/api/</label>
-    <input id="new-folder-path" class="swal2-input" placeholder="Folder Path" value="${old_path}" />
+    <input id="new-folder-path" class="swal2-input" placeholder="${t('common.folder_path', 'Folder Path')}" value="${old_path}" />
   </div>
 </div>`
   }
@@ -104,19 +107,19 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
 <div class='folder-rows'>
   ${folderpath_html}
   <div class='folder-row ${meta_class}'>
-    <label for='new-folder-title'>Title</label>
-    <input id="new-folder-title" class="swal2-input" placeholder="Project Name (stored in pinokio.js)" value="${title}" />
+    <label for='new-folder-title'>${t('common.title', 'Title')}</label>
+    <input id="new-folder-title" class="swal2-input" placeholder="${t('common.project_name_pinokio_js', 'Project Name (stored in pinokio.js)')}" value="${title}" />
   </div>
   <div class='folder-row ${meta_class}'>
-    <label for='new-folder-description'>Description</label>
-    <textarea id="new-folder-description" class="swal2-input" placeholder="Project Description (stored in pinokio.js)">${description}</textarea>
+    <label for='new-folder-description'>${t('common.description', 'Description')}</label>
+    <textarea id="new-folder-description" class="swal2-input" placeholder="${t('common.project_description_pinokio_js', 'Project Description (stored in pinokio.js)')}">${description}</textarea>
   </div>
 </div>
 </div>`,
     allowOutsideClick: true,
     focusConfirm: false,
 //    showCancelButton: true,
-    confirmButtonText: 'Save',
+    confirmButtonText: t('common.save', 'Save'),
     didOpen: () => {
       const textarea = document.querySelector("#new-folder-description")
       textarea.style.height = 'auto';
@@ -149,7 +152,7 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
           credits: false,
 
 
-          labelIdle: `Drag & Drop your picture or <span class="filepond--label-action">Browse</span>`,
+          labelIdle: t('common.drag_drop_picture_browse_html', 'Drag & Drop your picture or <span class="filepond--label-action">Browse</span>'),
 //          imagePreviewHeight: 170,
           imageCropAspectRatio: '1:1',
           imageResizeTargetWidth: 200,
@@ -264,7 +267,7 @@ const FSEditor = async ({title, description, old_path, icon, iconpath, redirect,
       if (mode === "copy") {
         let new_path = Swal.getPopup().querySelector('#new-folder-path').value
         if (new_path === old_path) {
-          alert("Please specify a new folder name to copy to")
+          alert(t('common.specify_new_folder_copy', 'Please specify a new folder name to copy to'))
           return false
         }
       }

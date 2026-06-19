@@ -69,6 +69,7 @@ const packagejson = require("../package.json")
 const Environment = require("../kernel/environment")
 const Cloudflare = require("../kernel/api/cloudflare")
 const Util = require("../kernel/util")
+const i18n = require("./lib/i18n")
 const Info = require("../kernel/info")
 const WorkspaceStatusManager = require("../kernel/workspace_status")
 
@@ -3008,38 +3009,11 @@ class Server {
         system_env = await Environment.get(this.kernel.homedir, this.kernel)
       }
       const hasHome = !!this.kernel.homedir
-      let configArray = [{
-        key: "home",
-        val: this.kernel.homedir,
-        placeholder: "Enter the absolute path to use as your Pinokio home folder (D:\\pinokio, /Users/alice/pinokiofs, etc.)"
-//      }, {
-//        key: "drive",
-//        val: path.resolve(this.kernel.homedir, "drive"),
-//        placeholder: "Pinokio virtual drives folder"
-      }, {
-        key: "theme",
-        val: this.theme,
-        options: ["light", "dark"]
-      }, {
-        key: "mode",
-        val: this.mode,
-        options: ["desktop", "background"]
-      }, {
-        key: "HTTP_PROXY",
-        val: (system_env.HTTP_PROXY || ""),
-        show_on_click: "#proxy",
-        placeholder: "(Advanced) Only set if you are behind a proxy"
-      }, {
-        key: "HTTPS_PROXY",
-        val: (system_env.HTTPS_PROXY || ""),
-        show_on_click: "#proxy",
-        placeholder: "(Advanced) Only set if you are behind a proxy"
-      }, {
-        key: "NO_PROXY",
-        val: (system_env.NO_PROXY || ""),
-        show_on_click: "#proxy",
-        placeholder: "(Advanced) Only set if you are behind a proxy"
-      }]
+      let configArray = this.getSettingsConfig({
+        system_env,
+        homeValue: this.kernel.homedir,
+        t: res.locals.t
+      })
       let folders = {}
       if (this.kernel.homedir) {
         folders = {
@@ -5043,11 +5017,70 @@ class Server {
     }
   }
 
+  getLocaleOptions(t) {
+    if (typeof t !== "function") {
+      throw new Error("i18n translator is required")
+    }
+    return [{
+      value: i18n.AUTO_LOCALE,
+      label: t("locale.auto")
+    }].concat(i18n.SUPPORTED_LOCALES.map((locale) => {
+      return {
+        value: locale.code,
+        label: locale.nativeName === locale.name ? locale.name : `${locale.nativeName} - ${locale.name}`
+      }
+    }))
+  }
+
+  getSettingsConfig({ system_env = {}, homeValue = "", t } = {}) {
+    if (typeof t !== "function") {
+      throw new Error("i18n translator is required")
+    }
+    return [{
+      key: "home",
+      label: t("config.home.label"),
+      val: homeValue,
+      placeholder: t("config.home.placeholder")
+    }, {
+      key: "theme",
+      label: t("config.theme.label"),
+      val: this.theme,
+      options: ["light", "dark"]
+    }, {
+      key: "mode",
+      label: t("config.mode.label"),
+      val: this.mode,
+      options: ["desktop", "background"]
+    }, {
+      key: "locale",
+      label: t("config.locale.label"),
+      val: this.localePreference || i18n.AUTO_LOCALE,
+      options: this.getLocaleOptions(t),
+      description: t("config.locale.description")
+    }, {
+      key: "HTTP_PROXY",
+      val: (system_env.HTTP_PROXY || ""),
+      show_on_click: "#proxy",
+      placeholder: t("config.proxy.placeholder")
+    }, {
+      key: "HTTPS_PROXY",
+      val: (system_env.HTTPS_PROXY || ""),
+      show_on_click: "#proxy",
+      placeholder: t("config.proxy.placeholder")
+    }, {
+      key: "NO_PROXY",
+      val: (system_env.NO_PROXY || ""),
+      show_on_click: "#proxy",
+      placeholder: t("config.proxy.placeholder")
+    }]
+  }
+
   async syncConfig() {
 
     // 1. THEME
     this.theme = this.kernel.store.get("theme") || "light"
     this.mode = this.kernel.store.get("mode") || "desktop"
+    this.localePreference = i18n.normalizePreference(this.kernel.store.get("locale") || i18n.AUTO_LOCALE)
 
     // when loaded in electron but in minimal mode,
     // the app is loaded in the web so the agent should be "web"
@@ -5253,6 +5286,14 @@ class Server {
         mode_changed = true
       }
       this.kernel.store.set("mode", config.mode)
+    }
+
+    if (config.locale) {
+      if (!i18n.isSupportedPreference(config.locale)) {
+        throw new Error("Invalid locale: " + config.locale)
+      }
+      this.kernel.store.set("locale", i18n.normalizePreference(config.locale))
+      this.localePreference = i18n.normalizePreference(config.locale)
     }
 //    // 3. Handle Drive
 //    if (config.drive) {
@@ -6478,6 +6519,20 @@ class Server {
       }
       next()
     })
+    this.app.use((req, res, next) => {
+      const localePreference = i18n.normalizePreference(this.localePreference || this.kernel.store.get("locale") || i18n.AUTO_LOCALE)
+      const locale = i18n.resolveLocale({
+        preference: localePreference,
+        acceptLanguage: req.get("accept-language")
+      })
+      res.locals.locale = locale
+      res.locals.localePreference = localePreference
+      res.locals.locales = i18n.SUPPORTED_LOCALES
+      res.locals.i18nCatalog = i18n.getCatalog(locale)
+      res.locals.t = (key, replacements) => i18n.t(locale, key, replacements)
+      res.locals.trj = (key, replacements) => JSON.stringify(res.locals.t(key, replacements))
+      next()
+    })
     if (this.kernel.homedir) {
       this.app.set("views", [
         this.kernel.path("web/views"),
@@ -7462,7 +7517,10 @@ class Server {
       const mergedPluginMenu = pluginMenu.concat(bundledPluginMenu)
       return Promise.all(mergedPluginMenu.map((pluginItem, index) => serializePluginMenuItem(pluginItem, index)))
     }
-    const buildPluginCategories = (plugins) => {
+    const buildPluginCategories = (plugins, translate) => {
+      if (typeof translate !== "function") {
+        throw new Error("i18n translator is required")
+      }
       const buckets = { ide: [], cli: [] }
       plugins.forEach((plugin) => {
         if (plugin && plugin.category === "ide") {
@@ -7472,8 +7530,8 @@ class Server {
         }
       })
       return [
-        { key: "cli", title: "Terminal Plugins", subtitle: "Launch in Pinokio", items: buckets.cli },
-        { key: "ide", title: "Desktop Plugins", subtitle: "Launch externally", items: buckets.ide },
+        { key: "cli", title: translate("plugins.terminal_plugins"), subtitle: translate("plugins.launch_in_pinokio"), items: buckets.cli },
+        { key: "ide", title: translate("plugins.desktop_plugins"), subtitle: translate("plugins.launch_externally"), items: buckets.ide },
       ]
     }
     const resolveProjectShellWorkspace = (value) => {
@@ -7831,7 +7889,10 @@ class Server {
         pushUrl: `/run/scripts/git/push.json?cwd=${encodeURIComponent(localState.pluginDir)}`,
       }
     }
-    const buildPluginPresentationState = (plugin, shareState) => {
+    const buildPluginPresentationState = (plugin, shareState, translate) => {
+      if (typeof translate !== "function") {
+        throw new Error("i18n translator is required")
+      }
       const changes = Array.isArray(shareState && shareState.changes) ? shareState.changes : []
       const ownership = shareState && typeof shareState.ownership === "string"
         ? shareState.ownership
@@ -7843,85 +7904,85 @@ class Server {
       const badges = []
       if (ownership === "local") {
         badges.push({
-          label: "Local plugin",
+          label: translate("plugin_detail.badge_local_plugin"),
           tone: "accent"
         })
       } else if (ownership === "system") {
         badges.push({
-          label: "Built-in plugin",
+          label: translate("plugin_detail.badge_built_in_plugin"),
           tone: "neutral"
         })
       } else if (ownership === "managed") {
         badges.push({
-          label: "Managed by Pinokio",
+          label: translate("plugin_detail.badge_managed_by_pinokio"),
           tone: "neutral"
         })
       } else {
         badges.push({
-          label: "Bundled plugin",
+          label: translate("plugin_detail.badge_bundled_plugin"),
           tone: "neutral"
         })
       }
       badges.push({
-        label: plugin && plugin.category === "ide" ? "Desktop plugin" : "Terminal plugin",
+        label: plugin && plugin.category === "ide" ? translate("plugin_detail.badge_desktop_plugin") : translate("plugin_detail.badge_terminal_plugin"),
         tone: "neutral"
       })
       if (plugin && plugin.installed === true) {
         badges.push({
-          label: "Installed",
+          label: translate("terminal.installed"),
           tone: "accent"
         })
       } else if (plugin && plugin.installed === false) {
         badges.push({
-          label: "Not installed",
+          label: translate("terminal.not_installed"),
           tone: "warning"
         })
       }
       if (remoteLabel) {
         badges.push({
-          label: "Remote linked",
+          label: translate("plugin_detail.badge_remote_linked"),
           tone: "neutral"
         })
       }
       if (shareState && shareState.gitInitialized) {
         badges.push({
-          label: "Version tracked",
+          label: translate("plugin_detail.badge_version_tracked"),
           tone: "neutral"
         })
       }
       if (changes.length > 0) {
         badges.push({
-          label: "Modified locally",
+          label: translate("plugin_detail.badge_modified_locally"),
           tone: "warning"
         })
       }
-      let sourceLabel = "Plugin source"
-      let sourceValue = plugin && plugin.pluginPath ? plugin.pluginPath.replace(/^\//, "") : "Plugin menu item"
-      let statusValue = "Not managed in local plugin workspace"
-      let githubPanelTitle = "Bundled plugin"
-      let githubPanelCopy = "This plugin is available in Pinokio, but its source is not managed inside your local <code>plugin</code> workspace yet."
-      let localChangesCopy = "Review the modified plugin files before you commit or publish."
+      let sourceLabel = translate("plugin_detail.plugin_source")
+      let sourceValue = plugin && plugin.pluginPath ? plugin.pluginPath.replace(/^\//, "") : translate("plugin_detail.plugin_menu_item")
+      let statusValue = translate("plugin_detail.not_managed_workspace")
+      let githubPanelTitle = translate("plugin_detail.bundled_plugin")
+      let githubPanelCopy = translate("plugin_detail.bundled_plugin_copy")
+      let localChangesCopy = translate("plugin_detail.local_changes_copy")
       if (ownership === "local") {
-        sourceLabel = "Local folder"
+        sourceLabel = translate("plugin_detail.local_folder")
         sourceValue = shareState.localLabel
         statusValue = changes.length > 0
-          ? pluralizeTaskFiles(changes.length)
-          : (shareState.gitInitialized ? "No local changes" : "Not version tracked yet")
-        githubPanelTitle = "GitHub"
+          ? translate(changes.length === 1 ? "app.file_changed" : "app.files_changed", { count: changes.length })
+          : (shareState.gitInitialized ? translate("plugin_detail.no_local_changes") : translate("plugin_detail.not_version_tracked"))
+        githubPanelTitle = translate("plugin_detail.github")
         githubPanelCopy = ""
       } else if (ownership === "managed") {
-        sourceLabel = "Managed folder"
+        sourceLabel = translate("plugin_detail.managed_folder")
         sourceValue = shareState.localLabel
-        statusValue = changes.length > 0 ? pluralizeTaskFiles(changes.length) : "Updated with Pinokio"
-        githubPanelTitle = "Managed by Pinokio"
-        githubPanelCopy = "This plugin lives inside Pinokio-managed source. Open the folder if you need to inspect it, but don&apos;t treat it as your own publishable repo."
-        localChangesCopy = "These edits live inside Pinokio-managed source and may be overwritten by future Pinokio updates."
+        statusValue = changes.length > 0 ? translate(changes.length === 1 ? "app.file_changed" : "app.files_changed", { count: changes.length }) : translate("plugin_detail.updated_with_pinokio")
+        githubPanelTitle = translate("plugin_detail.managed_by_pinokio")
+        githubPanelCopy = translate("plugin_detail.managed_copy")
+        localChangesCopy = translate("plugin_detail.managed_changes_copy")
       } else if (ownership === "system") {
-        sourceLabel = "System plugin"
+        sourceLabel = translate("plugin_detail.system_plugin")
         sourceValue = shareState.localLabel || sourceValue
-        statusValue = "Read-only"
-        githubPanelTitle = "Built in to Pinokio"
-        githubPanelCopy = "This plugin ships with Pinokio and is not editable from the local plugin workspace."
+        statusValue = translate("plugin_detail.read_only")
+        githubPanelTitle = translate("plugin_detail.built_in_to_pinokio")
+        githubPanelCopy = translate("plugin_detail.built_in_copy")
       }
       const changePreview = changes.slice(0, 6).map((change) => ({
         file: change && change.file ? change.file : "",
@@ -7931,7 +7992,7 @@ class Server {
         badges,
         sourceLabel,
         sourceValue,
-        statusLabel: "Status",
+        statusLabel: translate("plugin_detail.status"),
         statusValue,
         hasChanges: changes.length > 0,
         changePreview,
@@ -7944,7 +8005,7 @@ class Server {
         githubPanelCopy,
         localChangesCopy,
         remoteLabel,
-        launchSummary: plugin && plugin.category === "ide" ? "Launches externally" : "Launches inside Pinokio",
+        launchSummary: plugin && plugin.category === "ide" ? translate("plugin_detail.launches_externally") : translate("plugin_detail.launches_inside_pinokio"),
       }
     }
     this.app.get("/plugins", ex(async (req, res) => {
@@ -7954,7 +8015,7 @@ class Server {
         return
       }
       const plugins = await loadSerializedPlugins()
-      const pluginCategories = buildPluginCategories(plugins)
+      const pluginCategories = buildPluginCategories(plugins, res.locals.t)
       const sidebarContext = await buildPluginSidebarContext(req)
       res.render("plugins", {
         ...sidebarContext,
@@ -7989,7 +8050,7 @@ class Server {
         buildPluginShareState(plugin),
         buildPluginSidebarContext(req)
       ])
-      const pluginUi = buildPluginPresentationState(plugin, shareState)
+      const pluginUi = buildPluginPresentationState(plugin, shareState, res.locals.t)
       res.render("plugin_detail", {
         ...sidebarContext,
         plugin,
@@ -9432,11 +9493,17 @@ class Server {
       }
       return raw.replace(/^https?:\/\//i, "").replace(/\.git$/i, "")
     }
-    const pluralizeTaskFiles = (count) => {
+    const pluralizeTaskFiles = (count, translate) => {
+      if (typeof translate !== "function") {
+        throw new Error("i18n translator is required")
+      }
       const value = Number.isFinite(Number(count)) ? Number(count) : 0
-      return `${value} changed file${value === 1 ? "" : "s"}`
+      return translate(value === 1 ? "tasks.changed_file_count_one" : "tasks.changed_file_count", { count: value })
     }
-    const buildTaskPresentationState = (task, shareState) => {
+    const buildTaskPresentationState = (task, shareState, translate) => {
+      if (typeof translate !== "function") {
+        throw new Error("i18n translator is required")
+      }
       const changes = Array.isArray(shareState && shareState.changes) ? shareState.changes : []
       const remoteCandidate = (shareState && (shareState.remoteWebUrl || shareState.remoteRef || shareState.remoteUrl)) || task.ref || ""
       const remoteLabel = summarizeTaskRemoteLabel(remoteCandidate)
@@ -9446,38 +9513,38 @@ class Server {
         : (task && task.title ? task.title : task.id)
       const badges = []
       badges.push({
-        label: remoteLabel ? "Remote linked" : "Local",
+        label: remoteLabel ? translate("tasks.remote_linked") : translate("tasks.local"),
         tone: remoteLabel ? "accent" : "neutral"
       })
       if (shareState && shareState.gitInitialized) {
         badges.push({
-          label: "Version tracked",
+          label: translate("tasks.version_tracked"),
           tone: "neutral"
         })
       }
       if (changes.length > 0) {
         badges.push({
-          label: "Modified locally",
+          label: translate("tasks.modified_locally"),
           tone: "warning"
         })
       }
       const statusCopy = changes.length > 0
-        ? `${pluralizeTaskFiles(changes.length)}`
+        ? `${pluralizeTaskFiles(changes.length, translate)}`
         : (shareState && shareState.gitInitialized)
-          ? "No local changes"
-          : "Not version tracked yet"
+          ? translate("tasks.no_local_changes")
+          : translate("tasks.not_version_tracked")
       const changePreview = changes.slice(0, 6).map((change) => ({
         file: change && change.file ? change.file : "",
         status: change && change.status ? change.status : "changed"
       })).filter((change) => change.file)
       const deleteConfirm = changes.length > 0
-        ? `Delete "${taskTitle}" from your library? ${pluralizeTaskFiles(changes.length)} will be lost. This removes the local task folder from this machine.`
-        : `Delete "${taskTitle}" from your library? This removes the local task folder from this machine.`
+        ? translate("tasks.delete_confirm_with_changes", { title: taskTitle, changes: pluralizeTaskFiles(changes.length, translate) })
+        : translate("tasks.delete_confirm", { title: taskTitle })
       return {
         badges,
-        sourceLabel: remoteLabel ? "Remote repository" : "Local folder",
+        sourceLabel: remoteLabel ? translate("tasks.remote_repository") : translate("tasks.local_folder"),
         sourceValue: remoteLabel || `tasks/${relativeTaskDir}`,
-        statusLabel: "Status",
+        statusLabel: translate("tasks.status"),
         statusValue: statusCopy,
         changePreview,
         extraChangeCount: Math.max(changes.length - changePreview.length, 0),
@@ -9543,9 +9610,16 @@ class Server {
         }
       }
     }
+    const requireTranslator = (res) => {
+      if (!res || !res.locals || typeof res.locals.t !== "function") {
+        throw new Error("i18n translator is not initialized")
+      }
+      return res.locals.t
+    }
     const renderTaskBuilderPage = async (req, res, options = {}) => {
       const defaults = options.defaults && typeof options.defaults === "object" ? options.defaults : {}
       const sidebarContext = await buildTaskSidebarContext()
+      const translate = requireTranslator(res)
       res.render("task_builder", {
         ...sidebarContext,
         theme: this.theme,
@@ -9554,13 +9628,13 @@ class Server {
         allowTargetSelection: options.allowTargetSelection !== false,
         error: options.error || "",
         mode: options.mode === "edit" ? "edit" : "create",
-        pageTitle: options.pageTitle || "Create Task",
-        titleText: options.titleText || "Create a reusable task.",
-        descriptionText: options.descriptionText || "Write the prompt template once, mark any <code>{{variable}}</code> placeholders, and Pinokio turns them into structured inputs automatically.",
+        pageTitle: options.pageTitle || translate("tasks.create_page_title"),
+        titleText: options.titleText || translate("tasks.create_title"),
+        descriptionText: options.descriptionText || translate("tasks.create_description_html"),
         formAction: options.formAction || "/tasks",
-        submitLabel: options.submitLabel || "Save task",
+        submitLabel: options.submitLabel || translate("tasks.save_task"),
         backHref: options.backHref || "/tasks",
-        backLabel: options.backLabel || "Tasks"
+        backLabel: options.backLabel || translate("nav.tasks")
       })
     }
     const sanitizeLocalRedirectPath = (value, fallback) => {
@@ -9596,7 +9670,8 @@ class Server {
       const folderName = typeof options.folderName === "string" ? options.folderName : ""
       const promptValues = filterFilledTaskInputValues(inputValues)
       const shareState = await buildTaskShareState(req, task)
-      const taskUi = buildTaskPresentationState(task, shareState)
+      const translate = requireTranslator(res)
+      const taskUi = buildTaskPresentationState(task, shareState, translate)
       const sidebarContext = await buildTaskSidebarContext()
       const suggestedFolderName = task && task.config && usesWorkspaceTaskTarget(task.config)
         ? await suggestTaskWorkspaceName(task)
@@ -10294,39 +10369,11 @@ class Server {
           system_env = await Environment.get(this.kernel.homedir, this.kernel)
         }
         const hasHome = !!this.kernel.homedir
-        let configArray = [{
-          key: "home",
-          val: this.kernel.homedir ? this.kernel.homedir : _home,
-          placeholder: "Enter the absolute path to use as your Pinokio home folder (D\\pinokio, /Users/alice/pinokiofs, etc.)"
-//        }, {
-//          key: "drive",
-//          val: path.resolve(this.kernel.homedir, "drive"),
-//          description: ["Virtual drive folder (Don't change it unless you know what you're doing)"],
-//          placeholder: "Pinokio virtual drives folder"
-        }, {
-          key: "theme",
-          val: this.theme,
-          options: ["light", "dark"]
-        }, {
-          key: "mode",
-          val: this.mode,
-          options: ["desktop", "background"]
-        }, {
-          key: "HTTP_PROXY",
-          val: (system_env.HTTP_PROXY || ""),
-          show_on_click: "#proxy",
-          placeholder: "(Advanced) Only set if you are behind a proxy"
-        }, {
-          key: "HTTPS_PROXY",
-          val: (system_env.HTTPS_PROXY || ""),
-          show_on_click: "#proxy",
-          placeholder: "(Advanced) Only set if you are behind a proxy"
-        }, {
-          key: "NO_PROXY",
-          val: (system_env.NO_PROXY || ""),
-          show_on_click: "#proxy",
-          placeholder: "(Advanced) Only set if you are behind a proxy"
-        }]
+        let configArray = this.getSettingsConfig({
+          system_env,
+          homeValue: this.kernel.homedir ? this.kernel.homedir : _home,
+          t: res.locals.t
+        })
         let folders = {}
         if (this.kernel.homedir) {
           folders = {
@@ -10486,6 +10533,7 @@ class Server {
 
     this.app.get("/tasks", ex(async (req, res) => {
       const sidebarContext = await buildTaskSidebarContext()
+      const translate = requireTranslator(res)
       const allItems = await taskPackages.listInstalledTasks()
       const currentFilterRaw = typeof req.query.filter === "string" ? req.query.filter.trim() : ""
       const currentFilter = currentFilterRaw
@@ -10521,7 +10569,7 @@ class Server {
           remoteWebUrl: buildGithubRemoteWebUrl(remoteUrl),
           gitInitialized: Boolean(gitInfo.gitDirExists || headStatus.gitDirExists),
           changes: Array.isArray(headStatus.changes) ? headStatus.changes : []
-        })
+        }, translate)
         return {
           ...item,
           ui: {
@@ -10576,16 +10624,17 @@ class Server {
         res.status(404).send("Task not found.")
         return
       }
+      const translate = requireTranslator(res)
       await renderTaskBuilderPage(req, res, {
         mode: "edit",
         allowTargetSelection: false,
-        pageTitle: "Edit Task",
-        titleText: "Edit task.",
-        descriptionText: "Update the task metadata and prompt template. Changes are saved in place.",
+        pageTitle: translate("tasks.edit_page_title"),
+        titleText: translate("tasks.edit_title"),
+        descriptionText: translate("tasks.edit_description"),
         formAction: `/tasks/${encodeURIComponent(task.id)}`,
-        submitLabel: "Save changes",
+        submitLabel: translate("tasks.save_changes"),
         backHref: buildTaskPath({ id: task.id }),
-        backLabel: "Back to task",
+        backLabel: translate("tasks.back_to_task"),
         defaults: {
           title: task.config.title || "",
           description: task.config.description || "",
@@ -10606,8 +10655,9 @@ class Server {
           parsedInputs = parseTaskBuilderInputs(body.inputsJson)
         } catch (error) {
           const defaults = buildTaskBuilderDefaults(body, [], { sourceWorkspace })
+          const translate = requireTranslator(res)
           await renderTaskBuilderPage(req, res, {
-            error: "Inputs JSON is invalid.",
+            error: translate("tasks.inputs_json_invalid"),
             allowTargetSelection: !defaults.lockTargetSelection,
             defaults
           })
@@ -10616,9 +10666,10 @@ class Server {
       }
       const defaults = buildTaskBuilderDefaults(body, parsedInputs, { sourceWorkspace })
       if (defaults.rememberCurrentWorkspace) {
+        const translate = requireTranslator(res)
         if (defaults.target !== "workspaces") {
           await renderTaskBuilderPage(req, res, {
-            error: "Current workspace can only be remembered for workspace tasks.",
+            error: translate("tasks.remember_workspace_target_error"),
             allowTargetSelection: !defaults.lockTargetSelection,
             defaults
           })
@@ -10626,7 +10677,7 @@ class Server {
         }
         if (!sourceWorkspace.cwd) {
           await renderTaskBuilderPage(req, res, {
-            error: "Current workspace is no longer available to remember.",
+            error: translate("tasks.remember_workspace_unavailable"),
             allowTargetSelection: !defaults.lockTargetSelection,
             defaults
           })
@@ -10635,7 +10686,7 @@ class Server {
         const sourceStats = await fs.promises.stat(sourceWorkspace.cwd).catch(() => null)
         if (!sourceStats || !sourceStats.isDirectory()) {
           await renderTaskBuilderPage(req, res, {
-            error: "Current workspace could not be found.",
+            error: translate("tasks.remember_workspace_not_found"),
             allowTargetSelection: !defaults.lockTargetSelection,
             defaults
           })
@@ -10669,8 +10720,9 @@ class Server {
         }
         res.redirect(buildTaskPath({ id: task.id }))
       } catch (error) {
+        const translate = requireTranslator(res)
         await renderTaskBuilderPage(req, res, {
-          error: error && error.message ? error.message : "Failed to create task.",
+          error: error && error.message ? error.message : translate("tasks.failed_create"),
           allowTargetSelection: !defaults.lockTargetSelection,
           defaults
         })
@@ -10689,17 +10741,18 @@ class Server {
         try {
           parsedInputs = parseTaskBuilderInputs(body.inputsJson)
         } catch (_) {
+          const translate = requireTranslator(res)
           await renderTaskBuilderPage(req, res, {
             mode: "edit",
             allowTargetSelection: false,
-            pageTitle: "Edit Task",
-            titleText: "Edit task.",
-            descriptionText: "Update the task metadata and prompt template. Changes are saved in place.",
+            pageTitle: translate("tasks.edit_page_title"),
+            titleText: translate("tasks.edit_title"),
+            descriptionText: translate("tasks.edit_description"),
             formAction: `/tasks/${encodeURIComponent(taskId)}`,
-            submitLabel: "Save changes",
+            submitLabel: translate("tasks.save_changes"),
             backHref: buildTaskPath({ id: taskId }),
-            backLabel: "Back to task",
-            error: "Inputs JSON is invalid.",
+            backLabel: translate("tasks.back_to_task"),
+            error: translate("tasks.inputs_json_invalid"),
             defaults: buildTaskBuilderDefaults(body, [])
           })
           return
@@ -10720,17 +10773,18 @@ class Server {
         })
         res.redirect(buildTaskPath({ id: task.id }))
       } catch (error) {
+        const translate = requireTranslator(res)
         await renderTaskBuilderPage(req, res, {
           mode: "edit",
           allowTargetSelection: false,
-          pageTitle: "Edit Task",
-          titleText: "Edit task.",
-          descriptionText: "Update the task metadata and prompt template. Changes are saved in place.",
+          pageTitle: translate("tasks.edit_page_title"),
+          titleText: translate("tasks.edit_title"),
+          descriptionText: translate("tasks.edit_description"),
           formAction: `/tasks/${encodeURIComponent(taskId)}`,
-          submitLabel: "Save changes",
+          submitLabel: translate("tasks.save_changes"),
           backHref: buildTaskPath({ id: taskId }),
-          backLabel: "Back to task",
-          error: error && error.message ? error.message : "Failed to save task changes.",
+          backLabel: translate("tasks.back_to_task"),
+          error: error && error.message ? error.message : translate("tasks.failed_save_changes"),
           defaults: buildTaskBuilderDefaults(body, parsedInputs)
         })
       }
@@ -10747,7 +10801,8 @@ class Server {
         await taskWorkspaceLinks.removeTask(taskId).catch(() => {})
         res.redirect("/tasks")
       } catch (error) {
-        const message = error && error.message ? error.message : "Failed to delete task."
+        const translate = requireTranslator(res)
+        const message = error && error.message ? error.message : translate("tasks.failed_delete")
         res.redirect(`/tasks?error=${encodeURIComponent(message)}`)
       }
     }))
@@ -10776,7 +10831,7 @@ class Server {
         await this.renderInvalidContentPage(req, res, resolvedTask.invalid, {
           sidebarSelected: "tasks",
           backHref: "/tasks",
-          backLabel: "Back to Tasks",
+          backLabel: requireTranslator(res)("tasks.back_to_tasks"),
         })
         return
       }
@@ -10820,7 +10875,7 @@ class Server {
         await renderTaskInstallPage(req, res, {
           ref,
           returnTo,
-          error: error && error.message ? error.message : "Failed to install task."
+          error: error && error.message ? error.message : requireTranslator(res)("tasks.failed_install")
         })
       }
     })
@@ -10846,7 +10901,7 @@ class Server {
         await this.renderInvalidContentPage(req, res, resolvedTask.invalid, {
           sidebarSelected: "tasks",
           backHref: "/tasks",
-          backLabel: "Back to Tasks",
+          backLabel: requireTranslator(res)("tasks.back_to_tasks"),
         })
         return
       }

@@ -1,4 +1,8 @@
 <html>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
@@ -108,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (script.script.start) {
           document.querySelector(".loading").classList.remove("hidden")
           let name
-          document.querySelector(".loading span").innerHTML = "starting " + script.uri
+          document.querySelector(".loading span").innerHTML = <%-trj("launch.starting_script")%>.replace("{uri}", script.uri)
           await new Promise((resolve, reject) => {
             socket.run({
               //uri: script.path + "/" + script.script.start
@@ -152,9 +156,9 @@ document.addEventListener("DOMContentLoaded", () => {
 <div class='bootstrap'>
   <div class='intro'>
     <h1><img src='/pinokio-white.png'><div>pinokio</div></h1>
-    <button id='launch' class='btn'><i class="fa-solid fa-play"></i> Run</button>
+    <button id='launch' class='btn'><i class="fa-solid fa-play"></i> <%=tr("terminal.run")%></button>
   </div>
-  <div class='loading hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> <span>booting up...</span></div>
+  <div class='loading hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> <span><%=tr("common.booting_up")%></span></div>
   <div id='terminal'></div>
 </div>
 </body>

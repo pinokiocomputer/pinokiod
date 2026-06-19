@@ -1,6 +1,10 @@
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <html>
 <head>
-<title>Logs</title>
+<title><%=tr("logs.title")%></title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <link href="/xterm.min.css" rel="stylesheet" />
@@ -27,6 +31,9 @@
 <script src="/xterm-theme.js"></script>
 <script src="/install.js"></script>
 <script src="/timeago.min.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
@@ -43,119 +50,119 @@
       <div class="logs-page-header">
         <div class="logs-page-switch">
           <% if (logsReportUrl) { %>
-            <div class="logs-view-switch" role="tablist" aria-label="Log views">
-              <button type="button" class="logs-view-tab" data-logs-view="latest" role="tab" aria-controls="logs-latest-panel">Latest</button>
-              <button type="button" class="logs-view-tab" data-logs-view="raw" role="tab" aria-controls="logs-raw-panel">Raw logs</button>
+            <div class="logs-view-switch" role="tablist" aria-label="<%=tr("logs.title")%>">
+              <button type="button" class="logs-view-tab" data-logs-view="latest" role="tab" aria-controls="logs-latest-panel"><%=tr("logs.latest")%></button>
+              <button type="button" class="logs-view-tab" data-logs-view="raw" role="tab" aria-controls="logs-raw-panel"><%=tr("logs.raw_logs")%></button>
             </div>
           <% } else { %>
-            <div class="logs-raw-only-title"><i class="fa-solid fa-laptop-code" aria-hidden="true"></i><span>Logs</span></div>
+            <div class="logs-raw-only-title"><i class="fa-solid fa-laptop-code" aria-hidden="true"></i><span><%=tr("logs.title")%></span></div>
           <% } %>
         </div>
         <div class="logs-page-controls">
           <div class="logs-action-group" data-logs-actions="latest">
-            <button type="button" class="logs-flat-button" id="logs-copy-report" disabled><i class="fa-solid fa-copy"></i><span>Copy</span></button>
-            <button type="button" class="logs-flat-button" id="logs-refresh-report"><i class="fa-solid fa-arrows-rotate"></i><span>Refresh</span></button>
+            <button type="button" class="logs-flat-button" id="logs-copy-report" disabled><i class="fa-solid fa-copy"></i><span><%=tr("common.copy")%></span></button>
+            <button type="button" class="logs-flat-button" id="logs-refresh-report"><i class="fa-solid fa-arrows-rotate"></i><span><%=tr("common.refresh")%></span></button>
           </div>
           <div class="logs-action-group" data-logs-actions="raw">
-            <button type="button" class="logs-primary-button" id="logs-generate-archive"><i class="fa-solid fa-file-zipper"></i><span>Generate zip</span></button>
-            <a id="logs-download-archive" class="logs-secondary-button hidden" href="<%= typeof logsDownloadUrl !== 'undefined' ? logsDownloadUrl : '/pinokio/logs.zip' %>" download><i class="fa-solid fa-download"></i><span>Download</span></a>
-            <button type="button" class="logs-flat-button" id="logs-refresh-tree"><i class="fa-solid fa-arrows-rotate"></i><span>Refresh tree</span></button>
+            <button type="button" class="logs-primary-button" id="logs-generate-archive"><i class="fa-solid fa-file-zipper"></i><span><%=tr("logs.generate_zip")%></span></button>
+            <a id="logs-download-archive" class="logs-secondary-button hidden" href="<%= typeof logsDownloadUrl !== 'undefined' ? logsDownloadUrl : '/pinokio/logs.zip' %>" download><i class="fa-solid fa-download"></i><span><%=tr("common.download")%></span></a>
+            <button type="button" class="logs-flat-button" id="logs-refresh-tree"><i class="fa-solid fa-arrows-rotate"></i><span><%=tr("logs.refresh_tree")%></span></button>
           </div>
           <% if (logsEmbedded) { %>
-            <button type="button" class="logs-icon-button logs-close-button" id="logs-close-view" aria-label="Close logs" title="Close logs"><i class="fa-solid fa-xmark"></i></button>
+            <button type="button" class="logs-icon-button logs-close-button" id="logs-close-view" aria-label="<%=tr("logs.close_logs")%>" title="<%=tr("logs.close_logs")%>"><i class="fa-solid fa-xmark"></i></button>
           <% } %>
         </div>
       </div>
 
       <section class="logs-latest-view" id="logs-latest-panel" data-logs-panel="latest" role="tabpanel">
         <div class="logs-latest-workspace">
-          <section class="logs-report-pane" aria-label="Issue report preview">
+          <section class="logs-report-pane" aria-label="<%=tr("logs.issue_report_preview")%>">
             <div class="logs-latest-pane-header">
               <div>
-                <p class="logs-latest-pane-eyebrow">Report preview</p>
-                <div class="logs-latest-pane-title">Markdown draft</div>
+                <p class="logs-latest-pane-eyebrow"><%=tr("logs.report_preview")%></p>
+                <div class="logs-latest-pane-title"><%=tr("logs.markdown_draft")%></div>
               </div>
             </div>
             <pre class="logs-report-output" id="logs-report-output" tabindex="0"></pre>
           </section>
-          <aside class="logs-redaction-pane" aria-label="Report details and redaction review">
+          <aside class="logs-redaction-pane" aria-label="<%=tr("logs.report_details_redaction_review")%>">
             <div class="logs-latest-pane-header">
               <div>
-                <p class="logs-latest-pane-eyebrow">Review</p>
-                <div class="logs-latest-pane-title">Before copy</div>
+                <p class="logs-latest-pane-eyebrow"><%=tr("logs.review")%></p>
+                <div class="logs-latest-pane-title"><%=tr("logs.before_copy")%></div>
               </div>
             </div>
             <div class="logs-review-content">
-              <section class="logs-review-section" aria-label="Latest report details">
-                <div class="logs-review-section-title">Snapshot</div>
+              <section class="logs-review-section" aria-label="<%=tr("logs.latest_report_details")%>">
+                <div class="logs-review-section-title"><%=tr("logs.snapshot")%></div>
                 <div class="logs-review-meta">
                   <div>
-                    <span>Generated</span>
+                    <span><%=tr("logs.generated")%></span>
                     <strong id="logs-report-generated">--</strong>
                   </div>
                   <div>
-                    <span>Sections</span>
+                    <span><%=tr("logs.sections")%></span>
                     <strong id="logs-report-sections">--</strong>
                   </div>
                 </div>
-                <div class="logs-review-file-list" id="logs-report-files" aria-label="Included log files"></div>
+                <div class="logs-review-file-list" id="logs-report-files" aria-label="<%=tr("logs.included_log_files")%>"></div>
               </section>
-              <section class="logs-review-section" aria-label="Registry draft size">
+              <section class="logs-review-section" aria-label="<%=tr("logs.registry_draft_size")%>">
                 <div class="logs-review-section-row">
-                  <div class="logs-review-section-title">Registry draft</div>
+                  <div class="logs-review-section-title"><%=tr("logs.registry_draft")%></div>
                   <div class="logs-review-badge" id="logs-draft-size-badge">--</div>
                 </div>
                 <div class="logs-draft-meter" aria-hidden="true">
                   <div class="logs-draft-meter-fill" id="logs-draft-meter-fill"></div>
                 </div>
-                <div class="logs-draft-status" id="logs-draft-status">Waiting for latest log snapshot.</div>
+                <div class="logs-draft-status" id="logs-draft-status"><%=tr("logs.waiting_snapshot")%></div>
               </section>
-              <section class="logs-review-section" aria-label="Privacy filter status">
+              <section class="logs-review-section" aria-label="<%=tr("logs.privacy_filter_status")%>">
                 <div class="logs-review-section-row">
-                  <div class="logs-review-section-title">Privacy filter</div>
-                  <div class="logs-review-badge" id="logs-redaction-count">Not run</div>
+                  <div class="logs-review-section-title"><%=tr("logs.privacy_filter")%></div>
+                  <div class="logs-review-badge" id="logs-redaction-count"><%=tr("logs.not_run")%></div>
                 </div>
-                <div class="logs-report-status" id="logs-report-status" role="status" aria-live="polite">Building latest log snapshot…</div>
-                <button type="button" class="logs-primary-button logs-review-filter-button" id="logs-run-filter" disabled><i class="fa-solid fa-shield-halved"></i><span>Run privacy filter</span></button>
+                <div class="logs-report-status" id="logs-report-status" role="status" aria-live="polite"><%=tr("logs.building_snapshot")%></div>
+                <button type="button" class="logs-primary-button logs-review-filter-button" id="logs-run-filter" disabled><i class="fa-solid fa-shield-halved"></i><span><%=tr("logs.run_privacy_filter")%></span></button>
               </section>
-              <section class="logs-review-section logs-review-section--redactions" aria-label="Redaction review">
-                <div class="logs-review-section-title">Redactions</div>
-                <div class="logs-redaction-filters" id="logs-redaction-filters" aria-label="Filter redactions"></div>
+              <section class="logs-review-section logs-review-section--redactions" aria-label="<%=tr("logs.redaction_review")%>">
+                <div class="logs-review-section-title"><%=tr("logs.redactions")%></div>
+                <div class="logs-redaction-filters" id="logs-redaction-filters" aria-label="<%=tr("logs.filter_redactions")%>"></div>
                 <div class="logs-redaction-list" id="logs-redaction-list"></div>
               </section>
             </div>
           </aside>
-          <footer class="logs-community-footer" aria-label="Ask Community">
+          <footer class="logs-community-footer" aria-label="<%=tr("logs.ask_community")%>">
             <div class="logs-community-copy">
-              <div class="logs-community-heading"><i class="fa-solid fa-comments" aria-hidden="true"></i><span>Ask Community</span></div>
-              <div class="logs-community-subtitle">Opens a draft question on pinokio.co with this report attached.</div>
+              <div class="logs-community-heading"><i class="fa-solid fa-comments" aria-hidden="true"></i><span><%=tr("logs.ask_community")%></span></div>
+              <div class="logs-community-subtitle"><%=tr("logs.community_subtitle")%></div>
             </div>
             <div class="logs-community-title-field">
-              <label class="logs-community-title-label" for="logs-draft-title">Title</label>
-              <input class="logs-community-title-input" id="logs-draft-title" type="text" maxlength="120" autocomplete="off" spellcheck="true" placeholder="Issue title" disabled>
+              <label class="logs-community-title-label" for="logs-draft-title"><%=tr("logs.title_label")%></label>
+              <input class="logs-community-title-input" id="logs-draft-title" type="text" maxlength="120" autocomplete="off" spellcheck="true" placeholder="<%=tr("logs.issue_title")%>" disabled>
               <span class="logs-community-title-note" id="logs-draft-title-note" aria-live="polite"></span>
             </div>
-            <button type="button" class="logs-primary-button logs-community-submit" id="logs-create-draft" disabled><i class="fa-solid fa-paper-plane"></i><span>Ask Community</span></button>
+            <button type="button" class="logs-primary-button logs-community-submit" id="logs-create-draft" disabled><i class="fa-solid fa-paper-plane"></i><span><%=tr("logs.ask_community")%></span></button>
           </footer>
         </div>
       </section>
 
       <section class="logs-raw-view" id="logs-raw-panel" data-logs-panel="raw" role="tabpanel">
-        <div class="logs-sidebar" aria-label="Log folders">
+        <div class="logs-sidebar" aria-label="<%=tr("logs.log_folders")%>">
           <div class="logs-sidebar-header">
             <div>
-              <p class="logs-sidebar-eyebrow">Raw log files</p>
-              <h2>Files</h2>
-              <div class="logs-tree-hint">Select a file to stream live output.</div>
+              <p class="logs-sidebar-eyebrow"><%=tr("logs.raw_log_files")%></p>
+              <h2><%=tr("home.files")%></h2>
+              <div class="logs-tree-hint"><%=tr("logs.select_file")%></div>
             </div>
             <div class="logs-zip-status" id="logs-zip-status" role="status" aria-live="polite"></div>
           </div>
           <div class="logs-tree-wrapper">
-            <div class="logs-tree" id="logs-tree" role="tree" aria-label="Pinokio logs"></div>
+            <div class="logs-tree" id="logs-tree" role="tree" aria-label="<%=tr("logs.pinokio_logs")%>"></div>
           </div>
         </div>
-        <div class="logs-resizer" id="logs-resizer" role="separator" aria-orientation="vertical" aria-valuemin="220" aria-valuemax="560" aria-valuenow="320" tabindex="0" aria-label="Resize or collapse log navigation">
-          <button type="button" class="logs-resizer-toggle" aria-label="Collapse log navigation">
+        <div class="logs-resizer" id="logs-resizer" role="separator" aria-orientation="vertical" aria-valuemin="220" aria-valuemax="560" aria-valuenow="320" tabindex="0" aria-label="<%=tr("logs.resize_collapse_navigation")%>">
+          <button type="button" class="logs-resizer-toggle" aria-label="<%=tr("logs.collapse_navigation")%>">
             <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
           </button>
         </div>
@@ -163,21 +170,21 @@
           <div class="logs-viewer-panel">
             <div class="logs-viewer-header">
               <div>
-                <p class="logs-viewer-eyebrow">Raw logs</p>
-                <div class="logs-viewer-path" id="logs-viewer-path">Select a log file to start streaming.</div>
+                <p class="logs-viewer-eyebrow"><%=tr("logs.raw_logs")%></p>
+                <div class="logs-viewer-path" id="logs-viewer-path"><%=tr("logs.select_log_file")%></div>
               </div>
               <div class="logs-viewer-controls">
                 <label class="logs-autoscroll-toggle">
                   <input type="checkbox" id="logs-autoscroll" checked>
-                  <span>Auto-scroll</span>
+                  <span><%=tr("logs.auto_scroll")%></span>
                 </label>
                 <button type="button" class="logs-flat-button" id="logs-clear-viewer" disabled>
                   <i class="fa-solid fa-eraser"></i>
-                  <span>Clear</span>
+                  <span><%=tr("common.clear")%></span>
                 </button>
               </div>
             </div>
-            <div class="logs-viewer-status" id="logs-viewer-status">Waiting for selection…</div>
+            <div class="logs-viewer-status" id="logs-viewer-status"><%=tr("logs.waiting_selection")%></div>
             <pre class="logs-viewer-output" id="logs-viewer-output" role="log" aria-live="polite" tabindex="0"></pre>
           </div>
         </div>
@@ -187,12 +194,12 @@
     <section class="logs-page logs-page--error" id="logs-root-error">
       <div class="logs-empty-state">
         <div class="logs-empty-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
-        <h2>Unable to open logs for this workspace</h2>
+        <h2><%=tr("logs.unable_workspace")%></h2>
         <p><%= logsError %></p>
         <div class="logs-empty-actions">
-          <a class="btn" href="/logs"><i class="fa-solid fa-laptop-code"></i> View system logs</a>
+          <a class="btn" href="/logs"><i class="fa-solid fa-laptop-code"></i> <%=tr("logs.view_system_logs")%></a>
           <% if (logsWorkspace) { %>
-            <a class="btn" href="/logs?workspace=<%= encodeURIComponent(logsWorkspace) %>"><i class="fa-solid fa-rotate-right"></i> Retry</a>
+            <a class="btn" href="/logs?workspace=<%= encodeURIComponent(logsWorkspace) %>"><i class="fa-solid fa-rotate-right"></i> <%=tr("common.retry")%></a>
           <% } %>
         </div>
       </div>
@@ -205,6 +212,127 @@
 </main>
 <script>
 window.LOGS_PAGE_DATA = <%- JSON.stringify({ rootDisplay: logsRootDisplay || '', downloadUrl: logsDownloadUrl || '/pinokio/logs.zip', workspace: logsWorkspace || '', workspaceTitle: logsTitle || '', reportUrl: logsReportUrl || '', draftUrl: typeof logsDraftUrl !== 'undefined' ? logsDraftUrl : '', registryBase: 'https://pinokio.co', initialView: logsInitialView || 'raw', embedded: !!logsEmbedded }) %>
+window.LOGS_I18N = {
+  draftSectionFull: <%-trj("logs.draft_section_full")%>,
+  draftSectionLast2000: <%-trj("logs.draft_section_last_2000")%>,
+  draftSectionLast1000: <%-trj("logs.draft_section_last_1000")%>,
+  draftSectionLast500: <%-trj("logs.draft_section_last_500")%>,
+  draftSectionExclude: <%-trj("logs.draft_section_exclude")%>,
+  privacyFilterWorkerFailed: <%-trj("logs.privacy_filter_worker_failed")%>,
+  privacyFilterFailed: <%-trj("logs.privacy_filter_failed")%>,
+  generating: <%-trj("logs.generating")%>,
+  generatingArchive: <%-trj("logs.generating_archive")%>,
+  archiveReady: <%-trj("logs.archive_ready")%>,
+  failedGenerateArchive: <%-trj("logs.failed_generate_archive")%>,
+  noLatestFiles: <%-trj("logs.no_latest_files")%>,
+  runPrivacyFilter: <%-trj("logs.run_privacy_filter")%>,
+  filtering: <%-trj("logs.filtering")%>,
+  opening: <%-trj("logs.opening")%>,
+  clearedWaiting: <%-trj("logs.cleared_waiting")%>,
+  askCommunity: <%-trj("logs.ask_community")%>,
+  notRun: <%-trj("logs.not_run")%>,
+  maskedCount: <%-trj("logs.masked_count")%>,
+  maskedZero: <%-trj("logs.masked_zero")%>,
+  allCount: <%-trj("logs.all_count")%>,
+  private: <%-trj("logs.private")%>,
+  noRedactionsDetected: <%-trj("logs.no_redactions_detected")%>,
+  runPrivacyFilterReview: <%-trj("logs.run_privacy_filter_review")%>,
+  noRedactionsMatchFilter: <%-trj("logs.no_redactions_match_filter")%>,
+  noReportTextReview: <%-trj("logs.no_report_text_review")%>,
+  line: <%-trj("logs.line")%>,
+  keepMasked: <%-trj("logs.keep_masked")%>,
+  showInCopiedReport: <%-trj("logs.show_in_copied_report")%>,
+  filteringNotRunYet: <%-trj("logs.filtering_not_run_yet")%>,
+  latestSnapshotFoundOne: <%-trj("logs.latest_snapshot_found_one")%>,
+  latestSnapshotFoundMany: <%-trj("logs.latest_snapshot_found_many")%>,
+  latestSnapshotBuiltOne: <%-trj("logs.latest_snapshot_built_one")%>,
+  latestSnapshotBuiltMany: <%-trj("logs.latest_snapshot_built_many")%>,
+  unableBuildSnapshot: <%-trj("logs.unable_build_snapshot")%>,
+  noRedactionReviewAvailable: <%-trj("logs.no_redaction_review_available")%>,
+  loadingPrivacyFilter: <%-trj("logs.loading_privacy_filter")%>,
+  retryingPrivacyFilter: <%-trj("logs.retrying_privacy_filter")%>,
+  downloadingPrivacyFilterProgress: <%-trj("logs.downloading_privacy_filter_progress")%>,
+  downloadingPrivacyFilter: <%-trj("logs.downloading_privacy_filter")%>,
+  privacyFilterNoReportText: <%-trj("logs.privacy_filter_no_report_text")%>,
+  privacyFilteringFailedBeforeReview: <%-trj("logs.privacy_filtering_failed_before_review")%>,
+  privacyFilterFinishedOne: <%-trj("logs.privacy_filter_finished_one")%>,
+  privacyFilterFinishedMany: <%-trj("logs.privacy_filter_finished_many")%>,
+  latestSnapshotAppWorkspaces: <%-trj("logs.latest_snapshot_app_workspaces")%>,
+  unfilteredReady: <%-trj("logs.unfiltered_ready")%>,
+  buildingSnapshot: <%-trj("logs.building_snapshot")%>,
+  waitingSnapshot: <%-trj("logs.waiting_snapshot")%>,
+  draftImportFailed: <%-trj("logs.draft_import_failed")%>,
+  reviewedReportCopied: <%-trj("logs.reviewed_report_copied")%>,
+  unfilteredReportCopied: <%-trj("logs.unfiltered_report_copied")%>,
+  selectSnapshotCopy: <%-trj("logs.select_snapshot_copy")%>,
+  tooLargeRegistryImport: <%-trj("logs.too_large_registry_import")%>,
+  tooLargeDraftImport: <%-trj("logs.too_large_draft_import")%>,
+  addTitleCommunity: <%-trj("logs.add_title_community")%>,
+  communityReadyPreview: <%-trj("logs.community_ready_preview")%>,
+  openDraftCommunity: <%-trj("logs.open_draft_community")%>,
+  addTitleCommunityTooltip: <%-trj("logs.add_title_community_tooltip")%>,
+  reduceReportSizeCommunity: <%-trj("logs.reduce_report_size_community")%>,
+  communityPostingUnavailable: <%-trj("logs.community_posting_unavailable")%>,
+  noLatestAppLogs: <%-trj("logs.no_latest_app_logs")%>,
+  filteringLocallyProgress: <%-trj("logs.filtering_locally_progress")%>,
+  filteringLocally: <%-trj("logs.filtering_locally")%>,
+  olderLinesOmitted: <%-trj("logs.older_lines_omitted")%>,
+  pinokioApp: <%-trj("logs.pinokio_app")%>,
+  issueReportTitle: <%-trj("logs.issue_report_title")%>,
+  titleRequired: <%-trj("logs.title_required")%>,
+  log: <%-trj("logs.log")%>,
+  sourceLine: <%-trj("logs.source_line")%>,
+  linesLine: <%-trj("logs.lines_line")%>,
+  noAppLogFilesSelected: <%-trj("logs.no_app_log_files_selected")%>,
+  includeLogSection: <%-trj("logs.include_log_section")%>,
+  logSection: <%-trj("logs.log_section")%>,
+  unknownSize: <%-trj("logs.unknown_size")%>,
+  olderLinesOmittedShort: <%-trj("logs.older_lines_omitted_short")%>,
+  lineCount: <%-trj("logs.line_count")%>,
+  draftInclusionFor: <%-trj("logs.draft_inclusion_for")%>,
+  lineSummarySelected: <%-trj("logs.line_summary_selected")%>,
+  lineSummaryIncluded: <%-trj("logs.line_summary_included")%>,
+  lineSummaryIncludedTruncated: <%-trj("logs.line_summary_included_truncated")%>,
+  issueReport: <%-trj("logs.issue_report")%>,
+  masked: <%-trj("logs.masked")%>,
+  visible: <%-trj("logs.visible")%>,
+  mask: <%-trj("logs.mask")%>,
+  show: <%-trj("logs.show")%>,
+  draftTooLargeRegistryImport: <%-trj("logs.draft_too_large_registry_import")%>,
+  communityDraftOpening: <%-trj("logs.community_draft_opening")%>,
+  communityDraftCreated: <%-trj("logs.community_draft_created")%>,
+  openingCommunityAuthorization: <%-trj("logs.opening_community_authorization")%>,
+  communityAuthorizationBlocked: <%-trj("logs.community_authorization_blocked")%>,
+  communityNoImportToken: <%-trj("logs.community_no_import_token")%>,
+  communityAuthorizationClosed: <%-trj("logs.community_authorization_closed")%>,
+  connecting: <%-trj("logs.connecting")%>,
+  eventSourceUnsupported: <%-trj("logs.event_source_unsupported")%>,
+  showingLatestPart: <%-trj("logs.showing_latest_part")%>,
+  streamingLiveOutput: <%-trj("logs.streaming_live_output")%>,
+  fileTruncatedRestarting: <%-trj("logs.file_truncated_restarting")%>,
+  fileRotatedStreamClosed: <%-trj("logs.file_rotated_stream_closed")%>,
+  streamingError: <%-trj("logs.streaming_error")%>,
+  streamClosed: <%-trj("logs.stream_closed")%>,
+  connectionLostReconnecting: <%-trj("logs.connection_lost_reconnecting")%>,
+  loading: <%-trj("common.loading")%>,
+  emptyFolder: <%-trj("logs.empty_folder")%>,
+  failedLoadFolder: <%-trj("logs.failed_load_folder")%>,
+  treeRefreshed: <%-trj("logs.tree_refreshed")%>,
+  failedRefreshTree: <%-trj("logs.failed_refresh_tree")%>,
+  expandLogNavigation: <%-trj("logs.expand_log_navigation")%>,
+  collapseLogNavigation: <%-trj("logs.collapse_log_navigation")%>,
+  unknownError: <%-trj("common.unknown_error")%>,
+  unknown: <%-trj("common.unknown")%>,
+  appLabel: <%-trj("common.app")%>,
+  repoLabel: <%-trj("logs.repo_label")%>,
+  generatedLabel: <%-trj("logs.generated")%>,
+  pinokioLabel: <%-trj("logs.pinokio_label")%>,
+  platformLabel: <%-trj("logs.platform_label")%>,
+  nodeLabel: <%-trj("logs.node_label")%>,
+  summaryHeading: <%-trj("logs.summary_heading")%>,
+  systemHeading: <%-trj("logs.system_heading")%>,
+  logsHeading: <%-trj("logs.logs_heading")%>
+}
 </script>
 <script src="/logs.js"></script>
 </body>

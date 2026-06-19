@@ -1,0 +1,700 @@
+{
+  "_schema": {
+    "purpose": "Why this term exists in Pinokio and what user-facing concept it represents.",
+    "context": "Where the term appears in the app and what surrounding workflow it belongs to.",
+    "translationRule": "How to translate it, including what to keep literal and what behavior the wording must not imply.",
+    "meaning": "Concise semantic definition.",
+    "translate": "Whether the visible term should normally be localized.",
+    "examples": "Representative English source strings that should follow this entry."
+  },
+  "_policy": {
+    "sourceOfTruth": "Translate from the English catalog using this glossary before writing non-English catalogs.",
+    "qualityContract": "Every translation must also satisfy QUALITY.md. Glossary nuance is necessary but not sufficient; raw keys, English carryover, mixed-language token output, literal preposition translation, bad fragment sources, and English-order sentence assembly are blocking failures.",
+    "promotion": "A locale present in catalogs.json is not automatically production-ready. It may be enabled only after the strict localization audit and visual QA pass.",
+    "scope": "Visible Pinokio product UI only. Do not translate third-party app metadata, paths, config keys, terminal output, exported diagnostic/report payload bodies, or values that app/plugin logic may read.",
+    "placeholders": "Preserve placeholders exactly, including braces and names such as {name}, {count}, {path}, and {message}.",
+    "literals": "Preserve product names, file names, URLs, code identifiers, and tool names listed as translate:false or preserve entries.",
+    "style": "Use natural concise app UI language, not literal sentence-by-sentence translation. Commands should stay short and action-oriented."
+  },
+  "Pinokio": {
+    "purpose": "Protect the product identity across all app chrome, settings, agent copy, and file-location copy.",
+    "context": "Brand/product references, Pinokio-managed folders, Pinokio Network, prompts that mention the app itself.",
+    "translationRule": "Keep exactly \"Pinokio\" in every locale. Translate surrounding words only.",
+    "meaning": "The product name. Keep it as Pinokio in every locale.",
+    "translate": false,
+    "examples": [
+      "Pinokio home folder",
+      "Ask Pinokio"
+    ]
+  },
+  "app": {
+    "purpose": "Name the local installable/runnable unit Pinokio users manage from Home and app pages.",
+    "context": "Home list, app actions, autolaunch, app search, file browser, and settings copy.",
+    "translationRule": "Translate as an application/project in Pinokio, not specifically a phone app or web page.",
+    "meaning": "A local Pinokio-installed project or launcher under the user's Pinokio api folder, not specifically a mobile app.",
+    "translate": true,
+    "examples": [
+      "Create app",
+      "Open App Search Test"
+    ]
+  },
+  "plugin": {
+    "purpose": "Name an extension that adds actions, editors, terminal agents, or other capabilities to Pinokio.",
+    "context": "Plugins list, plugin detail pages, install plugin flow, desktop/terminal plugin categories.",
+    "translationRule": "Translate as extension/plugin for Pinokio. Do not imply browser plugin unless the locale normally uses that borrowed term generically.",
+    "meaning": "A Pinokio extension/tool that adds capabilities to Pinokio. It is not a browser plugin.",
+    "translate": true,
+    "examples": [
+      "Create plugin",
+      "Plugins"
+    ]
+  },
+  "launcher": {
+    "purpose": "Describe the script/config layer that installs, runs, opens, or customizes a Pinokio app.",
+    "context": "Home action menus, editor warnings, create/edit launcher actions, install/run script choices.",
+    "translationRule": "Use a practical term for runner/launch script. Avoid marketing/event launch meanings.",
+    "meaning": "A Pinokio script or configuration that installs, runs, or opens an app.",
+    "translate": true,
+    "nuance": "Prefer a practical UI term meaning runner/launch script, not a marketing launch."
+  },
+  "home": {
+    "purpose": "Refer to Pinokio storage roots or the top-level Pinokio app screen depending on the source string.",
+    "context": "Settings home folder, main navigation, empty Home screen, storage path warnings.",
+    "translationRule": "When paired with folder/path, translate as storage/home directory. Do not translate as browser homepage.",
+    "meaning": "Usually the Pinokio home folder where Pinokio stores apps, cache, bin, drive, and environment data. Do not translate as a web browser home page when the context is a storage path.",
+    "translate": true,
+    "examples": [
+      "Pinokio home folder",
+      "Set and save a Pinokio home folder"
+    ]
+  },
+  "This machine": {
+    "purpose": "Distinguish the current computer from local-network Pinokio instances.",
+    "context": "Main sidebar computer section and local-device navigation.",
+    "translationRule": "Translate as this/current computer. Do not imply server, website, or remote device.",
+    "meaning": "The current computer running this Pinokio instance.",
+    "translate": true,
+    "avoid": [
+      "web server",
+      "remote device"
+    ]
+  },
+  "Local network": {
+    "purpose": "Group Pinokio instances discoverable on the same LAN.",
+    "context": "Main sidebar computer section and network sharing/discovery UI.",
+    "translationRule": "Translate as local network/LAN. Do not imply public internet.",
+    "meaning": "Other Pinokio instances discoverable on the user's local LAN.",
+    "translate": true
+  },
+  "Open without launching": {
+    "purpose": "Preserve a non-starting path into an app view.",
+    "context": "Home app action modal and run-mode navigation when a user wants to inspect without running scripts.",
+    "translationRule": "Make clear that the app opens/navigates but no script/process starts. Keep distinct from Run and Launch.",
+    "meaning": "Open the app view/folder without automatically running its launch or start command.",
+    "translate": true,
+    "mustPreserveDistinctionFrom": [
+      "Open",
+      "Launch",
+      "Run"
+    ]
+  },
+  "terminal": {
+    "purpose": "Refer to Pinokio-managed shell/process sessions, including agent sessions.",
+    "context": "Terminal view, terminal sessions UI, logs, shell environment inspection, upload/download status.",
+    "translationRule": "Translate as terminal/shell session. Do not use website login session language.",
+    "meaning": "A Pinokio-managed shell session.",
+    "translate": true
+  },
+  "mode": {
+    "purpose": "Expose a runtime or launch behavior choice while preserving internal option values.",
+    "context": "Settings mode selector, terminal agent mode selector, run-mode copy.",
+    "translationRule": "Translate visible labels only. Keep stored config identifiers such as desktop/background unchanged.",
+    "meaning": "The Pinokio app runtime mode, currently desktop or background. Keep option values in config as English identifiers; translate only visible labels.",
+    "translate": true
+  },
+  "Auto": {
+    "purpose": "Let Pinokio choose behavior from browser/system defaults.",
+    "context": "Language settings and other automatic preference choices.",
+    "translationRule": "Translate as automatic/system-following behavior. In locale settings it means Accept-Language first, then English only when no supported locale matches.",
+    "meaning": "Use browser/system preference detection. In locale settings, Auto means Accept-Language first; English is the default locale only when no supported locale matches.",
+    "translate": true
+  },
+  "Reset": {
+    "purpose": "Warn that local Pinokio-managed state will be discarded or recreated.",
+    "context": "Settings troubleshoot buttons, Git/file change discard flows, app reset confirmations.",
+    "translationRule": "Use a short destructive command. It should feel stronger than refresh/reload.",
+    "meaning": "Delete/recreate local Pinokio-managed state for a specific subsystem. It is potentially destructive.",
+    "translate": true,
+    "tone": "Short, direct command"
+  },
+  "ENVIRONMENT": {
+    "purpose": "Refer to the literal Pinokio environment file.",
+    "context": "Settings advanced environment editor, reset environment variables copy.",
+    "translationRule": "Keep uppercase ENVIRONMENT when referring to the file name. Translate surrounding copy only.",
+    "meaning": "The literal Pinokio environment file name. Keep uppercase when referring to the file.",
+    "translate": false
+  },
+  "SKILL.md": {
+    "purpose": "Refer to the literal Markdown instruction file consumed by Pinokio agents.",
+    "context": "Settings docs download actions and agent/skill documentation references.",
+    "translationRule": "Keep SKILL.md literal. Translate words like download/guide around it.",
+    "meaning": "A literal Markdown file name used by Pinokio agents. Do not translate.",
+    "translate": false
+  },
+  "Run": {
+    "purpose": "Start executing a Pinokio script/process.",
+    "context": "Home run buttons, terminal start controls, app run tabs, install/run script flows.",
+    "translationRule": "Translate as execute/run. Do not weaken it into open/navigate.",
+    "meaning": "Execute a Pinokio script or start an app process. This is a command verb, not a general navigation/open action.",
+    "translate": true,
+    "mustPreserveDistinctionFrom": [
+      "Open",
+      "Launch",
+      "Install"
+    ]
+  },
+  "Open": {
+    "purpose": "Navigate to an existing page, file, folder, browser URL, or plugin surface.",
+    "context": "Open in browser/file explorer, open project, open publish, open plugin, navigation controls.",
+    "translationRule": "Translate as open/navigate. Do not imply starting a script unless the English source says Run or Launch.",
+    "meaning": "Navigate to a view, file, folder, browser page, or plugin surface. Do not imply starting a process unless the English source says Run or Launch.",
+    "translate": true,
+    "mustPreserveDistinctionFrom": [
+      "Run",
+      "Launch"
+    ]
+  },
+  "Launch": {
+    "purpose": "Start an external app/plugin or begin a launch flow.",
+    "context": "Plugin detail actions, desktop plugin buttons, terminal plugin launch copy.",
+    "translationRule": "Translate as launch/start, with external-vs-inside Pinokio distinction preserved by surrounding copy.",
+    "meaning": "Start an external desktop app or begin a plugin/app launch flow. In plugin context, desktop plugins launch externally while terminal plugins launch inside Pinokio.",
+    "translate": true
+  },
+  "Install": {
+    "purpose": "Set up apps, plugins, tools, bundles, or dependencies inside Pinokio-managed storage.",
+    "context": "Explore, plugins, tools, checkpoints, app prerequisites, fresh install guidance.",
+    "translationRule": "Translate as install/setup locally. Do not imply OS-wide installation unless source mentions package/dependency.",
+    "meaning": "Download, clone, or set up dependencies/plugins/apps into local Pinokio-managed storage. It is not an OS-wide installation unless the UI explicitly says dependency package.",
+    "translate": true
+  },
+  "Update": {
+    "purpose": "Apply a newer version or pull latest code.",
+    "context": "Home update script toast, plugin update actions, file update commands.",
+    "translationRule": "Translate as update/bring current. Keep distinct from refresh/reload status.",
+    "meaning": "Fetch or apply the latest version of an app/plugin/script. Do not translate as a generic status refresh.",
+    "translate": true,
+    "mustPreserveDistinctionFrom": [
+      "Refresh"
+    ]
+  },
+  "Refresh": {
+    "purpose": "Reload current UI data or status without changing installed code.",
+    "context": "List refresh, log tree refresh, status checks, shell environment reloads.",
+    "translationRule": "Translate as refresh/reload. Do not imply installing an update.",
+    "meaning": "Reload status, lists, trees, or current view data without changing installed code.",
+    "translate": true,
+    "mustPreserveDistinctionFrom": [
+      "Update"
+    ]
+  },
+  "checkpoint": {
+    "purpose": "Name a restorable saved dependency/workspace state.",
+    "context": "Checkpoints page, app snapshot UI, delete/install checkpoint actions.",
+    "translationRule": "Translate as checkpoint/saved state/version point, not as a checklist item.",
+    "meaning": "A saved local workspace/app state snapshot used for restore/version history. Do not translate as a generic checklist item.",
+    "translate": true,
+    "examples": [
+      "Latest checkpoint",
+      "Delete this local checkpoint?"
+    ]
+  },
+  "snapshot": {
+    "purpose": "Name one saved point-in-time restore object.",
+    "context": "Checkpoint history, snapshot JSON metadata, save checkpoint modal.",
+    "translationRule": "Translate as snapshot/version snapshot. Do not translate as screenshot.",
+    "meaning": "A saved checkpoint instance at a point in time. In Checkpoints UI it is a restoreable version, not a screenshot.",
+    "translate": true
+  },
+  "local changes": {
+    "purpose": "Describe uncommitted local Git/workspace/plugin file changes.",
+    "context": "App Changes panel, plugin detail status, terminal workspace Git status, publish flow.",
+    "translationRule": "Translate as local file changes. Do not imply app settings or network changes.",
+    "meaning": "File changes in a local Git/workspace/plugin folder that have not been saved/committed or published.",
+    "translate": true,
+    "avoid": [
+      "settings changes",
+      "network changes"
+    ]
+  },
+  "Save version": {
+    "purpose": "Create a local tracked version/checkpoint before publishing.",
+    "context": "Plugin GitHub flow, changes panels, commit/version controls.",
+    "translationRule": "Translate as save/create local version. Keep distinct from generic Save and Publish.",
+    "meaning": "Create a local Git commit/version checkpoint for plugin or workspace changes.",
+    "translate": true,
+    "mustPreserveDistinctionFrom": [
+      "Save",
+      "Publish"
+    ]
+  },
+  "Publish": {
+    "purpose": "Push or expose a saved local version through GitHub/remote repository.",
+    "context": "Plugin detail GitHub flow, app publish panels, remote repository setup.",
+    "translationRule": "Translate as publish/share to remote. Do not translate as local save.",
+    "meaning": "Push or expose a saved plugin/workspace version through GitHub. It is not the same as saving locally.",
+    "translate": true,
+    "mustPreserveDistinctionFrom": [
+      "Save",
+      "Install"
+    ]
+  },
+  "GitHub flow": {
+    "purpose": "Describe the guided GitHub setup/save/publish sequence.",
+    "context": "Plugin detail and task share progress cards and overlays for connecting, saving, creating repositories, and publishing.",
+    "translationRule": "Keep GitHub literal. Translate flow/process naturally.",
+    "meaning": "The guided sequence for connecting, creating, saving, and publishing a plugin or task repository on GitHub.",
+    "translate": true,
+    "preserve": [
+      "GitHub"
+    ]
+  },
+  "task": {
+    "purpose": "Name a reusable Pinokio prompt template that can collect inputs and run through a selected tool.",
+    "context": "Tasks library, task builder, task launch page, task install page, and task sharing flow.",
+    "translationRule": "Translate as reusable task/action/template, not as an OS process, background job, or checklist item.",
+    "meaning": "A Pinokio-managed reusable prompt workflow stored under the tasks folder. It is not a terminal process or TODO checklist.",
+    "translate": true,
+    "mustPreserveDistinctionFrom": [
+      "terminal session",
+      "process",
+      "checkpoint"
+    ]
+  },
+  "prompt template": {
+    "purpose": "Describe the reusable task text with placeholders that become inputs.",
+    "context": "Task builder metadata and template editor.",
+    "translationRule": "Translate prompt naturally if the locale has a common AI-product term. Preserve literal placeholders such as {{repo_url}} and {{variable}} exactly.",
+    "meaning": "The reusable instruction text for an AI/tool task. Placeholder variables in double braces become structured inputs.",
+    "translate": true,
+    "preservePattern": "{{variable}}"
+  },
+  "input": {
+    "purpose": "Name a structured value the user fills before running a task.",
+    "context": "Task builder detected inputs and task launch forms.",
+    "translationRule": "Translate as form/input value. Do not translate as terminal stdin or model context unless the source string explicitly says prompt/context.",
+    "meaning": "A field generated from a task template placeholder and collected before running the task.",
+    "translate": true
+  },
+  "tool": {
+    "purpose": "Name the Pinokio plugin or runner selected to execute a task.",
+    "context": "Task launch tool picker, task install launch context, and task builder runtime copy.",
+    "translationRule": "Translate as tool/runner. Do not imply OS utility only; it may be an AI coding plugin, CLI, or desktop app.",
+    "meaning": "The selected Pinokio execution surface for a task, such as a CLI plugin or desktop app.",
+    "translate": true
+  },
+  "permalink": {
+    "purpose": "Name the stable task URL that captures task identity and input values.",
+    "context": "Task launch/share link controls and copy feedback.",
+    "translationRule": "Translate as permanent/share link. Make clear it is a URL, not a local file path. Preserve distinction from GitHub remote repository URL.",
+    "meaning": "A URL that reopens a task with its current input values. It may be local until the task is published to GitHub.",
+    "translate": true
+  },
+  "share link": {
+    "purpose": "Describe a task URL meant to be copied or opened by another user or browser context.",
+    "context": "Task share page and task launch share controls.",
+    "translationRule": "Translate as shareable link. If the copy mentions GitHub, keep GitHub literal and do not imply LAN sharing.",
+    "meaning": "A URL for opening the task. A real cross-machine share link requires the task to be published to GitHub.",
+    "translate": true
+  },
+  "Remote ref": {
+    "purpose": "Show the canonical Git/GitHub task identity used to install or reopen a shared task.",
+    "context": "Task install page before a remote task is installed locally.",
+    "translationRule": "Keep ref short or use the locale's Git reference wording. Do not expand it into a vague reference note.",
+    "meaning": "The normalized remote repository reference for a task package.",
+    "translate": true,
+    "preserve": [
+      "ref"
+    ]
+  },
+  "bookmarklet": {
+    "purpose": "Name the small bookmark JavaScript that sends the current browser page to Pinokio.",
+    "context": "Bookmarklet installation page and manual copy instructions.",
+    "translationRule": "Use the locale's common borrowed term if available. Keep the nuance of a bookmark-bar action, not a browser extension.",
+    "meaning": "A JavaScript bookmark users drag to the browser bookmarks bar. It is not a browser extension/plugin.",
+    "translate": true,
+    "mustPreserveDistinctionFrom": [
+      "plugin",
+      "browser extension"
+    ]
+  },
+  "Connected services": {
+    "purpose": "Group external accounts Pinokio can authenticate with and use.",
+    "context": "Connect index and provider-specific OAuth pages.",
+    "translationRule": "Translate as connected external services/accounts. Do not imply local network devices or Pinokio peers.",
+    "meaning": "External providers such as GitHub, Hugging Face, or X.com that Pinokio can connect to through OAuth.",
+    "translate": true,
+    "preserve": [
+      "GitHub",
+      "Hugging Face",
+      "X.com"
+    ]
+  },
+  "URL dropdown": {
+    "purpose": "Name the first-party URL/app/process picker attached to the app chrome address bar.",
+    "context": "Runtime-generated app/process dropdown, mobile Open URL modal, split view picker, and quick-create launcher modal.",
+    "translationRule": "Translate visible actions and empty states. Do not translate protocol names, hostnames, localhost examples, URL values, or app/process names.",
+    "meaning": "The address-bar picker that lets users open local URLs, Pinokio apps, running processes, or create a launcher from a prompt.",
+    "translate": true,
+    "preserve": [
+      "HTTP",
+      "HTTPS",
+      "localhost",
+      "URL"
+    ]
+  },
+  "Protection": {
+    "purpose": "Name Pinokio’s safety gate for AI folder access.",
+    "context": "Editor beta controls, terminal protection state, app run tab, permission prompts.",
+    "translationRule": "Translate as protection/safeguard. Do not imply antivirus, firewall, or password protection.",
+    "meaning": "A Pinokio safety feature that blocks AI agents from accessing folders outside the allowed workspace unless the user grants permission.",
+    "translate": true,
+    "avoid": [
+      "antivirus",
+      "network firewall",
+      "password protection"
+    ]
+  },
+  "AI permissions": {
+    "purpose": "Name saved access decisions for AI agents.",
+    "context": "Plugin detail AI permission actions, terminal permission manager, protection prompts.",
+    "translationRule": "Translate as AI access permissions/authorizations. Do not imply model capabilities.",
+    "meaning": "Saved folder/network access decisions for AI agents. Translate as permissions/authorization, not as model capability.",
+    "translate": true
+  },
+  "terminal session": {
+    "purpose": "Name a running or resumable shell/agent process column.",
+    "context": "Terminal page session columns, close session prompts, upload shell emit status.",
+    "translationRule": "Translate as terminal/shell session. Avoid login/account session wording.",
+    "meaning": "A running or resumable Pinokio-managed shell/agent session. Translate as a terminal/shell session, not a website login session.",
+    "translate": true
+  },
+  "workspace": {
+    "purpose": "Name a local project folder used by agents, Git, files, and deployment.",
+    "context": "Terminal workspaces page, app changes view, deployment to api folder, repository panels.",
+    "translationRule": "Translate as project workspace/local workspace. Do not imply cloud office workspace.",
+    "meaning": "A local project folder used by terminal agents, Git changes, file browser, and app/plugin work. It is not a cloud office workspace.",
+    "translate": true
+  },
+  "agent": {
+    "purpose": "Name an AI coding/automation actor launched from Pinokio.",
+    "context": "Terminal sessions, ask AI panels, agent chat controls, permission/protection copy.",
+    "translationRule": "Translate as AI agent/assistant. Do not imply a human customer-service agent.",
+    "meaning": "An AI coding/automation agent started from the terminal sessions UI. Keep the meaning close to AI assistant/agent, not human representative.",
+    "translate": true
+  },
+  "Guarded": {
+    "purpose": "Name the safer agent launch mode with default approval/sandbox controls.",
+    "context": "Terminal agent mode selector and explanatory mode metadata.",
+    "translationRule": "Translate as guarded/protected/controlled mode. Keep distinct from YOLO.",
+    "meaning": "Agent launch mode that keeps provider default approvals/sandbox controls. Translate as protected/controlled mode.",
+    "translate": true,
+    "mustPreserveDistinctionFrom": [
+      "YOLO"
+    ]
+  },
+  "YOLO": {
+    "purpose": "Name the faster unsafe agent mode without approval prompts.",
+    "context": "Terminal agent mode selector and explanatory mode metadata.",
+    "translationRule": "Keep YOLO as the visible mode name. Translate explanatory copy only.",
+    "meaning": "Agent launch mode that runs without approval prompts. Keep YOLO as the visible mode name, but translate explanatory copy.",
+    "translate": false
+  },
+  "File Explorer": {
+    "purpose": "Name file browsing surfaces and OS file manager actions.",
+    "context": "App sidebar, Home menu, file browser, Open in File Explorer actions.",
+    "translationRule": "Translate as file explorer/file manager. Preserve distinction between Pinokio Files and OS File Explorer.",
+    "meaning": "Pinokio's in-app file browser or the OS file manager depending on context. Preserve the distinction between Open in File Explorer and Open files.",
+    "translate": true
+  },
+  "logs": {
+    "purpose": "Name runtime diagnostic output used for troubleshooting.",
+    "context": "Logs page, terminal logs, app logs, report generation, privacy filter review.",
+    "translationRule": "Translate as logs/diagnostic records. Avoid mathematical logarithm meanings.",
+    "meaning": "Application/runtime diagnostic logs. Translate as logs/journals used for troubleshooting, not mathematical logarithms.",
+    "translate": true
+  },
+  "Privacy filter": {
+    "purpose": "Name the log review tool that masks sensitive data before sharing.",
+    "context": "Logs page report preview, redaction review, community support draft preparation.",
+    "translationRule": "Translate as privacy/sensitive-data filter. Do not imply browser privacy settings.",
+    "meaning": "The log review tool that masks private data before sharing a report.",
+    "translate": true,
+    "avoid": [
+      "browser privacy settings"
+    ]
+  },
+  "redaction": {
+    "purpose": "Describe masking/removing sensitive text from logs.",
+    "context": "Logs privacy filter counts, redaction review filters, copy-before-sharing workflow.",
+    "translationRule": "Translate as masking/redaction of sensitive content, not censorship/editing style.",
+    "meaning": "Masking/removing sensitive text from logs before copying or asking the community.",
+    "translate": true
+  },
+  "Ask Community": {
+    "purpose": "Start a support/discussion flow with the Pinokio community site.",
+    "context": "App panels and logs report flow where a draft question opens on pinokio.co.",
+    "translationRule": "Translate as ask the community/support community. Do not imply AI community or LAN community.",
+    "meaning": "Open or create a support/discussion draft on the Pinokio community site.",
+    "translate": true,
+    "avoid": [
+      "ask a local network community",
+      "ask an AI community"
+    ]
+  },
+  "Ask AI": {
+    "purpose": "Start an integrated AI helper flow with the current project/error context.",
+    "context": "App sidebar/panels, logs help flow, terminal agent picker.",
+    "translationRule": "Translate as ask AI/AI assistant. Preserve AI literal if common in the locale.",
+    "meaning": "Ask the integrated AI assistant for help with the current app/error/context.",
+    "translate": true
+  },
+  "Git URL": {
+    "purpose": "Name the repository address a user pastes to clone, install, import, or share a Pinokio app, task, skill, or plugin.",
+    "context": "Create/import launcher forms, plugin/task/skill download forms, GitHub publish flows, and validation messages.",
+    "translationRule": "Keep Git literal. Translate URL only if the locale normally localizes the acronym in UI; never translate the actual URL value or placeholder example.",
+    "meaning": "A Git repository URL, usually from GitHub, used as an input value. It is not a general website URL unless the source explicitly says browser URL.",
+    "translate": true,
+    "preserve": [
+      "Git",
+      "URL",
+      "https://github.com/owner/repo"
+    ],
+    "examples": [
+      "Git URL",
+      "Enter a Git URL.",
+      "Download from Git URL"
+    ]
+  },
+  "repository": {
+    "purpose": "Refer to a Git/GitHub code repository that stores a task, plugin, app, or launcher source.",
+    "context": "Publish/share flows, remote task install pages, prototype/import forms, and GitHub status cards.",
+    "translationRule": "Translate as code repository. Do not use a generic storage/archive term that hides the Git/GitHub behavior.",
+    "meaning": "A remote or local Git repository containing code or a Pinokio package.",
+    "translate": true,
+    "preserve": [
+      "GitHub"
+    ],
+    "avoid": [
+      "database",
+      "file archive"
+    ]
+  },
+  "starred app": {
+    "purpose": "Mark apps the user wants Pinokio and AI agents to prioritize.",
+    "context": "Home app list star button, star/unstar tooltip text, and toast explaining AI search priority.",
+    "translationRule": "Translate as favorite/starred app while preserving the priority signal. Do not imply rating/review stars.",
+    "meaning": "A user preference flag that gives an app higher priority in Pinokio UI and AI tool search.",
+    "translate": true,
+    "mustPreserveDistinctionFrom": [
+      "app rating",
+      "review score"
+    ],
+    "examples": [
+      "Star app",
+      "Unstar app",
+      "Starred apps get priority"
+    ]
+  },
+  "Pinokio Network": {
+    "purpose": "Name Pinokio’s local peer discovery, HTTPS routing, and app endpoint sharing surface.",
+    "context": "Network settings, local network pages, peer access QR codes, route tables, and tab popovers.",
+    "translationRule": "Keep Pinokio literal. Translate Network as the product feature area, not as generic internet or social network.",
+    "meaning": "The Pinokio feature for discovering peers and exposing local endpoints across trusted local machines.",
+    "translate": true,
+    "preserve": [
+      "Pinokio"
+    ],
+    "avoid": [
+      "public internet",
+      "social network"
+    ]
+  },
+  "Local Share": {
+    "purpose": "Name the local-network QR/link flow that lets another device on the same LAN open this Pinokio instance.",
+    "context": "Network and file explorer share modals, QR codes, local proxy links, and local access-point controls.",
+    "translationRule": "Translate as local/LAN sharing or access. Do not imply public internet sharing, social sharing, or publishing a project.",
+    "meaning": "A local-network access link for this Pinokio instance. It is limited to trusted devices on the user's local network.",
+    "translate": true,
+    "mustPreserveDistinctionFrom": [
+      "Public Share",
+      "Publish",
+      "share link"
+    ],
+    "examples": [
+      "Local Share",
+      "Access Pinokio from any local network device"
+    ]
+  },
+  "Public Share": {
+    "purpose": "Name the Cloudflare Tunnel flow that exposes a Pinokio endpoint outside the local network.",
+    "context": "Share modals and tunnel status controls that show public access links and QR codes.",
+    "translationRule": "Translate as public/external sharing or access. Preserve Cloudflare Tunnel as a product name. Do not imply GitHub publishing.",
+    "meaning": "A public tunnel URL for reaching Pinokio from outside the local network.",
+    "translate": true,
+    "preserve": [
+      "Cloudflare Tunnel"
+    ],
+    "mustPreserveDistinctionFrom": [
+      "Local Share",
+      "Publish",
+      "share link"
+    ],
+    "examples": [
+      "Public Share",
+      "Access Pinokio from anywhere",
+      "(powered by Cloudflare Tunnel)"
+    ]
+  },
+  "Peer": {
+    "purpose": "Identify another Pinokio instance or machine participating in local peer-to-peer access.",
+    "context": "Network pages, route labels, URL dropdown host labels, and peer QR/access points.",
+    "translationRule": "Translate as peer/local peer machine. Do not translate as friend, customer, or arbitrary network node.",
+    "meaning": "Another Pinokio machine discovered on the local network and allowed to access peer routes.",
+    "translate": true,
+    "mustPreserveDistinctionFrom": [
+      "This machine",
+      "public server"
+    ]
+  },
+  "Instant HTTPS": {
+    "purpose": "Name the automatic local HTTPS endpoint feature for Pinokio app routes.",
+    "context": "Network settings, app endpoint explanations, browser route lists, and HTTPS setup guidance.",
+    "translationRule": "Keep HTTPS literal. Translate Instant as automatic/immediate setup, not as speed/performance claim.",
+    "meaning": "Pinokio-provided HTTPS routes for local apps without manual certificate setup.",
+    "translate": true,
+    "preserve": [
+      "HTTPS"
+    ],
+    "avoid": [
+      "faster networking"
+    ]
+  },
+  "browser route": {
+    "purpose": "Name a route or URL that opens a running local app/process in the embedded browser or external browser.",
+    "context": "Tab link popover, network route tables, URL dropdown, open-in-browser buttons, and app runtime chrome.",
+    "translationRule": "Translate route as URL/path/route depending on locale. Preserve protocol, hostnames, ports, and concrete URL values.",
+    "meaning": "A browser-addressable endpoint for a local or peer app/process.",
+    "translate": true,
+    "preserve": [
+      "HTTP",
+      "HTTPS",
+      "localhost",
+      "URL"
+    ],
+    "examples": [
+      "Browser routes",
+      "Open selected page in browser"
+    ]
+  },
+  "notification sound": {
+    "purpose": "Name the sound preference used when a background tab or process sends a desktop/app notification.",
+    "context": "Tab notification popover, sound picker, silent/default choices, and notification flash backup display text.",
+    "translationRule": "Translate as notification alert sound. Keep sound choice names concise. Do not translate dynamic custom sound filenames.",
+    "meaning": "A UI preference for which sound Pinokio plays for notifications. It applies across tabs unless copy says otherwise.",
+    "translate": true,
+    "examples": [
+      "Notification sound",
+      "Default Chime",
+      "Silent",
+      "Sound applies to all tabs"
+    ]
+  },
+  "download destination": {
+    "purpose": "Describe where Pinokio will clone, import, or save an app/plugin/task folder.",
+    "context": "Download/install modals, inline install status, destination validation errors, and downloaded-to toasts.",
+    "translationRule": "Translate as local save/download/clone destination. Preserve placeholders such as {path} and literal paths like ~/api or ~/tasks.",
+    "meaning": "The local folder path inside Pinokio-managed storage that receives a downloaded or cloned repository.",
+    "translate": true,
+    "preserve": [
+      "{path}",
+      "~/api",
+      "~/tasks"
+    ],
+    "examples": [
+      "Saved in",
+      "Cloning into",
+      "Downloaded to {path}",
+      "Could not check destination folder"
+    ]
+  },
+  "skill": {
+    "purpose": "Name reusable instructions or capability packs Pinokio agents can use.",
+    "context": "Skills page, skill download/install flow, managed skills list, and SKILL.md references.",
+    "translationRule": "Translate as AI/agent skill or capability. Do not translate as human talent or school skill when that would sound personal.",
+    "meaning": "A reusable Pinokio agent capability, often backed by a SKILL.md file.",
+    "translate": true,
+    "preserve": [
+      "SKILL.md"
+    ],
+    "avoid": [
+      "human personal talent"
+    ]
+  },
+  "managed skill": {
+    "purpose": "Distinguish skills installed and controlled through Pinokio from arbitrary local files.",
+    "context": "Skills page sections, enable/disable switches, sync folder names, and installed skill cards.",
+    "translationRule": "Translate as Pinokio-managed skill/capability. Keep the administrative nuance: Pinokio can enable, disable, update, or sync it.",
+    "meaning": "A skill installation managed by Pinokio, not merely a file visible on disk.",
+    "translate": true,
+    "mustPreserveDistinctionFrom": [
+      "third-party app metadata",
+      "plain Markdown file"
+    ]
+  },
+  "screen capture": {
+    "purpose": "Name screenshots and recordings captured from the app for review or support.",
+    "context": "Screenshots page, screen recording controls, capture deletion, and save-status messages.",
+    "translationRule": "Translate as screen capture/screenshot/recording based on source string. Do not imply camera photos.",
+    "meaning": "A screenshot or screen recording produced by Pinokio, stored locally for the user.",
+    "translate": true,
+    "avoid": [
+      "camera photo"
+    ]
+  },
+  "prototype": {
+    "purpose": "Name the guided app/launcher creation wizard for drafting a new Pinokio project.",
+    "context": "Prototype wizard route, project setup steps, AI prompt collection, and starter type choices.",
+    "translationRule": "Translate as prototype/draft builder. Preserve that it creates app/launcher scaffolding, not a production deployment promise.",
+    "meaning": "A wizard for generating or importing a starter Pinokio project/launcher.",
+    "translate": true,
+    "avoid": [
+      "finished release",
+      "mockup only"
+    ]
+  },
+  "example placeholder": {
+    "purpose": "Show the expected shape of command, path, URL, or repository inputs without changing executable content.",
+    "context": "Prototype wizard placeholders, init/import forms, task repository placeholders, and command examples.",
+    "translationRule": "Translate words such as example/e.g. only. Preserve commands, paths, package names, URLs, and repository slugs exactly unless they are intentionally locale-specific sample prose.",
+    "meaning": "Input hint text containing literal examples the user may adapt.",
+    "translate": true,
+    "preserve": [
+      "npx create-react-app",
+      "/home/user",
+      "npm install -g @my/cli-tool",
+      "https://github.com/user/repo.git"
+    ]
+  },
+  "file changed on disk": {
+    "purpose": "Warn that a file opened in Pinokio was modified outside the current editor session.",
+    "context": "Files app status messages and reload-from-disk confirmation.",
+    "translationRule": "Translate as an external disk/filesystem change. Do not imply the user edited the current unsaved buffer.",
+    "meaning": "The saved file on disk differs from the editor session metadata and may need reload or conflict handling.",
+    "translate": true,
+    "mustPreserveDistinctionFrom": [
+      "unsaved editor changes",
+      "Git changes"
+    ]
+  }
+}

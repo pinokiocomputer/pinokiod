@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Setup</title>
+  <title><%= typeof t === "function" ? t("setup.title") : "Setup" %></title>
   <link href="/css/fontawesome.min.css" rel="stylesheet">
   <link href="/css/solid.min.css" rel="stylesheet">
   <link href="/css/regular.min.css" rel="stylesheet">
@@ -14,20 +14,39 @@
   <% if (agent === "electron") { %>
     <link href="/electron.css" rel="stylesheet"/>
   <% } %>
+  <script>
+  window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+  </script>
   <script src="/setup-wait-debug.js"></script>
 </head>
 <%
+  const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") });
+  const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements));
   const requirementList = Array.isArray(requirements) ? requirements : [];
   const attentionCount = requirementList.filter((requirement) => !requirement.installed).length;
   const installedCount = Math.max(0, requirementList.length - attentionCount);
   const setupMode = typeof mode === "string" && mode.trim() ? mode.trim() : "";
-  const modeLabel = setupMode ? `${setupMode.charAt(0).toUpperCase()}${setupMode.slice(1)}` : "";
-  const eyebrow = modeLabel ? `Setup / ${modeLabel}` : "Setup";
+  const setupModeLabels = {
+    network: tr("nav.local_network"),
+    connect: tr("nav.login"),
+    tools: tr("nav.tools"),
+    plugins: tr("nav.plugins"),
+    tasks: tr("nav.tasks"),
+    skills: tr("nav.skills"),
+    logs: tr("nav.logs"),
+    autolaunch: tr("nav.autolaunch"),
+    settings: tr("settings.title"),
+    home: tr("nav.home")
+  };
+  const modeLabel = setupMode
+    ? (setupModeLabels[setupMode] || `${setupMode.charAt(0).toUpperCase()}${setupMode.slice(1)}`)
+    : "";
+  const eyebrow = modeLabel ? `${tr("setup.title")} / ${modeLabel}` : tr("setup.title");
   const targetPath = current || "/";
-  const readyTitle = install_required ? "System requirements need attention" : "System ready";
+  const readyTitle = install_required ? tr("setup.requirements_need_attention") : tr("setup.system_ready");
   const readyDescription = install_required
-    ? "Install or refresh what Pinokio needs before reopening this destination."
-    : "Everything Pinokio needs is already available. Continue to reopen this destination.";
+    ? tr("setup.install_refresh_before_reopen", { target: targetPath })
+    : tr("setup.everything_available_continue", { target: targetPath });
   const setupSidebarSelected = (() => {
     if (setupMode === "network" || targetPath.indexOf("/network") === 0) return "network";
     if (setupMode === "connect" || targetPath.indexOf("/connect") === 0 || targetPath.indexOf("/github") === 0) return "connect";
@@ -53,22 +72,22 @@
               <p class="task-eyebrow" data-setup-eyebrow><%= eyebrow %></p>
             </div>
             <% if (requirements_pending) { %>
-              <h1 class="task-title">Checking system requirements</h1>
-              <p class="task-description">Pinokio is checking what this machine needs before reopening <code><%= targetPath %></code>.</p>
+              <h1 class="task-title"><%= tr("setup.checking_system_requirements") %></h1>
+              <p class="task-description"><%= tr("setup.checking_before_reopen") %> <code><%= targetPath %></code>.</p>
             <% } else if (!install_required && wait === "caddy") { %>
-              <h1 class="task-title">Finishing secure localhost setup</h1>
-              <p class="task-description">Pinokio is applying secure localhost settings and will reopen <code><%= targetPath %></code> when ready.</p>
+              <h1 class="task-title"><%= tr("setup.finishing_secure_localhost") %></h1>
+              <p class="task-description"><%= tr("setup.applying_secure_localhost") %> <code><%= targetPath %></code> <%= tr("setup.when_ready") %>.</p>
             <% } else if (error) { %>
-              <h1 class="task-title">Setup could not continue</h1>
-              <p class="task-description">Pinokio hit an environment issue while preparing <code><%= targetPath %></code>.</p>
+              <h1 class="task-title"><%= tr("setup.could_not_continue") %></h1>
+              <p class="task-description"><%= tr("setup.environment_issue") %> <code><%= targetPath %></code>.</p>
             <% } else { %>
               <h1 class="task-title"><%= readyTitle %></h1>
-              <p class="task-description"><%= readyDescription %> Target: <code><%= targetPath %></code>.</p>
+              <p class="task-description"><%= readyDescription %></p>
               <div class="task-badge-row task-header-badges">
                 <span class="task-badge <%= install_required ? 'task-badge-warning' : 'task-badge-accent' %>">
-                  <%= install_required ? `${attentionCount} ${attentionCount === 1 ? 'update' : 'updates'} needed` : 'Ready to continue' %>
+                  <%= install_required ? tr(attentionCount === 1 ? "setup.update_needed_one" : "setup.update_needed_many", { count: attentionCount }) : tr("setup.ready_to_continue") %>
                 </span>
-                <span class="task-badge task-badge-neutral"><%= requirementList.length %> checks</span>
+                <span class="task-badge task-badge-neutral"><%= tr("setup.check_count", { count: requirementList.length }) %></span>
               </div>
             <% } %>
           </div>
@@ -83,8 +102,8 @@
                     <i class="fa-solid fa-circle-notch fa-spin"></i>
                   </div>
                   <div class="setup-loading-copy">
-                    <div class="setup-loading-title">Checking requirements</div>
-                    <p class="setup-loading-text" data-setup-state-label>Stand by...</p>
+                    <div class="setup-loading-title"><%= tr("setup.checking_requirements") %></div>
+                    <p class="setup-loading-text" data-setup-state-label><%= tr("setup.stand_by") %></p>
                   </div>
                 </div>
               </div>
@@ -97,8 +116,8 @@
                     <i class="fa-solid fa-circle-notch fa-spin"></i>
                   </div>
                   <div class="setup-loading-copy">
-                    <div class="setup-loading-title">Applying secure localhost setup</div>
-                    <p class="setup-loading-text" data-setup-state-label>Stand by...</p>
+                    <div class="setup-loading-title"><%= tr("setup.applying_secure_localhost_title") %></div>
+                    <p class="setup-loading-text" data-setup-state-label><%= tr("setup.stand_by") %></p>
                   </div>
                 </div>
               </div>
@@ -114,12 +133,12 @@
               <section class="task-section setup-requirements-section">
                 <div class="task-section-head">
                   <div>
-                    <h2 class="task-section-title">Requirements</h2>
+                    <h2 class="task-section-title"><%= tr("setup.requirements") %></h2>
                     <p class="task-section-subcopy">
-                      <%= requirementList.length %> checks total. <%= attentionCount %> <%= attentionCount === 1 ? 'item needs attention' : 'items need attention' %>.
+                      <%= tr("setup.requirement_summary", { checks: requirementList.length, count: attentionCount, item: tr(attentionCount === 1 ? "setup.item_needs_attention_one" : "setup.item_needs_attention_many") }) %>
                     </p>
                   </div>
-                  <div class="task-section-note"><%= install_required ? 'Review before continuing' : 'All checks passed' %></div>
+                  <div class="task-section-note"><%= install_required ? tr("setup.review_before_continue") : tr("setup.all_checks_passed") %></div>
                 </div>
 
                 <div class="setup-requirement-list">
@@ -128,12 +147,12 @@
                       <div class="setup-requirement-copy">
                         <div class="setup-requirement-name"><%= requirement.type ? `${requirement.type} : ${requirement.name}` : requirement.name %></div>
                         <% if (requirement.dependencies && requirement.dependencies.length > 0) { %>
-                          <div class="setup-requirement-detail">Includes <%= requirement.dependencies.join(", ") %></div>
+                          <div class="setup-requirement-detail"><%= tr("setup.includes", { items: requirement.dependencies.join(", ") }) %></div>
                         <% } %>
                       </div>
                       <div class="setup-requirement-state">
                         <i class="fa-solid <%= requirement.installed ? 'fa-circle-check' : 'fa-rotate-right' %>" aria-hidden="true"></i>
-                        <span><%= requirement.installed ? "Installed" : "Update needed" %></span>
+                        <span><%= requirement.installed ? tr("setup.installed") : tr("setup.update_needed") %></span>
                       </div>
                     </div>
                   <% }) %>
@@ -144,20 +163,20 @@
                 <section class="task-section setup-action-card">
                   <div class="task-section-head">
                     <div>
-                      <h2 class="task-section-title">Ready to continue</h2>
+                      <h2 class="task-section-title"><%= tr("setup.ready_to_continue") %></h2>
                       <p class="task-section-subcopy">
-                        <%= install_required ? `${attentionCount} ${attentionCount === 1 ? 'update is' : 'updates are'} needed before Pinokio can continue.` : 'No updates are needed. You can continue immediately.' %>
+                        <%= install_required ? tr(attentionCount === 1 ? "setup.update_before_continue_one" : "setup.update_before_continue_many", { count: attentionCount }) : tr("setup.no_updates_continue") %>
                       </p>
                     </div>
                   </div>
 
                   <div class="task-meta-row task-meta-row-compact setup-summary-grid">
                     <div class="task-meta-chip">
-                      <span class="task-meta-chip-label">Installed</span>
-                      <span class="task-meta-chip-value"><%= installedCount %> of <%= requirementList.length %></span>
+                      <span class="task-meta-chip-label"><%= tr("setup.installed") %></span>
+                      <span class="task-meta-chip-value"><%= tr("setup.count_of_total", { count: installedCount, total: requirementList.length }) %></span>
                     </div>
                     <div class="task-meta-chip">
-                      <span class="task-meta-chip-label">Needs attention</span>
+                      <span class="task-meta-chip-label"><%= tr("setup.needs_attention") %></span>
                       <span class="task-meta-chip-value"><%= attentionCount %></span>
                     </div>
                   </div>
@@ -165,7 +184,7 @@
                   <% if (!install_required) { %>
                     <a class="task-button primary task-run-button setup-primary-button" href="<%= targetPath %>">
                       <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                      <span>Continue</span>
+                      <span><%= tr("common.continue") %></span>
                     </a>
                   <% } %>
 
@@ -174,25 +193,25 @@
                     <input type="hidden" name="callback" value="<%= targetPath %>">
                     <button class="task-button primary task-run-button setup-primary-button" type="submit">
                       <i class="fa-solid fa-download" aria-hidden="true"></i>
-                      <span>Install</span>
+                      <span><%= tr("common.install") %></span>
                     </button>
                   </form>
 
                   <p class="task-inline-help">
-                    <%= install_required ? 'This uses the same install flow as before.' : 'Pinokio can reopen the same destination without reinstalling anything.' %>
+                    <%= install_required ? tr("setup.same_install_flow") : tr("setup.reopen_without_reinstall") %>
                   </p>
 
                   <div class="setup-secondary-actions">
-                    <span class="task-inline-help">Not working?</span>
+                    <span class="task-inline-help"><%= tr("setup.not_working") %></span>
                     <button class="task-button" type="button" id="del-bin">
                       <i class="fa-solid fa-trash" aria-hidden="true"></i>
-                      <span>Try a fresh install</span>
+                      <span><%= tr("setup.try_fresh_install") %></span>
                     </button>
                   </div>
 
                   <div class="reset-bin-loading hidden setup-reset-loading">
                     <i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i>
-                    <span>Stand by. Do not close this window.</span>
+                    <span><%= tr("setup.do_not_close") %></span>
                   </div>
                 </section>
               </div>
@@ -208,11 +227,12 @@
   document.addEventListener("DOMContentLoaded", async () => {
     const eyebrow = document.querySelector("[data-setup-eyebrow]")
     if (eyebrow) {
+      const setupModeLabels = <%- JSON.stringify(setupModeLabels) %>
       const pathParts = window.location.pathname.split("/").filter(Boolean)
       const setupModeFromPath = pathParts[1] || ""
       if (setupModeFromPath) {
-        const modeLabelFromPath = `${setupModeFromPath.charAt(0).toUpperCase()}${setupModeFromPath.slice(1)}`
-        eyebrow.textContent = `Setup / ${modeLabelFromPath}`
+        const modeLabelFromPath = setupModeLabels[setupModeFromPath] || `${setupModeFromPath.charAt(0).toUpperCase()}${setupModeFromPath.slice(1)}`
+        eyebrow.textContent = `${<%- trj("setup.title") %>} / ${modeLabelFromPath}`
       }
     }
     <% if (requirements_pending) { %>
@@ -279,9 +299,9 @@
       const showWaitError = (message) => {
         if (waitRoot) {
           waitRoot.innerHTML = `
-            <div class="setup-state-root-error">
+      <div class="setup-state-root-error">
               <div class="task-status error">${message}</div>
-              <a class="task-button setup-retry-button" href="${location.href}">Retry</a>
+              <a class="task-button setup-retry-button" href="${location.href}">${<%- trj("common.retry") %>}</a>
             </div>
           `
           renderWaitDebug()
@@ -291,8 +311,8 @@
       }
 
       try {
-        setWaitLabel("Enabling secure localhost access...")
-        pushWaitDebugEvent("saving secure localhost flags")
+        setWaitLabel(<%- trj("setup.enabling_secure_localhost") %>)
+        pushWaitDebugEvent(<%- trj("setup.saving_secure_localhost_flags") %>)
         renderWaitDebug()
         const networkResponse = await fetch("/network", {
           method: "post",
@@ -307,11 +327,11 @@
         if (networkResponse && networkResponse.error) {
           throw new Error(networkResponse.error)
         }
-        pushWaitDebugEvent("secure localhost flags saved")
+        pushWaitDebugEvent(<%- trj("setup.secure_localhost_flags_saved") %>)
         renderWaitDebug()
 
-        setWaitLabel("Restarting Pinokio...")
-        pushWaitDebugEvent("restart requested")
+        setWaitLabel(<%- trj("setup.restarting_pinokio") %>)
+        pushWaitDebugEvent(<%- trj("setup.restart_requested") %>)
         renderWaitDebug()
         try {
           await fetch("/restart", {
@@ -351,24 +371,24 @@
               if (startupStatus && startupStatus.phase) {
                 lastKnownPhase = startupStatus.phase
                 const phaseMessage = startupStatus.phase === "ready"
-                  ? "Secure router is almost ready..."
-                  : `Restarting Pinokio... (${startupStatus.phase.replace(/_/g, " ")})`
+                  ? <%- trj("setup.secure_router_almost_ready") %>
+                  : <%- trj("setup.restarting_pinokio_phase") %>.replace("{phase}", startupStatus.phase.replace(/_/g, " "))
                 setWaitLabel(phaseMessage)
               }
               renderWaitDebug({ startedAt, routerStatus, startupStatus, serverDebug })
 
               if (startupStatus && startupStatus.phase === "error") {
                 clearInterval(interval)
-                reject(new Error(lastKnownError || "Pinokio failed to restart cleanly"))
+                reject(new Error(lastKnownError || <%- trj("setup.restart_failed_cleanly") %>))
                 return
               }
 
               if ((Date.now() - startedAt) >= WAIT_TIMEOUT_MS) {
                 clearInterval(interval)
-                const detail = lastKnownError || lastKnownPhase || "secure localhost router did not come up"
+                const detail = lastKnownError || lastKnownPhase || <%- trj("setup.secure_router_not_up") %>
                 pushWaitDebugEvent(`timeout -> ${detail}`)
                 renderWaitDebug({ startedAt, routerStatus, startupStatus })
-                reject(new Error(`Timed out waiting for restart: ${detail}`))
+                reject(new Error(<%- trj("setup.restart_timeout") %>.replace("{detail}", detail)))
               }
             } catch (error) {
               lastKnownError = error && error.message ? error.message : String(error)
@@ -376,7 +396,7 @@
               renderWaitDebug({ startedAt })
               if ((Date.now() - startedAt) >= WAIT_TIMEOUT_MS) {
                 clearInterval(interval)
-                reject(new Error(`Timed out waiting for restart: ${lastKnownError}`))
+                reject(new Error(<%- trj("setup.restart_timeout") %>.replace("{detail}", lastKnownError)))
               }
             }
           }, 1000)
@@ -385,12 +405,12 @@
         location.href = <%- JSON.stringify(targetPath) %>
       } catch (error) {
         console.error("secure router setup failed", error)
-        showWaitError(error && error.message ? error.message : "Failed to restart Pinokio")
+        showWaitError(error && error.message ? error.message : <%- trj("setup.failed_restart_pinokio") %>)
       }
     <% } %>
     if (document.querySelector("#del-bin")) {
       document.querySelector("#del-bin").addEventListener("click", async () => {
-        let proceed = confirm("Are you sure you wish to delete the bin folder?")
+        let proceed = confirm(<%- trj("setup.delete_bin_confirm") %>)
         if (proceed) {
           document.querySelector(".reset-bin-loading").classList.remove("hidden")
           document.querySelector("#del-bin").classList.add("hidden")

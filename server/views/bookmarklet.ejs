@@ -1,9 +1,13 @@
 <!DOCTYPE html>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pinokio Create Bookmarklet</title>
+  <title><%=tr("bookmarklet.page_title")%></title>
   <style>
     :root {
       color-scheme: light dark;
@@ -128,29 +132,29 @@
 <body class="<%= theme %>">
   <main class="page">
     <header>
-      <h1>Pinokio “Create” Bookmarklet</h1>
-      <p>Drop this bookmarklet onto your bookmarks bar. Clicking it on any site opens Pinokio’s Create modal with that page’s URL pre-filled in the prompt.</p>
+      <h1><%=tr("bookmarklet.heading")%></h1>
+      <p><%=tr("bookmarklet.description")%></p>
     </header>
 
     <section>
-      <a class="bookmarklet-button" href="<%- bookmarkletHref %>">Pinokio Create</a>
-      <small>Tip: Drag the button to your bookmarks bar, or right-click → “Add to Favorites/Bookmarks”.</small>
+      <a class="bookmarklet-button" href="<%- bookmarkletHref %>"><%=tr("bookmarklet.button")%></a>
+      <small><%=tr("bookmarklet.tip")%></small>
     </section>
 
     <section>
       <ol class="steps">
-        <li>Make sure your bookmarks bar is visible (View → Toolbars → Bookmarks Toolbar, or press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>B</kbd>).</li>
-        <li>Drag the “Pinokio Create” button above to the bar.</li>
-        <li>When you are on a page you want to automate, click the bookmark. Pinokio will open at <code><%= baseUrl %>/create</code> with the current page URL in the prompt field.</li>
+        <li><%-tr("bookmarklet.step_show_bar")%></li>
+        <li><%=tr("bookmarklet.step_drag_button")%></li>
+        <li><%-tr("bookmarklet.step_click_bookmark", { url: `${baseUrl}/create` })%></li>
       </ol>
     </section>
 
     <section class="code-block">
-      <strong>Manual option</strong>
-      <p>If dragging doesn’t work, create a new bookmark manually and paste the code below as the URL.</p>
+      <strong><%=tr("bookmarklet.manual_option")%></strong>
+      <p><%=tr("bookmarklet.manual_description")%></p>
       <textarea id="bookmarklet-code" readonly><%- bookmarkletHref %></textarea>
-      <button type="button" class="copy-btn" data-copy>Copy bookmarklet code</button>
-      <small class="copy-status" hidden>Copied!</small>
+      <button type="button" class="copy-btn" data-copy><%=tr("bookmarklet.copy_code")%></button>
+      <small class="copy-status" hidden><%=tr("common.copied")%></small>
     </section>
   </main>
 
@@ -175,7 +179,7 @@
           }
           if (status) {
             status.hidden = false;
-            status.textContent = 'Copied!';
+            status.textContent = <%-trj("common.copied")%>;
             setTimeout(() => {
               status.hidden = true;
             }, 1800);
@@ -183,10 +187,10 @@
         } catch (error) {
           if (status) {
             status.hidden = false;
-            status.textContent = 'Copy failed. Please copy manually.';
+            status.textContent = <%-trj("common.copy_failed_manual")%>;
             setTimeout(() => {
               status.hidden = true;
-              status.textContent = 'Copied!';
+              status.textContent = <%-trj("common.copied")%>;
             }, 2600);
           }
         }

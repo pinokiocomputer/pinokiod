@@ -5,6 +5,16 @@
     return;
   }
 
+  const t = (key, fallback, replacements = {}) => {
+    if (typeof window.pinokioT === 'function') {
+      return window.pinokioT(key, fallback, replacements);
+    }
+    let value = `[missing translation: ${key}]`;
+    Object.entries(replacements || {}).forEach(([name, replacement]) => {
+      value = value.replace(new RegExp(`\\{${name}\\}`, 'g'), replacement == null ? '' : String(replacement));
+    });
+    return value;
+  };
   const CATEGORY_ORDER = ['CLI', 'IDE'];
   const TOOL_PREFERENCE_KEY = 'pinokio.universalLauncher.tool';
   const NAME_VALIDATION_DEBOUNCE_MS = 260;
@@ -22,38 +32,38 @@
   };
   const INTENTS = {
     create_app: {
-      label: 'Create app',
-      title: 'Create App',
-      description: 'Create a reusable Pinokio app.',
+      label: t('universal.create_app_label', 'Create app'),
+      title: t('universal.create_app_title', 'Create App'),
+      description: t('universal.create_app_description', 'Create a reusable Pinokio app.'),
       usesName: true,
-      targetLabel: 'Creates in PINOKIO_HOME/api',
-      promptLabel: 'What should this app do?',
-      promptPlaceholder: 'Examples: "a 1-click launcher for ComfyUI", "I want to clone a website to run locally", "convert files from one format to another".',
-      confirmLabel: 'Create',
-      advancedLabel: 'Advanced',
+      targetLabel: t('universal.creates_api', 'Creates in PINOKIO_HOME/api'),
+      promptLabel: t('universal.app_prompt_label', 'What should this app do?'),
+      promptPlaceholder: t('universal.app_prompt_placeholder', 'Examples: "a 1-click launcher for ComfyUI", "I want to clone a website to run locally", "convert files from one format to another".'),
+      confirmLabel: t('common.create', 'Create'),
+      advancedLabel: t('common.advanced', 'Advanced'),
       advancedHref: '/init',
     },
     ask: {
-      label: 'Ask Pinokio',
-      title: 'Ask Pinokio',
-      description: 'Requires AI agent access. Ask a question or describe work for Pinokio to run with the selected tool or agent.',
+      label: t('universal.ask_label', 'Ask Pinokio'),
+      title: t('universal.ask_title', 'Ask Pinokio'),
+      description: t('universal.ask_description', 'Requires AI agent access. Ask a question or describe work for Pinokio to run with the selected tool or agent.'),
       usesName: false,
       targetLabel: '',
-      promptLabel: 'What should Pinokio do?',
-      promptPlaceholder: 'Examples: "Would llama.cpp work on my machine?", "What is using the most memory right now?", "Generate a video of a cat.", "Is https://github.com/foo/bar safe to install?"',
-      toolLabel: 'Choose tool',
-      confirmLabel: 'Run',
+      promptLabel: t('universal.ask_prompt_label', 'What should Pinokio do?'),
+      promptPlaceholder: t('universal.ask_prompt_placeholder', 'Examples: "Would llama.cpp work on my machine?", "What is using the most memory right now?", "Generate a video of a cat.", "Is https://github.com/foo/bar safe to install?"'),
+      toolLabel: t('universal.choose_tool', 'Choose tool'),
+      confirmLabel: t('terminal.run', 'Run'),
     },
     create_plugin: {
-      label: 'Create plugin',
-      title: 'Create Plugin',
-      description: 'Create a new Pinokio plugin folder and open it with the selected tool.',
+      label: t('universal.create_plugin_label', 'Create plugin'),
+      title: t('universal.create_plugin_title', 'Create Plugin'),
+      description: t('universal.create_plugin_description', 'Create a new Pinokio plugin folder and open it with the selected tool.'),
       usesName: true,
-      targetLabel: 'Creates in PINOKIO_HOME/plugin',
-      promptLabel: 'What should this plugin do?',
-      promptPlaceholder: 'Describe the Pinokio plugin you want to build.',
-      promptSeed: 'A Pinokio plugin for: ',
-      confirmLabel: 'Create',
+      targetLabel: t('universal.creates_plugin', 'Creates in PINOKIO_HOME/plugin'),
+      promptLabel: t('universal.plugin_prompt_label', 'What should this plugin do?'),
+      promptPlaceholder: t('universal.plugin_prompt_placeholder', 'Describe the Pinokio plugin you want to build.'),
+      promptSeed: t('universal.plugin_prompt_seed', 'A Pinokio plugin for: '),
+      confirmLabel: t('common.create', 'Create'),
     },
   };
 
@@ -298,7 +308,7 @@
     const response = await fetch(`/api/tasks/${encodeURIComponent(normalizedTaskId)}/workspaces`);
     const payload = await response.json().catch(() => null);
     if (!response.ok || !payload) {
-      throw new Error(payload && payload.error ? payload.error : 'Failed to load workspaces.');
+      throw new Error(payload && payload.error ? payload.error : t('universal.failed_load_workspaces', 'Failed to load workspaces.'));
     }
     return payload;
   }
@@ -330,25 +340,25 @@
     const dayMs = 24 * 60 * 60 * 1000;
     const diffDays = Math.floor(diffMs / dayMs);
     if (diffDays === 0) {
-      return 'Used today';
+      return t('universal.used_today', 'Used today');
     }
     if (diffDays === 1) {
-      return 'Used yesterday';
+      return t('universal.used_yesterday', 'Used yesterday');
     }
     if (diffDays < 7) {
-      return `Used ${diffDays}d ago`;
+      return t('universal.used_days_ago', 'Used {count}d ago', { count: diffDays });
     }
     if (diffDays < 30) {
-      return `Used ${Math.floor(diffDays / 7)}w ago`;
+      return t('universal.used_weeks_ago', 'Used {count}w ago', { count: Math.floor(diffDays / 7) });
     }
     if (diffDays < 365) {
-      return `Used ${Math.floor(diffDays / 30)}mo ago`;
+      return t('universal.used_months_ago', 'Used {count}mo ago', { count: Math.floor(diffDays / 30) });
     }
-    return `Used ${Math.floor(diffDays / 365)}y ago`;
+    return t('universal.used_years_ago', 'Used {count}y ago', { count: Math.floor(diffDays / 365) });
   }
 
   function getToolCategoryLabel(category) {
-    return category === 'IDE' ? 'Desktop app' : category;
+    return category === 'IDE' ? t('universal.desktop_app', 'Desktop app') : category;
   }
 
   function getStoredToolPreference() {
@@ -407,44 +417,44 @@
   }
 
   function getIntentPrimaryModeLabel(intent) {
-    return normalizeIntent(intent) === 'ask' ? 'Ask' : 'Create';
+    return normalizeIntent(intent) === 'ask' ? t('universal.ask', 'Ask') : t('common.create', 'Create');
   }
 
   function getIntentDownloadModeLabel(intent) {
-    return 'Download';
+    return t('common.download', 'Download');
   }
 
   function getIntentImportTitle(intent) {
     const normalizedIntent = normalizeIntent(intent);
     if (normalizedIntent === 'create_app') {
-      return 'Import Pinokio app repo';
+      return t('universal.import_app_repo', 'Import Pinokio app repo');
     }
     if (normalizedIntent === 'create_plugin') {
-      return 'Import Pinokio plugin repo';
+      return t('universal.import_plugin_repo', 'Import Pinokio plugin repo');
     }
-    return 'Import task repo';
+    return t('universal.import_task_repo', 'Import task repo');
   }
 
   function getIntentImportIntro(intent) {
     const normalizedIntent = normalizeIntent(intent);
     if (normalizedIntent === 'create_app') {
-      return 'Only repositories already structured as Pinokio apps will work here.';
+      return t('universal.import_app_intro', 'Only repositories already structured as Pinokio apps will work here.');
     }
     if (normalizedIntent === 'create_plugin') {
-      return 'Only repositories already structured as Pinokio plugins will work here.';
+      return t('universal.import_plugin_intro', 'Only repositories already structured as Pinokio plugins will work here.');
     }
-    return 'Only repositories already structured as Pinokio task packages will work here.';
+    return t('universal.import_task_intro', 'Only repositories already structured as Pinokio task packages will work here.');
   }
 
   function getIntentImportHelpHtml(intent) {
     const normalizedIntent = normalizeIntent(intent);
     if (normalizedIntent === 'create_app') {
-      return '<p>This is for importing an existing Pinokio launcher repo into <code>PINOKIO_HOME/api</code>.</p><p>Arbitrary GitHub repos will not work unless they already follow the Pinokio app format.</p><p>To make your own from scratch, switch back to <strong>Create</strong>.</p>';
+      return t('universal.import_app_help_html', '<p>This is for importing an existing Pinokio launcher repo into <code>PINOKIO_HOME/api</code>.</p><p>Arbitrary GitHub repos will not work unless they already follow the Pinokio app format.</p><p>To make your own from scratch, switch back to <strong>Create</strong>.</p>');
     }
     if (normalizedIntent === 'create_plugin') {
-      return '<p>This is for importing an existing Pinokio plugin repo into <code>PINOKIO_HOME/plugin</code>.</p><p>Arbitrary GitHub repos will not work unless they already follow the Pinokio plugin format.</p><p>To make your own from scratch, switch back to <strong>Create</strong>.</p>';
+      return t('universal.import_plugin_help_html', '<p>This is for importing an existing Pinokio plugin repo into <code>PINOKIO_HOME/plugin</code>.</p><p>Arbitrary GitHub repos will not work unless they already follow the Pinokio plugin format.</p><p>To make your own from scratch, switch back to <strong>Create</strong>.</p>');
     }
-    return '<p>This is for importing an existing task package into <code>PINOKIO_HOME/tasks</code>.</p><p>Arbitrary GitHub repos will not work unless they already follow the Pinokio task package format.</p><p>To make your own from scratch, switch back to <strong>Ask</strong> or save a prompt as a task.</p>';
+    return t('universal.import_task_help_html', '<p>This is for importing an existing task package into <code>PINOKIO_HOME/tasks</code>.</p><p>Arbitrary GitHub repos will not work unless they already follow the Pinokio task package format.</p><p>To make your own from scratch, switch back to <strong>Ask</strong> or save a prompt as a task.</p>');
   }
 
   function extractUrlLikeNameSuggestion(value) {
@@ -497,7 +507,7 @@
   function validateLauncherDownloadUrl(value) {
     const rawValue = typeof value === 'string' ? value.trim() : '';
     if (!rawValue) {
-      return 'Git URL is required.';
+      return t('universal.git_url_required', 'Git URL is required.');
     }
     try {
       const normalized = /^[a-z][a-z0-9+.-]*:\/\//i.test(rawValue)
@@ -505,11 +515,11 @@
         : `https://${rawValue}`;
       const parsed = new URL(normalized);
       if (!parsed.hostname) {
-        return 'Enter a valid Git URL.';
+        return t('universal.enter_valid_git_url', 'Enter a valid Git URL.');
       }
       return '';
     } catch (_) {
-      return 'Enter a valid Git URL.';
+      return t('universal.enter_valid_git_url', 'Enter a valid Git URL.');
     }
   }
 
@@ -526,7 +536,7 @@
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(payload && payload.error ? payload.error : 'Could not check destination folder.');
+      throw new Error(payload && payload.error ? payload.error : t('universal.could_not_check_destination', 'Could not check destination folder.'));
     }
     return Boolean(payload && payload.exists);
   }
@@ -553,7 +563,7 @@
 
   function buildDownloadModalShell(options = {}) {
     const opts = options && typeof options === 'object' ? options : {};
-    const title = typeof opts.title === 'string' ? opts.title : 'Download from Git URL';
+    const title = typeof opts.title === 'string' ? opts.title : t('universal.download_from_git_url', 'Download from Git URL');
     const subtitle = typeof opts.subtitle === 'string' ? opts.subtitle : '';
     const note = typeof opts.note === 'string' ? opts.note : '';
     const fields = Array.isArray(opts.fields) ? opts.fields : [];
@@ -595,18 +605,18 @@
     const intent = normalizeIntent(ui.intent);
     const isTaskDownload = intent === 'ask';
     const relativePath = getIntentDownloadPath(intent);
-    const title = isTaskDownload ? 'Download task from Git URL' : 'Download from Git URL';
+    const title = isTaskDownload ? t('universal.download_task_from_git_url', 'Download task from Git URL') : t('universal.download_from_git_url', 'Download from Git URL');
     const subtitle = isTaskDownload
-      ? 'Install a reusable task package into your task library.'
-      : `Clone a ${intent === 'create_plugin' ? 'plugin' : 'project'} repo into Pinokio.`;
+      ? t('universal.download_task_subtitle', 'Install a reusable task package into your task library.')
+      : t(intent === 'create_plugin' ? 'universal.download_plugin_subtitle' : 'universal.download_project_subtitle', intent === 'create_plugin' ? 'Clone a plugin repo into Pinokio.' : 'Clone a project repo into Pinokio.');
     const note = isTaskDownload
-      ? '<span>Will install into <code>~/tasks</code>.</span>'
-      : `<span>Will save into <code>~/${escapeHtml(relativePath)}</code>.</span>`;
+      ? t('universal.download_task_note_html', '<span>Will install into <code>~/tasks</code>.</span>')
+      : t('universal.download_folder_note_html', '<span>Will save into <code>~/{path}</code>.</span>', { path: escapeHtml(relativePath) });
     const fields = isTaskDownload
       ? [
           {
             id: 'universal-launcher-download-url',
-            label: 'Git URL',
+            label: t('universal.git_url', 'Git URL'),
             type: 'url',
             placeholder: 'https://github.com/owner/repo',
           },
@@ -614,13 +624,13 @@
       : [
           {
             id: 'universal-launcher-download-url',
-            label: 'Git URL',
+            label: t('universal.git_url', 'Git URL'),
             type: 'url',
             placeholder: 'https://github.com/owner/repo',
           },
           {
             id: 'universal-launcher-download-name',
-            label: 'Folder name',
+            label: t('universal.folder_name', 'Folder name'),
             type: 'text',
             placeholder: 'repo-name',
           },
@@ -632,8 +642,8 @@
       html: buildDownloadModalShell({ title, subtitle, note, fields }),
       showCloseButton: true,
       showCancelButton: true,
-      confirmButtonText: 'Download',
-      cancelButtonText: 'Cancel',
+      confirmButtonText: t('common.download', 'Download'),
+      cancelButtonText: t('common.cancel', 'Cancel'),
       buttonsStyling: false,
       focusConfirm: false,
       showLoaderOnConfirm: true,
@@ -681,21 +691,21 @@
         if (!isTaskDownload) {
           const folderName = nameInput ? String(nameInput.value || '').trim() : '';
           if (!folderName) {
-            Swal.showValidationMessage('Folder name is required.');
+            Swal.showValidationMessage(t('universal.folder_name_required', 'Folder name is required.'));
             return false;
           }
           if (!/^[A-Za-z0-9._-]+$/.test(folderName) || folderName === '.' || folderName === '..') {
-            Swal.showValidationMessage('Use letters, numbers, ., _, or - for the folder name.');
+            Swal.showValidationMessage(t('universal.folder_allowed_chars_short', 'Use letters, numbers, ., _, or - for the folder name.'));
             return false;
           }
           try {
             const exists = await checkLauncherInstallDestinationExists(relativePath, folderName);
             if (exists) {
-              Swal.showValidationMessage('Folder already exists. Choose a different name.');
+              Swal.showValidationMessage(t('universal.folder_exists_choose_different', 'Folder already exists. Choose a different name.'));
               return false;
             }
           } catch (error) {
-            Swal.showValidationMessage(error && error.message ? error.message : 'Could not check destination folder.');
+            Swal.showValidationMessage(error && error.message ? error.message : t('universal.could_not_check_destination', 'Could not check destination folder.'));
             return false;
           }
         }
@@ -713,7 +723,7 @@
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload || !payload.ok || !payload.url) {
-          Swal.showValidationMessage(payload && payload.error ? payload.error : 'Failed to download from Git URL.');
+          Swal.showValidationMessage(payload && payload.error ? payload.error : t('universal.failed_download_git_url', 'Failed to download from Git URL.'));
           return false;
         }
         return payload;
@@ -743,7 +753,7 @@
 
     const urlLabel = document.createElement('span');
     urlLabel.className = 'universal-launcher-download-label';
-    urlLabel.textContent = 'Git URL';
+    urlLabel.textContent = t('universal.git_url', 'Git URL');
     urlField.appendChild(urlLabel);
 
     const urlInput = document.createElement('input');
@@ -760,7 +770,7 @@
 
     const nameLabel = document.createElement('span');
     nameLabel.className = 'universal-launcher-download-label';
-    nameLabel.textContent = 'Folder name';
+    nameLabel.textContent = t('universal.folder_name', 'Folder name');
     nameField.appendChild(nameLabel);
 
     const nameInput = document.createElement('input');
@@ -782,7 +792,7 @@
 
     const helpSummary = document.createElement('summary');
     helpSummary.className = 'universal-launcher-download-help-toggle';
-    helpSummary.textContent = 'What format is expected?';
+    helpSummary.textContent = t('universal.expected_format', 'What format is expected?');
     help.appendChild(helpSummary);
 
     const helpBody = document.createElement('div');
@@ -817,8 +827,8 @@
     function getTargetLabel() {
       const relativePath = getIntentDownloadPath(state.intent);
       return normalizeIntent(state.intent) === 'ask'
-        ? `Installs in PINOKIO_HOME/${relativePath}`
-        : `Creates in PINOKIO_HOME/${relativePath}`;
+        ? t('universal.installs_in_path', 'Installs in PINOKIO_HOME/{path}', { path: relativePath })
+        : t('universal.creates_in_path', 'Creates in PINOKIO_HOME/{path}', { path: relativePath });
     }
 
     async function maybeAutofillNameFromUrl() {
@@ -895,7 +905,7 @@
         state.nameValidationCheckedPath = '';
         setNameValidationState(
           shouldShowEmpty ? 'error' : 'idle',
-          shouldShowEmpty ? 'Please enter a folder name.' : 'Required. Choose the folder name to create.'
+          shouldShowEmpty ? t('universal.enter_folder_name', 'Please enter a folder name.') : t('universal.required_choose_folder', 'Required. Choose the folder name to create.')
         );
         return false;
       }
@@ -903,7 +913,7 @@
       if (!isValidWorkspaceName(folderName)) {
         state.nameValidationCheckedName = '';
         state.nameValidationCheckedPath = '';
-        setNameValidationState('error', 'Use letters, numbers, dots, dashes, or underscores only.');
+        setNameValidationState('error', t('universal.folder_allowed_chars', 'Use letters, numbers, dots, dashes, or underscores only.'));
         return false;
       }
 
@@ -919,7 +929,7 @@
       state.nameValidationCheckedPath = '';
       const requestId = (state.nameValidationSeq || 0) + 1;
       state.nameValidationSeq = requestId;
-      setNameValidationState('checking', 'Checking availability...');
+      setNameValidationState('checking', t('universal.checking_availability', 'Checking availability...'));
 
       try {
         const exists = await checkLauncherInstallDestinationExists(relativePath, folderName);
@@ -927,12 +937,12 @@
           return false;
         }
         if (exists) {
-          setNameValidationState('error', 'A folder with this name already exists.');
+          setNameValidationState('error', t('universal.folder_name_exists', 'A folder with this name already exists.'));
           return false;
         }
         state.nameValidationCheckedName = folderName;
         state.nameValidationCheckedPath = relativePath;
-        setNameValidationState('success', `Available in PINOKIO_HOME/${relativePath}`);
+        setNameValidationState('success', t('universal.available_in_path', 'Available in PINOKIO_HOME/{path}', { path: relativePath }));
         return true;
       } catch (error) {
         if (state.nameValidationSeq !== requestId) {
@@ -940,7 +950,7 @@
         }
         setNameValidationState(
           'error',
-          error && error.message ? error.message : 'Failed to check name availability.'
+          error && error.message ? error.message : t('universal.failed_check_name', 'Failed to check name availability.')
         );
         return false;
       }
@@ -959,14 +969,14 @@
         state.nameValidationSeq = (state.nameValidationSeq || 0) + 1;
         state.nameValidationCheckedName = '';
         state.nameValidationCheckedPath = '';
-        setNameValidationState('idle', 'Required. Choose the folder name to create.');
+        setNameValidationState('idle', t('universal.required_choose_folder', 'Required. Choose the folder name to create.'));
         return;
       }
       if (!isValidWorkspaceName(folderName)) {
         state.nameValidationSeq = (state.nameValidationSeq || 0) + 1;
         state.nameValidationCheckedName = '';
         state.nameValidationCheckedPath = '';
-        setNameValidationState('error', 'Use letters, numbers, dots, dashes, or underscores only.');
+        setNameValidationState('error', t('universal.folder_allowed_chars', 'Use letters, numbers, dots, dashes, or underscores only.'));
         return;
       }
       if (
@@ -1014,13 +1024,13 @@
       if (isTaskDownload) {
         setNameValidationState('idle', '');
       } else if (!nameInput.value.trim()) {
-        setNameValidationState('idle', 'Required. Choose the folder name to create.');
+        setNameValidationState('idle', t('universal.required_choose_folder', 'Required. Choose the folder name to create.'));
       } else if (
         state.nameValidationState === 'success'
         && state.nameValidationCheckedName === nameInput.value.trim()
         && state.nameValidationCheckedPath === getIntentDownloadPath(state.intent)
       ) {
-        setNameValidationState('success', `Available in PINOKIO_HOME/${getIntentDownloadPath(state.intent)}`);
+        setNameValidationState('success', t('universal.available_in_path', 'Available in PINOKIO_HOME/{path}', { path: getIntentDownloadPath(state.intent) }));
       } else if (state.nameValidationState === 'error' && state.nameValidationMessage) {
         setNameValidationState('error', state.nameValidationMessage);
       } else {
@@ -1106,7 +1116,7 @@
         if (!isNameReady) {
           return {
             ok: false,
-            error: state.nameValidationMessage || 'Please choose a different name.',
+            error: state.nameValidationMessage || t('universal.choose_different_name', 'Please choose a different name.'),
             focus: 'name',
           };
         }
@@ -1231,7 +1241,7 @@
     }
     ui.shareLink.href = '#';
     ui.shareLink.dataset.mode = 'task';
-    ui.shareLink.textContent = 'Save task';
+    ui.shareLink.textContent = t('universal.save_task', 'Save task');
   }
 
   function getInlineTaskNameSuggestion(ui) {
@@ -1298,7 +1308,7 @@
     if (!ui || !intentUsesName(ui.intent)) {
       return '';
     }
-    return 'Required. Choose the folder name to create.';
+    return t('universal.required_choose_folder', 'Required. Choose the folder name to create.');
   }
 
   function clearNameValidationTimer(ui) {
@@ -1322,13 +1332,13 @@
     if (!name) {
       ui.nameValidationCheckedName = '';
       ui.nameValidationCheckedPath = '';
-      setNameValidationState(ui, shouldShowEmpty ? 'error' : 'idle', shouldShowEmpty ? 'Please enter a name.' : getEmptyNameValidationMessage(ui));
+      setNameValidationState(ui, shouldShowEmpty ? 'error' : 'idle', shouldShowEmpty ? t('universal.enter_name', 'Please enter a name.') : getEmptyNameValidationMessage(ui));
       return false;
     }
     if (!isValidWorkspaceName(name)) {
       ui.nameValidationCheckedName = '';
       ui.nameValidationCheckedPath = '';
-      setNameValidationState(ui, 'error', 'Use letters, numbers, dots, dashes, or underscores only.');
+      setNameValidationState(ui, 'error', t('universal.folder_allowed_chars', 'Use letters, numbers, dots, dashes, or underscores only.'));
       return false;
     }
     if (!relativePath) {
@@ -1350,7 +1360,7 @@
     ui.nameValidationCheckedPath = '';
     const requestId = (ui.nameValidationSeq || 0) + 1;
     ui.nameValidationSeq = requestId;
-    setNameValidationState(ui, 'checking', 'Checking availability...');
+    setNameValidationState(ui, 'checking', t('universal.checking_availability', 'Checking availability...'));
 
     try {
       const response = await fetch('/pinokio/install/exists', {
@@ -1368,22 +1378,22 @@
         return false;
       }
       if (!response.ok || !payload || typeof payload.exists !== 'boolean') {
-        setNameValidationState(ui, 'error', payload && payload.error ? payload.error : 'Failed to check name availability.');
+        setNameValidationState(ui, 'error', payload && payload.error ? payload.error : t('universal.failed_check_name', 'Failed to check name availability.'));
         return false;
       }
       if (payload.exists) {
-        setNameValidationState(ui, 'error', 'A folder with this name already exists.');
+        setNameValidationState(ui, 'error', t('universal.folder_name_exists', 'A folder with this name already exists.'));
         return false;
       }
       ui.nameValidationCheckedName = name;
       ui.nameValidationCheckedPath = relativePath;
-      setNameValidationState(ui, 'success', `Available in PINOKIO_HOME/${relativePath}`);
+      setNameValidationState(ui, 'success', t('universal.available_in_path', 'Available in PINOKIO_HOME/{path}', { path: relativePath }));
       return true;
     } catch (_) {
       if (ui.nameValidationSeq !== requestId) {
         return false;
       }
-      setNameValidationState(ui, 'error', 'Failed to check name availability.');
+      setNameValidationState(ui, 'error', t('universal.failed_check_name', 'Failed to check name availability.'));
       return false;
     }
   }
@@ -1406,7 +1416,7 @@
       ui.nameValidationSeq = (ui.nameValidationSeq || 0) + 1;
       ui.nameValidationCheckedName = '';
       ui.nameValidationCheckedPath = '';
-      setNameValidationState(ui, 'error', 'Use letters, numbers, dots, dashes, or underscores only.');
+      setNameValidationState(ui, 'error', t('universal.folder_allowed_chars', 'Use letters, numbers, dots, dashes, or underscores only.'));
       return;
     }
     if (
@@ -1465,7 +1475,7 @@
         return match.label.trim();
       }
     }
-    return humanizeTaskInputName(key) || 'Value';
+    return humanizeTaskInputName(key) || t('common.value', 'Value');
   }
 
   function renderTaskTemplatePreview(template, values, inputs) {
@@ -1487,7 +1497,7 @@
       task && Array.isArray(task.inputs) ? task.inputs : []
     ).trim();
     if (!preview) {
-      return 'Task';
+      return t('tasks.task', 'Task');
     }
     return preview.length > 140 ? `${preview.slice(0, 137).trimEnd()}...` : preview;
   }
@@ -1496,7 +1506,7 @@
     const section = document.createElement('section');
     section.className = 'universal-launcher-section universal-launcher-section-tools';
 
-    const { heading, title: sectionTitle, note: sectionNote } = buildSectionHeading('Select plugin', 'Required');
+    const { heading, title: sectionTitle, note: sectionNote } = buildSectionHeading(t('universal.select_plugin', 'Select plugin'), t('common.required', 'Required'));
     section.appendChild(heading);
 
     const picker = document.createElement('div');
@@ -1541,12 +1551,12 @@
     const backdrop = document.createElement('button');
     backdrop.type = 'button';
     backdrop.className = 'universal-launcher-tool-sheet-backdrop';
-    backdrop.setAttribute('aria-label', 'Close plugin selection');
+    backdrop.setAttribute('aria-label', t('universal.close_plugin_selection', 'Close plugin selection'));
     layer.appendChild(backdrop);
 
     const sheet = document.createElement('section');
     sheet.className = 'universal-launcher-tool-sheet';
-    sheet.setAttribute('aria-label', 'Select plugin');
+    sheet.setAttribute('aria-label', t('universal.select_plugin', 'Select plugin'));
     layer.appendChild(sheet);
 
     const sheetHeader = document.createElement('div');
@@ -1559,18 +1569,18 @@
 
     const sheetTitle = document.createElement('div');
     sheetTitle.className = 'universal-launcher-tool-sheet-title';
-    sheetTitle.textContent = 'Select plugin';
+    sheetTitle.textContent = t('universal.select_plugin', 'Select plugin');
     sheetHeading.appendChild(sheetTitle);
 
     const sheetDescription = document.createElement('div');
     sheetDescription.className = 'universal-launcher-tool-sheet-description';
-    sheetDescription.textContent = 'Choose a tool.';
+    sheetDescription.textContent = t('universal.choose_tool_short', 'Choose a tool.');
     sheetHeading.appendChild(sheetDescription);
 
     const closeButton = document.createElement('button');
     closeButton.type = 'button';
     closeButton.className = 'universal-launcher-tool-sheet-close';
-    closeButton.setAttribute('aria-label', 'Close plugin selection');
+    closeButton.setAttribute('aria-label', t('universal.close_plugin_selection', 'Close plugin selection'));
     closeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
     sheetHeader.appendChild(closeButton);
 
@@ -1651,7 +1661,7 @@
           const icon = document.createElement('img');
           icon.className = 'universal-launcher-tool-icon';
           icon.src = tool.iconSrc;
-          icon.alt = `${tool.label} icon`;
+          icon.alt = t('universal.tool_icon_alt', '{tool} icon', { tool: tool.label });
           icon.onerror = () => {
             icon.style.display = 'none';
           };
@@ -1697,7 +1707,7 @@
         triggerMeta.textContent = getToolCategoryLabel(entry.meta.category || 'CLI');
         triggerMeta.hidden = false;
       } else {
-        triggerLabel.textContent = 'Choose a plugin';
+        triggerLabel.textContent = t('universal.choose_plugin', 'Choose a plugin');
         triggerMeta.textContent = '';
         triggerMeta.hidden = true;
       }
@@ -1816,13 +1826,13 @@
     const section = document.createElement('section');
     section.className = 'universal-launcher-section universal-launcher-upload';
 
-    const { heading } = buildSectionHeading('Attach files', 'Optional');
+    const { heading } = buildSectionHeading(t('create.attach_files_optional', 'Attach files'), t('common.optional', 'Optional'));
     section.appendChild(heading);
 
     const dropzone = document.createElement('button');
     dropzone.type = 'button';
     dropzone.className = 'universal-launcher-dropzone';
-    dropzone.textContent = 'Drag and drop files here, or click to select';
+    dropzone.textContent = t('create.drag_drop_files', 'Drag and drop files here, or click to select');
 
     const input = document.createElement('input');
     input.type = 'file';
@@ -1843,7 +1853,7 @@
       if (!files.length) {
         const empty = document.createElement('li');
         empty.className = 'universal-launcher-upload-empty';
-        empty.textContent = 'No files selected';
+        empty.textContent = t('create.no_files_selected', 'No files selected');
         list.appendChild(empty);
         return;
       }
@@ -1868,7 +1878,7 @@
         const remove = document.createElement('button');
         remove.type = 'button';
         remove.className = 'universal-launcher-upload-remove';
-        remove.textContent = 'Remove';
+        remove.textContent = t('common.remove', 'Remove');
         remove.addEventListener('click', () => {
           files = files.filter((_, i) => i !== index);
           updateList();
@@ -1932,7 +1942,7 @@
     const toggle = document.createElement('button');
     toggle.type = 'button';
     toggle.className = 'universal-launcher-template-toggle';
-    toggle.setAttribute('aria-label', 'Use template');
+    toggle.setAttribute('aria-label', t('universal.use_template', 'Use template'));
     toggle.setAttribute('aria-haspopup', 'dialog');
     toggle.setAttribute('aria-expanded', 'false');
 
@@ -1943,7 +1953,7 @@
 
     const toggleLabel = document.createElement('span');
     toggleLabel.className = 'universal-launcher-template-toggle-label';
-    toggleLabel.textContent = 'Use template';
+    toggleLabel.textContent = t('universal.use_template', 'Use template');
     toggle.appendChild(toggleLabel);
 
     const layer = document.createElement('div');
@@ -1956,14 +1966,14 @@
     const backdrop = document.createElement('button');
     backdrop.type = 'button';
     backdrop.className = 'universal-launcher-template-backdrop';
-    backdrop.setAttribute('aria-label', 'Close tasks');
+    backdrop.setAttribute('aria-label', t('universal.close_tasks', 'Close tasks'));
     layer.appendChild(backdrop);
 
     const modal = document.createElement('section');
     modal.className = 'universal-launcher-template-modal';
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
-    modal.setAttribute('aria-label', 'Tasks');
+    modal.setAttribute('aria-label', t('tasks.tasks', 'Tasks'));
     layer.appendChild(modal);
 
     const modalHeader = document.createElement('div');
@@ -1976,12 +1986,12 @@
 
     const modalTitle = document.createElement('div');
     modalTitle.className = 'universal-launcher-template-modal-title';
-    modalTitle.textContent = 'Tasks';
+    modalTitle.textContent = t('tasks.tasks', 'Tasks');
     modalHeading.appendChild(modalTitle);
 
     const modalDescription = document.createElement('div');
     modalDescription.className = 'universal-launcher-template-modal-description';
-    modalDescription.textContent = 'Choose a saved task.';
+    modalDescription.textContent = t('universal.choose_saved_task', 'Choose a saved task.');
     modalHeading.appendChild(modalDescription);
 
     const headerActions = document.createElement('div');
@@ -1991,13 +2001,13 @@
     const createButton = document.createElement('button');
     createButton.type = 'button';
     createButton.className = 'universal-launcher-template-create';
-    createButton.textContent = 'Create';
+    createButton.textContent = t('common.create', 'Create');
     headerActions.appendChild(createButton);
 
     const closeButton = document.createElement('button');
     closeButton.type = 'button';
     closeButton.className = 'universal-launcher-template-modal-close';
-    closeButton.setAttribute('aria-label', 'Close tasks');
+    closeButton.setAttribute('aria-label', t('universal.close_tasks', 'Close tasks'));
     closeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
     headerActions.appendChild(closeButton);
 
@@ -2012,7 +2022,7 @@
     const search = document.createElement('input');
     search.type = 'search';
     search.className = 'universal-launcher-input universal-launcher-template-search';
-    search.placeholder = 'Search tasks';
+    search.placeholder = t('universal.search_tasks', 'Search tasks');
     chooser.appendChild(search);
 
     const list = document.createElement('div');
@@ -2038,7 +2048,7 @@
     const backButton = document.createElement('button');
     backButton.type = 'button';
     backButton.className = 'universal-launcher-template-back-button';
-    backButton.textContent = 'Back to tasks';
+    backButton.textContent = t('universal.back_to_tasks', 'Back to tasks');
     detailsTopActions.appendChild(backButton);
 
     const detailsTitle = document.createElement('div');
@@ -2060,7 +2070,7 @@
 
     const previewLabel = document.createElement('div');
     previewLabel.className = 'universal-launcher-template-preview-label';
-    previewLabel.textContent = 'Prompt preview';
+    previewLabel.textContent = t('universal.prompt_preview', 'Prompt preview');
     previewWrap.appendChild(previewLabel);
 
     const preview = document.createElement('pre');
@@ -2086,13 +2096,13 @@
     const cancelButton = document.createElement('button');
     cancelButton.type = 'button';
     cancelButton.className = 'universal-launcher-button universal-launcher-button-secondary';
-    cancelButton.textContent = 'Cancel';
+    cancelButton.textContent = t('common.cancel', 'Cancel');
     footerActions.appendChild(cancelButton);
 
     const useButton = document.createElement('button');
     useButton.type = 'button';
     useButton.className = 'universal-launcher-button universal-launcher-button-primary';
-    useButton.textContent = 'Use task';
+    useButton.textContent = t('universal.use_task', 'Use task');
     footerActions.appendChild(useButton);
 
     const state = {
@@ -2195,10 +2205,10 @@
       toggle.disabled = false;
       toggle.hidden = false;
       toggle.setAttribute('aria-expanded', state.open ? 'true' : 'false');
-      modalTitle.textContent = showingDetails && selectedTask ? (selectedTask.title || selectedTask.id) : 'Tasks';
+      modalTitle.textContent = showingDetails && selectedTask ? (selectedTask.title || selectedTask.id) : t('tasks.tasks', 'Tasks');
       modalDescription.textContent = showingDetails
-        ? 'Fill the fields below, then use this task.'
-        : 'Choose a saved task.';
+        ? t('universal.fill_fields_use_task', 'Fill the fields below, then use this task.')
+        : t('universal.choose_saved_task', 'Choose a saved task.');
       search.hidden = !hasAvailableTasks;
       search.setAttribute('aria-hidden', hasAvailableTasks ? 'false' : 'true');
 
@@ -2222,9 +2232,9 @@
         const metaBits = [];
         metaBits.push(formatTaskTemplateSummary(task));
         if (Array.isArray(task.inputs) && task.inputs.length > 0) {
-          metaBits.push(`${task.inputs.length} input${task.inputs.length === 1 ? '' : 's'}`);
+          metaBits.push(t(task.inputs.length === 1 ? 'universal.input_count_one' : 'universal.input_count_many', task.inputs.length === 1 ? '{count} input' : '{count} inputs', { count: task.inputs.length }));
         }
-        meta.textContent = metaBits.join(' · ') || 'Task';
+        meta.textContent = metaBits.join(' · ') || t('tasks.task', 'Task');
         copy.appendChild(meta);
 
         row.appendChild(copy);
@@ -2246,9 +2256,9 @@
       list.hidden = !hasVisibleTasks;
       chooserEmpty.hidden = hasVisibleTasks;
       if (!hasAvailableTasks) {
-        chooserEmptyText.textContent = 'No saved tasks yet.';
+        chooserEmptyText.textContent = t('universal.no_saved_tasks', 'No saved tasks yet.');
       } else if (!hasVisibleTasks) {
-        chooserEmptyText.textContent = 'No tasks match this search.';
+        chooserEmptyText.textContent = t('universal.no_tasks_match_search', 'No tasks match this search.');
       } else {
         chooserEmptyText.textContent = '';
       }
@@ -2277,8 +2287,8 @@
       detailsTitle.textContent = '';
       detailsTitle.hidden = true;
       detailsDescription.textContent = Array.isArray(selectedTask.inputs) && selectedTask.inputs.length > 0
-        ? `Fill ${selectedTask.inputs.length === 1 ? 'the field' : 'the fields'} below to build the prompt.`
-        : 'This task is ready to use.';
+        ? t(selectedTask.inputs.length === 1 ? 'universal.fill_field_build_prompt' : 'universal.fill_fields_build_prompt', selectedTask.inputs.length === 1 ? 'Fill the field below to build the prompt.' : 'Fill the fields below to build the prompt.')
+        : t('universal.task_ready_to_use', 'This task is ready to use.');
 
       if (!state.inputDrafts[selectedTask.id]) {
         state.inputDrafts[selectedTask.id] = {};
@@ -2438,8 +2448,8 @@
     const clearButton = document.createElement('button');
     clearButton.type = 'button';
     clearButton.className = 'universal-launcher-ask-task-clear';
-    clearButton.setAttribute('aria-label', 'Change task');
-    clearButton.innerHTML = '<i class="fa-solid fa-chevron-left" aria-hidden="true"></i><span>Change task</span>';
+    clearButton.setAttribute('aria-label', t('universal.change_task', 'Change task'));
+    clearButton.innerHTML = `<i class="fa-solid fa-chevron-left" aria-hidden="true"></i><span>${escapeHtml(t('universal.change_task', 'Change task'))}</span>`;
     selectedTop.appendChild(clearButton);
 
     const taskDescription = document.createElement('div');
@@ -2472,7 +2482,7 @@
 
     const previewLabel = document.createElement('summary');
     previewLabel.className = 'universal-launcher-template-preview-label universal-launcher-ask-task-preview-toggle';
-    previewLabel.textContent = 'Prompt';
+    previewLabel.textContent = t('universal.prompt', 'Prompt');
     previewWrap.appendChild(previewLabel);
 
     const preview = document.createElement('pre');
@@ -2640,7 +2650,7 @@
         metaBits.push(formatTaskTemplateSummary(task));
       }
       if (Array.isArray(task.inputs) && task.inputs.length > 0) {
-        metaBits.push(`${task.inputs.length} input${task.inputs.length === 1 ? '' : 's'}`);
+        metaBits.push(t(task.inputs.length === 1 ? 'universal.input_count_one' : 'universal.input_count_many', task.inputs.length === 1 ? '{count} input' : '{count} inputs', { count: task.inputs.length }));
       }
       if (options.usageLabel) {
         metaBits.push(options.usageLabel);
@@ -2651,7 +2661,7 @@
       row.appendChild(copy);
       const hint = document.createElement('span');
       hint.className = 'universal-launcher-suggestion-hint';
-      hint.textContent = 'Use task';
+      hint.textContent = t('universal.use_task', 'Use task');
       row.appendChild(hint);
       row.addEventListener('click', () => {
         selectTask(task);
@@ -2800,7 +2810,7 @@
         }
         state.workspacesByTaskId[taskId] = {
           loading: false,
-          error: error && error.message ? error.message : 'Failed to load workspaces.',
+          error: error && error.message ? error.message : t('universal.failed_load_workspaces', 'Failed to load workspaces.'),
           items: [],
           lastUsedRef: '',
         };
@@ -2915,7 +2925,7 @@
       const allTasks = results.filter((task) => !recentTaskIds.has(task.id));
 
       if (recentTasks.length > 0) {
-        appendSuggestionSectionTitle(suggestionsList, 'Recent');
+        appendSuggestionSectionTitle(suggestionsList, t('common.recent', 'Recent'));
         recentTasks.forEach((task) => {
           appendSuggestionRow(suggestionsList, task, {
             usageLabel: formatRecentLauncherUsage(task.last_used_at),
@@ -2925,7 +2935,7 @@
 
       if (allTasks.length > 0) {
         if (recentTasks.length > 0) {
-          appendSuggestionSectionTitle(suggestionsList, 'All tasks');
+          appendSuggestionSectionTitle(suggestionsList, t('universal.all_tasks', 'All tasks'));
         }
         allTasks.forEach((task) => {
           appendSuggestionRow(suggestionsList, task);
@@ -3013,7 +3023,7 @@
       freshWorkspaceWrap.innerHTML = '';
       if (workspaceState.loading) {
         workspaceStatus.hidden = false;
-        workspaceStatus.textContent = 'Loading workspaces...';
+        workspaceStatus.textContent = t('universal.loading_workspaces', 'Loading workspaces...');
       } else if (workspaceState.error) {
         workspaceStatus.hidden = false;
         workspaceStatus.textContent = workspaceState.error;
@@ -3046,9 +3056,9 @@
 
           const meta = document.createElement('div');
           meta.className = 'universal-launcher-template-meta';
-          const metaBits = ['Existing workspace'];
+          const metaBits = [t('universal.existing_workspace', 'Existing workspace')];
           if (item.ref === workspaceState.lastUsedRef) {
-            metaBits.push('Last used');
+            metaBits.push(t('universal.last_used', 'Last used'));
           }
           const lastUsedAt = formatLauncherTimestamp(item.last_used_at);
           if (lastUsedAt) {
@@ -3061,7 +3071,7 @@
           const action = document.createElement('button');
           action.type = 'button';
           action.className = 'universal-launcher-template-row-action-button';
-          action.textContent = 'Continue';
+          action.textContent = t('common.continue', 'Continue');
           action.disabled = !canLaunchTask;
           action.addEventListener('click', () => {
             if (!canLaunchTask) {
@@ -3101,21 +3111,21 @@
 
       const newLabel = document.createElement('div');
       newLabel.className = 'universal-launcher-template-label';
-      newLabel.textContent = hasExistingWorkspaces ? 'Start fresh workspace' : 'Start New Workspace';
+      newLabel.textContent = hasExistingWorkspaces ? t('universal.start_fresh_workspace', 'Start fresh workspace') : t('universal.start_new_workspace', 'Start New Workspace');
       newCopy.appendChild(newLabel);
 
       const newMeta = document.createElement('div');
       newMeta.className = 'universal-launcher-template-meta';
       newMeta.textContent = hasExistingWorkspaces
-        ? 'Use a clean workspace instead of reusing an existing one.'
-        : 'Creates a fresh workspace using this task.';
+        ? t('universal.clean_workspace_instead', 'Use a clean workspace instead of reusing an existing one.')
+        : t('universal.creates_fresh_workspace', 'Creates a fresh workspace using this task.');
       newCopy.appendChild(newMeta);
 
       newRow.appendChild(newCopy);
       const newAction = document.createElement('button');
       newAction.type = 'button';
       newAction.className = `universal-launcher-template-row-action-button${hasExistingWorkspaces ? ' universal-launcher-template-row-action-button-secondary' : ''}`;
-      newAction.textContent = hasExistingWorkspaces ? 'Start fresh' : 'Start';
+      newAction.textContent = hasExistingWorkspaces ? t('universal.start_fresh', 'Start fresh') : t('common.start', 'Start');
       newAction.disabled = !canLaunchTask || !isNewWorkspaceNameValid;
       newAction.addEventListener('click', () => {
         if (!canLaunchTask || !isNewWorkspaceNameValid) {
@@ -3144,7 +3154,7 @@
 
         const draftLabel = document.createElement('span');
         draftLabel.className = 'universal-launcher-template-inline-label';
-        draftLabel.textContent = 'Workspace name';
+        draftLabel.textContent = t('universal.workspace_name', 'Workspace name');
         draftField.appendChild(draftLabel);
 
         const draftInput = document.createElement('input');
@@ -3168,7 +3178,7 @@
         const useSuggestedButton = document.createElement('button');
         useSuggestedButton.type = 'button';
         useSuggestedButton.className = 'universal-launcher-template-inline-link';
-        useSuggestedButton.textContent = 'Use suggestion';
+        useSuggestedButton.textContent = t('universal.use_suggestion', 'Use suggestion');
         useSuggestedButton.addEventListener('click', () => {
           setNewWorkspaceNameDraft(task.id, suggestedNewWorkspaceName);
           render();
@@ -3179,7 +3189,7 @@
         const doneButton = document.createElement('button');
         doneButton.type = 'button';
         doneButton.className = 'universal-launcher-template-inline-link';
-        doneButton.textContent = 'Done';
+        doneButton.textContent = t('common.done', 'Done');
         doneButton.addEventListener('click', () => {
           const nextDraft = String(state.newWorkspaceNameDraftsByTaskId[task.id] || '').trim();
           if (!nextDraft || !isValidWorkspaceName(nextDraft)) {
@@ -3194,8 +3204,8 @@
         const inlineHelper = document.createElement('div');
         inlineHelper.className = 'universal-launcher-template-helper';
         inlineHelper.textContent = isNewWorkspaceNameValid
-          ? `Will create: ${nameToDisplay}`
-          : 'Use letters, numbers, dots, dashes, or underscores only.';
+          ? t('universal.will_create_name', 'Will create: {name}', { name: nameToDisplay })
+          : t('universal.folder_allowed_chars', 'Use letters, numbers, dots, dashes, or underscores only.');
         const inlineFooter = document.createElement('div');
         inlineFooter.className = 'universal-launcher-template-inline-footer';
         inlineFooter.appendChild(inlineHelper);
@@ -3207,13 +3217,13 @@
 
         const summary = document.createElement('div');
         summary.className = 'universal-launcher-template-inline-summary';
-        summary.textContent = `Will create: ${nameToDisplay}`;
+        summary.textContent = t('universal.will_create_name', 'Will create: {name}', { name: nameToDisplay });
         summaryRow.appendChild(summary);
 
         const renameButton = document.createElement('button');
         renameButton.type = 'button';
         renameButton.className = 'universal-launcher-template-inline-link';
-        renameButton.textContent = 'Rename';
+        renameButton.textContent = t('common.rename', 'Rename');
         renameButton.addEventListener('click', () => {
           if (!state.newWorkspaceNameDraftsByTaskId[task.id]) {
             setNewWorkspaceNameDraft(task.id, suggestedNewWorkspaceName);
@@ -3240,7 +3250,7 @@
       if (hasExistingWorkspaces) {
         const freshIntro = document.createElement('div');
         freshIntro.className = 'universal-launcher-template-helper universal-launcher-ask-task-fresh-note';
-        freshIntro.textContent = 'Need a clean start?';
+        freshIntro.textContent = t('universal.need_clean_start', 'Need a clean start?');
         freshWorkspaceWrap.appendChild(freshIntro);
         freshWorkspaceWrap.appendChild(newCard);
       } else {
@@ -3414,7 +3424,7 @@
     const wrap = document.createElement('div');
     wrap.className = 'universal-launcher-intents';
     wrap.setAttribute('role', 'tablist');
-    wrap.setAttribute('aria-label', 'Launcher type');
+    wrap.setAttribute('aria-label', t('universal.launcher_type', 'Launcher type'));
 
     const entries = [];
     Object.keys(INTENTS).forEach((intentKey) => {
@@ -3434,7 +3444,7 @@
     const wrap = document.createElement('div');
     wrap.className = 'universal-launcher-modes';
     wrap.setAttribute('role', 'tablist');
-    wrap.setAttribute('aria-label', 'Launcher mode');
+    wrap.setAttribute('aria-label', t('universal.launcher_mode', 'Launcher mode'));
 
     const entries = {};
     [
@@ -3501,7 +3511,7 @@
     const closeButton = document.createElement('button');
     closeButton.type = 'button';
     closeButton.className = 'universal-launcher-close';
-    closeButton.setAttribute('aria-label', 'Close launcher');
+    closeButton.setAttribute('aria-label', t('universal.close_launcher', 'Close launcher'));
     closeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
     header.appendChild(closeButton);
 
@@ -3531,7 +3541,7 @@
     promptSection.className = 'universal-launcher-section universal-launcher-section-prompt';
     primaryGrid.appendChild(promptSection);
 
-    const { heading: promptHeading, title: promptTitle } = buildSectionHeading('What do you want to do?');
+    const { heading: promptHeading, title: promptTitle } = buildSectionHeading(t('universal.what_do_you_want', 'What do you want to do?'));
     promptHeading.classList.add('universal-launcher-section-heading-with-action');
     const promptHeadingActions = document.createElement('div');
     promptHeadingActions.className = 'universal-launcher-section-heading-actions';
@@ -3552,13 +3562,13 @@
     nameSection.className = 'universal-launcher-section universal-launcher-section-name';
     primaryGrid.appendChild(nameSection);
 
-    const { heading: nameHeading, note: nameMeta } = buildSectionHeading('Name', '');
+    const { heading: nameHeading, note: nameMeta } = buildSectionHeading(t('common.name', 'Name'), '');
     nameSection.appendChild(nameHeading);
 
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
     nameInput.className = 'universal-launcher-input';
-    nameInput.placeholder = 'Enter folder name, e.g. my-project';
+    nameInput.placeholder = t('universal.name_placeholder', 'Enter folder name, e.g. my-project');
     nameSection.appendChild(nameInput);
 
     const nameStatus = document.createElement('div');
@@ -3585,7 +3595,7 @@
     outputSection.className = 'universal-launcher-output';
     outputSection.hidden = true;
     outputSection.setAttribute('aria-hidden', 'true');
-    outputSection.innerHTML = '<div class="universal-launcher-output-label">Terminal output</div><pre class="universal-launcher-output-code"></pre>';
+    outputSection.innerHTML = `<div class="universal-launcher-output-label">${escapeHtml(t('universal.terminal_output', 'Terminal output'))}</div><pre class="universal-launcher-output-code"></pre>`;
     body.appendChild(outputSection);
 
     const footer = document.createElement('footer');
@@ -3612,7 +3622,7 @@
     const shareLink = document.createElement('a');
     shareLink.className = 'universal-launcher-share-link';
     shareLink.href = '#';
-    shareLink.textContent = 'Save task';
+    shareLink.textContent = t('universal.save_task', 'Save task');
     footerLinks.appendChild(shareLink);
 
     const footerActions = document.createElement('div');
@@ -3622,7 +3632,7 @@
     const cancelButton = document.createElement('button');
     cancelButton.type = 'button';
     cancelButton.className = 'universal-launcher-button universal-launcher-button-secondary';
-    cancelButton.textContent = 'Cancel';
+    cancelButton.textContent = t('common.cancel', 'Cancel');
     footerActions.appendChild(cancelButton);
 
     const confirmButton = document.createElement('button');
@@ -3710,18 +3720,18 @@
         this.description.textContent = intentConfig.description;
         const showName = intentUsesName(intent);
         this.nameMeta.textContent = showName
-          ? `Required${intentConfig.targetLabel ? ` · ${intentConfig.targetLabel}` : ''}`
+          ? `${t('common.required', 'Required')}${intentConfig.targetLabel ? ` · ${intentConfig.targetLabel}` : ''}`
           : '';
         this.nameSection.hidden = !showName;
         this.nameSection.setAttribute('aria-hidden', showName ? 'false' : 'true');
         if (this.promptTitle) {
-          this.promptTitle.textContent = intentConfig.promptLabel || 'What do you want to do?';
+          this.promptTitle.textContent = intentConfig.promptLabel || t('universal.what_do_you_want', 'What do you want to do?');
         }
         if (this.toolPicker && this.toolPicker.sectionTitle) {
-          this.toolPicker.sectionTitle.textContent = intentConfig.toolLabel || 'Select plugin';
+          this.toolPicker.sectionTitle.textContent = intentConfig.toolLabel || t('universal.select_plugin', 'Select plugin');
         }
         if (this.toolPicker && this.toolPicker.sectionNote) {
-          this.toolPicker.sectionNote.textContent = intentConfig.toolNote || 'Required';
+          this.toolPicker.sectionNote.textContent = intentConfig.toolNote || t('common.required', 'Required');
         }
         this.promptTextarea.placeholder = intentConfig.promptPlaceholder;
         this.confirmButton.textContent = intentConfig.confirmLabel;
@@ -4000,15 +4010,15 @@
       if (isAskIntent && effectiveInlineTaskMode && ui.askTaskSection) {
         const launchPayload = ui.askTaskSection.getLaunchPayload();
         ui.confirmButton.textContent = launchPayload && launchPayload.workspaceMode === 'reuse'
-          ? 'Continue'
-          : 'Start new workspace';
+          ? t('common.continue', 'Continue')
+          : t('universal.start_new_workspace', 'Start new workspace');
       } else if (
         isAskIntent
         && ui.askTaskSection
         && typeof ui.askTaskSection.hasTaskQuery === 'function'
         && ui.askTaskSection.hasTaskQuery()
       ) {
-        ui.confirmButton.textContent = 'Run Prompt';
+        ui.confirmButton.textContent = t('universal.run_prompt', 'Run Prompt');
       } else {
         ui.confirmButton.textContent = intentConfig.confirmLabel;
       }
@@ -4016,7 +4026,7 @@
       ui.confirmButton.setAttribute('aria-hidden', (isAskIntent && effectiveInlineTaskMode) ? 'true' : 'false');
     }
     if (ui.toolPicker && ui.toolPicker.sectionTitle) {
-      ui.toolPicker.sectionTitle.textContent = effectiveInlineTaskMode ? 'Tool' : (intentConfig.toolLabel || 'Select plugin');
+      ui.toolPicker.sectionTitle.textContent = effectiveInlineTaskMode ? t('common.tool', 'Tool') : (intentConfig.toolLabel || t('universal.select_plugin', 'Select plugin'));
       ui.toolPicker.sectionTitle.hidden = isAskIntent;
       ui.toolPicker.sectionTitle.setAttribute('aria-hidden', isAskIntent ? 'true' : 'false');
     }
@@ -4081,7 +4091,7 @@
     }
     if (ui.confirmButton) {
       if (isDownloadMode) {
-        ui.confirmButton.textContent = intent === 'ask' ? 'Import task' : 'Import';
+        ui.confirmButton.textContent = intent === 'ask' ? t('universal.import_task', 'Import task') : t('common.import', 'Import');
         ui.confirmButton.hidden = false;
         ui.confirmButton.setAttribute('aria-hidden', 'false');
       }
@@ -4232,7 +4242,7 @@
     });
     const result = await response.json().catch(() => null);
     if (!response.ok || !result || !result.ok) {
-      throw new Error(result && result.error ? result.error : 'Failed to prepare download.');
+      throw new Error(result && result.error ? result.error : t('universal.failed_prepare_download', 'Failed to prepare download.'));
     }
     return result;
   }
@@ -4247,14 +4257,14 @@
     });
     const result = await response.json().catch(() => null);
     if (!response.ok || !result || !result.ok || !result.url) {
-      throw new Error(result && result.error ? result.error : 'Failed to finalize download.');
+      throw new Error(result && result.error ? result.error : t('universal.failed_finalize_download', 'Failed to finalize download.'));
     }
     return result;
   }
 
   async function runDownloadClone(ui, clone) {
     if (!clone || typeof clone !== 'object') {
-      throw new Error('Download is unavailable right now.');
+      throw new Error(t('universal.download_unavailable', 'Download is unavailable right now.'));
     }
     appendDownloadOutput(ui, `$ ${clone.message}\n\n`);
     await new Promise((resolve, reject) => {
@@ -4296,7 +4306,7 @@
         if (packet.type === 'result') {
           const errors = packet.data && Array.isArray(packet.data.error) ? packet.data.error : [];
           if (errors.length > 0) {
-            const failureMessage = errors.join('\n').trim() || 'Download failed.';
+            const failureMessage = errors.join('\n').trim() || t('universal.download_failed', 'Download failed.');
             appendDownloadOutput(ui, `${failureMessage}\n`);
             settle(reject, new Error(failureMessage));
             return;
@@ -4307,12 +4317,12 @@
         if (packet.type === 'error') {
           const failureMessage = typeof packet.data === 'string' && packet.data.trim()
             ? packet.data.trim()
-            : 'Download failed.';
+            : t('universal.download_failed', 'Download failed.');
           appendDownloadOutput(ui, `${failureMessage}\n`);
           settle(reject, new Error(failureMessage));
         }
       }).catch((error) => {
-        settle(reject, error instanceof Error ? error : new Error(String(error || 'Download failed.')));
+        settle(reject, error instanceof Error ? error : new Error(String(error || t('universal.download_failed', 'Download failed.'))));
       });
     });
   }
@@ -4345,11 +4355,11 @@
     });
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(text || 'Failed to upload files.');
+      throw new Error(text || t('create.failed_upload_files', 'Failed to upload files.'));
     }
     const payload = await response.json();
     if (!payload || payload.error || !payload.uploadToken) {
-      throw new Error(payload && payload.error ? payload.error : 'Failed to upload files.');
+      throw new Error(payload && payload.error ? payload.error : t('create.failed_upload_files', 'Failed to upload files.'));
     }
     return payload.uploadToken;
   }
@@ -4432,9 +4442,9 @@
     if (ui.mode === 'download') {
       const validation = ui.downloadSection
         ? await ui.downloadSection.validateForSubmit()
-        : { ok: false, error: 'Download is unavailable right now.' };
+        : { ok: false, error: t('universal.download_unavailable', 'Download is unavailable right now.') };
       if (!validation || !validation.ok || !validation.payload) {
-        ui.error.textContent = validation && validation.error ? validation.error : 'Failed to validate download request.';
+        ui.error.textContent = validation && validation.error ? validation.error : t('universal.failed_validate_download', 'Failed to validate download request.');
         if (validation && validation.focus === 'name' && ui.downloadSection && ui.downloadSection.nameInput) {
           ui.downloadSection.nameInput.focus();
         } else if (ui.downloadSection && ui.downloadSection.urlInput) {
@@ -4454,16 +4464,16 @@
       }
 
       try {
-        const downloadLabel = ui.intent === 'ask' ? 'Importing task' : `Importing ${ui.intent === 'create_plugin' ? 'plugin' : 'app'}`;
+        const downloadLabel = ui.intent === 'ask' ? t('universal.importing_task', 'Importing task') : t(ui.intent === 'create_plugin' ? 'universal.importing_plugin' : 'universal.importing_app', ui.intent === 'create_plugin' ? 'Importing plugin' : 'Importing app');
         const downloadDetail = ui.intent === 'ask'
-          ? 'Installing the task package into your task library.'
-          : `Cloning into PINOKIO_HOME/${getIntentDownloadPath(ui.intent)} and preparing the destination folder.`;
+          ? t('universal.installing_task_package', 'Installing the task package into your task library.')
+          : t('universal.cloning_into_pinokio_home', 'Cloning into PINOKIO_HOME/{path} and preparing the destination folder.', { path: getIntentDownloadPath(ui.intent) });
         setSubmissionState(ui, {
           title: downloadLabel,
           description: downloadDetail,
           label: downloadLabel,
           detail: downloadDetail,
-          confirmLabel: ui.intent === 'ask' ? 'Importing task...' : 'Importing...'
+          confirmLabel: ui.intent === 'ask' ? t('universal.importing_task_progress', 'Importing task...') : t('universal.importing_progress', 'Importing...')
         });
 
         resetDownloadOutput(ui);
@@ -4486,7 +4496,7 @@
         window.location.href = finalized.url;
         return;
       } catch (error) {
-        ui.error.textContent = error && error.message ? error.message : 'Failed to continue.';
+        ui.error.textContent = error && error.message ? error.message : t('universal.failed_continue', 'Failed to continue.');
         clearSubmissionState(ui);
         syncTaskMode(ui);
         syncLauncherMode(ui);
@@ -4522,26 +4532,26 @@
     const files = ui.attachments.getFiles();
 
     if (!selectedEntry || !selectedEntry.meta || !selectedEntry.meta.value) {
-      ui.error.textContent = 'Please select a plugin.';
+      ui.error.textContent = t('universal.select_plugin_error', 'Please select a plugin.');
       ui.toolPicker.openMenu();
       return;
     }
     if (ui.intent !== 'ask' && !name) {
       await runNameValidation(ui, { showEmpty: true });
-      ui.error.textContent = 'Please enter a name.';
+      ui.error.textContent = t('universal.enter_name', 'Please enter a name.');
       ui.nameInput.focus();
       return;
     }
     if (ui.intent !== 'ask') {
       const isNameReady = await runNameValidation(ui, { showEmpty: true });
       if (!isNameReady) {
-        ui.error.textContent = ui.nameValidationMessage || 'Please choose a different name.';
+        ui.error.textContent = ui.nameValidationMessage || t('universal.choose_different_name', 'Please choose a different name.');
         ui.nameInput.focus();
         return;
       }
     }
     if (ui.intent !== 'ask' && name.includes(' ')) {
-      ui.error.textContent = 'Names cannot contain spaces.';
+      ui.error.textContent = t('universal.names_no_spaces', 'Names cannot contain spaces.');
       ui.nameInput.focus();
       return;
     }
@@ -4562,13 +4572,13 @@
     try {
       if (ui.intent === 'create_app') {
         setSubmissionState(ui, {
-          title: 'Creating app...',
-          description: 'Setting up the new app and preparing the dev page.',
-          label: files.length ? 'Uploading files' : 'Preparing app workspace',
+          title: t('universal.creating_app_progress', 'Creating app...'),
+          description: t('universal.setting_up_app_dev_page', 'Setting up the new app and preparing the dev page.'),
+          label: files.length ? t('universal.uploading_files', 'Uploading files') : t('universal.preparing_app_workspace', 'Preparing app workspace'),
           detail: files.length
-            ? 'Uploading your files, then creating the app folder and first git commit.'
-            : 'Creating the app folder, starter files, and first git commit. This usually takes a few seconds.',
-          confirmLabel: 'Working...'
+            ? t('universal.uploading_then_creating_app', 'Uploading your files, then creating the app folder and first git commit.')
+            : t('universal.creating_app_folder_commit', 'Creating the app folder, starter files, and first git commit. This usually takes a few seconds.'),
+          confirmLabel: t('universal.working', 'Working...')
         });
       }
 
@@ -4576,11 +4586,11 @@
 
       if (ui.intent === 'create_app') {
         setSubmissionState(ui, {
-          title: 'Creating app...',
-          description: 'Setting up the new app and preparing the dev page.',
-          label: 'Preparing app workspace',
-          detail: 'Creating the app folder, starter files, and first git commit. This usually takes a few seconds.',
-          confirmLabel: 'Working...'
+          title: t('universal.creating_app_progress', 'Creating app...'),
+          description: t('universal.setting_up_app_dev_page', 'Setting up the new app and preparing the dev page.'),
+          label: t('universal.preparing_app_workspace', 'Preparing app workspace'),
+          detail: t('universal.creating_app_folder_commit', 'Creating the app folder, starter files, and first git commit. This usually takes a few seconds.'),
+          confirmLabel: t('universal.working', 'Working...')
         });
         const response = await fetch('/launcher/create-app', {
           method: 'POST',
@@ -4596,14 +4606,14 @@
         });
         const payload = await response.json().catch(() => null);
         if (!response.ok || !payload || !payload.ok || !payload.url) {
-          throw new Error(payload && payload.error ? payload.error : 'Failed to create app.');
+          throw new Error(payload && payload.error ? payload.error : t('universal.failed_create_app', 'Failed to create app.'));
         }
         setSubmissionState(ui, {
-          title: 'Opening app...',
-          description: 'The app is ready. Opening the dev page now.',
-          label: 'Opening dev page',
-          detail: 'Redirecting to the new app.',
-          confirmLabel: 'Opening...'
+          title: t('universal.opening_app', 'Opening app...'),
+          description: t('universal.app_ready_opening_dev', 'The app is ready. Opening the dev page now.'),
+          label: t('universal.opening_dev_page', 'Opening dev page'),
+          detail: t('universal.redirecting_new_app', 'Redirecting to the new app.'),
+          confirmLabel: t('universal.opening', 'Opening...')
         });
         window.location.href = payload.url;
         return;
@@ -4627,7 +4637,7 @@
         });
         const payload = await response.json().catch(() => null);
         if (!response.ok || !payload || !payload.ok || !payload.url) {
-          throw new Error(payload && payload.error ? payload.error : 'Failed to prepare task launcher.');
+          throw new Error(payload && payload.error ? payload.error : t('universal.failed_prepare_task_launcher', 'Failed to prepare task launcher.'));
         }
         window.location.href = payload.url;
         return;
@@ -4648,11 +4658,11 @@
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload || !payload.ok || !payload.url) {
-        throw new Error(payload && payload.error ? payload.error : 'Failed to prepare launcher.');
+        throw new Error(payload && payload.error ? payload.error : t('universal.failed_prepare_launcher', 'Failed to prepare launcher.'));
       }
       window.location.href = payload.url;
     } catch (error) {
-      ui.error.textContent = error && error.message ? error.message : 'Failed to continue.';
+      ui.error.textContent = error && error.message ? error.message : t('universal.failed_continue', 'Failed to continue.');
       clearSubmissionState(ui);
       syncTaskMode(ui);
       syncLauncherMode(ui);

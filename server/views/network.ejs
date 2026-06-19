@@ -1,3 +1,7 @@
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <html>
 <head>
 <title>Pinokio</title>
@@ -1331,6 +1335,9 @@ body.dark.network-page .badge {
 <script src="/tippy-bundle.umd.min.js"></script>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
@@ -1348,33 +1355,33 @@ document.addEventListener('DOMContentLoaded', function() {
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
-<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+<button class='btn2' id='minimize-header' data-tippy-content="<%= tr("common.fullscreen") %>" title='<%= tr("common.fullscreen") %>'>
   <div><i class="fa-solid fa-expand"></i></div>
 </button>
-<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
-<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
-<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
-<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
+<button class='btn2' id='back' data-tippy-content="<%= tr("common.back") %>"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="<%= tr("common.forward") %>"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="<%= tr("common.refresh") %>"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="<%= tr("common.screen_capture") %>"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="<%= tr("common.xray_mode") %>"><i class="fa-solid fa-eye"></i></button>
+<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="<%= tr("common.enter_url") %>"><i class="fa-solid fa-link"></i></button>
 <div class='mobile-flexible'></div>
 <form class='urlbar'>
   <div class='url-input-container'>
-    <input type='url' placeholder='enter any local url to open in pinokio'>
+    <input type='url' placeholder='<%= tr("common.url_placeholder") %>'>
     <div class='url-dropdown' id='url-dropdown'></div>
   </div>
 </form>
-<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+<a class='btn2' href="/columns" data-tippy-content="<%= tr("common.split_columns") %>">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
-<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+<a class='btn2' href="/rows" data-tippy-content="<%= tr("common.split_rows") %>">
   <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
 </a>
-<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+<button class='btn2' id='new-window' data-tippy-content="<%= tr("common.open_new_window") %>" title='<%= tr("common.open_new_window") %>' data-agent="<%=agent%>">
   <div><i class="fa-solid fa-plus"></i></div>
 </button>
 
-<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+<button class='btn2 hidden' id='close-window' data-tippy-content='<%= tr("common.close_section") %>'>
   <div><i class="fa-solid fa-xmark"></i></div>
 </button>
 </h1>
@@ -1384,9 +1391,9 @@ document.addEventListener('DOMContentLoaded', function() {
   <section class='task-shell network-shell'>
     <header class='task-shell-header'>
       <div class='task-shell-header-main'>
-        <p class='task-eyebrow'>Network</p>
-        <h1 class='task-title'>Network settings</h1>
-        <p class='task-description'>Instantly add HTTPS, CORS, and peer sharing for apps on your local network.</p>
+        <p class='task-eyebrow'><%= tr("network.title") %></p>
+        <h1 class='task-title'><%= tr("network.settings") %></h1>
+        <p class='task-description'><%= tr("network.settings_description") %></p>
       </div>
     </header>
     <div class='task-shell-body network-shell-body'>
@@ -1396,17 +1403,17 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class='config-body'>
         <div class='config-row config-toggle-row'>
           <div class='config-toggle-copy'>
-            <div class='label'>Network access</div>
-            <div id='active-label'><%=peer_active ? "On" : "Off"%></div>
+            <div class='label'><%= tr("network.access") %></div>
+            <div id='active-label'><%=peer_active ? tr("common.on") : tr("common.off")%></div>
           </div>
           <label class="switcher">
             <input id='active' type="checkbox" <%=peer_active ? 'checked' : ''%>>
             <span class="slider"></span>
           </label>
         </div>
-        <button class='btn save config-save-btn'>Save</button>
+        <button class='btn save config-save-btn'><%= tr("common.save") %></button>
         <div class='config-row' id='network_name'>
-          <div class='label'>Network Name</div>
+          <div class='label'><%= tr("network.name") %></div>
           <div class='network-name'>
             <input id='name' type='text' value="<%=name%>">
           </div>
@@ -1418,12 +1425,12 @@ document.addEventListener('DOMContentLoaded', function() {
             <div id='reset-label' class='btn'>Reset</div>
             -->
           <div class='troubleshoot'>
-            Not working properly?  <span id='reset-label' class='link-label label'>Try reinstalling the Network Module & Certificates</span>
+            <%= tr("network.not_working") %> <span id='reset-label' class='link-label label'><%= tr("network.try_reinstall_module") %></span>
           </div>
         </div>
     </div>
     <div class='loading hidden'>
-      <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
+      <i class="fa-solid fa-circle-notch fa-spin"></i> <%= tr("setup.do_not_close") %>
     </div>
   </div>
   <div class='container'>
@@ -1483,7 +1490,7 @@ let interval
 document.querySelector("#reset-label").addEventListener("click", async (e) => {
   e.preventDefault()
   e.stopPropagation()
-  let ok = confirm("Are you sure you want to reset the network config? (The peer router will be updated to the latest version; 2. A new HTTPS certificate will be generated)")
+  let ok = confirm(<%- trj("network.reset_confirm") %>)
   if (ok) {
     clearInterval(interval)
     let r = await fetch("/network/reset", {
@@ -1539,9 +1546,9 @@ document.querySelector("#advanced-label").addEventListener("click", (e) => {
     callback: "/network",
     path: "~/network",
     icon: "fa-solid fa-circle-down",
-    title: "Custom Router",
-    placeholder: "enter a custom router git url",
-    description: `<div>you can write your own custom routers to handle custom request handling for any port <a target="_blank" href="<%=docs%>">Learn more</a></div>`,
+    title: <%-trj("network.custom_router")%>,
+    placeholder: <%-trj("network.custom_router_placeholder")%>,
+    description: `<div>${<%-trj("network.custom_router_description")%>} <a target="_blank" href="<%=docs%>">${<%-trj("common.learn_more")%>}</a></div>`,
     target: "_top",
     message: (url) => {
       let name = new URL(url).pathname.split("/").slice(-2).join("_")
@@ -1565,12 +1572,12 @@ document.querySelector("#active").addEventListener("change", (e)=> {
     document.querySelector("#network_name").classList.remove("hidden")
     document.querySelector(".network-name").classList.add("expanded")
     document.querySelector("#name").classList.remove("hidden")
-    document.querySelector("#active-label").innerHTML = "On"
+    document.querySelector("#active-label").innerHTML = <%- trj("common.on") %>
   } else {
     document.querySelector("#network_name").classList.add("hidden")
     document.querySelector(".network-name").classList.remove("expanded")
     document.querySelector("#name").classList.add("hidden")
-    document.querySelector("#active-label").innerHTML = "Off"
+    document.querySelector("#active-label").innerHTML = <%- trj("common.off") %>
   }
 })
 document.querySelector("main").addEventListener("click", async (e) => {
@@ -1587,43 +1594,23 @@ document.querySelector("main").addEventListener("click", async (e) => {
     let type = target.getAttribute("data-type")
     if (type === "https") {
       await Swal.fire({
-        title: "Instant HTTPS",
+        title: <%-trj("network.instant_https")%>,
         customClass: {
           popup: "full-popup",
           title: "full-title"
         },
         showConfirmButton: false,
-        html: `<div class='full-modal'>
-        <ol>
-          <li><strong>Instant:</strong> Pinokio automatically turns ALL your local applications into HTTPS.</li>
-          <li><strong>System-wide:</strong> Instant HTTPS automagically works for ALL your local apps and APIs system-wide (not just those installed on pinokio)</li>
-          <li><strong>Not just for Pinokio:</strong> This means, even the apis and apps that have nothing to do with Pinokio (such as Ollama, LMStudio, or really anything) become HTTPS-ified.</li>
-          <li><strong>Whole New Application Architecture:</strong> Exposing localhost apps over HTTPS unlocks powerful new possibilities. It enables a completely new application architecture where public websites can securely leverage your local APIs as backend services.</li>
-        </ol>
-        <img src="/https.png"/>
-        <br>
-    </div>`
+        html: <%-trj("network.instant_https_explain_html")%>
       })
     } else if (type === "peer") {
       await Swal.fire({
-        title: "Peer to Peer HTTPS Local Network",
+        title: <%-trj("network.peer_to_peer_title")%>,
         customClass: {
           popup: "full-popup",
           title: "full-title"
         },
         showConfirmButton: false,
-        html: `<div class='full-modal'>
-        <div>Peers can access each other over HTTPS. It's like a whole internet, but among your local machines.</div>
-        <br>
-        <img src="/peernet.png"/>
-        <br>
-        <div>To start a peer, install Pinokio on any other machine on the same network.</div>
-        <br>
-        <div>Peers automatically discover each other and display accessible apps and endpoints from other machines:</div>
-        <br>
-        <img src="/network.gif"/>
-        <br>
-    </div>`
+        html: <%-trj("network.peer_to_peer_explain_html", { image: "/network.gif" })%>
       })
     }
     return
@@ -1751,15 +1738,15 @@ document.querySelector("main").addEventListener("click", async (e) => {
     let qr = target.getAttribute("data-qr")
     console.log({ url, qr })
     await Swal.fire({
-      title: "Local Share",
+      title: <%-trj("home.local_share")%>,
       customClass: {
         popup: "min-popup",
         title: "min-title"
       },
       showConfirmButton: false,
       html: `<div class='min-modal'>
-      <div>Access Pinokio from</div>
-      <div>any local network device</div>
+      <div>${<%-trj("share.access_from")%>}</div>
+      <div>${<%-trj("share.local_network_device")%>}</div>
       <div><img src="${qr}"></div>
   <a href="${url}" target="_blank">${url}</a>
   </div>`

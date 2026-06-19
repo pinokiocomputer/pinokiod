@@ -1,3 +1,6 @@
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+%>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -95,8 +98,8 @@ body {
 <a class='path' href="/home"><img class='icon' src='/pinokio-black.png'></a>
 <form class='search'>
   <% if (display.includes("form")) { %>
-  <input type='search' placeholder='enter git url'>
-  <button class='btn clone'><i class="fa-solid fa-download"></i> Download</button>
+  <input type='search' placeholder='<%=tr("plugins.enter_git_url")%>'>
+  <button class='btn clone'><i class="fa-solid fa-download"></i> <%=tr("common.download")%></button>
   <% } %>
 </form>
 </h1>

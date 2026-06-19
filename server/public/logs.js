@@ -1,4 +1,15 @@
 (function() {
+  const I18N = window.LOGS_I18N || {}
+  const t = (key, fallback, replacements) => {
+    let value = Object.prototype.hasOwnProperty.call(I18N, key) ? I18N[key] : `[missing translation: ${key}]`
+    value = value == null ? '' : String(value)
+    if (replacements && typeof replacements === 'object') {
+      for (const [name, replacement] of Object.entries(replacements)) {
+        value = value.replace(new RegExp(`\\{${name}\\}`, 'g'), String(replacement))
+      }
+    }
+    return value
+  }
   const MAX_VIEWER_CHARS = 2 * 1024 * 1024
   const LOGS_SIDEBAR_STORAGE_KEY = 'pinokio.logs.sidebar-collapsed'
   const LOGS_SIDEBAR_WIDTH_KEY = 'pinokio.logs.sidebar-width'
@@ -10,11 +21,11 @@
   const DRAFT_TITLE_DISPLAY_LENGTH = 96
   const DRAFT_TITLE_RECENT_WINDOW_MS = 48 * 60 * 60 * 1000
   const DRAFT_SECTION_MODES = [
-    { value: 'full', label: 'Full section' },
-    { value: 'last-2000', label: 'Last 2000 lines', lines: 2000 },
-    { value: 'last-1000', label: 'Last 1000 lines', lines: 1000 },
-    { value: 'last-500', label: 'Last 500 lines', lines: 500 },
-    { value: 'exclude', label: 'Exclude' }
+    { value: 'full', label: t('draftSectionFull', 'Full section') },
+    { value: 'last-2000', label: t('draftSectionLast2000', 'Last 2000 lines'), lines: 2000 },
+    { value: 'last-1000', label: t('draftSectionLast1000', 'Last 1000 lines'), lines: 1000 },
+    { value: 'last-500', label: t('draftSectionLast500', 'Last 500 lines'), lines: 500 },
+    { value: 'exclude', label: t('draftSectionExclude', 'Exclude') }
   ]
   const DRAFT_TITLE_FAILURE_PATTERN = /\b(?:error|exception|failed|failure|fatal|cannot|can't|can not|not found|denied|timeout|timed out|refused|unavailable|invalid|missing|abort|aborted|panic|overflow|crash|crashed)\b/i
   const DRAFT_TITLE_STRONG_PATTERN = /\b(?:[A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception)|ERROR|FATAL|ERR!|exit code\s+\d+)\b/i
@@ -77,7 +88,7 @@
       }
       this.worker.addEventListener('message', (event) => this.handleMessage(event.data || {}))
       this.worker.addEventListener('error', (event) => {
-        const error = new Error(event.message || 'Privacy filter worker failed.')
+        const error = new Error(event.message || t('privacyFilterWorkerFailed', 'Privacy filter worker failed.'))
         for (const pending of this.pending.values()) {
           pending.reject(error)
         }
@@ -106,7 +117,7 @@
         pending.resolve(message)
       } else if (message.type === 'error') {
         this.pending.delete(message.id)
-        pending.reject(new Error(message.message || 'Privacy filter failed.'))
+        pending.reject(new Error(message.message || t('privacyFilterFailed', 'Privacy filter failed.')))
       }
     }
     detectRuntime() {
@@ -183,7 +194,7 @@
       if (!this.button) return
       if (isBusy) {
         this.button.disabled = true
-        this.button.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Generating…</span>'
+        this.button.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i><span>${t('generating', 'Generating...')}</span>`
       } else {
         this.button.disabled = false
         this.button.innerHTML = this.defaultLabel
@@ -191,7 +202,7 @@
     }
     async generate() {
       this.setBusy(true)
-      this.setStatus('Generating archive…')
+      this.setStatus(t('generatingArchive', 'Generating archive...'))
       try {
         const response = await fetch(this.endpoint, { method: 'POST' })
         if (!response.ok) {
@@ -200,9 +211,9 @@
         const payload = await response.json().catch(() => ({}))
         const downloadHref = payload && payload.download ? payload.download : this.defaultDownloadHref
         this.updateDownloadLink(downloadHref)
-        this.setStatus('Archive ready. Click download.')
+        this.setStatus(t('archiveReady', 'Archive ready. Click download.'))
       } catch (error) {
-        this.setStatus(error.message || 'Failed to generate archive.', true)
+        this.setStatus(error.message || t('failedGenerateArchive', 'Failed to generate archive.'), true)
       } finally {
         this.setBusy(false)
       }
@@ -394,7 +405,7 @@
       if (!this.draftTitleNoteEl) return
       let note = ''
       if (this.draftTitleInput && !this.draftTitleInput.disabled && !this.draftTitleInput.value.trim()) {
-        note = 'Title required'
+        note = t('titleRequired', 'Title required')
       }
       this.draftTitleNoteEl.textContent = note
     }
@@ -578,7 +589,7 @@
         this.renderedRedactionItems = []
         this.selectedRedactionId = null
         this.activeRedactionFilter = 'all'
-        this.resetRedactionReview(this.reviewMarkdown ? 'Run the privacy filter to review detected items.' : 'No report text to review.')
+        this.resetRedactionReview(this.reviewMarkdown ? t('runPrivacyFilterReview', 'Run the privacy filter to review detected items.') : t('noReportTextReview', 'No report text to review.'))
       }
       this.currentMarkdown = this.reviewMarkdown
       this.updateDraftTitleSuggestion(false)
@@ -600,7 +611,7 @@
         checkbox.type = 'checkbox'
         checkbox.className = 'logs-section-checkbox'
         checkbox.checked = mode !== 'exclude'
-        checkbox.setAttribute('aria-label', `Include ${section.file || section.script || 'log section'}`)
+        checkbox.setAttribute('aria-label', t('includeLogSection', 'Include {name}', { name: section.file || section.script || t('logSection', 'log section') }))
         checkbox.addEventListener('change', () => {
           this.setSectionMode(section, index, checkbox.checked ? 'full' : 'exclude')
         })
@@ -609,20 +620,20 @@
         textWrap.className = 'logs-section-text'
         const name = document.createElement('div')
         name.className = 'logs-section-name'
-        name.textContent = section.file || section.script || section.source || 'log'
+        name.textContent = section.file || section.script || section.source || t('log', 'log')
         name.title = name.textContent
         const meta = document.createElement('div')
         meta.className = 'logs-section-meta'
-        const size = Number(section.size) ? humanBytes(section.size) : 'unknown size'
+        const size = Number(section.size) ? humanBytes(section.size) : t('unknownSize', 'unknown size')
         const totalLines = Number(section.line_count) || 0
-        const trimText = prepared && prepared.omittedLines > 0 ? ` · ${prepared.omittedLines.toLocaleString()} older lines omitted` : ''
-        meta.textContent = `${totalLines.toLocaleString()} lines · ${size}${trimText}`
+        const trimText = prepared && prepared.omittedLines > 0 ? ` · ${t('olderLinesOmittedShort', '{count} older lines omitted', { count: prepared.omittedLines.toLocaleString() })}` : ''
+        meta.textContent = `${t('lineCount', '{count} lines', { count: totalLines.toLocaleString() })} · ${size}${trimText}`
         textWrap.appendChild(name)
         textWrap.appendChild(meta)
 
         const select = document.createElement('select')
         select.className = 'logs-section-mode'
-        select.setAttribute('aria-label', `Draft inclusion for ${name.textContent}`)
+        select.setAttribute('aria-label', t('draftInclusionFor', 'Draft inclusion for {name}', { name: name.textContent }))
         for (const optionConfig of DRAFT_SECTION_MODES) {
           const option = document.createElement('option')
           option.value = optionConfig.value
@@ -640,7 +651,7 @@
       if (!sections || !sections.length) {
         const empty = document.createElement('div')
         empty.className = 'logs-review-empty'
-        empty.textContent = 'No latest files found.'
+        empty.textContent = t('noLatestFiles', 'No latest files found.')
         this.reportFilesEl.appendChild(empty)
       }
     }
@@ -663,7 +674,7 @@
         this.runFilterButton.disabled = !enabled
         if (!this.filtering) {
           this.runFilterButton.classList.remove('is-busy')
-          this.runFilterButton.innerHTML = '<i class="fa-solid fa-shield-halved"></i><span>Run privacy filter</span>'
+          this.runFilterButton.innerHTML = `<i class="fa-solid fa-shield-halved"></i><span>${t('runPrivacyFilter', 'Run privacy filter')}</span>`
         }
       }
     }
@@ -673,9 +684,9 @@
         this.runFilterButton.disabled = this.filtering || !this.reviewMarkdown
         this.runFilterButton.classList.toggle('is-busy', this.filtering)
         if (this.filtering) {
-          this.runFilterButton.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Filtering…</span>'
+          this.runFilterButton.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i><span>${t('filtering', 'Filtering...')}</span>`
         } else {
-          this.runFilterButton.innerHTML = '<i class="fa-solid fa-shield-halved"></i><span>Run privacy filter</span>'
+          this.runFilterButton.innerHTML = `<i class="fa-solid fa-shield-halved"></i><span>${t('runPrivacyFilter', 'Run privacy filter')}</span>`
         }
       }
       this.updateDraftSizeReview()
@@ -694,7 +705,7 @@
             return null
           }
           const id = item.id != null ? String(item.id) : String(index)
-          const label = String(item.label || 'private')
+          const label = String(item.label || t('private', 'private'))
           return {
             id,
             label,
@@ -732,7 +743,7 @@
     }
     sourceForOffset(text, offset) {
       const before = String(text || '').slice(0, Math.max(0, offset))
-      let source = 'Issue report'
+      let source = t('issueReport', 'Issue report')
       const pattern = /^###\s+(.+)$/gm
       let match = pattern.exec(before)
       while (match) {
@@ -784,12 +795,12 @@
     updateRedactionCount() {
       if (!this.reviewCountEl) return
       if (!this.redactionHasRun) {
-        this.reviewCountEl.textContent = 'Not run'
+        this.reviewCountEl.textContent = t('notRun', 'Not run')
         return
       }
       const enabled = this.enabledRedactionCount()
       const total = this.redactionItems.length
-      this.reviewCountEl.textContent = total ? `${enabled} masked` : '0 masked'
+      this.reviewCountEl.textContent = total ? t('maskedCount', '{count} masked', { count: enabled }) : t('maskedZero', '0 masked')
     }
     encodeUtf8Base64(value) {
       const text = String(value || '')
@@ -841,9 +852,9 @@
       if (!this.createDraftButton) return
       if (this.importingDraft) {
         this.createDraftButton.disabled = true
-        this.createDraftButton.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Opening…</span>'
+        this.createDraftButton.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i><span>${t('opening', 'Opening...')}</span>`
       } else {
-        this.createDraftButton.innerHTML = '<i class="fa-solid fa-paper-plane"></i><span>Ask Community</span>'
+        this.createDraftButton.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>${t('askCommunity', 'Ask Community')}</span>`
         this.updateDraftSizeReview()
       }
     }
@@ -871,18 +882,18 @@
         this.draftMeterFillEl.classList.toggle('is-error', Boolean(hasText && this.draftOversized))
       }
       if (this.draftStatusEl) {
-        let message = 'Waiting for latest log snapshot.'
+        let message = t('waitingSnapshot', 'Waiting for latest log snapshot.')
         let isError = false
         if (hasText && this.draftOversized) {
           isError = true
           message = this.draftPayloadBytes > DRAFT_IMPORT_FIELD_LIMIT_BYTES
-            ? `Too large for registry import after encoding. Exclude a section or keep fewer recent lines.`
-            : `Too large for one-click draft import. Exclude a section or keep fewer recent lines.`
+            ? t('tooLargeRegistryImport', 'Too large for registry import after encoding. Exclude a section or keep fewer recent lines.')
+            : t('tooLargeDraftImport', 'Too large for one-click draft import. Exclude a section or keep fewer recent lines.')
         } else if (hasText && !hasTitle) {
           isError = true
-          message = 'Add a title before posting to Community.'
+          message = t('addTitleCommunity', 'Add a title before posting to Community.')
         } else if (hasText) {
-          message = 'Ready. Community will use this preview exactly.'
+          message = t('communityReadyPreview', 'Ready. Community will use this preview exactly.')
         }
         this.draftStatusEl.textContent = message
         this.draftStatusEl.classList.toggle('is-error', isError)
@@ -895,13 +906,13 @@
         const canCreate = hasText && hasTitle && !this.draftOversized && !this.filtering && Boolean(this.draftUrl)
         this.createDraftButton.disabled = !canCreate
         this.createDraftButton.title = canCreate
-          ? 'Open a draft question on Community'
-          : (!hasTitle ? 'Add a title before posting to Community' : (this.draftOversized ? 'Reduce the report size before posting to Community' : 'Community posting is not available for this view'))
+          ? t('openDraftCommunity', 'Open a draft question on Community')
+          : (!hasTitle ? t('addTitleCommunityTooltip', 'Add a title before posting to Community') : (this.draftOversized ? t('reduceReportSizeCommunity', 'Reduce the report size before posting to Community') : t('communityPostingUnavailable', 'Community posting is not available for this view')))
       }
     }
     renderCurrentReport() {
       this.buildCurrentReport()
-      const text = this.currentMarkdown || 'No latest app logs were found.'
+      const text = this.currentMarkdown || t('noLatestAppLogs', 'No latest app logs were found.')
       this.renderHighlightedOutput(text, this.renderedRedactionItems)
       this.renderRedactionReview()
       this.updateRedactionCount()
@@ -933,7 +944,7 @@
         token.className = item.enabled ? 'logs-mask-token' : 'logs-unmasked-token'
         token.dataset.redactionId = item.id
         token.textContent = text.slice(item.maskedStart, item.maskedEnd)
-        token.title = `${item.enabled ? 'Masked' : 'Visible'} ${item.label} · line ${item.line}`
+        token.title = `${item.enabled ? t('masked', 'Masked') : t('visible', 'Visible')} ${item.label} · ${t('line', 'line')} ${item.line}`
         this.outputEl.appendChild(token)
         cursor = item.maskedEnd
       }
@@ -951,7 +962,7 @@
       this.updateRedactionCount()
       if (this.reviewFiltersEl) {
         this.reviewFiltersEl.textContent = ''
-        const filters = [['all', `All ${items.length}`], ...Array.from(labels.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([label, count]) => [label, `${label} ${count}`])]
+        const filters = [['all', t('allCount', 'All {count}', { count: items.length })], ...Array.from(labels.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([label, count]) => [label, `${label} ${count}`])]
         for (const [value, label] of filters) {
           const button = document.createElement('button')
           button.type = 'button'
@@ -973,7 +984,7 @@
       if (!items.length) {
         const empty = document.createElement('div')
         empty.className = 'logs-redaction-empty'
-        empty.textContent = this.redactionHasRun ? 'No redactions detected.' : 'Run the privacy filter to review detected items.'
+        empty.textContent = this.redactionHasRun ? t('noRedactionsDetected', 'No redactions detected.') : t('runPrivacyFilterReview', 'Run the privacy filter to review detected items.')
         this.reviewListEl.appendChild(empty)
         return
       }
@@ -983,7 +994,7 @@
       if (!visibleItems.length) {
         const empty = document.createElement('div')
         empty.className = 'logs-redaction-empty'
-        empty.textContent = 'No redactions match this filter.'
+        empty.textContent = t('noRedactionsMatchFilter', 'No redactions match this filter.')
         this.reviewListEl.appendChild(empty)
         return
       }
@@ -1017,18 +1028,18 @@
 
         const source = document.createElement('span')
         source.className = 'logs-redaction-source'
-        source.textContent = `${item.source} · line ${item.line}`
+        source.textContent = `${item.source} · ${t('line', 'line')} ${item.line}`
         source.title = source.textContent
         meta.appendChild(source)
 
         const toggle = document.createElement('label')
         toggle.className = 'logs-redaction-toggle'
-        toggle.title = item.enabled ? 'Keep this item masked' : 'Show this item in the copied report'
+        toggle.title = item.enabled ? t('keepMasked', 'Keep this item masked') : t('showInCopiedReport', 'Show this item in the copied report')
         toggle.addEventListener('click', (event) => event.stopPropagation())
         const checkbox = document.createElement('input')
         checkbox.type = 'checkbox'
         checkbox.checked = item.enabled
-        checkbox.setAttribute('aria-label', `${item.enabled ? 'Mask' : 'Show'} ${item.label}`)
+        checkbox.setAttribute('aria-label', `${item.enabled ? t('mask', 'Mask') : t('show', 'Show')} ${item.label}`)
         checkbox.addEventListener('click', (event) => event.stopPropagation())
         checkbox.addEventListener('change', (event) => {
           event.stopPropagation()
@@ -1085,7 +1096,7 @@
         behavior: reducedMotion ? 'auto' : 'smooth'
       })
     }
-    resetRedactionReview(message = 'Filtering has not run yet.') {
+    resetRedactionReview(message = t('filteringNotRunYet', 'Filtering has not run yet.')) {
       this.redactionItems = []
       this.renderedRedactionItems = []
       this.selectedRedactionId = null
@@ -1118,14 +1129,14 @@
       this.draftTitleEdited = false
       this.updateDraftTitleSuggestion(true)
       this.renderCurrentReport()
-      this.resetRedactionReview(this.reviewMarkdown ? 'Run the privacy filter to review detected items.' : 'No report text to review.')
+      this.resetRedactionReview(this.reviewMarkdown ? t('runPrivacyFilterReview', 'Run the privacy filter to review detected items.') : t('noReportTextReview', 'No report text to review.'))
       this.updateRedactionCount()
       this.setRunFilterEnabled(Boolean(this.reviewMarkdown))
       if (!this.reviewMarkdown) {
-        this.setStatus(`Latest snapshot found ${sections.length} log section${sections.length === 1 ? '' : 's'}.`)
+        this.setStatus(t(sections.length === 1 ? 'latestSnapshotFoundOne' : 'latestSnapshotFoundMany', sections.length === 1 ? 'Latest snapshot found {count} log section.' : 'Latest snapshot found {count} log sections.', { count: sections.length }))
         return
       }
-      this.setStatus(`Latest snapshot built from ${sections.length} log section${sections.length === 1 ? '' : 's'}. Run the privacy filter only if you want local redaction review.`)
+      this.setStatus(t(sections.length === 1 ? 'latestSnapshotBuiltOne' : 'latestSnapshotBuiltMany', sections.length === 1 ? 'Latest snapshot built from {count} log section. Run the privacy filter only if you want local redaction review.' : 'Latest snapshot built from {count} log sections. Run the privacy filter only if you want local redaction review.', { count: sections.length }))
     }
     renderError(message) {
       if (this.reportSectionsEl) this.reportSectionsEl.textContent = '--'
@@ -1137,32 +1148,32 @@
       this.redactionHasRun = false
       this.filtering = false
       this.clearDraftTitle()
-      this.setOutputText(message || 'Unable to build latest log snapshot.')
-      this.resetRedactionReview('No redaction review is available.')
+      this.setOutputText(message || t('unableBuildSnapshot', 'Unable to build latest log snapshot.'))
+      this.resetRedactionReview(t('noRedactionReviewAvailable', 'No redaction review is available.'))
       this.setCopyEnabled(false)
       this.setRunFilterEnabled(false)
       this.updateDraftSizeReview()
-      this.setStatus(message || 'Unable to build latest log snapshot.', true)
+      this.setStatus(message || t('unableBuildSnapshot', 'Unable to build latest log snapshot.'), true)
     }
     renderFilterProgress(progress) {
       if (!progress || typeof progress !== 'object') {
         return
       }
       if (progress.type === 'runtime') {
-        this.setStatus(`Loading OpenAI Privacy Filter locally (${progress.device}/${progress.dtype}). First run downloads and caches the model.`)
+        this.setStatus(t('loadingPrivacyFilter', 'Loading OpenAI Privacy Filter locally ({device}/{dtype}). First run downloads and caches the model.', { device: progress.device, dtype: progress.dtype }))
       } else if (progress.type === 'fallback') {
-        this.setStatus(progress.message || `Retrying privacy filtering locally with ${progress.device}/${progress.dtype}.`)
+        this.setStatus(progress.message || t('retryingPrivacyFilter', 'Retrying privacy filtering locally with {device}/{dtype}.', { device: progress.device, dtype: progress.dtype }))
       } else if (progress.type === 'download') {
         const fileLabel = progress.file ? ` ${progress.file}` : ''
         if (progress.total) {
-          this.setStatus(`Downloading privacy filter${fileLabel}: ${humanBytes(progress.loaded)} / ${humanBytes(progress.total)}. Cached for future reports.`)
+          this.setStatus(t('downloadingPrivacyFilterProgress', 'Downloading privacy filter{file}: {loaded} / {total}. Cached for future reports.', { file: fileLabel, loaded: humanBytes(progress.loaded), total: humanBytes(progress.total) }))
         } else {
-          this.setStatus(`Downloading privacy filter${fileLabel}. Cached for future reports.`)
+          this.setStatus(t('downloadingPrivacyFilter', 'Downloading privacy filter{file}. Cached for future reports.', { file: fileLabel }))
         }
       } else if (progress.type === 'chunk') {
         const total = Number(progress.total) || 0
         const done = Number(progress.done) || 0
-        this.setStatus(total > 0 ? `Filtering locally… ${Math.min(done + 1, total)} / ${total} chunks.` : 'Filtering locally…')
+        this.setStatus(total > 0 ? t('filteringLocallyProgress', 'Filtering locally... {done} / {total} chunks.', { done: Math.min(done + 1, total), total }) : t('filteringLocally', 'Filtering locally...'))
       }
     }
     renderFilterError(error) {
@@ -1173,10 +1184,10 @@
       this.selectedRedactionId = null
       this.setCopyEnabled(Boolean(this.currentMarkdown))
       this.setRunFilterEnabled(Boolean(this.reviewMarkdown))
-      this.setOutputText(this.reviewMarkdown || 'Privacy filter failed. No report text is available.')
+      this.setOutputText(this.reviewMarkdown || t('privacyFilterNoReportText', 'Privacy filter failed. No report text is available.'))
       this.updateDraftSizeReview()
-      this.resetRedactionReview('Privacy filtering failed before any redactions could be reviewed.')
-      this.setStatus(error && error.message ? error.message : 'Privacy filter failed.', true)
+      this.resetRedactionReview(t('privacyFilteringFailedBeforeReview', 'Privacy filtering failed before any redactions could be reviewed.'))
+      this.setStatus(error && error.message ? error.message : t('privacyFilterFailed', 'Privacy filter failed.'), true)
     }
     async filterReport() {
       const sourceMarkdown = this.reviewMarkdown || ''
@@ -1203,7 +1214,7 @@
         this.renderCurrentReport()
         this.selectRedaction(this.selectedRedactionId, false)
         const maskedCount = this.enabledRedactionCount()
-        this.setStatus(`Privacy filter finished locally. ${maskedCount} item${maskedCount === 1 ? '' : 's'} masked across ${this.filterChunks} chunk${this.filterChunks === 1 ? '' : 's'}.`)
+        this.setStatus(t(maskedCount === 1 ? 'privacyFilterFinishedOne' : 'privacyFilterFinishedMany', maskedCount === 1 ? 'Privacy filter finished locally. {count} item masked across {chunks} chunk(s).' : 'Privacy filter finished locally. {count} items masked across {chunks} chunk(s).', { count: maskedCount, chunks: this.filterChunks }))
       } catch (error) {
         if (token === this.filterToken) {
           this.renderFilterError(error)
@@ -1216,7 +1227,7 @@
     }
     async load(force = false) {
       if (!this.reportUrl) {
-        this.renderError('Latest log snapshot is available for app workspaces.')
+        this.renderError(t('latestSnapshotAppWorkspaces', 'Latest log snapshot is available for app workspaces.'))
         return
       }
       if (this.report && !force) {
@@ -1224,14 +1235,14 @@
         this.rebuildDraftPreview(false)
         this.setRunFilterEnabled(Boolean(this.reviewMarkdown) && !this.filtering)
         if (!this.redactionHasRun && this.reviewMarkdown) {
-          this.setStatus('Unfiltered report is ready. Run the privacy filter only if you want local redaction review.')
+          this.setStatus(t('unfilteredReady', 'Unfiltered report is ready. Run the privacy filter only if you want local redaction review.'))
         }
         return
       }
       if (this.loading) return
       this.loading = true
       this.setBusy(true)
-      this.setStatus('Building latest log snapshot…')
+      this.setStatus(t('buildingSnapshot', 'Building latest log snapshot...'))
       this.filterToken += 1
       this.rawMarkdown = ''
       this.reviewMarkdown = ''
@@ -1242,7 +1253,7 @@
       this.selectedRedactionId = null
       this.activeRedactionFilter = 'all'
       this.clearDraftTitle()
-      this.resetRedactionReview('Waiting for latest log snapshot.')
+      this.resetRedactionReview(t('waitingSnapshot', 'Waiting for latest log snapshot.'))
       this.setCopyEnabled(false)
       this.setFiltering(false)
       this.updateDraftSizeReview()
@@ -1258,7 +1269,7 @@
         this.report = payload
         this.render(payload)
       } catch (error) {
-        this.renderError(error && error.message ? error.message : String(error || 'Unknown error'))
+        this.renderError(error && error.message ? error.message : String(error || t('unknownError', 'Unknown error')))
       } finally {
         this.loading = false
         this.setBusy(false)
@@ -1281,10 +1292,10 @@
     async submitDraftImport(token, registry, popup, popupOrigin) {
       const draft = this.buildDraftImportPayload()
       if (!draft.metadata.title) {
-        throw new Error('Add a title before posting to Community.')
+        throw new Error(t('addTitleCommunity', 'Add a title before posting to Community.'))
       }
       if (!draft.metadata.body || this.draftOversized || draft.payloadBytes > DRAFT_IMPORT_FIELD_LIMIT_BYTES) {
-        throw new Error('Draft is too large for registry import.')
+        throw new Error(t('draftTooLargeRegistryImport', 'Draft is too large for registry import.'))
       }
       const form = new FormData()
       form.append('token', token)
@@ -1307,7 +1318,7 @@
           editUrl
         }, popupOrigin || this.registryOrigin(this.registryBase))
       }
-      this.setStatus(editUrl ? 'Community draft created. Opening editor.' : 'Community draft created.')
+      this.setStatus(editUrl ? t('communityDraftOpening', 'Community draft created. Opening editor.') : t('communityDraftCreated', 'Community draft created.'))
       return payload
     }
     async createDraft() {
@@ -1320,11 +1331,11 @@
       authorizeUrl.searchParams.set('origin', window.location.origin)
       authorizeUrl.searchParams.set('wait', '1')
       this.setCreateDraftBusy(true)
-      this.setStatus('Opening Community authorization…')
+      this.setStatus(t('openingCommunityAuthorization', 'Opening Community authorization...'))
       const popup = window.open(authorizeUrl.toString(), 'pinokio-draft-import', 'width=720,height=760')
       if (!popup) {
         this.setCreateDraftBusy(false)
-        this.setStatus('Community authorization window was blocked.', true)
+        this.setStatus(t('communityAuthorizationBlocked', 'Community authorization window was blocked.'), true)
         return
       }
       const registryOrigin = this.registryOrigin(this.registryBase)
@@ -1361,22 +1372,22 @@
         const token = typeof data.token === 'string' ? data.token : ''
         const registry = typeof data.registry === 'string' ? data.registry : this.registryBase
         if (!token) {
-          failPopup('Community did not return an import token.')
-          finish('Community did not return an import token.', true)
+          failPopup(t('communityNoImportToken', 'Community did not return an import token.'))
+          finish(t('communityNoImportToken', 'Community did not return an import token.'), true)
           return
         }
         try {
           await this.submitDraftImport(token, registry, popup, popupOrigin)
           finish(null, false)
         } catch (error) {
-          const message = error && error.message ? error.message : 'Draft import failed.'
+          const message = error && error.message ? error.message : t('draftImportFailed', 'Draft import failed.')
           failPopup(message)
           finish(message, true)
         }
       }
       const closeTimer = window.setInterval(() => {
         if (!settled && popup.closed) {
-          finish('Community authorization was closed before import.', true)
+          finish(t('communityAuthorizationClosed', 'Community authorization was closed before import.'), true)
         }
       }, 1000)
       window.addEventListener('message', onMessage)
@@ -1386,7 +1397,7 @@
       if (!this.currentMarkdown) return
       try {
         await navigator.clipboard.writeText(this.currentMarkdown)
-        this.setStatus(this.redactionHasRun ? 'Reviewed report copied.' : 'Unfiltered report copied.')
+        this.setStatus(this.redactionHasRun ? t('reviewedReportCopied', 'Reviewed report copied.') : t('unfilteredReportCopied', 'Unfiltered report copied.'))
       } catch (_) {
         if (this.outputEl) {
           this.outputEl.focus()
@@ -1396,7 +1407,7 @@
           selection.removeAllRanges()
           selection.addRange(range)
         }
-        this.setStatus('Select the snapshot text to copy.')
+      this.setStatus(t('selectSnapshotCopy', 'Select the snapshot text to copy.'))
       }
     }
   }
@@ -1415,7 +1426,7 @@
       if (this.clearButton) {
         this.clearButton.addEventListener('click', () => {
           this.outputEl.textContent = ''
-          this.setStatus('Cleared. Waiting for new data…')
+          this.setStatus(t('clearedWaiting', 'Cleared. Waiting for new data...'))
         })
       }
       window.addEventListener('beforeunload', () => this.stop())
@@ -1501,9 +1512,9 @@
         this.clearButton.disabled = false
       }
       this.updatePath(entry.path)
-      this.setStatus('Connecting…')
+      this.setStatus(t('connecting', 'Connecting...'))
       if (typeof EventSource === 'undefined') {
-        this.setStatus('EventSource is not supported in this browser.')
+        this.setStatus(t('eventSourceUnsupported', 'EventSource is not supported in this browser.'))
         return
       }
       const url = new URL('/api/logs/stream', window.location.origin)
@@ -1517,11 +1528,11 @@
       source.addEventListener('snapshot', (event) => {
         const payload = safeJsonParse(event.data)
         if (payload && payload.truncated) {
-          this.setStatus('Showing the latest part of this file…')
+          this.setStatus(t('showingLatestPart', 'Showing the latest part of this file...'))
         }
       })
       source.addEventListener('ready', () => {
-        this.setStatus('Streaming live output.')
+        this.setStatus(t('streamingLiveOutput', 'Streaming live output.'))
       })
       source.addEventListener('chunk', (event) => {
         const payload = safeJsonParse(event.data)
@@ -1533,25 +1544,25 @@
         if (this.outputEl) {
           this.outputEl.textContent = ''
         }
-        this.setStatus('File truncated. Restarting stream…')
+        this.setStatus(t('fileTruncatedRestarting', 'File truncated. Restarting stream...'))
       })
       source.addEventListener('rotate', (event) => {
         const payload = safeJsonParse(event.data)
-        this.setStatus((payload && payload.message) || 'File rotated. Stream closed.')
+        this.setStatus((payload && payload.message) || t('fileRotatedStreamClosed', 'File rotated. Stream closed.'))
         this.stop()
       })
       source.addEventListener('server-error', (event) => {
         const payload = safeJsonParse(event.data)
-        this.setStatus((payload && payload.message) || 'Streaming error.')
+        this.setStatus((payload && payload.message) || t('streamingError', 'Streaming error.'))
       })
       source.onerror = () => {
         if (!this.currentSource) {
           return
         }
         if (this.currentSource.readyState === EventSource.CLOSED) {
-          this.setStatus('Stream closed.')
+          this.setStatus(t('streamClosed', 'Stream closed.'))
         } else {
-          this.setStatus('Connection lost. Reconnecting…')
+          this.setStatus(t('connectionLostReconnecting', 'Connection lost. Reconnecting...'))
         }
       }
     }
@@ -1670,12 +1681,12 @@
       }
       node.loading = true
       node.children.innerHTML = ''
-      node.children.appendChild(this.buildMessage('Loading…'))
+      node.children.appendChild(this.buildMessage(t('loading', 'Loading...')))
       try {
         const payload = await this.fetchChildren(node.entry.path || '')
         node.children.innerHTML = ''
         if (!payload.entries || payload.entries.length === 0) {
-          node.children.appendChild(this.buildMessage('Empty folder'))
+          node.children.appendChild(this.buildMessage(t('emptyFolder', 'Empty folder')))
         } else {
           const directories = payload.entries.filter((entry) => entry.type === 'directory')
           const files = payload.entries.filter((entry) => entry.type !== 'directory')
@@ -1690,7 +1701,7 @@
         node.loaded = true
       } catch (error) {
         node.children.innerHTML = ''
-        node.children.appendChild(this.buildMessage(error.message || 'Failed to load folder', 'error'))
+        node.children.appendChild(this.buildMessage(error.message || t('failedLoadFolder', 'Failed to load folder'), 'error'))
       } finally {
         node.loading = false
       }
@@ -1789,9 +1800,9 @@
           refreshBtn.classList.add('is-busy')
           try {
             await this.tree.refresh()
-            this.viewer.setStatus('Tree refreshed.')
+            this.viewer.setStatus(t('treeRefreshed', 'Tree refreshed.'))
           } catch (error) {
-            this.viewer.setStatus(error.message || 'Failed to refresh tree.')
+            this.viewer.setStatus(error.message || t('failedRefreshTree', 'Failed to refresh tree.'))
           } finally {
             refreshBtn.disabled = false
             refreshBtn.classList.remove('is-busy')
@@ -2081,7 +2092,7 @@
       if (!this.sidebarToggle) {
         return
       }
-      const label = collapsed ? 'Expand log navigation' : 'Collapse log navigation'
+      const label = collapsed ? t('expandLogNavigation', 'Expand log navigation') : t('collapseLogNavigation', 'Collapse log navigation')
       this.sidebarToggle.setAttribute('aria-label', label)
       this.sidebarToggle.setAttribute('aria-expanded', String(!collapsed))
       this.sidebarToggle.title = label

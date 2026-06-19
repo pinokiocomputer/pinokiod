@@ -1,5 +1,9 @@
 <html>
 <head>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <script src="/hotkeys.min.js"></script>
 <script src="/ace/ace.js"></script>
@@ -18,6 +22,9 @@
 <script src="/terminal_input_tracker.js"></script>
 <script src="/terminal_input_utils.js"></script>
 <script src="/terminal_key_caption.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/terminal-settings.js"></script>
 <script src="/pinokio-touch.js"></script>
 <script src="/common.js"></script>
@@ -745,10 +752,10 @@ body.dark .ai-manage-item {
 let shell_id
 const formatUploadNotification = (files, sessionId, shellEmit, shellEmitAttempted) => {
   if (!Array.isArray(files) || files.length === 0) {
-    return 'Upload complete (no files reported)'
+    return <%-trj("terminal.upload_complete_no_files")%>
   }
-  const countLabel = files.length > 1 ? `${files.length} files attached` : 'File attached'
-  const sessionLabel = sessionId ? sessionId : '(unknown session)'
+  const countLabel = files.length > 1 ? <%-trj("terminal.files_attached")%>.replace("{count}", files.length) : <%-trj("terminal.file_attached")%>
+  const sessionLabel = sessionId ? sessionId : <%-trj("terminal.unknown_session")%>
   const summaries = files.map((file) => {
     const name = file && (file.originalName || file.name || file.storedAs) ? (file.originalName || file.name || file.storedAs) : 'unknown'
     const target = file && (file.cliRelativePath || file.displayPath || file.path) ? (file.cliRelativePath || file.displayPath || file.path) : ''
@@ -757,13 +764,13 @@ const formatUploadNotification = (files, sessionId, shellEmit, shellEmitAttempte
   })
   let emitStatus
   if (shellEmitAttempted) {
-    emitStatus = shellEmit ? 'Shell emit: delivered to terminal session' : 'Shell emit: failed – fallback used'
+    emitStatus = shellEmit ? <%-trj("terminal.shell_emit_delivered")%> : <%-trj("terminal.shell_emit_failed")%>
   } else if (shellEmitAttempted === false) {
-    emitStatus = 'Shell emit: not attempted'
+    emitStatus = <%-trj("terminal.shell_emit_not_attempted")%>
   } else {
-    emitStatus = 'Shell emit: status unknown'
+    emitStatus = <%-trj("terminal.shell_emit_unknown")%>
   }
-  return `${countLabel}<br>Session: ${sessionLabel}<br>${emitStatus}<br>${summaries.join('<br>')}`
+  return `${countLabel}<br>${<%-trj("terminal.session")%>}: ${sessionLabel}<br>${emitStatus}<br>${summaries.join('<br>')}`
 }
 Dropzone.autoDiscover = false;
 function postMessageToAncestors(payload) {
@@ -919,15 +926,15 @@ const createProtectionControls = (options = {}) => {
     button.dataset.enabled = enabled ? "true" : "false"
     button.setAttribute("aria-checked", enabled ? "true" : "false")
     button.setAttribute("aria-busy", saving ? "true" : "false")
-    button.setAttribute("aria-label", enabled ? "Protection on" : "Protection off")
+    button.setAttribute("aria-label", enabled ? <%-trj("terminal.protection_on")%> : <%-trj("terminal.protection_off")%>)
     button.classList.toggle("is-saving", saving)
     button.disabled = saving
     if (state) {
-      state.textContent = enabled ? "On" : "Off"
+      state.textContent = enabled ? <%-trj("common.on")%> : <%-trj("common.off")%>
     }
     button.title = enabled
-      ? "Blocks packages newer than 72 hours."
-      : "Skips Bluefairy for new runs."
+      ? <%-trj("terminal.protection_blocks_short")%>
+      : <%-trj("terminal.protection_skips_short")%>
   }
   const parseSaveError = async (response) => {
     try {
@@ -936,7 +943,7 @@ const createProtectionControls = (options = {}) => {
         return String(payload.error)
       }
     } catch (_) {}
-    return `Failed to update protection (${response.status})`
+    return <%-trj("terminal.failed_update_protection_status")%>.replace("{status}", response.status)
   }
   const save = async (nextEnabled) => {
     if (!appId) {
@@ -979,13 +986,13 @@ const createProtectionControls = (options = {}) => {
       : false
     try {
       if (isRunning) {
-        await showPopup("Stop the script before changing protection.")
+        await showPopup(<%-trj("terminal.stop_before_protection")%>)
         sync()
         return
       }
       await save(nextEnabled)
     } catch (error) {
-      await showPopup(error && error.message ? error.message : "Failed to update protection.")
+      await showPopup(error && error.message ? error.message : <%-trj("terminal.failed_update_protection")%>)
       sync()
     }
   }
@@ -1134,19 +1141,19 @@ const createAiConsentManager = (context = {}) => {
     const listEl = state.manage.querySelector(".ai-manage-list")
     if (!listEl) return
     if (!storageSupported) {
-      listEl.innerHTML = `<div class="ai-manage-empty">Browser storage is unavailable, so permissions cannot be saved.</div>`
+      listEl.innerHTML = `<div class="ai-manage-empty">${<%-trj("terminal.browser_storage_permissions_unavailable")%>}</div>`
       return
     }
     const entries = listConsents()
     if (entries.length === 0) {
-      listEl.innerHTML = `<div class="ai-manage-empty">No saved permissions.</div>`
+      listEl.innerHTML = `<div class="ai-manage-empty">${<%-trj("terminal.no_saved_permissions")%>}</div>`
       return
     }
     listEl.innerHTML = entries.map((entry) => {
       return `
         <div class="ai-manage-item">
           <div class="ai-manage-path">${entry.label}</div>
-          <button type="button" data-ai-revoke="${entry.key}">Revoke</button>
+          <button type="button" data-ai-revoke="${entry.key}">${<%-trj("terminal.revoke")%>}</button>
         </div>
       `
     }).join("")
@@ -1165,12 +1172,12 @@ const createAiConsentManager = (context = {}) => {
     sheet.hidden = true
     sheet.innerHTML = `
       <div class="ai-manage-header">
-        <h3>AI permissions</h3>
+        <h3>${<%-trj("plugin_detail.ai_permissions")%>}</h3>
         <button type="button" id="ai-manage-close">×</button>
       </div>
       <div class="ai-manage-list"></div>
       <div class="ai-manage-footer">
-        <button class="ai-btn-secondary" id="ai-manage-clear">Clear all</button>
+        <button class="ai-btn-secondary" id="ai-manage-clear">${<%-trj("terminal.clear_all")%>}</button>
       </div>
     `
     document.body.appendChild(sheet)
@@ -1207,18 +1214,18 @@ const createAiConsentManager = (context = {}) => {
           </div>
         </div>
         <ul class="ai-consent-list">
-          <li><strong>Will access:</strong> <span class="ai-consent-scope"></span></li>
-          <li><strong>Won't access:</strong> other folders</li>
+          <li><strong>${<%-trj("terminal.will_access")%>}:</strong> <span class="ai-consent-scope"></span></li>
+          <li><strong>${<%-trj("terminal.wont_access")%>}:</strong> ${<%-trj("terminal.other_folders")%>}</li>
         </ul>
         <label class="ai-consent-remember">
           <input type="checkbox" id="ai-consent-remember">
           <span class="ai-consent-remember-label"></span>
         </label>
         <div class="ai-consent-actions">
-          <button class="ai-btn-secondary" type="button" data-ai-consent-cancel>Cancel</button>
-          <button class="ai-btn-primary" type="button" data-ai-consent-next>Next</button>
+          <button class="ai-btn-secondary" type="button" data-ai-consent-cancel>${<%-trj("common.cancel")%>}</button>
+          <button class="ai-btn-primary" type="button" data-ai-consent-next>${<%-trj("terminal.next")%>}</button>
         </div>
-        <button class="ai-consent-manage" type="button" data-ai-consent-manage>Manage permissions</button>
+        <button class="ai-consent-manage" type="button" data-ai-consent-manage>${<%-trj("terminal.manage_permissions")%>}</button>
       </div>
     `
     document.body.appendChild(overlay)
@@ -1240,13 +1247,13 @@ const createAiConsentManager = (context = {}) => {
     const cancelBtn = overlay.querySelector("[data-ai-consent-cancel]")
     const manageBtn = overlay.querySelector("[data-ai-consent-manage]")
 
-    if (title) title.textContent = "Remote Network Access"
+    if (title) title.textContent = <%-trj("terminal.remote_network_access")%>
     if (desc) {
-      const target = providerLabel || "a remote API"
-      desc.textContent = `This script may send files inside ${label} to ${target}.`
+      const target = providerLabel || <%-trj("terminal.remote_api")%>
+      desc.textContent = <%-trj("terminal.remote_access_description")%>.replace("{label}", label).replace("{target}", target)
     }
     if (scope) scope.textContent = label
-    if (rememberLabel) rememberLabel.textContent = `Always allow for ${label}`
+    if (rememberLabel) rememberLabel.textContent = <%-trj("terminal.always_allow_for")%>.replace("{label}", label)
     if (rememberBox) {
       rememberBox.checked = storageSupported
       rememberBox.disabled = !storageSupported
@@ -1477,11 +1484,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       this.dirty = true
     }
     finished() {
-    /*
-      n.Noty({
-        text: `[Success] All steps complete`,
-      })
-      */
       runControls.set("idle")
     }
     stop() {
@@ -1651,12 +1653,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
             if (packet.data.type === "emit2") {
               // long text => still posting to the shell => show progress
-              document.querySelector("#status-window").innerHTML = `<strong>Pasting... (${Math.floor(100 * packet.data.i/packet.data.total)}%)</strong>`
+              document.querySelector("#status-window").innerHTML = `<strong>${<%-trj("terminal.pasting")%>} (${Math.floor(100 * packet.data.i/packet.data.total)}%)</strong>`
               let percent = Math.floor(100 * packet.data.i/packet.data.total)
               document.querySelector("#progress-window").classList.remove("hidden")
               document.querySelector("#progress-bar").style.width = "" + percent + "%";
             } else {
-              document.querySelector("#status-window").innerHTML = "<b>Ready</b>"
+              document.querySelector("#status-window").innerHTML = "<b><%=tr("common.ready")%></b>"
               document.querySelector("#progress-window").classList.add("hidden")
               document.querySelector("#progress-bar").style.width = "0%"
             }
@@ -1665,8 +1667,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             refreshParent(packet)
             pluginTerminalDiscoveryRefresher.clear()
             reloadMemory()
-            this.term.write("\r\nDisconnected...\r\n")
-            document.querySelector("#status-window").innerHTML = "<b>Ready</b>"
+            this.term.write("\r\n" + <%-trj("terminal.disconnected")%> + "\r\n")
+            document.querySelector("#status-window").innerHTML = "<b><%=tr("common.ready")%></b>"
             this.socket.close()
             runControls.set("idle")
             this.resizeSync.reset()
@@ -2034,7 +2036,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                   status: "stopped"
                 })
               }
-              document.querySelector("#status-window").innerHTML = "<b>Ready</b>"
+              document.querySelector("#status-window").innerHTML = "<b><%=tr("common.ready")%></b>"
               setTimeout(() => {
 
                 let params = new URLSearchParams(location.search)
@@ -2066,16 +2068,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
               <% if (locals.prev) { %>
                 n.Noty({
-                  text: '[Notice] finished',
+                  text: <%-trj("terminal.notice_finished")%>,
                   type: 'success'
                 })
               <% } %>
-              /*
-                n.Noty({
-                  text: '[Notice] finished',
-                  type: 'success'
-                })
-                */
                 pluginTerminalDiscoveryRefresher.clear()
                 runControls.set("idle")
               }, 0)
@@ -2108,7 +2104,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         pluginTerminalDiscoveryRefresher.clear()
         runControls.set("idle")
         n.Noty({
-          text: "Run canceled; AI agents remain blocked for this folder.",
+          text: <%-trj("terminal.run_canceled")%>,
           type: "warning",
           timeout: 4000
         })
@@ -2116,13 +2112,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       runControls.set("starting")
       
-//      if (dirty) {
-//        await this.save()
-//        n.Noty({
-//          text: `script updated`,
-//        })
-//      }
-
       <% if (theme === "dark") { %>
       await this.createTerm(xtermTheme.FrontEndDelight)
       <% } else { %>
@@ -2134,7 +2123,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       } catch (error) {
         pluginTerminalDiscoveryRefresher.clear()
         runControls.set("idle")
-        const message = error && error.message ? error.message : "Failed to start"
+        const message = error && error.message ? error.message : <%-trj("terminal.failed_start")%>
         n.Noty({
           text: message,
           type: "error",
@@ -2150,7 +2139,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       if (!this.socket || !this.socket.ws || this.socket.ws.readyState !== WebSocket.OPEN) {
         n.Noty({
-          text: "Terminal connection is not ready for uploads",
+          text: <%-trj("terminal.connection_not_ready_uploads")%>,
           type: "error"
         })
         return
@@ -2177,7 +2166,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       if (entries.length === 0) {
         n.Noty({
-          text: "No readable files were dropped",
+          text: <%-trj("terminal.no_readable_files")%>,
           type: "error"
         })
         return
@@ -2193,19 +2182,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       try {
         if (overlay) {
           overlay.classList.add("active")
-          overlay.textContent = "Uploading..."
+          overlay.textContent = <%-trj("terminal.uploading_ellipsis")%>
         }
         await this.socket.sendBinary(buildBinaryRpcPayload(rpcPayload, entries))
       } catch (error) {
         console.error("Upload failed", error)
         n.Noty({
-          text: `Upload failed: ${error.message}`,
+          text: <%-trj("terminal.upload_failed")%>.replace("{message}", error.message),
           type: "error"
         })
       } finally {
         if (overlay) {
           overlay.classList.remove("active")
-          overlay.textContent = "Drop files to upload"
+          overlay.textContent = <%-trj("terminal.drop_files_upload")%>
         }
       }
     }
@@ -2222,7 +2211,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       try {
         if (overlay) {
           overlay.classList.add("active")
-          overlay.textContent = "Downloading..."
+          overlay.textContent = <%-trj("terminal.downloading_ellipsis")%>
         }
         const response = await fetch('/terminal/url-upload', {
           method: 'POST',
@@ -2266,20 +2255,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (failures.length > 0) {
           const plural = failures.length > 1
           n.Noty({
-            text: plural ? `${failures.length} remote files failed to download` : `Remote file failed to download`,
+            text: plural ? <%-trj("terminal.remote_files_failed_download")%>.replace("{count}", failures.length) : <%-trj("terminal.remote_file_failed_download")%>,
             type: "error",
             timeout: 5000
           })
         }
       } catch (error) {
         n.Noty({
-          text: `Remote upload failed: ${error.message}`,
+          text: <%-trj("terminal.remote_upload_failed")%>.replace("{message}", error.message),
           type: "error"
         })
       } finally {
         if (overlay) {
           overlay.classList.remove("active")
-          overlay.textContent = "Drop files to upload"
+          overlay.textContent = <%-trj("terminal.drop_files_upload")%>
         }
       }
     }
@@ -2484,7 +2473,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const terminalContainer = document.querySelector("#terminal")
         const dropOverlay = document.createElement("div")
         dropOverlay.className = "terminal-drop-overlay"
-        dropOverlay.textContent = "Drop files to upload"
+        dropOverlay.textContent = <%-trj("terminal.drop_files_upload")%>
         terminalContainer.appendChild(dropOverlay)
         window.PinokioTouch.bindTerminalFocus(term, terminalContainer)
         const dedupeClipboardFiles = (inputs) => {
@@ -2969,7 +2958,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (document.querySelector("#del-bin")) {
     document.querySelector("#del-bin").addEventListener("click", async (e) => {
       console.log("del-bin")
-      let proceed = confirm("Are you sure you wish to delete the bin folder?")
+      let proceed = confirm(<%-trj("terminal.delete_bin_confirm")%>)
       if (proceed) {
         document.querySelector(".reset-bin-loading").classList.remove("hidden")
         document.querySelector("#del-bin").classList.add("hidden")
@@ -3033,26 +3022,26 @@ const reloadMemory = async () => {
   <% if (locals.full_navbar) { %>
     <header class="navheader grabbable">
       <h1>
-        <a class="home" href="/home"><img class="icon" src="/pinokio-black.png"><i class="fa-solid fa-expand home-expand-icon" aria-hidden="true"></i></a><div class="header-drag-handle" aria-hidden="true" title="Drag minimized header"></div>
-        <button class="btn2" id="minimize-header" data-tippy-content="fullscreen" title="fullscreen">
+        <a class="home" href="/home"><img class="icon" src="/pinokio-black.png"><i class="fa-solid fa-expand home-expand-icon" aria-hidden="true"></i></a><div class="header-drag-handle" aria-hidden="true" title="<%=tr("common.drag_minimized_header")%>"></div>
+        <button class="btn2" id="minimize-header" data-tippy-content="<%=tr("common.fullscreen")%>" title="<%=tr("common.fullscreen")%>">
           <div><i class="fa-solid fa-expand"></i></div>
         </button>
-        <button class="btn2" id="back" data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-        <button class="btn2" id="forward" data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-        <button class="btn2" id="refresh-page" data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
-        <button class="btn2" id="screenshot" data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
-        <button class="btn2" id="inspector" data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+        <button class="btn2" id="back" data-tippy-content="<%=tr("common.back")%>"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+        <button class="btn2" id="forward" data-tippy-content="<%=tr("common.forward")%>"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+        <button class="btn2" id="refresh-page" data-tippy-content="<%=tr("common.refresh")%>"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+        <button class="btn2" id="screenshot" data-tippy-content="<%=tr("common.screen_capture")%>"><i class="fa-solid fa-camera"></i></button>
+        <button class="btn2" id="inspector" data-tippy-content="<%=tr("common.xray_mode")%>"><i class="fa-solid fa-eye"></i></button>
         <div class="flexible"></div>
-        <a class="btn2" href="/columns" data-tippy-content="split into 2 columns">
+        <a class="btn2" href="/columns" data-tippy-content="<%=tr("common.split_columns")%>">
           <div><i class="fa-solid fa-table-columns"></i></div>
         </a>
-        <a class="btn2" href="/rows" data-tippy-content="split into 2 rows">
+        <a class="btn2" href="/rows" data-tippy-content="<%=tr("common.split_rows")%>">
           <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
         </a>
-        <button class="btn2" id="new-window" data-tippy-content="open a new window" title="open a new window" data-agent="<%=agent%>">
+        <button class="btn2" id="new-window" data-tippy-content="<%=tr("common.open_new_window")%>" title="<%=tr("common.open_new_window")%>" data-agent="<%=agent%>">
           <div><i class="fa-solid fa-plus"></i></div>
         </button>
-        <button class="btn2 hidden" id="close-window" data-tippy-content="close this section">
+        <button class="btn2 hidden" id="close-window" data-tippy-content="<%=tr("common.close_section")%>">
           <div><i class="fa-solid fa-xmark"></i></div>
         </button>
       </h1>
@@ -3062,12 +3051,12 @@ const reloadMemory = async () => {
     <header class='navheader2'>
       <div class='runner'>
         <% if (locals.prev) { %>
-          <a class='btn' href="<%=prev%>"><i class="fa-solid fa-arrow-left"></i> Back</a>
+          <a class='btn' href="<%=prev%>"><i class="fa-solid fa-arrow-left"></i> <%=tr("common.back")%></a>
         <% } %>
         <div class='btn run <%= mod && runnable ? "" : "hidden" %>'>
-          <span class='play'><i class="fa-solid fa-play"></i> Run</span>
-          <span class='starting hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
-          <span class='stop hidden'><i class="fa-solid fa-stop"></i> Stop</span>
+          <span class='play'><i class="fa-solid fa-play"></i> <%=tr("terminal.run")%></span>
+          <span class='starting hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> <%=tr("terminal.starting")%></span>
+          <span class='stop hidden'><i class="fa-solid fa-stop"></i> <%=tr("terminal.stop")%></span>
         </div>
         <% if (locals.protection_app_id) { %>
           <button
@@ -3076,19 +3065,19 @@ const reloadMemory = async () => {
             data-protection-toggle
             role='switch'
             aria-checked="<%= protection_enabled === true ? 'true' : 'false' %>"
-            aria-label="Protection <%= protection_enabled === true ? 'on' : 'off' %>"
+            aria-label="<%= protection_enabled === true ? tr("terminal.protection_on") : tr("terminal.protection_off") %>"
           >
             <span class='protection-toggle-copy'>
               <span class='protection-toggle-icon-wrap' aria-hidden="true">
                 <i class="fa-solid fa-shield-halved protection-toggle-icon"></i>
               </span>
-              <span class='protection-toggle-label'>Protection</span>
-              <span class='protection-toggle-state' data-protection-state><%= protection_enabled === true ? 'On' : 'Off' %></span>
+              <span class='protection-toggle-label'><%=tr("editor.protection")%></span>
+              <span class='protection-toggle-state' data-protection-state><%= protection_enabled === true ? tr("common.on") : tr("common.off") %></span>
             </span>
             <span class='protection-toggle-switch' aria-hidden="true"></span>
           </button>
         <% } %>
-        <button class='btn hidden' type='button' data-save-task-button hidden><i class="fa-solid fa-bookmark"></i> Save task</button>
+        <button class='btn hidden' type='button' data-save-task-button hidden><i class="fa-solid fa-bookmark"></i> <%=tr("terminal.save_task")%></button>
         <div id='status-window'></div>
         <div id='progress-window' class='hidden'><div id='progress-bar'></div></div>
     </div>
@@ -3108,18 +3097,18 @@ const reloadMemory = async () => {
     <% if (locals.install_required) { %>
       <div class='requirements'>
         <div class='content'>
-          <div class='title'><i class="fa-solid fa-circle-exclamation"></i> Installation required</div>
+          <div class='title'><i class="fa-solid fa-circle-exclamation"></i> <%=tr("terminal.installation_required")%></div>
           <div class='btn-group'>
             <% requirements.map((r) => { %>
               <div class='requirement-item'>
                 <% if (r.installed) { %>
                   <div class='name'><%=r.type ? `${r.type} : ${r.name}` : r.name%></div>
                   <div class='flexible'></div>
-                  <div class='label'>Installed</div>
+                  <div class='label'><%=tr("terminal.installed")%></div>
                 <% } else { %>
                   <div class='name highlighted'><%=r.type ? `${r.type} : ${r.name}` : r.name%></div>
                   <div class='flexible'></div>
-                  <div class='label highlighted'>Not Installed</div>
+                  <div class='label highlighted'><%=tr("terminal.not_installed")%></div>
                 <% } %>
               </div>
             <% }) %>
@@ -3127,12 +3116,12 @@ const reloadMemory = async () => {
           <form id='install-form' method="post" action="/pinokio/install">
             <input type='hidden' name="requirements" value="<%=JSON.stringify(requirements)%>">
             <input type='hidden' name='callback' value="<%=current%>">
-            <button class='btn'>Install</button>
+            <button class='btn'><%=tr("common.install")%></button>
           </form>
           <div class='item'>
-            <div class='d'>Not working? <a id='del-bin'>Try a fresh install</a></div>
+            <div class='d'><%=tr("terminal.not_working")%> <a id='del-bin'><%=tr("terminal.try_fresh_install_link")%></a></div>
             <div class='reset-bin-loading hidden'>
-              <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
+              <i class="fa-solid fa-circle-notch fa-spin"></i> <%=tr("settings.loading")%>
             </div>
           </div>
         </div>
@@ -3142,7 +3131,7 @@ const reloadMemory = async () => {
         <% if (memory.length > 0) { %>
           <div class='memory'>
             <div class='memory-header'>
-              <div>Memory</div>
+              <div><%=tr("terminal.memory")%></div>
               <div class='flexible'></div>
               <div id='lv' class='btn2'><i class="fa-solid fa-sort-up"></i></div>
             </div>
@@ -3154,10 +3143,10 @@ const reloadMemory = async () => {
                 <% if (m.localhost) { %>
                   <% if (m.tunnel) { %>
                     <td><%=m.tunnel%></td>
-                    <td><a class='btn2' target="_blank" href="<%=m.tunnel%>"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a></td>
-                    <td><button data-url="<%=m.val%>" class='btn2 tunnel-stop'><i class="fa-solid fa-lock-closed"></i> Make Private</button></td>
+                    <td><a class='btn2' target="_blank" href="<%=m.tunnel%>"><i class="fa-solid fa-arrow-up-right-from-square"></i> <%=tr("common.open")%></a></td>
+                    <td><button data-url="<%=m.val%>" class='btn2 tunnel-stop'><i class="fa-solid fa-lock-closed"></i> <%=tr("terminal.make_private")%></button></td>
                   <% } else { %>
-                    <td><button data-url="<%=m.val%>" class='btn2 tunnel'><i class="fa-solid fa-lock-open"></i> Make Public</button></td>
+                    <td><button data-url="<%=m.val%>" class='btn2 tunnel'><i class="fa-solid fa-lock-open"></i> <%=tr("terminal.make_public")%></button></td>
                   <% } %>
                 <% } %>
               </tr>
@@ -3167,7 +3156,7 @@ const reloadMemory = async () => {
         <% } else { %>
           <div class='memory'>
             <div class='memory-header'>
-              <div>Memory</div>
+              <div><%=tr("terminal.memory")%></div>
               <div class='flexible'></div>
               <div id='lv' class='btn2'><i class="fa-solid fa-sort-up"></i></div>
             </div>
@@ -3186,10 +3175,10 @@ const reloadMemory = async () => {
       </a>
       <div class='flexible'></div>
       <button type='button' class='btn' data-ask-ai-trigger="true" data-workspace="<%= (typeof projectName !== 'undefined' && projectName) ? projectName : '' %>" data-workspace-cwd="<%= (typeof cwd !== 'undefined' && cwd) ? cwd : '' %>">
-        <div><i class="fa-solid fa-robot"></i> Ask AI</div>
+        <div><i class="fa-solid fa-robot"></i> <%=tr("app.ask_ai")%></div>
       </button>
       <a class='btn' href="<%=portal%>" target="_blank">
-        <div><i class="fa-solid fa-question"></i> Ask Community</div>
+        <div><i class="fa-solid fa-question"></i> <%=tr("app.ask_community")%></div>
       </a>
     </div>
   </div>

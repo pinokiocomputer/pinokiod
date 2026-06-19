@@ -33,6 +33,21 @@
   let openMenuContext = null;
   const MENU_KEY_TOGGLE = 'toggle';
   let dismissOverlay = null;
+  const t = (key, fallback, replacements = {}) => {
+    const fn = typeof window.pinokioT === 'function' ? window.pinokioT : null;
+    if (fn) {
+      return fn(key, fallback, replacements);
+    }
+    const catalog = window.PINOKIO_I18N && typeof window.PINOKIO_I18N === 'object' ? window.PINOKIO_I18N : {};
+    let value = Object.prototype.hasOwnProperty.call(catalog, key) ? catalog[key] : `[missing translation: ${key}]`;
+    if (typeof value !== 'string') {
+      value = `[missing translation: ${key}]`;
+    }
+    Object.entries(replacements || {}).forEach(([name, replacement]) => {
+      value = value.replace(new RegExp(`\\{${name}\\}`, 'g'), replacement == null ? '' : String(replacement));
+    });
+    return value;
+  };
 
   const hydratePreferences = () => {
     try {
@@ -162,8 +177,8 @@
   };
 
   const baseSoundOptions = () => ([
-    { value: SOUND_DEFAULT_CHOICE, label: 'Default Chime', preview: DEFAULT_SOUND_URL },
-    { value: SOUND_SILENT_CHOICE, label: 'Silent', preview: null },
+    { value: SOUND_DEFAULT_CHOICE, label: t('notifications.default_chime', 'Default Chime'), preview: DEFAULT_SOUND_URL },
+    { value: SOUND_SILENT_CHOICE, label: t('notifications.silent', 'Silent'), preview: null },
   ]);
 
   const loadSoundOptions = () => {
@@ -345,8 +360,8 @@
       const key = getMenuKeyForSoundValue(value);
       const isSelected = value === selectedChoice
         || (value === SOUND_DEFAULT_CHOICE && (selectedChoice === SOUND_DEFAULT_CHOICE || !selectedChoice));
-      const label = option.label || 'Sound';
-      const meta = value === SOUND_SILENT_CHOICE ? 'No sound' : (value === SOUND_DEFAULT_CHOICE ? 'Default' : null);
+      const label = option.label || t('notifications.sound', 'Sound');
+      const meta = value === SOUND_SILENT_CHOICE ? t('notifications.no_sound', 'No sound') : (value === SOUND_DEFAULT_CHOICE ? t('notifications.default', 'Default') : null);
       const safeValue = escapeHtml(value);
       const safeLabel = escapeHtml(label);
       const safeMeta = meta ? escapeHtml(meta) : '';
@@ -360,19 +375,20 @@
       `;
     }).join('');
 
-    const loadingRow = loading ? '<div class="pinokio-notify-loading">Loading sounds…</div>' : '';
+    const loadingRow = loading ? `<div class="pinokio-notify-loading">${escapeHtml(t('notifications.loading_sounds', 'Loading sounds...'))}</div>` : '';
+    const toggleLabel = tabEnabled ? t('notifications.on', 'Notifications on') : t('notifications.off', 'Notifications off');
 
     soundMenuContent.innerHTML = `
       <div class="pinokio-notify-section">
         <button type="button" class="pinokio-notify-item" data-menu-item="true" data-role="toggle" data-menu-key="${MENU_KEY_TOGGLE}" role="menuitemcheckbox" aria-checked="${tabEnabled ? 'true' : 'false'}">
           <span class="pinokio-notify-item-icon"><i class="fa-solid ${tabEnabled ? 'fa-bell' : 'fa-bell-slash'}"></i></span>
-          <span class="pinokio-notify-item-label">Notifications ${tabEnabled ? 'on' : 'off'}</span>
-          <span class="pinokio-notify-item-meta">This tab</span>
+          <span class="pinokio-notify-item-label">${escapeHtml(toggleLabel)}</span>
+          <span class="pinokio-notify-item-meta">${escapeHtml(t('notifications.this_tab', 'This tab'))}</span>
         </button>
       </div>
       <div class="pinokio-notify-divider" role="presentation"></div>
-      <div class="pinokio-notify-section" role="group" aria-label="Notification sound">${soundItems}${loadingRow}</div>
-      <p class="pinokio-notify-hint">Sound applies to all tabs</p>
+      <div class="pinokio-notify-section" role="group" aria-label="${escapeHtml(t('notifications.notification_sound', 'Notification sound'))}">${soundItems}${loadingRow}</div>
+      <p class="pinokio-notify-hint">${escapeHtml(t('notifications.sound_all_tabs', 'Sound applies to all tabs'))}</p>
     `;
 
     const items = getMenuItems();
@@ -1241,8 +1257,8 @@ const ensureTabAccessories = aggregateDebounce(() => {
     const tab = link.querySelector('.tab');
     const title = tab ? tab.textContent.trim() : 'Tab activity';
     //const subtitle = title || 'Pinokio';
-    //const message = state.lastInput ? `Last input: ${state.lastInput}` : 'Tab is now idle.';
-    const message = state.lastInput ? `From: "${state.lastInput}"` : "Tab is now idle."
+    //const message = state.lastInput ? `Last input: ${state.lastInput}` : t('notifications.tab_idle', 'Tab is now idle.');
+    const message = state.lastInput ? t('notifications.from_input', 'From: "{input}"', { input: state.lastInput }) : t('notifications.tab_idle', 'Tab is now idle.')
     const image = resolveTabImage(link);
 
     const payload = {

@@ -1,3 +1,7 @@
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <html class='columns'>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
@@ -13,6 +17,9 @@
 <script src="/xterm-addon-search-bar.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/he.js"></script>
 <script src="/opener.js"></script>
@@ -249,7 +256,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return res.json()
     })
     n.Noty({
-      text: `Updated! Restart the app to apply the change.`
+      text: <%- trj("share.updated_restart") %>
     })
   })
 })
@@ -258,8 +265,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 <body class='columns <%=theme%>' data-agent="<%=agent%>">
   <main>
     <div id='editor'>
-      <h1>Share Apps</h1>
-      <div>You can open up your local Pinokio node to the outside world, or any other device on the same network, instantly.</div>
+      <h1><%= tr("share.title") %></h1>
+      <div><%= tr("share.description") %></div>
       <hr>
       <div class='env-item'>
         <% if (config.PINOKIO_SHARE_CLOUDFLARE.toString() === "true") { %>
@@ -267,18 +274,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         <% } else { %>
           <input type="checkbox" data-id="PINOKIO_SHARE_CLOUDFLARE" name="cloudflare" />
         <% } %>
-        <label for="cloudflare"><i class="fa-brands fa-cloudflare"></i> Run a Public Node</label>
+        <label for="cloudflare"><i class="fa-brands fa-cloudflare"></i> <%= tr("share.run_public_node") %></label>
         <ul>
-          <li>This will let you share your local Pinokio app to the public internet, which anyone with a URL can access.</li>
-          <li>Powered by <a href="https://www.cloudflare.com/products/tunnel/" target="_blank" features="browser">Cloudflare Tunnel</a></li>
-          <li>You can manually configure this in through the Configure menu (set PINOKIO_SHARE_CLOUDFLARE to true)</li>
+          <li><%= tr("share.public_node_description") %></li>
+          <li><%= tr("share.powered_by") %> <a href="https://www.cloudflare.com/products/tunnel/" target="_blank" features="browser">Cloudflare Tunnel</a></li>
+          <li><%= tr("share.public_manual_config", { name: "PINOKIO_SHARE_CLOUDFLARE" }) %></li>
         </ul>
         <div class='passcode'>
-          <h2>Passcode (optional)</h2>
+          <h2><%= tr("share.passcode_optional") %></h2>
           <ol>
-            <li><strong>No passcode:</strong> Anyone with the URL can use the app</li>
-            <li><strong>Passcode:</strong> Users will need to authenticate with the passcode before using the app.</li>
-            <li>To allow multiple passcodes, separate the passode by commas (Example: ab12zd3,D3ad3a,df3d9Fa).</li>
+            <li><strong><%= tr("share.no_passcode") %>:</strong> <%= tr("share.no_passcode_description") %></li>
+            <li><strong><%= tr("share.passcode") %>:</strong> <%= tr("share.passcode_description") %></li>
+            <li><%= tr("share.multiple_passcodes") %></li>
           </ol>
           <div class='row'>
             <input id='passcode' type='password' value="<%=config.PINOKIO_SHARE_PASSCODE || ''%>"/>
@@ -288,7 +295,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         <% if (cloudflare_links.length > 0) { %>
           <div class='cloudflare-running'>
             <div class='shared'>
-              <h2><i class="fa-solid fa-circle-notch fa-spin"></i> Running</h2>
+              <h2><i class="fa-solid fa-circle-notch fa-spin"></i> <%= tr("share.running") %></h2>
             </div>
             <% cloudflare_links.forEach((link) => { %>
               <div class='shared'>
@@ -305,17 +312,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         <% } else { %>
           <input type="checkbox" data-id="PINOKIO_SHARE_LOCAL" name="local" />
         <% } %>
-        <label for="local"><i class="fa-solid fa-network-wired"></i> Share with Local Network</label>
+        <label for="local"><i class="fa-solid fa-network-wired"></i> <%= tr("share.local_network") %></label>
         <ul>
-          <li>This will allow any device on the same local network to access the app.</li>
-          <li>A new IP will be provided when local sharing is on, which can be used to access from any device on the same network.</li>
-          <li>You can manually configure this through the Configure menu (set PINOKIO_SHARE_LOCAL to true)</li>
+          <li><%= tr("share.local_network_description") %></li>
+          <li><%= tr("share.local_network_ip_description") %></li>
+          <li><%= tr("share.local_manual_config", { name: "PINOKIO_SHARE_LOCAL" }) %></li>
         </ul>
         <div class='passcode'>
-          <h2>Custom Port (optional)</h2>
+          <h2><%= tr("share.custom_port_optional") %></h2>
           <ol>
-            <li><strong>No custom port:</strong> a random port will be generated automatically.</li>
-            <li><strong>Custom port:</strong> the local share network will be started at the specified port</li>
+            <li><strong><%= tr("share.no_custom_port") %>:</strong> <%= tr("share.no_custom_port_description") %></li>
+            <li><strong><%= tr("share.custom_port") %>:</strong> <%= tr("share.custom_port_description") %></li>
           </ol>
           <div class='row'>
             <input id='local_port' type='text' value="<%=config.PINOKIO_SHARE_LOCAL_PORT || ''%>"/>
@@ -330,7 +337,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       </div>
       <div class='runner'>
         <div id='save' class='btn'>
-          <span class='save'><i class="fa-solid fa-check"></i> Save</span>
+          <span class='save'><i class="fa-solid fa-check"></i> <%= tr("common.save") %></span>
         </div>
       </div>
     </div>

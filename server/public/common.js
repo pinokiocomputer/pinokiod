@@ -1,5 +1,21 @@
 const CAPTURE_MIN_SIZE = 32;
 let pinokioDevGuardSatisfied = false;
+function pinokioT(key, fallback, replacements = {}) {
+  const catalog = (typeof window !== 'undefined' && window.PINOKIO_I18N && typeof window.PINOKIO_I18N === 'object')
+    ? window.PINOKIO_I18N
+    : {};
+  let value = Object.prototype.hasOwnProperty.call(catalog, key) ? catalog[key] : `[missing translation: ${key}]`;
+  if (typeof value !== 'string') {
+    value = `[missing translation: ${key}]`;
+  }
+  Object.entries(replacements || {}).forEach(([name, replacement]) => {
+    value = value.replace(new RegExp(`\\{${name}\\}`, 'g'), replacement == null ? '' : String(replacement));
+  });
+  return value;
+}
+if (typeof window !== 'undefined') {
+  window.pinokioT = pinokioT;
+}
 const createLauncherDebugLog = (...args) => {
   try {
     console.log('[CreateLauncherGuard]', ...args);
@@ -90,7 +106,7 @@ function createMinimalLoadingSwal () {
     }
   };
   swal.fire({
-    html: "<i class='fa-solid fa-circle-notch fa-spin'></i> Backend still warming up...",
+    html: `<i class='fa-solid fa-circle-notch fa-spin'></i> ${escapePinokioStatusHtml(pinokioT('common.backend_warming_up', 'Backend still warming up...'))}`,
     allowOutsideClick: false,
     allowEscapeKey: false,
     showConfirmButton: false,
@@ -142,7 +158,7 @@ function ensurePinokioWaitFooterStatus() {
 }
 
 function showPinokioWaitFooterStatus(data = {}) {
-  const title = data.title || 'Waiting'
+  const title = data.title || pinokioT('common.waiting', 'Waiting')
   const description = data.description || data.message || ''
   const status = ensurePinokioWaitFooterStatus()
   status.className = 'pinokio-install-inline-status pinokio-process-wait-footer-status is-progress'
@@ -531,7 +547,7 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
       this.buildDom();
       await this.waitSnapshotReady();
       this.fit();
-      this.updateStatus('Drag to select the capture area. Press Esc to cancel or stop.');
+      this.updateStatus(pinokioT('screenshots.drag_select_area', 'Drag to select the capture area. Press Esc to cancel or stop.'));
       this.syncAudioToggleState();
 
       return new Promise((resolve, reject) => {
@@ -635,7 +651,7 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
       color:#eee;
     `;
     const title = document.createElement('div');
-    title.textContent = 'Screen Capture';
+    title.textContent = pinokioT('screenshots.screen_capture', 'Screen Capture');
     title.style.fontWeight = '600';
     header.appendChild(title);
 
@@ -652,12 +668,12 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
     audioCheckbox.checked = true;
     audioCheckbox.style.cursor = 'pointer';
     const audioText = document.createElement('span');
-    audioText.textContent = 'Include audio when recording';
+    audioText.textContent = pinokioT('screenshots.include_audio_recording', 'Include audio when recording');
     this.audioToggle.append(audioCheckbox, audioText);
     this.audioCheckbox = audioCheckbox;
 
     this.btnReset = document.createElement('button');
-    this.btnReset.textContent = 'Reset selection';
+    this.btnReset.textContent = pinokioT('screenshots.reset_selection', 'Reset selection');
     this.btnReset.style.cssText = this.buttonStyle({
       background: '#222',
       color: '#ccc'
@@ -667,7 +683,7 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
       this.rect = null;
       this.drawOverlay();
       this.updateButtons();
-      this.updateStatus('Drag to select the capture area. Press Esc to cancel or stop.');
+      this.updateStatus(pinokioT('screenshots.drag_select_area', 'Drag to select the capture area. Press Esc to cancel or stop.'));
     });
 
     headerActions.append(this.btnReset, this.audioToggle);
@@ -718,17 +734,17 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
     buttons.style.cssText = 'display:flex; gap:10px; align-items:center;';
 
     this.btnShot = document.createElement('button');
-    this.btnShot.textContent = 'Capture screenshot';
+    this.btnShot.textContent = pinokioT('screenshots.capture_screenshot', 'Capture screenshot');
     this.btnShot.style.cssText = this.buttonStyle({ primary: true });
     this.btnShot.addEventListener('click', () => this.handleScreenshot());
 
     this.btnRecord = document.createElement('button');
-    this.btnRecord.textContent = 'Start recording';
+    this.btnRecord.textContent = pinokioT('screenshots.start_recording', 'Start recording');
     this.btnRecord.style.cssText = this.buttonStyle();
     this.btnRecord.addEventListener('click', () => this.handleRecordButton());
 
     this.btnCancel = document.createElement('button');
-    this.btnCancel.textContent = 'Cancel';
+    this.btnCancel.textContent = pinokioT('common.cancel', 'Cancel');
     this.btnCancel.style.cssText = this.buttonStyle({
       background: '#1a1a1a',
       color: '#ccc'
@@ -803,7 +819,7 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
       this.audioCheckbox.disabled = true;
       if (this.audioToggle) {
         this.audioToggle.style.opacity = '0.6';
-        this.audioToggle.title = 'Audio capture is unavailable for this share';
+        this.audioToggle.title = pinokioT('screenshots.audio_unavailable', 'Audio capture is unavailable for this share');
       }
     } else {
       this.audioCheckbox.disabled = false;
@@ -1102,11 +1118,11 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
     if (this.btnShot) this.btnShot.disabled = disabled || !valid;
     if (this.btnRecord) {
       if (this.recordingState === 'recording') {
-        this.btnRecord.textContent = 'Stop recording';
+        this.btnRecord.textContent = pinokioT('screenshots.stop_recording', 'Stop recording');
       } else if (this.recordingState === 'stopping') {
-        this.btnRecord.textContent = 'Finishing…';
+        this.btnRecord.textContent = pinokioT('screenshots.finishing', 'Finishing...');
       } else {
-        this.btnRecord.textContent = 'Start recording';
+        this.btnRecord.textContent = pinokioT('screenshots.start_recording', 'Start recording');
       }
       this.btnRecord.disabled = this.busy || (!valid && this.recordingState !== 'recording');
     }
@@ -1127,10 +1143,10 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
     if (!this.hasValidSelection() || this.busy) return;
     const source = this.computeSourceRect();
     if (!source) {
-      this.updateStatus('No area selected', { error: true });
+      this.updateStatus(pinokioT('screenshots.no_area_selected', 'No area selected'), { error: true });
       return;
     }
-    this.setBusy(true, 'Capturing screenshot…');
+    this.setBusy(true, pinokioT('screenshots.capturing_screenshot', 'Capturing screenshot...'));
     try {
       await this.hideOverlayForCapture();
       const { blob, filename } = await this.captureStill(source);
@@ -1141,7 +1157,7 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
       console.error('Screenshot failed', err);
       await this.showOverlayAfterCapture();
       this.setBusy(false);
-      this.updateStatus('Failed to capture screenshot', { error: true });
+      this.updateStatus(pinokioT('screenshots.failed_capture_screenshot', 'Failed to capture screenshot'), { error: true });
     }
   }
 
@@ -1155,7 +1171,7 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
       await this.startRecording();
     } catch (err) {
       console.error('Unable to start recording', err);
-      this.updateStatus('Unable to start recording', { error: true });
+      this.updateStatus(pinokioT('screenshots.unable_start_recording', 'Unable to start recording'), { error: true });
       this.resetRecordingState();
     }
   }
@@ -1167,7 +1183,7 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
     await this.hideOverlayForCapture({ showControls: true });
     this.selectionLocked = true;
     this.recordingState = 'recording';
-    this.setBusy(false, 'Recording… Stay on this page while capturing.');
+    this.setBusy(false, pinokioT('screenshots.recording_stay_page', 'Recording... Stay on this page while capturing.'));
     this.updateButtons();
     window.addEventListener('beforeunload', this.beforeUnloadHandler);
     document.addEventListener('click', this.navigationGuardHandler, true);
@@ -1213,7 +1229,7 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
 
     this.mediaRecorder.onerror = (e) => {
       console.error('MediaRecorder error', e);
-      this.updateStatus('Recording error', { error: true });
+      this.updateStatus(pinokioT('screenshots.recording_error', 'Recording error'), { error: true });
       this.stopRecording({ discard: true });
     };
 
@@ -1232,7 +1248,7 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
         return;
       }
       try {
-        this.setBusy(true, 'Saving recording…');
+        this.setBusy(true, pinokioT('screenshots.saving_recording', 'Saving recording...'));
         const filename = `${Date.now()}.webm`;
         await uploadCapture(blob, filename);
         this.showCaptureSavedModal('Recording');
@@ -1241,14 +1257,14 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
         console.error('Failed to save recording', err);
         await this.showOverlayAfterCapture();
         this.setBusy(false);
-        this.updateStatus('Failed to save recording', { error: true });
+        this.updateStatus(pinokioT('screenshots.failed_save_recording', 'Failed to save recording'), { error: true });
         this.resetRecordingState();
       }
     };
 
     this.mediaRecorder.start();
     this.recordingStart = performance.now();
-    this.updateStatus('Recording… Stay on this page while capturing. Press Stop or Esc to finish.');
+    this.updateStatus(pinokioT('screenshots.recording_press_stop', 'Recording... Stay on this page while capturing. Press Stop or Esc to finish.'));
     this.updateButtons();
     this.tickTimer();
   }
@@ -1260,7 +1276,7 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
       return;
     }
     const elapsed = performance.now() - this.recordingStart;
-    const message = `Recording… ${this.formatDuration(elapsed)}`;
+    const message = pinokioT('screenshots.recording_elapsed', 'Recording... {elapsed}', { elapsed: this.formatDuration(elapsed) });
     if (this.statusLabel) {
       this.statusLabel.textContent = message;
       this.statusLabel.style.color = this.colorDefault;
@@ -1281,7 +1297,7 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
       this.recordingState = 'stopping';
       cancelAnimationFrame(this.timerRaf);
       this.timerRaf = 0;
-      this.updateStatus('Finishing recording…');
+      this.updateStatus(pinokioT('screenshots.finishing_recording', 'Finishing recording...'));
       this.updateButtons();
     }
   }
@@ -1297,7 +1313,7 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
     this.addedAudioTracks = [];
     window.removeEventListener('beforeunload', this.beforeUnloadHandler);
     document.removeEventListener('click', this.navigationGuardHandler, true);
-    this.updateStatus('Drag to select the capture area. Press Esc to cancel or stop.');
+    this.updateStatus(pinokioT('screenshots.drag_select_area', 'Drag to select the capture area. Press Esc to cancel or stop.'));
     this.updateButtons();
   }
 
@@ -1402,10 +1418,10 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
     `;
 
     const status = document.createElement('div');
-    status.textContent = 'Recording…';
+    status.textContent = pinokioT('screenshots.recording', 'Recording...');
 
     const stopBtn = document.createElement('button');
-    stopBtn.textContent = 'Stop recording';
+    stopBtn.textContent = pinokioT('screenshots.stop_recording', 'Stop recording');
     stopBtn.style.cssText = `
       padding:8px 14px; border-radius:999px; border:none;
       background:#ff4d4f; color:#fff; cursor:pointer; font-weight:600;
@@ -1413,7 +1429,7 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
     stopBtn.addEventListener('click', () => {
       if (stopBtn.disabled) return;
       stopBtn.disabled = true;
-      stopBtn.textContent = 'Stopping…';
+      stopBtn.textContent = pinokioT('screenshots.stopping', 'Stopping...');
       this.stopRecording();
     });
 
@@ -1539,7 +1555,7 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
   async handleCancel() {
     if (this.recordingState === 'recording') {
       await this.stopRecording({ discard: true });
-      this.updateStatus('Recording discarded');
+      this.updateStatus(pinokioT('screenshots.recording_discarded', 'Recording discarded'));
       return;
     }
     this.rejectAndClose(new DOMException('Canceled', 'AbortError'));
@@ -1547,7 +1563,7 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
 
   handleBeforeUnload(e) {
     if (this.recordingState === 'recording') {
-      const message = 'Screen recording is in progress. Stay on this page to finish saving your capture.';
+      const message = pinokioT('screenshots.recording_in_progress_warning', 'Screen recording is in progress. Stay on this page to finish saving your capture.');
       e.preventDefault();
       e.returnValue = message;
       return message;
@@ -1566,7 +1582,7 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
     if (!href || href.startsWith('#')) return;
     e.preventDefault();
     e.stopPropagation();
-    this.updateStatus('Finish or cancel the recording before navigating away.', { error: true });
+    this.updateStatus(pinokioT('screenshots.finish_or_cancel_recording', 'Finish or cancel the recording before navigating away.'), { error: true });
     this.showNavigationWarning();
   }
 
@@ -1635,7 +1651,7 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
         font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
         font-size:14px; z-index:2147483647;
       `;
-      wrap.textContent = 'You must stay on this page while recording.';
+      wrap.textContent = pinokioT('screenshots.must_stay_recording', 'You must stay on this page while recording.');
       document.body.appendChild(wrap);
       this.navWarningEl = wrap;
     }
@@ -1682,12 +1698,13 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
     const title = document.createElement('h3');
     title.className = 'capture-modal-title';
     title.id = `capture-modal-title-${Date.now().toString(36)}`;
-    title.textContent = `${kind} saved`;
+    const kindLabel = kind === 'Recording' ? pinokioT('screenshots.recording_kind', 'Recording') : pinokioT('screenshots.screenshot_kind', 'Screenshot');
+    title.textContent = pinokioT('screenshots.saved_kind', '{kind} saved', { kind: kindLabel });
 
     const description = document.createElement('p');
     description.className = 'capture-modal-description';
     description.id = `capture-modal-description-${Date.now().toString(36)}`;
-    description.textContent = 'You can review this capture from the Screen Captures page.';
+    description.textContent = pinokioT('screenshots.review_from_page', 'You can review this capture from the Screen Captures page.');
 
     panel.setAttribute('aria-labelledby', title.id);
     panel.setAttribute('aria-describedby', description.id);
@@ -1698,12 +1715,12 @@ body.dark .capture-modal-button.secondary{background:rgba(148,163,184,0.2);color
     const viewBtn = document.createElement('a');
     viewBtn.className = 'capture-modal-button primary';
     viewBtn.href = '/screenshots';
-    viewBtn.textContent = 'Open screen captures';
+    viewBtn.textContent = pinokioT('screenshots.open_screen_captures', 'Open screen captures');
 
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
     closeBtn.className = 'capture-modal-button secondary';
-    closeBtn.textContent = 'Close';
+    closeBtn.textContent = pinokioT('common.close', 'Close');
 
     actions.append(viewBtn, closeBtn);
     panel.append(title, description, actions);
@@ -1945,7 +1962,7 @@ if (typeof hotkeys === 'function') {
         icon.textContent = '🔔';
         const text = document.createElement('span');
         text.className = 'text';
-        text.textContent = 'Notification received';
+        text.textContent = pinokioT('common.notification_received', 'Notification received');
         el.appendChild(icon);
         el.appendChild(text);
         document.body.appendChild(el);
@@ -1959,7 +1976,7 @@ if (typeof hotkeys === 'function') {
       if (!notifyIndicatorEl) return;
       const text = notifyIndicatorEl.querySelector('.text');
       if (text) {
-        const msg = (payload && typeof payload.message === 'string' && payload.message.trim()) ? payload.message.trim() : 'Notification received';
+        const msg = (payload && typeof payload.message === 'string' && payload.message.trim()) ? payload.message.trim() : pinokioT('common.notification_received', 'Notification received');
         // Keep it short on mobile
         text.textContent = msg.length > 80 ? (msg.slice(0, 77) + '…') : msg;
       }
@@ -2025,10 +2042,10 @@ if (typeof hotkeys === 'function') {
   <div class="pinokio-fatal-panel">
     <div class="pinokio-fatal-header">
       <div>
-        <h2>Pinokio crashed</h2>
+        <h2>${escapePinokioStatusHtml(pinokioT('fatal.title', 'Pinokio crashed'))}</h2>
         <small data-field="subtitle"></small>
       </div>
-      <button class="pinokio-fatal-close" type="button" aria-label="Dismiss crash message" data-action="fatal-dismiss">×</button>
+      <button class="pinokio-fatal-close" type="button" aria-label="${escapePinokioStatusHtml(pinokioT('fatal.dismiss_crash_message', 'Dismiss crash message'))}" data-action="fatal-dismiss">×</button>
     </div>
     <p class="pinokio-fatal-message" data-field="message"></p>
     <pre class="pinokio-fatal-stack" data-field="stack"></pre>
@@ -2037,9 +2054,9 @@ if (typeof hotkeys === 'function') {
       <span data-field="logPath"></span>
     </div>
     <div class="pinokio-fatal-actions">
-      <button type="button" class="secondary" data-action="fatal-copy">Copy stack</button>
-      <button type="button" class="secondary" data-action="fatal-dismiss">Dismiss</button>
-      <button type="button" class="primary" data-action="fatal-reload">Reload</button>
+      <button type="button" class="secondary" data-action="fatal-copy">${escapePinokioStatusHtml(pinokioT('fatal.copy_stack', 'Copy stack'))}</button>
+      <button type="button" class="secondary" data-action="fatal-dismiss">${escapePinokioStatusHtml(pinokioT('common.dismiss', 'Dismiss'))}</button>
+      <button type="button" class="primary" data-action="fatal-reload">${escapePinokioStatusHtml(pinokioT('common.reload', 'Reload'))}</button>
     </div>
   </div>`;
         document.body.appendChild(wrapper);
@@ -2073,15 +2090,15 @@ if (typeof hotkeys === 'function') {
     try {
       const messageNode = fatalOverlayEl.querySelector('[data-field="message"]');
       if (messageNode) {
-        messageNode.textContent = payload.message || 'An unrecoverable error occurred.';
+        messageNode.textContent = payload.message || pinokioT('fatal.unrecoverable_error', 'An unrecoverable error occurred.');
       }
       const stackNode = fatalOverlayEl.querySelector('[data-field="stack"]');
       if (stackNode) {
-        stackNode.textContent = payload.stack || 'No stack trace available';
+        stackNode.textContent = payload.stack || pinokioT('fatal.no_stack_trace', 'No stack trace available');
       }
       const subtitleNode = fatalOverlayEl.querySelector('[data-field="subtitle"]');
       if (subtitleNode) {
-        const origin = payload.origin ? payload.origin : 'fatal error';
+        const origin = payload.origin ? payload.origin : pinokioT('fatal.fatal_error', 'fatal error');
         const parts = [];
         if (payload.version && typeof payload.version === 'object') {
           const pinokiod = payload.version.pinokiod ? `pinokiod ${payload.version.pinokiod}` : null;
@@ -2096,11 +2113,11 @@ if (typeof hotkeys === 'function') {
       const stampNode = fatalOverlayEl.querySelector('[data-field="timestamp"]');
       if (stampNode) {
         const ts = payload.timestamp ? new Date(payload.timestamp) : new Date();
-        stampNode.textContent = `Recorded: ${ts.toLocaleString()}`;
+        stampNode.textContent = pinokioT('fatal.recorded_at', 'Recorded: {time}', { time: ts.toLocaleString() });
       }
       const logNode = fatalOverlayEl.querySelector('[data-field="logPath"]');
       if (logNode) {
-        logNode.textContent = payload.logPath ? `Details saved to ${payload.logPath}` : '';
+        logNode.textContent = payload.logPath ? pinokioT('fatal.details_saved_to', 'Details saved to {path}', { path: payload.logPath }) : '';
       }
     } catch (err) {
       console.error('Failed to populate fatal overlay:', err);
@@ -2152,13 +2169,13 @@ if (typeof hotkeys === 'function') {
       return;
     }
     const lines = [];
-    lines.push(lastFatalPayload.title || 'Pinokio crashed');
-    lines.push(`When: ${new Date(lastFatalPayload.timestamp || Date.now()).toLocaleString()}`);
+    lines.push(lastFatalPayload.title || pinokioT('fatal.title', 'Pinokio crashed'));
+    lines.push(pinokioT('fatal.when', 'When: {time}', { time: new Date(lastFatalPayload.timestamp || Date.now()).toLocaleString() }));
     if (lastFatalPayload.origin) {
-      lines.push(`Origin: ${lastFatalPayload.origin}`);
+      lines.push(pinokioT('fatal.origin', 'Origin: {origin}', { origin: lastFatalPayload.origin }));
     }
     if (lastFatalPayload.logPath) {
-      lines.push(`Saved at: ${lastFatalPayload.logPath}`);
+      lines.push(pinokioT('fatal.saved_at', 'Saved at: {path}', { path: lastFatalPayload.logPath }));
     }
     lines.push('');
     lines.push(lastFatalPayload.message || '');
@@ -2195,8 +2212,8 @@ if (typeof hotkeys === 'function') {
     const sanitized = {
       id: typeof payload.id === 'string' ? payload.id : `fatal-${safeTimestamp}`,
       type: 'kernel.fatal',
-      title: typeof payload.title === 'string' ? payload.title : 'Pinokio crashed',
-      message: typeof payload.message === 'string' ? payload.message : 'Pinokio encountered a fatal error.',
+      title: typeof payload.title === 'string' ? payload.title : pinokioT('fatal.title', 'Pinokio crashed'),
+      message: typeof payload.message === 'string' ? payload.message : pinokioT('fatal.encountered_error', 'Pinokio encountered a fatal error.'),
       stack: typeof payload.stack === 'string' ? payload.stack : '',
       origin: typeof payload.origin === 'string' ? payload.origin : null,
       timestamp: safeTimestamp,
@@ -2667,16 +2684,16 @@ if (typeof hotkeys === 'function') {
     const overlay = document.createElement('div');
     overlay.className = 'pinokio-connect-curtain';
     overlay.setAttribute('role', 'button');
-    overlay.setAttribute('aria-label', 'Tap to connect');
+    overlay.setAttribute('aria-label', pinokioT('terminal.tap_to_connect', 'Tap to connect'));
     overlay.tabIndex = 0;
     const msg = document.createElement('div');
     msg.className = 'pinokio-connect-msg';
     const msgTitle = document.createElement('div');
     msgTitle.className = 'pinokio-connect-msg-title';
-    msgTitle.textContent = 'Tap to connect';
+    msgTitle.textContent = pinokioT('terminal.tap_to_connect', 'Tap to connect');
     const msgHint = document.createElement('div');
     msgHint.className = 'pinokio-connect-msg-hint';
-    msgHint.textContent = 'To type into the terminal, use the "Input" button.';
+    msgHint.textContent = pinokioT('terminal.input_button_hint', 'To type into the terminal, use the "Input" button.');
     msg.appendChild(msgTitle);
     msg.appendChild(msgHint);
     overlay.appendChild(msg);
@@ -3314,7 +3331,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const handleSplitNavigation = async (anchor) => {
     const href = anchor.getAttribute('href') || '/columns';
     const originUrl = window.location.href;
-    const modalTitle = href === '/rows' ? 'Split Into Rows' : 'Split Into Columns';
+    const modalTitle = href === '/rows' ? pinokioT('layout.split_into_rows', 'Split Into Rows') : pinokioT('layout.split_into_columns', 'Split Into Columns');
 
     const api = await ensureUrlDropdown();
     if (!api) {
@@ -3326,8 +3343,8 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       selectedUrl = await api.openSplitModal({
         title: modalTitle,
-        description: 'Choose a running process or use the current tab URL for the new pane.',
-        confirmLabel: 'Split',
+        description: pinokioT('layout.split_description', 'Choose a running process or use the current tab URL for the new pane.'),
+        confirmLabel: pinokioT('layout.split', 'Split'),
         includeCurrent: true
       });
     } catch (error) {
@@ -3477,10 +3494,10 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault()
       e.stopPropagation()
       let result = await Swal.fire({
-        title: "Create",
-        inputPlaceholder: "Enter a folder name to create",
+        title: pinokioT('common.create', 'Create'),
+        inputPlaceholder: pinokioT('common.enter_folder_create', 'Enter a folder name to create'),
         allowOutsideClick: true,
-        confirmButtonText: 'Create',
+        confirmButtonText: pinokioT('common.create', 'Create'),
         input: "text",
       })
       if (result.isDismissed) {
@@ -3490,11 +3507,11 @@ document.addEventListener("DOMContentLoaded", () => {
       //let folder = prompt("Enter a folder name to create")
       if (folder && folder.length > 0) {
       } else {
-        alert("Please enter a folder name")
+        alert(pinokioT('common.enter_folder_name', 'Please enter a folder name'))
         return false
       }
       if (folder && folder.includes(" ")) {
-        alert("Please use a folder path without a space")
+        alert(pinokioT('common.folder_path_no_space', 'Please use a folder path without a space'))
         return false
       }
       let response = await fetch("/mkdir", {
@@ -4468,19 +4485,19 @@ document.addEventListener("DOMContentLoaded", () => {
   function getTaskPendingCopyByAction(action) {
     if (action === '/task/install') {
       return {
-        button: 'Installing...',
-        status: 'Installing the task and reopening this page.'
+        button: pinokioT('tasks.installing', 'Installing...'),
+        status: pinokioT('tasks.installing_reopen', 'Installing the task and reopening this page.')
       };
     }
     if (action === '/task/start') {
       return {
-        button: 'Launching...',
-        status: 'Preparing the workspace and opening your selected tool.'
+        button: pinokioT('tasks.launching', 'Launching...'),
+        status: pinokioT('tasks.preparing_workspace_tool', 'Preparing the workspace and opening your selected tool.')
       };
     }
     return {
-      button: 'Working...',
-      status: 'Finishing your request.'
+      button: pinokioT('universal.working', 'Working...'),
+      status: pinokioT('tasks.finishing_request', 'Finishing your request.')
     };
   }
 

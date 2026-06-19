@@ -1,4 +1,8 @@
 <html>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
@@ -247,6 +251,9 @@ body.dark .item .tile .badge {
 <script src="/sweetalert2.js"></script>
 <script src="/install.js"></script>
 <script src="/timeago.min.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
@@ -256,25 +263,25 @@ body.dark .item .tile .badge {
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
-<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+<button class='btn2' id='minimize-header' data-tippy-content="<%=tr("common.fullscreen")%>" title='<%=tr("common.fullscreen")%>'>
   <div><i class="fa-solid fa-expand"></i></div>
 </button>
-<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
-<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
-<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+<button class='btn2' id='back' data-tippy-content="<%=tr("common.back")%>"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="<%=tr("common.forward")%>"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="<%=tr("common.refresh")%>"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="<%=tr("common.screen_capture")%>"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="<%=tr("common.xray_mode")%>"><i class="fa-solid fa-eye"></i></button>
 <div class='flexible'></div>
-<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+<a class='btn2' href="/columns" data-tippy-content="<%=tr("common.split_columns")%>">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
-<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+<a class='btn2' href="/rows" data-tippy-content="<%=tr("common.split_rows")%>">
   <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
 </a>
-<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+<button class='btn2' id='new-window' data-tippy-content="<%=tr("common.open_new_window")%>" title='<%=tr("common.open_new_window")%>' data-agent="<%=agent%>">
   <div><i class="fa-solid fa-plus"></i></div>
 </button>
-<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+<button class='btn2 hidden' id='close-window' data-tippy-content='<%=tr("common.close_section")%>'>
   <div><i class="fa-solid fa-xmark"></i></div>
 </button>
 </h1>
@@ -282,15 +289,15 @@ body.dark .item .tile .badge {
 <main>
 <div class='container'>
 <div class='titleview'>
-  <h1>Community</h1>
+  <h1><%= tr("errors.community") %></h1>
   <hr>
   <div class='item'>
     <label><i class="fa-brands fa-discord"></i> Discord</label>
     <div>
-      Have questions? Something not working? Generate a logs.zip file, and share it in <a class='link' href="https://discord.gg/TQdNwadtE4" target="_blank">Pinokio Discord</a>
+      <%- tr("help.discord_description", { link: '<a class="link" href="https://discord.gg/TQdNwadtE4" target="_blank">Pinokio Discord</a>' }) %>
       <div class='footer'>
-        <div id='genlog' class='btn'>Generate logs.zip</div>
-        <a id='downloadlogs' download class='hidden btn' href="/pinokio/logs.zip"><i class="fa-solid fa-download"></i> Download logs.zip</a>
+        <div id='genlog' class='btn'><%= tr("help.generate_logs") %></div>
+        <a id='downloadlogs' download class='hidden btn' href="/pinokio/logs.zip"><i class="fa-solid fa-download"></i> <%= tr("help.download_logs") %></a>
       </div>
     </div>
   </div>
@@ -298,7 +305,7 @@ body.dark .item .tile .badge {
   <div class='item'>
     <label><i class="fa-brands fa-x-twitter"></i></label>
     <div>
-      Pinokio dev on X:
+      <%= tr("help.pinokio_dev_on_x") %>
       <div class='footer'>
         <a class='btn' href='https://x.com/cocktailpeanut' target="_blank"><i class="fa-brands fa-x-twitter"></i> @cocktailpeanut</a>
       </div>
@@ -306,8 +313,8 @@ body.dark .item .tile .badge {
   </div>
   <hr>
   <div class='item'>
-    <label><i class="fa-brands fa-github"></i> Community Docs</label>
-    <div>Community documents (Github repositories tagged with <b>pinokio-community</b> will show up here)</div>
+    <label><i class="fa-brands fa-github"></i> <%= tr("help.community_docs") %></label>
+    <div><%- tr("help.community_docs_description", { tag: "<b>pinokio-community</b>" }) %></div>
     <br>
     <div class='community'></div>
   </div>
@@ -336,7 +343,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       let btn = document.querySelector("#genlog")
       let btn2 = document.querySelector("#downloadlogs")
       btn2.classList.remove("hidden") 
-      btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Generated!'
+      btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + <%- trj("help.generated") %>
       //btn.classList.add("hidden")
     })
   })

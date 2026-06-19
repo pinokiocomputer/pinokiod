@@ -1,6 +1,7 @@
 <%
   const accessPoints = Array.isArray(peer_access_points) ? peer_access_points : []
   const hasAccessPoints = accessPoints.length > 0
+  const peerT = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
 %>
 <% if (hasAccessPoints) { %>
   <% accessPoints.forEach((point) => { %>
@@ -8,9 +9,9 @@
     <% const qrSrc = point.qr || (`/qr?data=${encodeURIComponent(point.url)}&s=4&m=0`) %>
     <div class="qr">
       <a href="<%= point.url %>" target="_blank" style="text-decoration:none; color:inherit; display:block;">
-        <img src="<%= qrSrc %>" alt="Open <%= point.url %>" style="width:128px; height:128px; image-rendering: pixelated;"/>
+        <img src="<%= qrSrc %>" alt="<%= peerT("common.open_url_alt", { url: point.url }) %>" style="width:128px; height:128px; image-rendering: pixelated;"/>
         <div class='caption'>
-          Scan to open<% if (point.scope_label) { %> (<%= point.scope_label %>)<% } %>
+          <%=peerT("common.scan_to_open")%><% if (point.scope_label) { %> (<%= point.scope_label %>)<% } %>
         </div>
         <div class='caption' style='font-size:10px; opacity:0.7;'><%= point.url %></div>
       </a>
@@ -19,8 +20,8 @@
 <% } else if (typeof peer_qr !== 'undefined' && peer_qr) { %>
   <div class='qr'>
     <a href="<%=peer_url%>" target="_blank" style="text-decoration:none; color:inherit; display:block;">
-      <img src="<%=peer_qr%>" alt="Open <%=peer_url%>" style="width:128px; height:128px; image-rendering: pixelated;"/>
-      <div class='caption'>Scan to open</div>
+      <img src="<%=peer_qr%>" alt="<%= peerT("common.open_url_alt", { url: peer_url }) %>" style="width:128px; height:128px; image-rendering: pixelated;"/>
+      <div class='caption'><%=peerT("common.scan_to_open")%></div>
       <div class='caption' style='font-size:10px; opacity:0.7;'><%=peer_url%></div>
     </a>
   </div>

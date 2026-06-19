@@ -3,6 +3,17 @@
 
   const STORAGE_KEY = 'pinokio.xterm.preferences';
   const CUSTOM_FONT_VALUE = '__custom__';
+  const I18N = (typeof window !== 'undefined' && window.PINOKIO_I18N && typeof window.PINOKIO_I18N === 'object')
+    ? window.PINOKIO_I18N
+    : {};
+
+  function t(key, fallback, replacements = {}) {
+    let value = typeof I18N[key] === 'string' ? I18N[key] : `[missing translation: ${key}]`;
+    Object.keys(replacements || {}).forEach((name) => {
+      value = value.replace(new RegExp(`\\{${name}\\}`, 'g'), () => String(replacements[name]));
+    });
+    return value;
+  }
 
   function detectOsPlatform() {
     try {
@@ -18,9 +29,9 @@
 
   const FONT_OPTIONS = (() => {
     const options = [
-      { label: 'Default (Theme)', value: '' },
-      { label: 'Monospace (generic)', value: 'monospace' },
-      { label: 'UI Monospace', value: 'ui-monospace' }
+      { label: t('terminal_settings.font_default_theme', 'Default (Theme)'), value: '' },
+      { label: t('terminal_settings.font_monospace_generic', 'Monospace (generic)'), value: 'monospace' },
+      { label: t('terminal_settings.font_ui_monospace', 'UI Monospace'), value: 'ui-monospace' }
     ];
 
     const platform = detectOsPlatform();
@@ -37,34 +48,34 @@
       );
     }
 
-    options.push({ label: 'Custom...', value: CUSTOM_FONT_VALUE });
+    options.push({ label: t('terminal_settings.font_custom', 'Custom...'), value: CUSTOM_FONT_VALUE });
     return options;
   })();
 
   const THEME_OPTIONS = [
-    { key: 'foreground', label: 'Foreground' },
-    { key: 'background', label: 'Background' },
-    { key: 'cursor', label: 'Cursor' },
-    { key: 'cursorAccent', label: 'Cursor Accent' },
-    { key: 'selectionBackground', label: 'Selection Background' },
-    { key: 'selectionForeground', label: 'Selection Text' },
-    { key: 'selectionInactiveBackground', label: 'Selection (Inactive)' },
-    { key: 'black', label: 'ANSI 0 Black' },
-    { key: 'red', label: 'ANSI 1 Red' },
-    { key: 'green', label: 'ANSI 2 Green' },
-    { key: 'yellow', label: 'ANSI 3 Yellow' },
-    { key: 'blue', label: 'ANSI 4 Blue' },
-    { key: 'magenta', label: 'ANSI 5 Magenta' },
-    { key: 'cyan', label: 'ANSI 6 Cyan' },
-    { key: 'white', label: 'ANSI 7 White' },
-    { key: 'brightBlack', label: 'ANSI 8 Bright Black' },
-    { key: 'brightRed', label: 'ANSI 9 Bright Red' },
-    { key: 'brightGreen', label: 'ANSI 10 Bright Green' },
-    { key: 'brightYellow', label: 'ANSI 11 Bright Yellow' },
-    { key: 'brightBlue', label: 'ANSI 12 Bright Blue' },
-    { key: 'brightMagenta', label: 'ANSI 13 Bright Magenta' },
-    { key: 'brightCyan', label: 'ANSI 14 Bright Cyan' },
-    { key: 'brightWhite', label: 'ANSI 15 Bright White' }
+    { key: 'foreground', label: t('terminal_settings.color_foreground', 'Foreground') },
+    { key: 'background', label: t('terminal_settings.color_background', 'Background') },
+    { key: 'cursor', label: t('terminal_settings.color_cursor', 'Cursor') },
+    { key: 'cursorAccent', label: t('terminal_settings.color_cursor_accent', 'Cursor Accent') },
+    { key: 'selectionBackground', label: t('terminal_settings.color_selection_background', 'Selection Background') },
+    { key: 'selectionForeground', label: t('terminal_settings.color_selection_text', 'Selection Text') },
+    { key: 'selectionInactiveBackground', label: t('terminal_settings.color_selection_inactive', 'Selection (Inactive)') },
+    { key: 'black', label: t('terminal_settings.color_ansi_black', 'ANSI 0 Black') },
+    { key: 'red', label: t('terminal_settings.color_ansi_red', 'ANSI 1 Red') },
+    { key: 'green', label: t('terminal_settings.color_ansi_green', 'ANSI 2 Green') },
+    { key: 'yellow', label: t('terminal_settings.color_ansi_yellow', 'ANSI 3 Yellow') },
+    { key: 'blue', label: t('terminal_settings.color_ansi_blue', 'ANSI 4 Blue') },
+    { key: 'magenta', label: t('terminal_settings.color_ansi_magenta', 'ANSI 5 Magenta') },
+    { key: 'cyan', label: t('terminal_settings.color_ansi_cyan', 'ANSI 6 Cyan') },
+    { key: 'white', label: t('terminal_settings.color_ansi_white', 'ANSI 7 White') },
+    { key: 'brightBlack', label: t('terminal_settings.color_ansi_bright_black', 'ANSI 8 Bright Black') },
+    { key: 'brightRed', label: t('terminal_settings.color_ansi_bright_red', 'ANSI 9 Bright Red') },
+    { key: 'brightGreen', label: t('terminal_settings.color_ansi_bright_green', 'ANSI 10 Bright Green') },
+    { key: 'brightYellow', label: t('terminal_settings.color_ansi_bright_yellow', 'ANSI 11 Bright Yellow') },
+    { key: 'brightBlue', label: t('terminal_settings.color_ansi_bright_blue', 'ANSI 12 Bright Blue') },
+    { key: 'brightMagenta', label: t('terminal_settings.color_ansi_bright_magenta', 'ANSI 13 Bright Magenta') },
+    { key: 'brightCyan', label: t('terminal_settings.color_ansi_bright_cyan', 'ANSI 14 Bright Cyan') },
+    { key: 'brightWhite', label: t('terminal_settings.color_ansi_bright_white', 'ANSI 15 Bright White') }
   ];
 
   const THEME_KEYS = THEME_OPTIONS.map((option) => option.key);
@@ -315,7 +326,7 @@
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'btn terminal-keyboard-button';
-      button.innerHTML = '<i class="fa-solid fa-keyboard"></i> Input';
+      button.innerHTML = `<i class="fa-solid fa-keyboard"></i> ${t('terminal_settings.input', 'Input')}`;
       button.addEventListener('click', (event) => {
         event.preventDefault();
         this.lastTrigger = button;
@@ -357,7 +368,7 @@
 
       const textarea = document.createElement('textarea');
       textarea.className = 'terminal-keyboard-textarea';
-      textarea.placeholder = 'Enter command';
+      textarea.placeholder = t('terminal_settings.enter_command', 'Enter command');
       textarea.rows = 4;
       textarea.autocapitalize = 'off';
       textarea.autocomplete = 'off';
@@ -379,7 +390,7 @@
       newlineCheckbox.className = 'terminal-keyboard-checkbox';
       newlineCheckbox.checked = true;
       const newlineText = document.createElement('span');
-      newlineText.textContent = 'Append newline on send';
+      newlineText.textContent = t('terminal_settings.append_newline_on_send', 'Append newline on send');
       newlineOption.appendChild(newlineCheckbox);
       newlineOption.appendChild(newlineText);
 
@@ -399,7 +410,7 @@
       const directTypingButton = document.createElement('button');
       directTypingButton.type = 'button';
       directTypingButton.className = 'btn terminal-keyboard-direct-button';
-      directTypingButton.innerHTML = '<i class="fa-solid fa-keyboard"></i> Use Terminal';
+      directTypingButton.innerHTML = `<i class="fa-solid fa-keyboard"></i> ${t('terminal_settings.use_terminal', 'Use Terminal')}`;
       directTypingButton.addEventListener('click', () => this.enableDirectTypingFromModal());
       actionsLeft.appendChild(directTypingButton);
 
@@ -409,13 +420,13 @@
       const cancelButton = document.createElement('button');
       cancelButton.type = 'button';
       cancelButton.className = 'btn2';
-      cancelButton.textContent = 'Cancel';
+      cancelButton.textContent = t('common.cancel', 'Cancel');
       cancelButton.addEventListener('click', () => this.closeModal());
 
       const sendButton = document.createElement('button');
       sendButton.type = 'submit';
       sendButton.className = 'btn terminal-keyboard-send';
-      sendButton.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send';
+      sendButton.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ${t('common.send', 'Send')}`;
 
       actionsRight.appendChild(cancelButton);
       actionsRight.appendChild(sendButton);
@@ -567,16 +578,16 @@
       const value = this.textarea.value || '';
       const appendNewline = this.newlineCheckbox ? this.newlineCheckbox.checked : true;
       if (!value && !appendNewline) {
-        this.setStatus('Enter text or enable newline.', 'error');
+        this.setStatus(t('terminal_settings.enter_text_or_newline', 'Enter text or enable newline.'), 'error');
         return;
       }
       const success = this.dispatchToTerminal(value, appendNewline);
       if (!success) {
-        this.setStatus('Terminal is not ready yet.', 'error');
+        this.setStatus(t('terminal_settings.not_ready', 'Terminal is not ready yet.'), 'error');
         return;
       }
       this.textarea.value = '';
-      this.setStatus('Sent to terminal.', 'success');
+      this.setStatus(t('terminal_settings.sent_to_terminal', 'Sent to terminal.'), 'success');
       this.closeModal();
     }
 
@@ -1263,7 +1274,7 @@
       container = document.createElement('div');
       container.className = 'terminal-runner-utilities';
       container.setAttribute('role', 'group');
-      container.setAttribute('aria-label', 'Terminal controls');
+      container.setAttribute('aria-label', t('terminal_settings.controls', 'Terminal controls'));
       runner.appendChild(container);
       return container;
     }
@@ -1393,8 +1404,9 @@
       button.type = 'button';
       button.className = 'btn terminal-utility-button terminal-resize-button';
       button.innerHTML = '<i class="fa-solid fa-ruler-combined" aria-hidden="true"></i>';
-      button.setAttribute('aria-label', 'Sync terminal to current viewport');
-      this.attachTerminalTooltip(button, 'Sync terminal to current viewport');
+      const syncLabel = t('terminal_settings.sync_viewport', 'Sync terminal to current viewport');
+      button.setAttribute('aria-label', syncLabel);
+      this.attachTerminalTooltip(button, syncLabel);
       button.addEventListener('click', (event) => {
         if (event) {
           event.preventDefault();
@@ -1493,8 +1505,9 @@
       button.innerHTML = '<span class="terminal-config-label"><i class="fa-solid fa-sliders" aria-hidden="true"></i></span>';
       button.setAttribute('aria-haspopup', 'true');
       button.setAttribute('aria-expanded', 'false');
-      button.setAttribute('aria-label', 'Terminal appearance');
-      this.attachTerminalTooltip(button, 'Terminal appearance');
+      const appearanceLabel = t('terminal_settings.appearance', 'Terminal appearance');
+      button.setAttribute('aria-label', appearanceLabel);
+      this.attachTerminalTooltip(button, appearanceLabel);
 
       const menu = document.createElement('div');
       menu.className = 'terminal-config-menu';
@@ -1504,7 +1517,7 @@
 
       const title = document.createElement('div');
       title.className = 'terminal-config-title';
-      title.textContent = 'Terminal appearance';
+      title.textContent = appearanceLabel;
 
       const note = document.createElement('div');
       note.className = 'terminal-config-note';
@@ -1514,7 +1527,7 @@
 
       const fontLabel = document.createElement('label');
       fontLabel.className = 'terminal-config-label';
-      fontLabel.textContent = 'Font family';
+      fontLabel.textContent = t('terminal_settings.font_family', 'Font family');
 
       const fontSelect = document.createElement('select');
       fontSelect.className = 'terminal-config-select';
@@ -1527,7 +1540,7 @@
 
       const customInput = document.createElement('input');
       customInput.type = 'text';
-      customInput.placeholder = 'Enter custom font stack';
+      customInput.placeholder = t('terminal_settings.custom_font_stack', 'Enter custom font stack');
       customInput.className = 'terminal-config-input terminal-config-input-custom';
       customInput.hidden = true;
 
@@ -1540,7 +1553,7 @@
 
       const sizeLabel = document.createElement('label');
       sizeLabel.className = 'terminal-config-label';
-      sizeLabel.textContent = 'Font size';
+      sizeLabel.textContent = t('terminal_settings.font_size', 'Font size');
 
       const sizeInput = document.createElement('input');
       sizeInput.type = 'number';
@@ -1557,11 +1570,11 @@
 
       const themeTitle = document.createElement('div');
       themeTitle.className = 'terminal-config-subtitle';
-      themeTitle.textContent = 'Theme colors';
+      themeTitle.textContent = t('terminal_settings.theme_colors', 'Theme colors');
 
       const themeHelp = document.createElement('div');
       themeHelp.className = 'terminal-config-help';
-      themeHelp.textContent = 'Override background, foreground, cursor, selection, and ANSI palette colors.';
+      themeHelp.textContent = t('terminal_settings.theme_help', 'Override background, foreground, cursor, selection, and ANSI palette colors.');
 
       const themeGrid = document.createElement('div');
       themeGrid.className = 'terminal-config-theme-grid';
@@ -1591,7 +1604,7 @@
         clearButton.type = 'button';
         clearButton.className = 'btn2 terminal-config-theme-clear';
         clearButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-        clearButton.title = 'Remove override';
+        clearButton.title = t('terminal_settings.remove_override', 'Remove override');
 
         row.appendChild(label);
         row.appendChild(colorInput);
@@ -1618,7 +1631,7 @@
       const resetButton = document.createElement('button');
       resetButton.type = 'button';
       resetButton.className = 'btn2 terminal-config-reset';
-      resetButton.innerHTML = '<i class="fa-solid fa-arrow-rotate-left"></i> Reset';
+      resetButton.innerHTML = `<i class="fa-solid fa-arrow-rotate-left"></i> ${t('common.reset', 'Reset')}`;
 
       actions.appendChild(resetButton);
 
@@ -1944,7 +1957,11 @@
           if (controls.textInput) {
             controls.textInput.value = prefValue;
             controls.textInput.placeholder = prefValue ? '' : effectiveValue;
-            controls.textInput.title = prefValue ? `Override: ${prefValue}` : (effectiveValue ? `Inherited: ${effectiveValue}` : 'No color override');
+            controls.textInput.title = prefValue
+              ? t('terminal_settings.override_value', 'Override: {value}', { value: prefValue })
+              : (effectiveValue
+                ? t('terminal_settings.inherited_value', 'Inherited: {value}', { value: effectiveValue })
+                : t('terminal_settings.no_color_override', 'No color override'));
           }
           if (controls.colorInput) {
             const pickerValue = prefValue
@@ -1958,23 +1975,31 @@
               controls.colorInput.dataset.invalid = 'true';
             }
             controls.colorInput.title = prefValue
-              ? `Override: ${prefValue}`
-              : (effectiveValue ? `Inherited: ${effectiveValue}` : 'No color override');
+              ? t('terminal_settings.override_value', 'Override: {value}', { value: prefValue })
+              : (effectiveValue
+                ? t('terminal_settings.inherited_value', 'Inherited: {value}', { value: effectiveValue })
+                : t('terminal_settings.no_color_override', 'No color override'));
           }
           if (controls.clearButton) {
             controls.clearButton.disabled = !prefValue;
-            controls.clearButton.title = prefValue ? 'Remove override' : 'No override to remove';
+            controls.clearButton.title = prefValue
+              ? t('terminal_settings.remove_override', 'Remove override')
+              : t('terminal_settings.no_override_remove', 'No override to remove');
           }
         });
       }
 
       if (note) {
-        const familyText = resolvedFamily ? resolvedFamily : 'Default';
-        const sizeText = resolvedSize ? `${resolvedSize}px` : 'Auto';
+        const familyText = resolvedFamily ? resolvedFamily : t('terminal_settings.default', 'Default');
+        const sizeText = resolvedSize ? `${resolvedSize}px` : t('terminal_settings.auto', 'Auto');
         const themeText = themeOverrideCount
-          ? `Theme overrides: ${themeOverrideCount}`
-          : 'Theme: Default';
-        note.textContent = `Current font: ${familyText} | ${sizeText} | ${themeText}`;
+          ? t('terminal_settings.theme_overrides_count', 'Theme overrides: {count}', { count: themeOverrideCount })
+          : t('terminal_settings.theme_default', 'Theme: Default');
+        note.textContent = t('terminal_settings.current_font_summary', 'Current font: {family} | {size} | {theme}', {
+          family: familyText,
+          size: sizeText,
+          theme: themeText
+        });
       }
 
       if (resetButton) {

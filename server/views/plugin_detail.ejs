@@ -1,6 +1,9 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <%
+  const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+  %>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= plugin.title %></title>
@@ -25,7 +28,7 @@
         <header class="task-shell-header">
           <div class="task-shell-header-main">
             <div class="task-shell-topline">
-              <p class="task-eyebrow">Plugins</p>
+              <p class="task-eyebrow"><%=tr("plugins.title")%></p>
             </div>
             <div class="plugin-detail-title-row">
               <% if (plugin.image) { %>
@@ -51,7 +54,7 @@
           <div class="task-header-actions">
             <a class="task-link-button" href="/plugins">
               <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
-              <span>Back</span>
+              <span><%=tr("common.back")%></span>
             </a>
           </div>
         </header>
@@ -62,8 +65,8 @@
               <section class="task-section plugin-detail-actions-section" data-plugin-actions-section>
                 <div class="task-section-head">
                   <div>
-                    <h2 class="task-section-title">Actions</h2>
-                    <p class="task-section-subcopy"><%= pluginUi.launchSummary %>. Run the plugin or manage its setup from here.</p>
+                    <h2 class="task-section-title"><%=tr("plugin_detail.actions")%></h2>
+                    <p class="task-section-subcopy"><%=tr("plugin_detail.actions_subcopy", { summary: pluginUi.launchSummary })%></p>
                   </div>
                 </div>
                 <div class="plugin-detail-next-step-banner task-hidden" data-plugin-next-step-banner></div>
@@ -71,65 +74,65 @@
                   <% if (plugin.pluginPath) { %>
                     <div class="plugin-detail-action-card" data-plugin-action-card="open">
                       <div class="plugin-detail-action-copy">
-                        <div class="plugin-detail-action-label">Open in</div>
-                        <div class="plugin-detail-action-meta">Choose a project and launch this plugin there.</div>
+                        <div class="plugin-detail-action-label"><%=tr("plugin_detail.open_in")%></div>
+                        <div class="plugin-detail-action-meta"><%=tr("plugin_detail.open_in_meta")%></div>
                       </div>
                       <button class="task-button primary" type="button" data-plugin-open>
                         <i class="fa-solid fa-bolt" aria-hidden="true"></i>
-                        <span>Open in</span>
+                        <span><%=tr("plugin_detail.open_in")%></span>
                       </button>
                     </div>
                   <% } %>
                   <div class="plugin-detail-action-card task-hidden" data-plugin-ai-permissions>
                     <div class="plugin-detail-action-copy">
-                      <div class="plugin-detail-action-label">AI permissions</div>
-                      <div class="plugin-detail-action-meta">Clear saved access for <code data-plugin-ai-permission-path><%= currentPluginCwd %></code>.</div>
+                      <div class="plugin-detail-action-label"><%=tr("plugin_detail.ai_permissions")%></div>
+                      <div class="plugin-detail-action-meta"><%=tr("plugin_detail.ai_permissions_meta_prefix")%> <code data-plugin-ai-permission-path><%=currentPluginCwd%></code>.</div>
                       <div class="task-inline-help" data-plugin-ai-permission-status></div>
                     </div>
                     <button class="task-button" type="button" data-plugin-ai-permission-clear>
                       <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-                      <span>Clear</span>
+                      <span><%=tr("common.clear")%></span>
                     </button>
                   </div>
                   <% if (plugin.hasInstall && plugin.pluginPath && plugin.installed !== true) { %>
                     <div class="plugin-detail-action-card" data-plugin-action-card="install">
                       <div class="plugin-detail-action-copy">
-                        <div class="plugin-detail-action-label">Install</div>
-                        <div class="plugin-detail-action-meta">Run the plugin installation flow.</div>
+                        <div class="plugin-detail-action-label"><%=tr("common.install")%></div>
+                        <div class="plugin-detail-action-meta"><%=tr("plugin_detail.install_flow")%></div>
                       </div>
                       <button class="task-button" type="button" data-plugin-action="install">
                         <i class="fa-solid fa-download" aria-hidden="true"></i>
-                        <span>Install</span>
+                        <span><%=tr("common.install")%></span>
                       </button>
                     </div>
                   <% } %>
                   <% if (plugin.hasUpdate && plugin.pluginPath && plugin.installed !== false) { %>
                     <div class="plugin-detail-action-card" data-plugin-action-card="update">
                       <div class="plugin-detail-action-copy">
-                        <div class="plugin-detail-action-label">Update</div>
-                        <div class="plugin-detail-action-meta">Pull the latest plugin-managed changes.</div>
+                        <div class="plugin-detail-action-label"><%=tr("plugin_detail.update")%></div>
+                        <div class="plugin-detail-action-meta"><%=tr("plugin_detail.update_meta")%></div>
                       </div>
                       <button class="task-button" type="button" data-plugin-action="update">
                         <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-                        <span>Update</span>
+                        <span><%=tr("plugin_detail.update")%></span>
                       </button>
                     </div>
                   <% } %>
                   <% if (plugin.hasUninstall && plugin.pluginPath && plugin.installed !== false) { %>
                     <div class="plugin-detail-action-card" data-plugin-action-card="uninstall">
                       <div class="plugin-detail-action-copy">
-                        <div class="plugin-detail-action-label">Uninstall</div>
-                        <div class="plugin-detail-action-meta">Remove this plugin's managed setup.</div>
+                        <div class="plugin-detail-action-label"><%=tr("plugin_detail.uninstall")%></div>
+                        <div class="plugin-detail-action-meta"><%=tr("plugin_detail.uninstall_meta")%></div>
                       </div>
                       <button class="task-button danger" type="button" data-plugin-action="uninstall">
                         <i class="fa-solid fa-trash" aria-hidden="true"></i>
-                        <span>Uninstall</span>
+                        <span><%=tr("plugin_detail.uninstall")%></span>
                       </button>
                     </div>
                   <% } %>
                   <% if (!plugin.pluginPath && !plugin.hasInstall && !plugin.hasUpdate && !plugin.hasUninstall) { %>
                     <div class="task-empty-state">
-                      <p class="task-empty-copy">No direct actions are available for this plugin item yet.</p>
+                      <p class="task-empty-copy"><%=tr("plugin_detail.no_direct_actions")%></p>
                     </div>
                   <% } %>
                 </div>
@@ -139,7 +142,7 @@
                 <section class="task-section">
                   <div class="task-section-head">
                     <div>
-                      <h2 class="task-section-title">Local changes</h2>
+                      <h2 class="task-section-title"><%=tr("plugin_detail.local_changes")%></h2>
                       <p class="task-section-subcopy"><%- pluginUi.localChangesCopy %></p>
                     </div>
                   </div>
@@ -154,7 +157,7 @@
                     <% }) %>
                   </div>
                   <% if (pluginUi.extraChangeCount > 0) { %>
-                    <p class="task-inline-help">+ <%= pluginUi.extraChangeCount %> more change<%= pluginUi.extraChangeCount === 1 ? "" : "s" %></p>
+                    <p class="task-inline-help"><%=tr(pluginUi.extraChangeCount === 1 ? "plugin_detail.more_change" : "plugin_detail.more_changes", { count: pluginUi.extraChangeCount })%></p>
                   <% } %>
                 </section>
               <% } %>
@@ -162,7 +165,7 @@
 
             <aside class="task-share-section task-detail-sidebar">
               <div class="task-section-head">
-                <h2 class="task-section-title">Plugin status</h2>
+                <h2 class="task-section-title"><%=tr("plugin_detail.plugin_status")%></h2>
               </div>
               <div class="task-side-stack">
                 <div class="task-meta-row task-meta-row-compact">
@@ -179,13 +182,13 @@
                   <% if (pluginUi.canOpenFolder) { %>
                     <button class="task-button" type="button" data-filepath="<%= shareState.dir %>">
                       <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
-                      <span>Open folder</span>
+                      <span><%=tr("plugin_detail.open_folder")%></span>
                     </button>
                   <% } %>
                   <% if (plugin.link) { %>
                     <a class="task-link-button" href="<%= plugin.link %>" target="_blank" rel="noopener noreferrer">
                       <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
-                      <span>Website</span>
+                      <span><%=tr("plugin_detail.website")%></span>
                     </a>
                   <% } %>
                 </div>
@@ -205,21 +208,21 @@
                   <form class="task-share-inline-create task-hidden" data-plugin-share-create-form>
                     <div class="task-inline-fields">
                       <label class="task-field">
-                        <span class="task-label">Repository name</span>
+                        <span class="task-label"><%=tr("app.repository_name")%></span>
                         <input class="task-input" type="text" data-plugin-share-repo-name placeholder="plugin-repo">
                       </label>
                       <label class="task-field task-field-tight">
-                        <span class="task-label">Visibility</span>
+                        <span class="task-label"><%=tr("plugin_detail.visibility")%></span>
                         <select class="task-select" data-plugin-share-visibility>
-                          <option value="public">Public</option>
-                          <option value="private">Private</option>
+                          <option value="public"><%=tr("app.public")%></option>
+                          <option value="private"><%=tr("app.private")%></option>
                         </select>
                       </label>
                       <div class="task-actions task-share-inline-create-actions">
-                        <button class="task-button" type="button" data-plugin-share-create-cancel>Cancel</button>
+                        <button class="task-button" type="button" data-plugin-share-create-cancel><%=tr("common.cancel")%></button>
                         <button class="task-button primary" type="submit">
                           <i class="fa-brands fa-github" aria-hidden="true"></i>
-                          <span>Continue</span>
+                          <span><%=tr("plugin_detail.continue")%></span>
                         </button>
                       </div>
                     </div>
@@ -227,11 +230,11 @@
                   <div class="task-actions plugin-share-static-actions">
                     <a class="task-link-button <%= shareState.remoteWebUrl ? '' : 'task-hidden' %>" href="<%= shareState.remoteWebUrl || '#' %>" target="_blank" rel="noopener noreferrer" data-plugin-share-remote-link>
                       <i class="fa-brands fa-github" aria-hidden="true"></i>
-                      <span>View on GitHub</span>
+                      <span><%=tr("app.view_on_github")%></span>
                     </a>
                     <button class="task-button" type="button" data-plugin-share-refresh>
                       <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-                      <span>Check again</span>
+                      <span><%=tr("plugin_detail.check_again")%></span>
                     </button>
                   </div>
                   <p class="task-help-copy" data-plugin-share-copy></p>
@@ -259,11 +262,11 @@
     <section class="task-share-overlay-panel" role="dialog" aria-modal="true" aria-labelledby="plugin-share-overlay-title">
       <header class="task-share-overlay-header">
         <div>
-          <p class="task-eyebrow">GitHub Flow</p>
-          <h2 id="plugin-share-overlay-title" class="task-share-overlay-title" data-plugin-share-overlay-title>Publish</h2>
-          <p class="task-share-overlay-copy" data-plugin-share-overlay-copy>Finish the GitHub flow in this panel, then click Done, check again.</p>
+          <p class="task-eyebrow"><%=tr("plugin_detail.github_flow")%></p>
+          <h2 id="plugin-share-overlay-title" class="task-share-overlay-title" data-plugin-share-overlay-title><%=tr("plugin_detail.publish")%></h2>
+          <p class="task-share-overlay-copy" data-plugin-share-overlay-copy><%=tr("plugin_detail.github_flow_copy")%></p>
         </div>
-        <button class="task-button icon-only" type="button" data-plugin-share-overlay-close aria-label="Close">
+        <button class="task-button icon-only" type="button" data-plugin-share-overlay-close aria-label="<%=tr("common.close")%>">
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </header>
@@ -271,10 +274,10 @@
         <iframe class="task-share-overlay-frame" src="about:blank" allow="fullscreen *;" allowfullscreen data-plugin-share-overlay-frame></iframe>
       </div>
       <footer class="task-share-overlay-footer">
-        <button class="task-button" type="button" data-plugin-share-overlay-close>Not yet</button>
+        <button class="task-button" type="button" data-plugin-share-overlay-close><%=tr("plugin_detail.not_yet")%></button>
         <button class="task-button primary" type="button" data-plugin-share-overlay-refresh>
           <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-          <span>Done, check again</span>
+          <span><%=tr("plugin_detail.done_check_again")%></span>
         </button>
       </footer>
     </section>
@@ -298,7 +301,81 @@
     },
     share: shareState,
     apps,
-    stateUrl: plugin.pluginPath ? `/plugin/share/state?path=${encodeURIComponent(plugin.pluginPath)}` : ""
+    stateUrl: plugin.pluginPath ? `/plugin/share/state?path=${encodeURIComponent(plugin.pluginPath)}` : "",
+    i18n: {
+      actionInstall: tr("common.install"),
+      actionUninstall: tr("plugin_detail.uninstall"),
+      actionUpdate: tr("plugin_detail.update"),
+      noProjectPermissionContext: tr("plugin_detail.no_project_permission_context"),
+      browserStorageUnavailable: tr("plugin_detail.browser_storage_unavailable"),
+      savedPermissionExists: tr("plugin_detail.saved_permission_exists"),
+      noSavedPermission: tr("plugin_detail.no_saved_permission"),
+      aiPermissionCleared: tr("plugin_detail.ai_permission_cleared"),
+      unableClearAiPermission: tr("plugin_detail.unable_clear_ai_permission"),
+      missingTargetScript: tr("plugin_detail.missing_target_script"),
+      run: tr("terminal.run"),
+      plugin: tr("plugins.plugin"),
+      runPluginTitle: tr("plugin_detail.run_plugin_title"),
+      chooseProjectLaunch: tr("plugin_detail.choose_project_launch"),
+      filterProjects: tr("plugin_detail.filter_projects"),
+      project: tr("plugin_detail.project"),
+      noMatchingProjects: tr("plugin_detail.no_matching_projects"),
+      tryDifferentProject: tr("plugin_detail.try_different_project"),
+      noProjectsFound: tr("plugin_detail.no_projects_found"),
+      missingLaunchTarget: tr("plugin_detail.missing_launch_target"),
+      selectProjectContinue: tr("plugin_detail.select_project_continue"),
+      githubFlow: tr("plugin_detail.github_flow"),
+      githubFlowCopy: tr("plugin_detail.github_flow_copy"),
+      refreshingStatus: tr("plugin_detail.refreshing_status"),
+      statusUpdated: tr("plugin_detail.status_updated"),
+      failedRefreshStatus: tr("plugin_detail.failed_refresh_status"),
+      failedInitializeGit: tr("plugin_detail.failed_initialize_git"),
+      gitTrackingStarted: tr("plugin_detail.git_tracking_started"),
+      repositoryNameRequired: tr("app.repository_name_required"),
+      connectGithub: tr("plugin_detail.connect_github"),
+      connectGithubCopy: tr("plugin_detail.connect_github_copy"),
+      openGithub: tr("plugin_detail.open_github"),
+      checkAgain: tr("plugin_detail.check_again"),
+      startTracking: tr("plugin_detail.start_tracking"),
+      startTrackingCopy: tr("plugin_detail.start_tracking_copy"),
+      saveFirstVersion: tr("plugin_detail.save_first_version"),
+      saveFirstVersionCopy: tr("plugin_detail.save_first_version_copy"),
+      saveVersion: tr("plugin_detail.save_version"),
+      saveChanges: tr("plugin_detail.save_changes"),
+      localChangesCount: tr("plugin_detail.local_changes_count"),
+      createGithubRepo: tr("plugin_detail.create_github_repo"),
+      chooseRepoNameContinue: tr("plugin_detail.choose_repo_name_continue"),
+      createGithubRepoCopy: tr("plugin_detail.create_github_repo_copy"),
+      createOnGithub: tr("app.create_on_github"),
+      publishFirstVersion: tr("plugin_detail.publish_first_version"),
+      publishFirstVersionCopy: tr("plugin_detail.publish_first_version_copy"),
+      publishChanges: tr("plugin_detail.publish_changes"),
+      localVersionsCount: tr("plugin_detail.local_versions_count"),
+      sourceRepoReady: tr("plugin_detail.source_repo_ready"),
+      sourceRepoReadyCopy: tr("plugin_detail.source_repo_ready_copy"),
+      readOnly: tr("plugin_detail.read_only"),
+      remoteCreated: tr("plugin_detail.remote_created"),
+      outOfDate: tr("plugin_detail.out_of_date"),
+      connected: tr("plugin_detail.connected"),
+      localOnly: tr("plugin_detail.local_only"),
+      setupNeeded: tr("plugin_detail.setup_needed"),
+      createRepoWhenReady: tr("plugin_detail.create_repo_when_ready"),
+      publishFirstVersionGithub: tr("plugin_detail.publish_first_version_github"),
+      savePublishGithub: tr("plugin_detail.save_publish_github"),
+      publishLatestGithub: tr("plugin_detail.publish_latest_github"),
+      githubInSync: tr("plugin_detail.github_in_sync"),
+      downloadedInstallNext: tr("plugin_detail.downloaded_install_next"),
+      installedOpenProject: tr("plugin_detail.installed_open_project"),
+      downloadedOpenNext: tr("plugin_detail.downloaded_open_next"),
+      downloadedSuccessfully: tr("plugin_detail.downloaded_successfully"),
+      needsInstallBeforeRun: tr("plugin_detail.needs_install_before_run"),
+      nextOpenProject: tr("plugin_detail.next_open_project"),
+      nextStep: tr("plugin_detail.next_step"),
+      saveVersionOverlayCopy: tr("plugin_detail.save_version_overlay_copy"),
+      createGithubRepository: tr("app.create_github_repository"),
+      createGithubRepositoryOverlayCopy: tr("plugin_detail.create_github_repository_overlay_copy"),
+      publishChangesOverlayCopy: tr("plugin_detail.publish_changes_overlay_copy")
+    }
   }).replace(/</g, '\\u003c') %></script>
   <%- include('partials/app_common_scripts') %>
   <script src="/opener.js"></script>

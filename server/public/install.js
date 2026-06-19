@@ -1,3 +1,19 @@
+const installT = (key, fallback, replacements = {}) => {
+  const fn = typeof window !== "undefined" && typeof window.pinokioT === "function" ? window.pinokioT : null
+  if (fn) {
+    return fn(key, fallback, replacements)
+  }
+  const catalog = typeof window !== "undefined" && window.PINOKIO_I18N && typeof window.PINOKIO_I18N === "object" ? window.PINOKIO_I18N : {}
+  let value = Object.prototype.hasOwnProperty.call(catalog, key) ? catalog[key] : `[missing translation: ${key}]`
+  if (typeof value !== "string") {
+    value = `[missing translation: ${key}]`
+  }
+  Object.entries(replacements || {}).forEach(([name, replacement]) => {
+    value = value.replace(new RegExp(`\\{${name}\\}`, "g"), replacement == null ? "" : String(replacement))
+  })
+  return value
+}
+
 const NON_INTERACTIVE_GIT_ENV = {
   GIT_TERMINAL_PROMPT: "0",
   GIT_ASKPASS: "",
@@ -19,10 +35,10 @@ const installname = async (url, name, options) => {
     }
     const inputValue = name || defaultName
     let result = await Swal.fire({
-      title: 'Save as',
-      html: `<p class="pinokio-download-note">Saved in <code>~/${relativePath}</code></p>`,
+      title: installT("install.save_as", "Save as"),
+      html: `<p class="pinokio-download-note">${escapeInstallHtml(installT("install.saved_in", "Saved in"))} <code>~/${escapeInstallHtml(relativePath)}</code></p>`,
       input: 'text',
-      inputLabel: 'Folder name',
+      inputLabel: installT("install.folder_name", "Folder name"),
       inputValue,
       inputPlaceholder: defaultName,
       inputAttributes: {
@@ -35,15 +51,15 @@ const installname = async (url, name, options) => {
       focusCancel: false,
       showCancelButton: true,
       showCloseButton: true,
-      cancelButtonText: 'Cancel',
-      confirmButtonText: 'Download',
+      cancelButtonText: installT("common.cancel", "Cancel"),
+      confirmButtonText: installT("common.download", "Download"),
       buttonsStyling: false,
       backdrop: 'rgba(9, 11, 15, 0.65)',
       width: 'min(460px, 92vw)',
       allowOutsideClick: () => !Swal.isLoading(),
       allowEscapeKey: true,
       showLoaderOnConfirm: true,
-      loaderHtml: '<span class="pinokio-download-loader-spinner" aria-hidden="true"></span><span class="pinokio-download-loader-text">Downloading...</span>',
+      loaderHtml: `<span class="pinokio-download-loader-spinner" aria-hidden="true"></span><span class="pinokio-download-loader-text">${escapeInstallHtml(installT("terminal.downloading_ellipsis", "Downloading..."))}</span>`,
       customClass: {
         popup: 'pinokio-download-modal',
         htmlContainer: 'pinokio-download-html',
@@ -73,11 +89,11 @@ const installname = async (url, name, options) => {
         try {
           const exists = await checkInstallDestinationExists(folderName, options)
           if (exists) {
-            Swal.showValidationMessage("Folder already exists. Choose a different name.")
+            Swal.showValidationMessage(installT("install.folder_exists_choose_different", "Folder already exists. Choose a different name."))
             return false
           }
         } catch (error) {
-          Swal.showValidationMessage(error && error.message ? error.message : "Could not check destination folder")
+          Swal.showValidationMessage(error && error.message ? error.message : installT("install.could_not_check_destination", "Could not check destination folder"))
           return false
         }
         return folderName
@@ -163,16 +179,16 @@ const normalizeInstallPath = (rawPath) => {
 
 const validateInstallFolderName = (folderName) => {
   if (!folderName) {
-    return "Name is required"
+    return installT("install.name_required", "Name is required")
   }
   if (folderName === "." || folderName === "..") {
-    return "Invalid name"
+    return installT("install.invalid_name", "Invalid name")
   }
   if (/[\\/]/.test(folderName)) {
-    return "Name cannot include / or \\\\"
+    return installT("install.name_no_slashes", "Name cannot include / or \\\\")
   }
   if (folderName.includes("\0")) {
-    return "Invalid name"
+    return installT("install.invalid_name", "Invalid name")
   }
   return null
 }
@@ -192,7 +208,7 @@ const checkInstallDestinationExists = async (folderName, options) => {
   })
   const payload = await response.json().catch(() => ({}))
   if (!response.ok) {
-    const message = payload && payload.error ? payload.error : `Failed to check destination folder (${response.status})`
+    const message = payload && payload.error ? payload.error : installT("install.failed_check_destination_status", "Failed to check destination folder ({status})", { status: response.status })
     throw new Error(message)
   }
   return payload && payload.exists === true
@@ -211,7 +227,7 @@ const prepareLegacyTaskDownload = async (ref) => {
   })
   const payload = await response.json().catch(() => ({}))
   if (!response.ok || !payload || payload.ok === false) {
-    throw new Error(payload && payload.error ? payload.error : "Failed to prepare task install.")
+    throw new Error(payload && payload.error ? payload.error : installT("tasks.failed_prepare_install", "Failed to prepare task install."))
   }
   return payload
 }
@@ -226,7 +242,7 @@ const finalizeLegacyTaskDownload = async (payload) => {
   })
   const result = await response.json().catch(() => ({}))
   if (!response.ok || !result || result.ok === false) {
-    throw new Error(result && result.error ? result.error : "Failed to install task.")
+    throw new Error(result && result.error ? result.error : installT("tasks.failed_install", "Failed to install task."))
   }
   return result
 }
@@ -243,8 +259,8 @@ const install = async (name, url, term, socket, options) => {
   if (isTaskInstall) {
     setInlineInstallStatus({
       state: 'progress',
-      title: 'Importing task...',
-      detailHtml: `<p>Downloading into <code>~/${TASKS_INSTALL_RELATIVE_PATH}</code>.</p>`,
+      title: installT("install.importing_task_ellipsis", "Importing task..."),
+      detailHtml: `<p>${escapeInstallHtml(installT("install.downloading_into", "Downloading into"))} <code>~/${TASKS_INSTALL_RELATIVE_PATH}</code>.</p>`,
       iconClass: 'fa-solid fa-circle-notch fa-spin'
     })
     try {
@@ -256,17 +272,17 @@ const install = async (name, url, term, socket, options) => {
       cloneSpec = prepared && prepared.clone ? prepared.clone : null
       finalizePayload = prepared && prepared.finalize ? prepared.finalize : null
       if (!cloneSpec || !finalizePayload) {
-        throw new Error("Failed to prepare task install.")
+        throw new Error(installT("tasks.failed_prepare_install", "Failed to prepare task install."))
       }
     } catch (error) {
       setInlineInstallStatus({
         state: 'error',
-        title: 'Task import failed',
-        detailHtml: `<p>${escapeInstallHtml(error && error.message ? error.message : "Failed to prepare task install.")}</p>`,
+        title: installT("install.task_import_failed", "Task import failed"),
+        detailHtml: `<p>${escapeInstallHtml(error && error.message ? error.message : installT("tasks.failed_prepare_install", "Failed to prepare task install."))}</p>`,
         iconClass: 'fa-solid fa-triangle-exclamation'
       })
       n.Noty({
-        text: error && error.message ? error.message : "Failed to prepare task install.",
+        text: error && error.message ? error.message : installT("tasks.failed_prepare_install", "Failed to prepare task install."),
         timeout: 6000
       })
       return
@@ -274,8 +290,8 @@ const install = async (name, url, term, socket, options) => {
   } else {
     setInlineInstallStatus({
       state: 'progress',
-      title: 'Downloading...',
-      detailHtml: `<p>Cloning into <code>${escapeInstallHtml(targetPath)}/${escapeInstallHtml(name)}</code>.</p>`,
+      title: installT("terminal.downloading_ellipsis", "Downloading..."),
+      detailHtml: `<p>${escapeInstallHtml(installT("install.cloning_into", "Cloning into"))} <code>${escapeInstallHtml(targetPath)}/${escapeInstallHtml(name)}</code>.</p>`,
       iconClass: 'fa-solid fa-circle-notch fa-spin'
     })
 
@@ -285,7 +301,7 @@ const install = async (name, url, term, socket, options) => {
         ensureInlineInstallStatus().hidden = true
         document.body.classList.remove('pinokio-install-status-visible')
         n.Noty({
-          text: "Folder already exists. Choose a different name.",
+          text: installT("install.folder_exists_choose_different", "Folder already exists. Choose a different name."),
           timeout: 6000
         })
         return
@@ -294,7 +310,7 @@ const install = async (name, url, term, socket, options) => {
       ensureInlineInstallStatus().hidden = true
       document.body.classList.remove('pinokio-install-status-visible')
       n.Noty({
-        text: error && error.message ? error.message : "Could not verify destination folder",
+        text: error && error.message ? error.message : installT("install.could_not_verify_destination", "Could not verify destination folder"),
         timeout: 6000
       })
       return
@@ -351,12 +367,12 @@ const install = async (name, url, term, socket, options) => {
           if (packet.data && packet.data.error && packet.data.error.length > 0) {
             setInlineInstallStatus({
               state: 'error',
-              title: 'Download failed',
-              detailHtml: '<p>Pinokio could not clone the repository. Check the terminal output for details.</p>',
+              title: installT("universal.download_failed", "Download failed."),
+              detailHtml: `<p>${escapeInstallHtml(installT("install.clone_failed_check_terminal", "Pinokio could not clone the repository. Check the terminal output for details."))}</p>`,
               iconClass: 'fa-solid fa-triangle-exclamation'
             })
             n.Noty({
-              text: "Download failed. See terminal output for details.",
+              text: installT("install.download_failed_terminal", "Download failed. See terminal output for details."),
               timeout: 6000
             })
             settle(reject, new Error("shell.run failed"))
@@ -366,14 +382,14 @@ const install = async (name, url, term, socket, options) => {
         } else if (packet.type === "error") {
           setInlineInstallStatus({
             state: 'error',
-            title: 'Download failed',
-            detailHtml: `<p>${escapeInstallHtml(typeof packet.data === "string" ? packet.data : "shell.run error")}</p>`,
+            title: installT("universal.download_failed", "Download failed."),
+            detailHtml: `<p>${escapeInstallHtml(typeof packet.data === "string" ? packet.data : installT("install.shell_run_error", "shell.run error"))}</p>`,
             iconClass: 'fa-solid fa-triangle-exclamation'
           })
           n.Noty({
             text: packet.data
           })
-          settle(reject, new Error(typeof packet.data === "string" ? packet.data : "shell.run error"))
+          settle(reject, new Error(typeof packet.data === "string" ? packet.data : installT("install.shell_run_error", "shell.run error")))
         }
       })
     })
@@ -385,19 +401,19 @@ const install = async (name, url, term, socket, options) => {
     try {
       const finalized = await finalizeLegacyTaskDownload(finalizePayload)
       if (!finalized || !finalized.url) {
-        throw new Error("Failed to install task.")
+        throw new Error(installT("tasks.failed_install", "Failed to install task."))
       }
       location.href = finalized.url
       return
     } catch (error) {
       setInlineInstallStatus({
         state: 'error',
-        title: 'Task import failed',
-        detailHtml: `<p>${escapeInstallHtml(error && error.message ? error.message : "Failed to install task.")}</p>`,
+        title: installT("install.task_import_failed", "Task import failed"),
+        detailHtml: `<p>${escapeInstallHtml(error && error.message ? error.message : installT("tasks.failed_install", "Failed to install task."))}</p>`,
         iconClass: 'fa-solid fa-triangle-exclamation'
       })
       n.Noty({
-        text: error && error.message ? error.message : "Failed to install task.",
+        text: error && error.message ? error.message : installT("tasks.failed_install", "Failed to install task."),
         timeout: 6000
       })
       return
@@ -408,12 +424,12 @@ const install = async (name, url, term, socket, options) => {
       if (!cloned) {
         setInlineInstallStatus({
           state: 'error',
-          title: 'Download failed',
-          detailHtml: '<p>Pinokio could not clone the repository.</p>',
+          title: installT("universal.download_failed", "Download failed."),
+          detailHtml: `<p>${escapeInstallHtml(installT("install.clone_failed", "Pinokio could not clone the repository."))}</p>`,
           iconClass: 'fa-solid fa-triangle-exclamation'
         })
         n.Noty({
-          text: "Download failed.",
+          text: installT("universal.download_failed", "Download failed."),
           timeout: 6000
         })
         return
@@ -421,12 +437,12 @@ const install = async (name, url, term, socket, options) => {
     } catch (error) {
       setInlineInstallStatus({
         state: 'error',
-        title: 'Download failed',
-        detailHtml: `<p>${escapeInstallHtml(error && error.message ? error.message : "Could not verify destination folder")}</p>`,
+        title: installT("universal.download_failed", "Download failed."),
+        detailHtml: `<p>${escapeInstallHtml(error && error.message ? error.message : installT("install.could_not_verify_destination", "Could not verify destination folder"))}</p>`,
         iconClass: 'fa-solid fa-triangle-exclamation'
       })
       n.Noty({
-        text: error && error.message ? error.message : "Could not verify destination folder",
+        text: error && error.message ? error.message : installT("install.could_not_verify_destination", "Could not verify destination folder"),
         timeout: 6000
       })
       return
@@ -465,7 +481,7 @@ const install = async (name, url, term, socket, options) => {
       location.href = `/initialize/${name}`
     } else {
       n.Noty({
-        text: `Downloaded to ~/${normalizedPath}/${name}`,
+        text: installT("install.downloaded_to", "Downloaded to {path}", { path: `~/${normalizedPath}/${name}` }),
         timeout: 4000
       })
       const relativePluginPath = `${normalizedPath}/${name}`

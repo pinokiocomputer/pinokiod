@@ -1,5 +1,9 @@
 <html>
 <head>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <link href="/xterm.min.css" rel="stylesheet" />
@@ -1347,6 +1351,9 @@ body.tools-page .tab .emoji {
 <script src="/xterm-theme.js"></script>
 <script src="/install.js"></script>
 <script src="/timeago.min.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
@@ -1370,32 +1377,32 @@ document.addEventListener('DOMContentLoaded', function() {
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
-<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+<button class='btn2' id='minimize-header' data-tippy-content="<%=tr("common.fullscreen")%>" title='<%=tr("common.fullscreen")%>'>
   <div><i class="fa-solid fa-expand"></i></div>
 </button>
-<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
-<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
-<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
-<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
+<button class='btn2' id='back' data-tippy-content="<%=tr("common.back")%>"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="<%=tr("common.forward")%>"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="<%=tr("common.refresh")%>"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="<%=tr("common.screen_capture")%>"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="<%=tr("common.xray_mode")%>"><i class="fa-solid fa-eye"></i></button>
+<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="<%=tr("common.enter_url")%>"><i class="fa-solid fa-link"></i></button>
 <div class='mobile-flexible'></div>
 <form class='urlbar'>
   <div class='url-input-container'>
-    <input type='url' placeholder='enter any local url to open in pinokio'>
+    <input type='url' placeholder='<%=tr("common.url_placeholder")%>'>
     <div class='url-dropdown' id='url-dropdown'></div>
   </div>
 </form>
-<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+<a class='btn2' href="/columns" data-tippy-content="<%=tr("common.split_columns")%>">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
-<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+<a class='btn2' href="/rows" data-tippy-content="<%=tr("common.split_rows")%>">
   <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
 </a>
-<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+<button class='btn2' id='new-window' data-tippy-content="<%=tr("common.open_new_window")%>" title='<%=tr("common.open_new_window")%>' data-agent="<%=agent%>">
   <div><i class="fa-solid fa-plus"></i></div>
 </button>
-<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+<button class='btn2 hidden' id='close-window' data-tippy-content='<%=tr("common.close_section")%>'>
   <div><i class="fa-solid fa-xmark"></i></div>
 </button>
 </h1>
@@ -1405,9 +1412,9 @@ document.addEventListener('DOMContentLoaded', function() {
   <section class='task-shell tools-shell'>
     <header class='task-shell-header'>
       <div class='task-shell-header-main'>
-        <p class='task-eyebrow'>Tools</p>
-        <h1 class='task-title'>Installed tools</h1>
-        <p class='task-description'>Package bundles and package-manager modules available on this machine.</p>
+        <p class='task-eyebrow'><%=tr("tools.eyebrow")%></p>
+        <h1 class='task-title'><%=tr("tools.title")%></h1>
+        <p class='task-description'><%=tr("tools.description")%></p>
       </div>
     </header>
     <div class='task-shell-body tools-shell-body'>
@@ -1415,13 +1422,13 @@ document.addEventListener('DOMContentLoaded', function() {
     <% if (pending) { %>
       <div class="loading-container">
         <div class="loading-spinner"></div>
-        <div class="loading-text">Loading installed tools...</div>
-        <div class="loading-subtext">Scanning package managers and modules</div>
+        <div class="loading-text"><%=tr("tools.loading")%></div>
+        <div class="loading-subtext"><%=tr("tools.scanning")%></div>
       </div>
     <% } else { %>
       <div class="bundles-section">
         <div class="bundles-header">
-          <h3>Package Bundles</h3>
+          <h3><%=tr("tools.package_bundles")%></h3>
         </div>
         <div class="bundles-grid">
           <% bundles.forEach((bundle) => { %>
@@ -1437,7 +1444,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   </div>
                 </div>
                 <div class="bundle-status <%= !bundle.install_required ? 'installed' : 'pending' %>">
-                  <%= !bundle.install_required ? 'Installed' : 'Not installed' %>
+                  <%= !bundle.install_required ? tr("terminal.installed") : tr("terminal.not_installed") %>
                 </div>
               </div>
               
@@ -1446,7 +1453,7 @@ document.addEventListener('DOMContentLoaded', function() {
               </div>
               
               <div class="bundle-packages">
-                <div class="bundle-packages-title">Included packages:</div>
+                <div class="bundle-packages-title"><%=tr("tools.included_packages")%></div>
                 <div class="bundle-packages-list">
                   <% bundle.requirements.forEach((req) => { %>
                     <span class="package-badge <%= req.installed ? 'installed' : 'not-installed' %>">
@@ -1460,7 +1467,7 @@ document.addEventListener('DOMContentLoaded', function() {
               </div>
               
               <% if (bundle.install_required) { %>
-                <a href="<%= bundle.setup %>" class="bundle-install-btn">Install Bundle</a>
+                <a href="<%= bundle.setup %>" class="bundle-install-btn"><%=tr("tools.install_bundle")%></a>
               <% } %>
             </div>
           <% }) %>
@@ -1480,38 +1487,38 @@ document.addEventListener('DOMContentLoaded', function() {
           <div class="section-header">
             <h2><%= install.package_manager.toUpperCase() %></h2>
             <div class="section">
-              <div><%= install.modules.length %> modules installed</div>
+              <div><%=tr("tools.modules_installed", { count: install.modules.length })%></div>
             </div>
           </div>
           <div class="package-install-card">
             <form class="package-install-form" data-manager="<%= install.package_manager %>">
               <% if (install.package_manager === 'conda') { %>
                 <div class="package-install-field">
-                  <label class="package-install-label" for="install-channel-<%= install.package_manager %>">Channel</label>
-                  <input id="install-channel-<%= install.package_manager %>" class="package-install-input" name="channel" type="text" value="conda-forge" placeholder="Enter channel" autocomplete="off">
+                  <label class="package-install-label" for="install-channel-<%= install.package_manager %>"><%=tr("tools.channel")%></label>
+                  <input id="install-channel-<%= install.package_manager %>" class="package-install-input" name="channel" type="text" value="conda-forge" placeholder="<%=tr("tools.enter_channel")%>" autocomplete="off">
                 </div>
                 <div class="package-install-field">
-                  <label class="package-install-label" for="install-name-<%= install.package_manager %>">Package name</label>
-                  <input id="install-name-<%= install.package_manager %>" class="package-install-input" name="name" type="text" placeholder="Enter package name" autocomplete="off" required>
+                  <label class="package-install-label" for="install-name-<%= install.package_manager %>"><%=tr("tools.package_name")%></label>
+                  <input id="install-name-<%= install.package_manager %>" class="package-install-input" name="name" type="text" placeholder="<%=tr("tools.enter_package_name")%>" autocomplete="off" required>
                 </div>
               <% } else { %>
                 <div class="package-install-field">
-                  <label class="package-install-label" for="install-name-<%= install.package_manager %>">Package name</label>
-                  <input id="install-name-<%= install.package_manager %>" class="package-install-input" name="name" type="text" placeholder="Enter package name" autocomplete="off" required>
+                  <label class="package-install-label" for="install-name-<%= install.package_manager %>"><%=tr("tools.package_name")%></label>
+                  <input id="install-name-<%= install.package_manager %>" class="package-install-input" name="name" type="text" placeholder="<%=tr("tools.enter_package_name")%>" autocomplete="off" required>
                 </div>
               <% } %>
               <button type="submit" class="package-install-submit">
                 <i class="fa-solid fa-terminal"></i>
-                <span>Install</span>
+                <span><%=tr("common.install")%></span>
               </button>
             </form>
             <div class="package-install-description">
               <% if (install.package_manager === 'conda') { %>
-                Runs <code>conda install -y --channel &lt;channel&gt; &lt;name&gt;</code>
+                <%=tr("tools.runs_command", { command: "" })%><code>conda install -y --channel &lt;channel&gt; &lt;name&gt;</code>
               <% } else if (install.package_manager === 'brew') { %>
-                Runs <code>brew install &lt;name&gt;</code>
+                <%=tr("tools.runs_command", { command: "" })%><code>brew install &lt;name&gt;</code>
               <% } else { %>
-                Runs <code><%= install.package_manager %> install &lt;name&gt;</code>
+                <%=tr("tools.runs_command", { command: "" })%><code><%= install.package_manager %> install &lt;name&gt;</code>
               <% } %>
             </div>
           </div>
@@ -1555,7 +1562,7 @@ const escapeHtml = (value) => {
 };
 
 const toDisplayName = (manager) => {
-  if (!manager) return 'Package Manager';
+  if (!manager) return <%-trj("tools.package_manager")%>;
   return manager
     .split(/[\s_-]+/)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -1611,10 +1618,10 @@ const openPackageInstallModal = ({ manager, command, name, channel }) => {
   const commandHtml = escapeHtml(command);
   const detailParts = [];
   if (safeChannel) {
-    detailParts.push(`Channel: ${safeChannel}`);
+    detailParts.push(`${<%-trj("tools.channel")%>}: ${safeChannel}`);
   }
   if (safeName) {
-    detailParts.push(`Package: ${safeName}`);
+    detailParts.push(`${<%-trj("tools.package_name")%>}: ${safeName}`);
   }
   const detailsHtml = detailParts.join(' · ');
 
@@ -1631,9 +1638,9 @@ const openPackageInstallModal = ({ manager, command, name, channel }) => {
       <div class="pinokio-modal-header">
         <div class="pinokio-modal-icon"><i class="${icon}"></i></div>
         <div class="pinokio-modal-heading">
-          <div class="pinokio-modal-title">${escapeHtml(displayName)} install</div>
+          <div class="pinokio-modal-title">${<%-trj("tools.install_title")%>.replace("{name}", escapeHtml(displayName))}</div>
           <div class="pinokio-modal-subtitle">
-            ${detailsHtml ? `${detailsHtml} · ` : ''}Running <code>${commandHtml}</code>
+            ${detailsHtml ? `${detailsHtml} · ` : ''}${<%-trj("tools.running_command")%>.replace("{command}", `<code>${commandHtml}</code>`)}
           </div>
         </div>
       </div>

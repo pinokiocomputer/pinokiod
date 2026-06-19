@@ -1,5 +1,12 @@
 (function() {
-  const DEFAULT_TITLE = "Click to open in browser"
+  const translate = (key, fallback, replacements = {}) => {
+    if (window.pinokioT) {
+      return window.pinokioT(key, fallback, replacements)
+    }
+    return `[missing translation: ${key}]`.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, name) => {
+      return Object.prototype.hasOwnProperty.call(replacements, name) ? replacements[name] : `{${name}}`
+    })
+  }
   const normalizeHref = (value) => {
     if (typeof value !== "string") {
       return ""
@@ -37,7 +44,7 @@
     const surface = document.getElementById(options.id || "browserview-external-surface")
     const title = surface ? surface.querySelector("[data-browserview-external-title]") : null
     const url = surface ? surface.querySelector("[data-browserview-external-url]") : null
-    const titleText = options.title || DEFAULT_TITLE
+    const titleText = options.title || translate("common.click_open_browser", "Click to open in browser")
     const onShow = typeof options.onShow === "function" ? options.onShow : null
 
     const hide = () => {

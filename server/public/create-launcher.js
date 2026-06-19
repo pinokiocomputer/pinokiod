@@ -5,15 +5,25 @@
     return;
   }
 
+  const t = (key, fallback, replacements = {}) => {
+    if (typeof window.pinokioT === 'function') {
+      return window.pinokioT(key, fallback, replacements);
+    }
+    let value = `[missing translation: ${key}]`;
+    Object.entries(replacements || {}).forEach(([name, replacement]) => {
+      value = value.replace(new RegExp(`\\{${name}\\}`, 'g'), replacement == null ? '' : String(replacement));
+    });
+    return value;
+  };
   const CATEGORY_ORDER = ['CLI', 'IDE'];
   const MODAL_VARIANTS = {
     CREATE: 'create',
     ASK: 'ask',
   };
-  const CREATE_PROMPT_PLACEHOLDER = 'Examples: "a 1-click launcher for ComfyUI", "I want to change file format", "I want to clone a website to run locally", etc. (Leave empty to decide later)';
-  const ASK_PROMPT_PLACEHOLDER = 'Examples: "Fix it", "Can you make this dark theme?", "What does this do?", "How does X feature work?", "What should i do to X".';
-  const CREATE_DESCRIPTION = 'Create a reusable and shareable launcher for any task or any app';
-  const ASK_DESCRIPTION = 'Ask the AI to customize, fix, or explain how the app works.';
+  const CREATE_PROMPT_PLACEHOLDER = t('create.prompt_placeholder', 'Examples: "a 1-click launcher for ComfyUI", "I want to change file format", "I want to clone a website to run locally", etc. (Leave empty to decide later)');
+  const ASK_PROMPT_PLACEHOLDER = t('create.ask_placeholder', 'Examples: "Fix it", "Can you make this dark theme?", "What does this do?", "How does X feature work?", "What should i do to X".');
+  const CREATE_DESCRIPTION = t('create.description', 'Create a reusable and shareable launcher for any task or any app');
+  const ASK_DESCRIPTION = t('create.ask_description', 'Ask the AI to customize, fix, or explain how the app works.');
 
   let cachedTools = null;
   let loadingTools = null;
@@ -177,7 +187,7 @@
 
     const title = document.createElement('div');
     title.className = 'create-launcher-modal-tools-title';
-    title.textContent = 'Select Plugin';
+    title.textContent = t('create.select_plugin', 'Select Plugin');
 
     const options = document.createElement('div');
     options.className = 'create-launcher-modal-tools-options';
@@ -252,7 +262,7 @@
           const icon = document.createElement('img');
           icon.className = 'create-launcher-modal-tool-icon';
           icon.src = tool.iconSrc;
-          icon.alt = `${tool.label} icon`;
+          icon.alt = t('universal.tool_icon_alt', '{tool} icon', { tool: tool.label });
           icon.onerror = () => { icon.style.display = 'none'; };
           option.appendChild(icon);
         }
@@ -271,7 +281,7 @@
     if (!toolEntries.length) {
       const emptyState = document.createElement('div');
       emptyState.className = 'create-launcher-modal-tools-empty';
-      emptyState.textContent = 'No plugins available.';
+      emptyState.textContent = t('create.no_plugins_available', 'No plugins available.');
       options.appendChild(emptyState);
     }
 
@@ -320,7 +330,7 @@
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'create-launcher-modal-template-input';
-        input.placeholder = `Enter ${name}`;
+        input.placeholder = t('create.enter_variable', 'Enter {name}', { name });
         input.value = templateValues.get(name) || '';
         input.dataset.templateInput = name;
         input.addEventListener('input', () => {
@@ -361,11 +371,11 @@
 
     const label = document.createElement('div');
     label.className = 'create-launcher-upload-label';
-    label.textContent = 'Attach files (optional)';
+    label.textContent = t('create.attach_files_optional', 'Attach files (optional)');
 
     const dropzone = document.createElement('div');
     dropzone.className = 'create-launcher-upload-dropzone';
-    dropzone.textContent = 'Drag and drop files here, or click to select';
+    dropzone.textContent = t('create.drag_drop_files', 'Drag and drop files here, or click to select');
 
     const input = document.createElement('input');
     input.type = 'file';
@@ -382,7 +392,7 @@
       if (!files.length) {
         const empty = document.createElement('li');
         empty.className = 'create-launcher-upload-empty';
-        empty.textContent = 'No files selected';
+        empty.textContent = t('create.no_files_selected', 'No files selected');
         list.appendChild(empty);
         return;
       }
@@ -398,7 +408,7 @@
         const remove = document.createElement('button');
         remove.type = 'button';
         remove.className = 'create-launcher-upload-remove';
-        remove.textContent = 'Remove';
+        remove.textContent = t('common.remove', 'Remove');
         remove.addEventListener('click', () => {
           files = files.filter((_, i) => i !== index);
           updateList();
@@ -480,7 +490,7 @@
 
     const headerIcon = document.createElement('img');
     headerIcon.src = '/pinokio-black.png';
-    headerIcon.alt = 'Pinokio logo';
+    headerIcon.alt = t('create.pinokio_logo', 'Pinokio logo');
     headerIcon.className = 'create-launcher-modal-logo';
     iconWrapper.appendChild(headerIcon);
 
@@ -489,7 +499,7 @@
 
     const title = document.createElement('h3');
     title.id = `${mode}-create-launcher-title`;
-    title.textContent = 'Create';
+    title.textContent = t('common.create', 'Create');
 
     const description = document.createElement('p');
     description.className = 'create-launcher-modal-description';
@@ -507,14 +517,14 @@
       closeButton = document.createElement('button');
       closeButton.type = 'button';
       closeButton.className = 'create-launcher-modal-close';
-      closeButton.setAttribute('aria-label', 'Close create launcher modal');
+      closeButton.setAttribute('aria-label', t('create.close_modal', 'Close create launcher modal'));
       closeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
       header.appendChild(closeButton);
     }
 
     const promptLabel = document.createElement('label');
     promptLabel.className = 'create-launcher-modal-label';
-    promptLabel.textContent = 'What do you want to do?';
+    promptLabel.textContent = t('create.what_do_you_want', 'What do you want to do?');
 
     const promptTextarea = document.createElement('textarea');
     promptTextarea.className = 'create-launcher-modal-textarea';
@@ -527,11 +537,11 @@
 
     const templateTitle = document.createElement('div');
     templateTitle.className = 'create-launcher-modal-template-title';
-    templateTitle.textContent = 'Template variables';
+    templateTitle.textContent = t('create.template_variables', 'Template variables');
 
     const templateDescription = document.createElement('p');
     templateDescription.className = 'create-launcher-modal-template-description';
-    templateDescription.textContent = 'Fill in each variable below before creating your launcher.';
+    templateDescription.textContent = t('create.template_description', 'Fill in each variable below before creating your launcher.');
 
     const templateFields = document.createElement('div');
     templateFields.className = 'create-launcher-modal-template-fields';
@@ -542,11 +552,11 @@
 
     const folderLabel = document.createElement('label');
     folderLabel.className = 'create-launcher-modal-label';
-    folderLabel.textContent = 'name';
+    folderLabel.textContent = t('common.name', 'name');
 
     const folderInput = document.createElement('input');
     folderInput.type = 'text';
-    folderInput.placeholder = 'example: my-launcher';
+    folderInput.placeholder = t('create.folder_placeholder', 'example: my-launcher');
     folderInput.className = 'create-launcher-modal-input';
     folderLabel.appendChild(folderInput);
 
@@ -565,25 +575,25 @@
       cancelButton = document.createElement('button');
       cancelButton.type = 'button';
       cancelButton.className = 'create-launcher-modal-button cancel';
-      cancelButton.textContent = 'Cancel';
+      cancelButton.textContent = t('common.cancel', 'Cancel');
       actions.appendChild(cancelButton);
     }
 
     const confirmButton = document.createElement('button');
     confirmButton.type = 'button';
     confirmButton.className = 'create-launcher-modal-button confirm';
-    confirmButton.textContent = 'Create';
+    confirmButton.textContent = t('common.create', 'Create');
     actions.appendChild(confirmButton);
 
     const advancedLink = document.createElement('a');
     advancedLink.className = 'create-launcher-modal-advanced';
     advancedLink.href = '/init';
-    advancedLink.textContent = 'Or, try advanced options';
+    advancedLink.textContent = t('create.try_advanced_options', 'Or, try advanced options');
 
     const bookmarkletLink = document.createElement('a');
     bookmarkletLink.className = 'create-launcher-modal-bookmarklet';
     bookmarkletLink.href = '/bookmarklet';
-      bookmarkletLink.textContent = 'Bookmark this in your web browser';
+      bookmarkletLink.textContent = t('create.bookmark_browser', 'Bookmark this in your web browser');
 
     const linkRow = document.createElement('div');
     linkRow.className = 'create-launcher-modal-links';
@@ -701,7 +711,7 @@
       ui.container.dataset.variant = targetVariant;
     }
     if (ui.title) {
-      ui.title.textContent = isAsk ? 'Ask AI' : 'Create';
+      ui.title.textContent = isAsk ? t('app.ask_ai', 'Ask AI') : t('common.create', 'Create');
     }
     if (ui.description) {
       ui.description.textContent = isAsk ? ASK_DESCRIPTION : CREATE_DESCRIPTION;
@@ -719,7 +729,7 @@
       ui.linkRow.style.display = isAsk ? 'none' : '';
     }
     if (ui.confirmButton) {
-      ui.confirmButton.textContent = isAsk ? 'Ask' : 'Create';
+      ui.confirmButton.textContent = isAsk ? t('create.ask', 'Ask') : t('common.create', 'Create');
     }
   }
 
@@ -785,7 +795,7 @@
     });
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(text || 'Failed to upload files.');
+      throw new Error(text || t('create.failed_upload_files', 'Failed to upload files.'));
     }
     const data = await response.json();
     if (data && data.error) {
@@ -912,19 +922,19 @@
     let uploadToken = '';
 
     if (!selectedEntry || !selectedHref) {
-      ui.error.textContent = 'Please select a plugin.';
+      ui.error.textContent = t('create.select_plugin_error', 'Please select a plugin.');
       return;
     }
 
     if (!isAskVariant) {
       if (!folderName) {
-        ui.error.textContent = 'Please enter a folder name.';
+        ui.error.textContent = t('create.enter_folder_name', 'Please enter a folder name.');
         ui.folderInput.focus();
         return;
       }
 
       if (folderName.includes(' ')) {
-        ui.error.textContent = 'Folder names cannot contain spaces.';
+        ui.error.textContent = t('create.folder_no_spaces', 'Folder names cannot contain spaces.');
         ui.folderInput.focus();
         return;
       }
@@ -940,7 +950,7 @@
       });
 
       if (missingVariables.length > 0) {
-        ui.error.textContent = `Please fill in values for: ${missingVariables.join(', ')}`;
+        ui.error.textContent = t('create.fill_values_for', 'Please fill in values for: {names}', { names: missingVariables.join(', ') });
         const targetInput = ui.templateFields?.querySelector(`[data-template-input="${missingVariables[0]}"]`);
         if (targetInput) {
           targetInput.focus();
@@ -960,7 +970,7 @@
           uploadToken = uploadResult.uploadToken;
         }
       } catch (uploadError) {
-        ui.error.textContent = uploadError.message || 'Failed to upload files.';
+        ui.error.textContent = uploadError.message || t('create.failed_upload_files', 'Failed to upload files.');
         return;
       }
     }

@@ -1,3 +1,6 @@
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+%>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -805,16 +808,16 @@ body.dark .profile td {
   <section class='task-shell connect-shell'>
     <header class='task-shell-header'>
       <div class='task-shell-header-main'>
-        <p class='task-eyebrow'>Login</p>
-        <h1 class='task-title'>Connected services</h1>
-        <p class='task-description'>Log into localhost apps with third-party services.</p>
+        <p class='task-eyebrow'><%=tr("nav.login")%></p>
+        <h1 class='task-title'><%=tr("connect.connected_services")%></h1>
+        <p class='task-description'><%=tr("connect.description")%></p>
       </div>
     </header>
     <div class='task-shell-body connect-shell-body'>
       <section class='task-section connect-services-section'>
         <% if (!items.length) { %>
           <div class='task-empty-state'>
-            <p class='task-empty-copy'>No services available yet.</p>
+            <p class='task-empty-copy'><%=tr("connect.empty")%></p>
           </div>
         <% } else { %>
           <div class='connect-service-list'>
@@ -836,7 +839,7 @@ body.dark .profile td {
               <div class='connect-service-copy'>
                 <div class='connect-service-title-row'>
                   <h2 class='connect-service-title'><%=item.title%></h2>
-                  <span class='connect-service-status'>Connected</span>
+                  <span class='connect-service-status'><%=tr("connect.connected")%></span>
                 </div>
                 <div class='connect-service-description'><%- item.description %></div>
               </div>

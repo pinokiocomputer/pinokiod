@@ -1,4 +1,7 @@
 <html class='columns'>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+%>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <script src="/hotkeys.min.js"></script>
@@ -13,6 +16,9 @@
 <script src="/xterm-addon-search-bar.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/he.js"></script>
 <script src="/opener.js"></script>
@@ -283,14 +289,14 @@ document.addEventListener("DOMContentLoaded", async () => {
           </div>
         <% } %>
         <footer>
-          <a href="/home" class='btn go-home'><i class='fa-solid fa-home'></i> home</a>
+          <a href="/home" class='btn go-home'><i class='fa-solid fa-home'></i> <%= tr("nav.home") %></a>
           <div class='flexible'></div>
           <!--
           <a id='customize' class='btn' target="_blank" href='<%=_path%>'><i class='fa-solid fa-code'></i> View Script</a>
           -->
-          <button id='customize' class='btn'><i class="fa-solid fa-code"></i> View Script</button>
+          <button id='customize' class='btn'><i class="fa-solid fa-code"></i> <%= tr("task.view_script") %></button>
           <a id='save' href="<%=path%>" class='btn'>
-            <span class='save'><i class="fa-solid fa-check"></i> Run</span>
+            <span class='save'><i class="fa-solid fa-check"></i> <%= tr("home.run") %></span>
           </a>
         </footer>
       </div>
@@ -302,10 +308,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           <% } %>
           <div class='flexible'></div>
           <div class='nav-btns'>
-            <a class='btn' href="<%=editorpath%>"><i class="fa-solid fa-pen-to-square"></i> Edit file</a>
-            <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> Open in File Explorer</button>
+            <a class='btn' href="<%=editorpath%>"><i class="fa-solid fa-pen-to-square"></i> <%= tr("task.edit_file") %></a>
+            <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> <%= tr("app.open_in_file_explorer") %></button>
             <div id='save' class='btn'>
-              <span class='save'><i class="fa-solid fa-check"></i> Save</span>
+              <span class='save'><i class="fa-solid fa-check"></i> <%= tr("common.save") %></span>
             </div>
           </div>
         </h1>

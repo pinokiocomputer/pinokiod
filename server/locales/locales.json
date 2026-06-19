@@ -1,0 +1,100 @@
+[
+  {
+    "code": "en",
+    "name": "English",
+    "nativeName": "English",
+    "enabled": true,
+    "quality": "production"
+  },
+  {
+    "code": "de",
+    "name": "German",
+    "nativeName": "Deutsch",
+    "enabled": true,
+    "quality": "production"
+  },
+  {
+    "code": "fr",
+    "name": "French",
+    "nativeName": "Français",
+    "enabled": true,
+    "quality": "production"
+  },
+  {
+    "code": "es",
+    "name": "Spanish",
+    "nativeName": "Español",
+    "enabled": true,
+    "quality": "production"
+  },
+  {
+    "code": "pt-BR",
+    "name": "Brazilian Portuguese",
+    "nativeName": "Português (Brasil)",
+    "enabled": true,
+    "quality": "production"
+  },
+  {
+    "code": "id",
+    "name": "Indonesian",
+    "nativeName": "Bahasa Indonesia",
+    "enabled": true,
+    "quality": "production"
+  },
+  {
+    "code": "ja",
+    "name": "Japanese",
+    "nativeName": "日本語",
+    "enabled": true,
+    "quality": "production"
+  },
+  {
+    "code": "tr",
+    "name": "Turkish",
+    "nativeName": "Türkçe",
+    "enabled": true,
+    "quality": "production"
+  },
+  {
+    "code": "it",
+    "name": "Italian",
+    "nativeName": "Italiano",
+    "enabled": true,
+    "quality": "production"
+  },
+  {
+    "code": "zh-CN",
+    "name": "Simplified Chinese",
+    "nativeName": "简体中文",
+    "enabled": true,
+    "quality": "production"
+  },
+  {
+    "code": "zh-TW",
+    "name": "Traditional Chinese",
+    "nativeName": "繁體中文",
+    "enabled": true,
+    "quality": "production"
+  },
+  {
+    "code": "ko",
+    "name": "Korean",
+    "nativeName": "한국어",
+    "enabled": true,
+    "quality": "production"
+  },
+  {
+    "code": "vi",
+    "name": "Vietnamese",
+    "nativeName": "Tiếng Việt",
+    "enabled": true,
+    "quality": "production"
+  },
+  {
+    "code": "ru",
+    "name": "Russian",
+    "nativeName": "Русский",
+    "enabled": true,
+    "quality": "production"
+  }
+]

@@ -1,3 +1,6 @@
+<%
+const homeT = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+%>
 <dialog id='<%= id %>' class='home-actions-dialog' aria-labelledby='<%= id %>-title'>
   <div class='home-actions-shell'>
     <div class='home-actions-header'>
@@ -12,31 +15,31 @@
         <div class='home-actions-title-row'>
           <h2 id='<%= id %>-title'><%= item.name %></h2>
           <% if (item.running) { %>
-            <span class='home-actions-status'>Running</span>
+            <span class='home-actions-status'><%=homeT("home.running")%></span>
           <% } %>
         </div>
         <div class='home-actions-path'><%= item.filepath %></div>
       </div>
-      <button type='button' class='home-actions-close' aria-label='Close'>
+      <button type='button' class='home-actions-close' aria-label='<%=homeT("common.close")%>'>
         <i class='fa-solid fa-xmark' aria-hidden='true'></i>
       </button>
     </div>
 
-    <div class='home-actions-tabs' aria-label='App action modes'>
+    <div class='home-actions-tabs' aria-label='<%=homeT("home.app_action_modes")%>'>
       <button type='button' class='home-actions-tab is-active' role='tab' aria-selected='true' data-tab='run' aria-controls='<%= id %>-run'>
         <i class='fa-solid fa-play' aria-hidden='true'></i>
-        <span>Run</span>
+        <span><%=homeT("home.run")%></span>
       </button>
-      <button type='button' class='home-actions-tab home-browse' data-src='<%= item.dev_url %>' title='Open dev mode' aria-label='Open dev mode'>
+      <button type='button' class='home-actions-tab home-browse' data-src='<%= item.dev_url %>' title='<%=homeT("home.open_dev_mode")%>' aria-label='<%=homeT("home.open_dev_mode")%>'>
         <i class='fa-solid fa-code' aria-hidden='true'></i>
-        <span>Dev</span>
+        <span><%=homeT("home.dev")%></span>
         <% if (item.terminal_online_count > 0) { %>
-          <span class='home-actions-count'><%= item.terminal_online_count %> online</span>
+          <span class='home-actions-count'><%=homeT("home.online_count", { count: item.terminal_online_count })%></span>
         <% } %>
       </button>
       <button type='button' class='home-actions-tab' role='tab' aria-selected='false' data-tab='files' aria-controls='<%= id %>-files'>
         <i class='fa-solid fa-file-lines' aria-hidden='true'></i>
-        <span>Files</span>
+        <span><%=homeT("home.files")%></span>
       </button>
     </div>
 
@@ -45,10 +48,10 @@
         <div class='home-run-menu-list'>
           <button type='button' class='home-mode-command home-browse' data-src='<%= item.view_url %>'>
             <i class='fa-regular fa-eye' aria-hidden='true'></i>
-            <span>Open without launching</span>
+            <span><%=homeT("home.open_without_launching")%></span>
           </button>
           <% if (item.menu && item.menu.length > 0) { %>
-            <%- include('./home_run_menu', { menu: item.menu, app: item }) %>
+            <%- include('./home_run_menu', { menu: item.menu, app: item, t: homeT }) %>
           <% } %>
         </div>
       </section>
@@ -57,27 +60,27 @@
         <div class='home-actions-command-list'>
           <button type='button' class='home-mode-command home-browse' data-src='<%= item.files_url %>'>
             <i class='fa-solid fa-file-lines' aria-hidden='true'></i>
-            <span>Open files mode</span>
+            <span><%=homeT("home.open_files_mode")%></span>
           </button>
           <button type='button' class='home-mode-command' data-filepath='<%= item.filepath %>'>
             <i class='fa-solid fa-folder-open' aria-hidden='true'></i>
-            <span>Open in file explorer</span>
+            <span><%=homeT("home.open_file_explorer")%></span>
           </button>
           <button type='button' class='home-mode-command edit-menu'>
             <i class='fa-solid fa-pen-to-square' aria-hidden='true'></i>
-            <span>Edit launcher</span>
+            <span><%=homeT("home.edit_launcher")%></span>
           </button>
           <button type='button' class='home-mode-command copy-menu'>
             <i class='fa-solid fa-copy' aria-hidden='true'></i>
-            <span>Copy app</span>
+            <span><%=homeT("home.copy_app")%></span>
           </button>
-          <button type='button' class='home-mode-command move-menu' <% if (item.running) { %>data-disable='To move the folder, the app should not be running.'<% } %>>
+          <button type='button' class='home-mode-command move-menu' <% if (item.running) { %>data-disable="<%=homeT("home.move_running_disabled")%>"<% } %>>
             <i class='fa-solid fa-right-to-bracket' aria-hidden='true'></i>
-            <span>Move app</span>
+            <span><%=homeT("home.move_app")%></span>
           </button>
-          <button type='button' class='home-mode-command is-danger del' data-src='<%= item.url %>' <% if (item.running) { %>data-disable='To delete the folder, the app should not be running.'<% } %>>
+          <button type='button' class='home-mode-command is-danger del' data-src='<%= item.url %>' <% if (item.running) { %>data-disable="<%=homeT("home.delete_running_disabled")%>"<% } %>>
             <i class='fa-solid fa-trash-can' aria-hidden='true'></i>
-            <span>Delete app</span>
+            <span><%=homeT("home.delete_app")%></span>
           </button>
         </div>
       </section>

@@ -1,3 +1,4 @@
+<% const fsTr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") }) %>
 <div id='fs-status' data-workspace="<%=name%>" data-create-uri="<%=git_create_url%>" data-history-uri="<%=git_history_url%>" data-status-uri="<%=git_status_url%>" data-uri="<%=git_monitor_url%>" data-push-uri="<%=git_push_url%>" data-fork-uri="<%=git_fork_url%>">
   <!--
   <div class='fs-status-dropdown nested-menu git blue'>
@@ -13,7 +14,7 @@
   -->
   <div class='fs-status-dropdown git-changes'>
     <button id='fs-changes-btn' class='fs-status-btn revealer' data-group='#fs-changes-menu' type='button'>
-      <span class='fs-status-label'><i class="fa-solid fa-code-compare"></i> Changes</span>
+      <span class='fs-status-label'><i class="fa-solid fa-code-compare"></i> <%=fsTr("app.changes")%></span>
       <div class='badge'></div>
     </button>
     <div class='fs-dropdown-menu submenu hidden' id='fs-changes-menu'></div>
@@ -22,7 +23,7 @@
     <button id='fs-fork-btn' class='fs-status-btn revealer' type='button' data-group='#fs-fork-menu'>
       <span class='fs-status-label'>
         <i class="fa-solid fa-code-branch"></i>
-        <span class='fs-status-title'>Fork</span>
+        <span class='fs-status-title'><%=fsTr("app.fork")%></span>
       </span>
     </button>
     <div class='fs-dropdown-menu submenu hidden' id='fs-fork-menu'></div>
@@ -31,7 +32,7 @@
     <button id='fs-push-btn' class='fs-status-btn revealer' type='button' data-group='#fs-push-menu'>
       <span class='fs-status-label'>
         <i class="fa-brands fa-github"></i>
-        <span class='fs-status-title'>Publish</span>
+        <span class='fs-status-title'><%=fsTr("app.publish")%></span>
       </span>
     </button>
     <div class='fs-dropdown-menu submenu hidden' id='fs-push-menu'></div>

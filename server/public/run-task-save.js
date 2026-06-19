@@ -1,5 +1,14 @@
 (function(window, document) {
   "use strict";
+  const I18N = window.PINOKIO_I18N || {};
+
+  function t(key, fallback, replacements = {}) {
+    let value = typeof I18N[key] === "string" ? I18N[key] : `[missing translation: ${key}]`;
+    Object.entries(replacements || {}).forEach(([name, replacement]) => {
+      value = value.replace(new RegExp(`\\{${name}\\}`, "g"), String(replacement));
+    });
+    return value;
+  }
 
   function normalizePath(value) {
     return typeof value === "string" && value.trim()
@@ -45,7 +54,9 @@
       return firstLine.slice(0, 120);
     }
     const workspaceName = getWorkspaceName(cwd);
-    return workspaceName ? `Task for ${workspaceName}` : "New task";
+    return workspaceName
+      ? t("tasks.title_for_workspace", "Task for {workspace}", { workspace: workspaceName })
+      : t("tasks.new_task", "New task");
   }
 
   function getPrompt() {

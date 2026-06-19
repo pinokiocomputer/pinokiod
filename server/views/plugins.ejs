@@ -1,6 +1,10 @@
 <html>
 <head>
-<title>Pinokio Plugins</title>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
+<title><%=tr("plugins.title")%></title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <link href="/xterm.min.css" rel="stylesheet" />
@@ -727,21 +731,21 @@ body.plugin-page .plugin-card .disclosure-indicator {
     <section class='task-shell plugin-shell'>
       <header class='task-shell-header'>
         <div class='task-shell-header-main'>
-          <p class='task-eyebrow'>Plugins</p>
-          <h1 class='task-title'>Plugins</h1>
-          <p class='task-description'>Open desktop editors externally or launch coding tools inside Pinokio.</p>
+          <p class='task-eyebrow'><%=tr("plugins.title")%></p>
+          <h1 class='task-title'><%=tr("plugins.title")%></h1>
+          <p class='task-description'><%=tr("plugins.description")%></p>
         </div>
       </header>
       <div class='task-shell-body plugin-shell-body'>
     <% if (plugins.length === 0) { %>
       <div class='plugin-empty task-empty-state'>
-        <p>No plugins found. Clone or add plugin definitions under <code>~/pinokio/plugin</code> to see them listed here.</p>
-        <a class='task-link-button primary' href="/home?mode=download"><i class="fa-solid fa-download"></i> Download plugins</a>
+        <p><%-tr("plugins.empty_html")%></p>
+        <a class='task-link-button primary' href="/home?mode=download"><i class="fa-solid fa-download"></i> <%=tr("plugins.download_plugins")%></a>
       </div>
     <% } else { %>
       <div class='plugin-category-layout'>
         <% pluginCategories.forEach(({ title, subtitle, items }) => { %>
-          <section class='plugin-category task-section' aria-label="<%=title%>">
+          <section class='plugin-category task-section' aria-label="<%= title %>">
             <div class='plugin-category-header'>
               <div class='plugin-category-heading'>
                 <h2 class='plugin-category-title'><%=title%></h2>
@@ -755,21 +759,21 @@ body.plugin-page .plugin-card .disclosure-indicator {
                   <a class='plugin-card' href="<%= pluginItem.detailUrl || '#' %>">
                     <div class="plugin-top">
                       <% if (pluginItem.image) { %>
-                        <img src="<%=pluginItem.image%>" alt="<%=pluginItem.title || pluginItem.text || 'Plugin'%> icon">
+                        <img src="<%=pluginItem.image%>" alt="<%=pluginItem.title || pluginItem.text || tr("plugins.plugin")%> icon">
                       <% } else if (pluginItem.icon) { %>
                         <div class='plugin-icon'><i class="<%=pluginItem.icon%>"></i></div>
                       <% } else { %>
                         <div class='plugin-icon'><i class="fa-solid fa-plug-circle-bolt"></i></div>
                       <% } %>
                       <div class='plugin-details'>
-                        <h2><%=pluginItem.title || pluginItem.text || pluginItem.name || 'Plugin'%></h2>
+                        <h2><%=pluginItem.title || pluginItem.text || pluginItem.name || tr("plugins.plugin")%></h2>
                         <% if (pluginItem.description) { %>
                           <div class='subtitle'><%=pluginItem.description%></div>
                         <% } %>
                       </div>
                       <div class="plugin-row-action" aria-hidden="true">
                         <i class="fa-solid fa-gear"></i>
-                        <span>Manage</span>
+                        <span><%=tr("plugins.manage")%></span>
                       </div>
                     </div>
                   </a>
@@ -777,7 +781,7 @@ body.plugin-page .plugin-card .disclosure-indicator {
               </div>
             <% } else { %>
               <div class='plugin-empty plugin-empty-category'>
-                <p>No <%=title%> available.</p>
+                <p><%=tr("plugins.no_category_available", { title })%></p>
               </div>
             <% } %>
           </section>
@@ -994,14 +998,14 @@ body.plugin-page .plugin-card .disclosure-indicator {
       if (!inputEl) return
       const value = (inputEl.value || '').trim()
       if (!value) {
-        showError('Please enter a Git URL to continue.')
+        showError(<%-trj("plugins.enter_git_url")%>)
         inputEl.focus()
         return
       }
       try {
         new URL(value)
       } catch (err) {
-        showError('That URL does not look valid.')
+        showError(<%-trj("plugins.invalid_git_url")%>)
         inputEl.focus()
         return
       }
@@ -1018,21 +1022,21 @@ body.plugin-page .plugin-card .disclosure-indicator {
           <div class="install-plugin-header">
             <div class="install-plugin-icon"><i class="fa-solid fa-plug"></i></div>
             <div class="install-plugin-heading">
-              <div class="install-plugin-title" id="install-plugin-title">Install Plugin</div>
-              <p class="install-plugin-subtitle">Add a plugin directly from a Git repository URL.</p>
+              <div class="install-plugin-title" id="install-plugin-title">${<%-trj("plugins.install_plugin")%>}</div>
+              <p class="install-plugin-subtitle">${<%-trj("plugins.install_plugin_subtitle")%>}</p>
             </div>
-            <button class="install-plugin-close" type="button" data-install-close aria-label="Close install dialog">
+            <button class="install-plugin-close" type="button" data-install-close aria-label="${<%-trj("common.close_dialog")%>}">
               <i class="fa-solid fa-xmark"></i>
             </button>
           </div>
           <form class="install-plugin-body" novalidate>
-            <label class="install-plugin-label" for="install-plugin-url">Git URL</label>
+            <label class="install-plugin-label" for="install-plugin-url">${<%-trj("plugins.git_url")%>}</label>
             <input id="install-plugin-url" type="url" name="pluginUrl" placeholder="https://github.com/user/repo.git" autocomplete="off" required />
-            <div class="install-plugin-hint">The plugin will be downloaded into <code>~/pinokio/plugin</code>.</div>
+            <div class="install-plugin-hint">${<%-trj("plugins.install_plugin_hint")%>}</div>
             <div class="install-plugin-error" data-install-error></div>
             <div class="install-plugin-actions">
-              <button class="install-plugin-button ghost" type="button" data-install-cancel>Cancel</button>
-              <button class="install-plugin-button primary" type="submit">Install</button>
+              <button class="install-plugin-button ghost" type="button" data-install-cancel>${<%-trj("common.cancel")%>}</button>
+              <button class="install-plugin-button primary" type="submit">${<%-trj("common.install")%>}</button>
             </div>
           </form>
         </div>

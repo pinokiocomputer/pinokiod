@@ -1,14 +1,20 @@
 <!doctype html>
 <html lang="en">
+<%
+  const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+%>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Share <%= task.config.title %></title>
+  <title><%= tr("tasks.share_page_title", { title: task.config.title }) %></title>
   <link href="/css/fontawesome.min.css" rel="stylesheet">
   <link href="/css/solid.min.css" rel="stylesheet">
   <link href="/css/brands.min.css" rel="stylesheet">
   <link href="/style.css" rel="stylesheet">
   <link href="/task-launcher.css" rel="stylesheet">
+  <script>
+  window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+  </script>
   <script src="/task-share.js" defer></script>
 </head>
 <%
@@ -18,18 +24,18 @@
   <main class="task-shell task-share-shell">
     <header class="task-shell-header">
       <div class="task-shell-header-main">
-        <p class="task-eyebrow">Share Task</p>
+        <p class="task-eyebrow"><%= tr("tasks.share_task") %></p>
         <h1 class="task-title"><%= task.config.title %></h1>
-        <p class="task-description">Publish this task to GitHub to get a real share link. Local task ids like <code><%= task.id %></code> only work on this machine.</p>
+        <p class="task-description"><%- tr("tasks.share_description", { id: `<code>${task.id}</code>` }) %></p>
       </div>
       <div class="task-header-actions">
         <button class="task-button" type="button" data-task-share-refresh>
           <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-          <span>Refresh</span>
+          <span><%= tr("common.refresh") %></span>
         </button>
         <a class="task-link-button" href="/task?<%= shareState.launchParamKey %>=<%= encodeURIComponent(shareState.launchParamValue) %><%= shareState.selectedTool ? `&tool=${encodeURIComponent(shareState.selectedTool)}` : '' %>">
           <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
-          <span>Back to task</span>
+          <span><%= tr("tasks.back_to_task") %></span>
         </a>
       </div>
     </header>
@@ -41,28 +47,28 @@
 
       <section class="task-section task-share-next-step">
         <div class="task-share-next-step-main">
-          <div class="task-share-next-step-label">Next step</div>
+          <div class="task-share-next-step-label"><%= tr("tasks.next_step") %></div>
           <h2 class="task-share-next-step-title" data-task-share-next-title></h2>
           <p class="task-share-next-step-copy" data-task-share-next-copy></p>
           <div class="task-actions" data-task-share-next-actions></div>
           <form class="task-share-inline-create task-hidden" data-task-share-create-form>
             <div class="task-inline-fields">
               <label class="task-field">
-                <span class="task-label">Repository name</span>
+                <span class="task-label"><%= tr("common.repository_name") %></span>
                 <input class="task-input" type="text" data-task-share-repo-name placeholder="task-repo">
               </label>
               <label class="task-field task-field-tight">
-                <span class="task-label">Visibility</span>
+                <span class="task-label"><%= tr("common.visibility") %></span>
                 <select class="task-select" data-task-share-visibility>
-                  <option value="public">Public</option>
-                  <option value="private">Private</option>
+                  <option value="public"><%= tr("common.public") %></option>
+                  <option value="private"><%= tr("common.private") %></option>
                 </select>
               </label>
               <div class="task-actions task-share-inline-create-actions">
-                <button class="task-button" type="button" data-task-share-create-cancel>Cancel</button>
+                <button class="task-button" type="button" data-task-share-create-cancel><%= tr("common.cancel") %></button>
                 <button class="task-button primary" type="submit">
                   <i class="fa-brands fa-github" aria-hidden="true"></i>
-                  <span>Continue to GitHub</span>
+                  <span><%= tr("tasks.continue_to_github") %></span>
                 </button>
               </div>
             </div>
@@ -79,7 +85,7 @@
 
       <section class="task-section">
         <div class="task-section-head">
-          <h2 class="task-section-title">Share link</h2>
+          <h2 class="task-section-title"><%= tr("tasks.share_link") %></h2>
           <div class="task-section-note" data-task-share-link-note></div>
         </div>
         <p class="task-help-copy" data-task-share-link-copy></p>
@@ -88,57 +94,57 @@
           <div class="task-actions">
             <button class="task-button" type="button" data-task-share-copy>
               <i class="fa-solid fa-copy" aria-hidden="true"></i>
-              <span>Copy link</span>
+              <span><%= tr("tasks.copy_link") %></span>
             </button>
             <a class="task-link-button" href="<%= shareState.shareUrl || '#' %>" target="_blank" rel="noopener noreferrer" data-task-share-open>
               <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
-              <span>Open</span>
+              <span><%= tr("common.open") %></span>
             </a>
           </div>
         </div>
         <div class="task-share-remote-row" data-task-share-remote-row>
           <div class="task-share-remote-copy">
-            <div class="task-share-remote-label">Remote repository</div>
-            <div class="task-share-remote-value" data-task-share-remote-url><%= shareState.remoteUrl || "Not connected yet." %></div>
+            <div class="task-share-remote-label"><%= tr("tasks.remote_repository") %></div>
+            <div class="task-share-remote-value" data-task-share-remote-url><%= shareState.remoteUrl || tr("tasks.not_connected_yet") %></div>
           </div>
           <a class="task-link-button" href="<%= shareState.remoteWebUrl || '#' %>" target="_blank" rel="noopener noreferrer" data-task-share-remote-link>
             <i class="fa-brands fa-github" aria-hidden="true"></i>
-            <span>View on GitHub</span>
+            <span><%= tr("tasks.view_on_github") %></span>
           </a>
         </div>
       </section>
 
       <section class="task-section">
         <div class="task-section-head">
-          <h2 class="task-section-title">Publish checklist</h2>
-          <div class="task-section-note">Reuses the existing GitHub auth, create, and push routes with this task folder as cwd.</div>
+          <h2 class="task-section-title"><%= tr("tasks.publish_checklist") %></h2>
+          <div class="task-section-note"><%= tr("tasks.publish_checklist_note") %></div>
         </div>
         <div class="task-share-checklist">
           <article class="task-share-check-item" data-task-share-item="github">
             <div class="task-share-check-copy">
-              <div class="task-share-check-title">GitHub connection</div>
-              <p class="task-share-check-note">Pinokio uses your existing GitHub connection to create repositories and publish changes.</p>
+              <div class="task-share-check-title"><%= tr("tasks.github_connection") %></div>
+              <p class="task-share-check-note"><%= tr("tasks.github_connection_note") %></p>
             </div>
             <div class="task-share-check-state" data-task-share-item-state="github"></div>
           </article>
           <article class="task-share-check-item" data-task-share-item="git">
             <div class="task-share-check-copy">
-              <div class="task-share-check-title">Track changes</div>
-              <p class="task-share-check-note">Start Git tracking in this task folder so Pinokio can save versions and publish them.</p>
+              <div class="task-share-check-title"><%= tr("tasks.track_changes") %></div>
+              <p class="task-share-check-note"><%= tr("tasks.track_changes_note") %></p>
             </div>
             <div class="task-share-check-state" data-task-share-item-state="git"></div>
           </article>
           <article class="task-share-check-item" data-task-share-item="commit">
             <div class="task-share-check-copy">
-              <div class="task-share-check-title">Save a version</div>
-              <p class="task-share-check-note">Create at least one commit before creating a remote repository.</p>
+              <div class="task-share-check-title"><%= tr("tasks.save_a_version") %></div>
+              <p class="task-share-check-note"><%= tr("tasks.save_a_version_note") %></p>
             </div>
             <div class="task-share-check-state" data-task-share-item-state="commit"></div>
           </article>
           <article class="task-share-check-item" data-task-share-item="remote">
             <div class="task-share-check-copy">
-              <div class="task-share-check-title">Remote repository</div>
-              <p class="task-share-check-note">Once the task has a GitHub remote, Pinokio can generate a real share link from that ref.</p>
+              <div class="task-share-check-title"><%= tr("tasks.remote_repository") %></div>
+              <p class="task-share-check-note"><%= tr("tasks.remote_repository_note") %></p>
             </div>
             <div class="task-share-check-state" data-task-share-item-state="remote"></div>
           </article>
@@ -154,11 +160,11 @@
     <section class="task-share-overlay-panel" role="dialog" aria-modal="true" aria-labelledby="task-share-overlay-title">
       <header class="task-share-overlay-header">
         <div>
-          <p class="task-eyebrow">GitHub Flow</p>
-          <h2 id="task-share-overlay-title" class="task-share-overlay-title" data-task-share-overlay-title>Publish</h2>
-          <p class="task-share-overlay-copy" data-task-share-overlay-copy>Finish the GitHub flow in this panel, then click Done, check again.</p>
+          <p class="task-eyebrow"><%= tr("tasks.github_flow") %></p>
+          <h2 id="task-share-overlay-title" class="task-share-overlay-title" data-task-share-overlay-title><%= tr("tasks.publish") %></h2>
+          <p class="task-share-overlay-copy" data-task-share-overlay-copy><%= tr("tasks.github_flow_panel_copy") %></p>
         </div>
-        <button class="task-button icon-only" type="button" data-task-share-overlay-close aria-label="Close">
+        <button class="task-button icon-only" type="button" data-task-share-overlay-close aria-label="<%= tr("common.close") %>">
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </header>
@@ -166,10 +172,10 @@
         <iframe class="task-share-overlay-frame" src="about:blank" allow="fullscreen *;" allowfullscreen data-task-share-overlay-frame></iframe>
       </div>
       <footer class="task-share-overlay-footer">
-        <button class="task-button" type="button" data-task-share-overlay-close>Not yet</button>
+        <button class="task-button" type="button" data-task-share-overlay-close><%= tr("tasks.not_yet") %></button>
         <button class="task-button primary" type="button" data-task-share-overlay-refresh>
           <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-          <span>Done, check again</span>
+          <span><%= tr("tasks.done_check_again") %></span>
         </button>
       </footer>
     </section>
@@ -187,5 +193,6 @@
     share: shareState,
     stateUrl: `/share/task/state?${shareState.launchParamKey}=${encodeURIComponent(shareState.launchParamValue)}${shareState.selectedTool ? `&tool=${encodeURIComponent(shareState.selectedTool)}` : ""}`,
   }) %></script>
+  <%- include('partials/app_common_scripts') %>
 </body>
 </html>

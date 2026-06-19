@@ -1,5 +1,9 @@
 <html>
 <head>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <script src="/hotkeys.min.js"></script>
 <script src="/ace/ace.js"></script>
@@ -18,6 +22,9 @@
 <script src="/terminal_input_tracker.js"></script>
 <script src="/terminal_input_utils.js"></script>
 <script src="/terminal_key_caption.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/terminal-settings.js"></script>
 <script src="/pinokio-touch.js"></script>
 <script src="/common.js"></script>
@@ -233,25 +240,25 @@ const flushStopAcknowledgements = (ok) => {
 }
 const formatUploadNotification = (files, sessionId, shellEmit, shellEmitAttempted) => {
   if (!Array.isArray(files) || files.length === 0) {
-    return 'Upload complete (no files reported)'
+    return <%-trj("terminal.upload_complete_no_files")%>
   }
-  const countLabel = files.length > 1 ? `${files.length} files attached` : 'File attached'
-  const sessionLabel = sessionId ? sessionId : '(unknown session)'
+  const countLabel = files.length > 1 ? <%-trj("terminal.files_attached")%>.replace("{count}", files.length) : <%-trj("terminal.file_attached")%>
+  const sessionLabel = sessionId ? sessionId : <%-trj("terminal.unknown_session")%>
   const summaries = files.map((file) => {
-    const name = file && (file.originalName || file.name || file.storedAs) ? (file.originalName || file.name || file.storedAs) : 'unknown'
+    const name = file && (file.originalName || file.name || file.storedAs) ? (file.originalName || file.name || file.storedAs) : <%-trj("terminal.unknown_file")%>
     const target = file && (file.cliRelativePath || file.displayPath || file.path) ? (file.cliRelativePath || file.displayPath || file.path) : ''
     const summary = target ? `${name} → ${target}` : name
     return summary.length > 180 ? `${summary.slice(0, 177)}…` : summary
   })
   let emitStatus
   if (shellEmitAttempted) {
-    emitStatus = shellEmit ? 'Shell emit: delivered to terminal session' : 'Shell emit: failed – fallback used'
+    emitStatus = shellEmit ? <%-trj("terminal.shell_emit_delivered")%> : <%-trj("terminal.shell_emit_failed")%>
   } else if (shellEmitAttempted === false) {
-    emitStatus = 'Shell emit: not attempted'
+    emitStatus = <%-trj("terminal.shell_emit_not_attempted")%>
   } else {
-    emitStatus = 'Shell emit: status unknown'
+    emitStatus = <%-trj("terminal.shell_emit_unknown")%>
   }
-  return `${countLabel}<br>Session: ${sessionLabel}<br>${emitStatus}<br>${summaries.join('<br>')}`
+  return `${countLabel}<br>${<%-trj("terminal.session")%>}: ${sessionLabel}<br>${emitStatus}<br>${summaries.join('<br>')}`
 }
 const postMessageToAncestors = (payload) => {
   if (!payload || typeof payload !== "object") {
@@ -537,11 +544,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       this.dirty = true
     }
     finished() {
-    /*
-      n.Noty({
-        text: `[Success] All steps complete`,
-      })
-      */
       document.querySelector(".play-btn").classList.remove("hidden")
       document.querySelector(".stop-btn").classList.add("hidden")
       document.querySelector(".starting-btn").classList.add("hidden")
@@ -709,12 +711,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (packet.data.type === "emit2") {
               // long text => still posting to the shell => show progress
               console.log("emit2", packet.data)
-              document.querySelector("#status-window").innerHTML = `<strong>Pasting... (${Math.floor(100 * packet.data.i/packet.data.total)}%)</strong>`
+              document.querySelector("#status-window").innerHTML = `<strong>${<%-trj("terminal.pasting")%>} (${Math.floor(100 * packet.data.i/packet.data.total)}%)</strong>`
               let percent = Math.floor(100 * packet.data.i/packet.data.total)
               document.querySelector("#progress-window").classList.remove("hidden")
               document.querySelector("#progress-bar").style.width = "" + percent + "%";
             } else {
-              document.querySelector("#status-window").innerHTML = "<b>Ready</b>"
+              document.querySelector("#status-window").innerHTML = "<b><%=tr("common.ready")%></b>"
               document.querySelector("#progress-window").classList.add("hidden")
               document.querySelector("#progress-bar").style.width = "0%"
             }
@@ -725,8 +727,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             markShellDisconnected()
             console.log("refreshParent", packet)
             refreshParent(packet)
-            this.term.write("\r\nDisconnected...\r\n")
-            document.querySelector("footer").innerHTML = "<b>Ready</b>"
+            this.term.write("\r\n" + <%-trj("terminal.disconnected")%> + "\r\n")
+            document.querySelector("footer").innerHTML = "<b><%=tr("common.ready")%></b>"
             this.socket.close()
             document.querySelector(".play-btn").classList.remove("hidden")
             document.querySelector(".stop-btn").classList.add("hidden")
@@ -942,7 +944,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (packet.data === "stop") {
               document.querySelector(".stop-btn").classList.add("hidden")
               document.querySelector(".stopped-btn").classList.remove("hidden")
-              document.querySelector("footer").innerHTML = "<b>Ready</b>"
+            document.querySelector("footer").innerHTML = "<b><%=tr("common.ready")%></b>"
               setTimeout(() => {
 
                 let params = new URLSearchParams(location.search)
@@ -972,12 +974,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                     }
                   })
                 }
-              /*
-                n.Noty({
-                  text: '[Notice] finished',
-                  type: 'success'
-                })
-                */
                 document.querySelector(".play-btn").classList.remove("hidden")
                 document.querySelector(".starting-btn").classList.add("hidden")
                 document.querySelector(".stop-btn").classList.add("hidden")
@@ -1045,13 +1041,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       this.mode = (mode ? mode : "run")
       markShellDisconnected()
       
-//      if (dirty) {
-//        await this.save()
-//        n.Noty({
-//          text: `script updated`,
-//        })
-//      }
-
       <% if (theme === "dark") { %>
       await this.createTerm(xtermTheme.FrontEndDelight)
       <% } else { %>
@@ -1066,7 +1055,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       if (!this.socket || !this.socket.ws || this.socket.ws.readyState !== WebSocket.OPEN) {
         n.Noty({
-          text: "Terminal connection is not ready for uploads",
+          text: <%-trj("terminal.connection_not_ready_uploads")%>,
           type: "error"
         })
         return
@@ -1093,7 +1082,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       if (entries.length === 0) {
         n.Noty({
-          text: "No readable files were dropped",
+          text: <%-trj("terminal.no_readable_files")%>,
           type: "error"
         })
         return
@@ -1109,19 +1098,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       try {
         if (overlay) {
           overlay.classList.add("active")
-          overlay.textContent = "Uploading..."
+          overlay.textContent = <%-trj("terminal.uploading_ellipsis")%>
         }
         await this.socket.sendBinary(buildBinaryRpcPayload(rpcPayload, entries))
       } catch (error) {
         console.error("Upload failed", error)
         n.Noty({
-          text: `Upload failed: ${error.message}`,
+          text: <%-trj("terminal.upload_failed")%>.replace("{message}", error.message),
           type: "error"
         })
       } finally {
         if (overlay) {
           overlay.classList.remove("active")
-          overlay.textContent = "Drop files to upload"
+          overlay.textContent = <%-trj("terminal.drop_files_upload")%>
         }
       }
     }
@@ -1138,7 +1127,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       try {
         if (overlay) {
           overlay.classList.add("active")
-          overlay.textContent = "Downloading..."
+          overlay.textContent = <%-trj("terminal.downloading_ellipsis")%>
         }
         const response = await fetch('/terminal/url-upload', {
           method: 'POST',
@@ -1173,20 +1162,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (failures.length > 0) {
           const plural = failures.length > 1
           n.Noty({
-            text: plural ? `${failures.length} remote files failed to download` : `Remote file failed to download`,
+            text: plural ? <%-trj("terminal.remote_files_failed_download")%>.replace("{count}", failures.length) : <%-trj("terminal.remote_file_failed_download")%>,
             type: "error",
             timeout: 5000
           })
         }
       } catch (error) {
         n.Noty({
-          text: `Remote upload failed: ${error.message}`,
+          text: <%-trj("terminal.remote_upload_failed")%>.replace("{message}", error.message),
           type: "error"
         })
       } finally {
         if (overlay) {
           overlay.classList.remove("active")
-          overlay.textContent = "Drop files to upload"
+          overlay.textContent = <%-trj("terminal.drop_files_upload")%>
         }
       }
     }
@@ -1394,7 +1383,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const terminalContainer = document.querySelector("#terminal")
         const dropOverlay = document.createElement("div")
         dropOverlay.className = "terminal-drop-overlay"
-        dropOverlay.textContent = "Drop files to upload"
+        dropOverlay.textContent = <%-trj("terminal.drop_files_upload")%>
         terminalContainer.appendChild(dropOverlay)
         window.PinokioTouch.bindTerminalFocus(term, terminalContainer)
         const dedupeClipboardFiles = (inputs) => {
@@ -1882,17 +1871,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
       <% } %>
       <div class='hidden btn run play-btn'>
-        <span class='play'><i class="fa-solid fa-play"></i> Run</span>
+        <span class='play'><i class="fa-solid fa-play"></i> <%=tr("terminal.run")%></span>
       </div>
       <div class='hidden btn run starting-btn'>
-        <span class='starting'><i class="fa-solid fa-circle-notch fa-spin"></i> Starting...</span>
+        <span class='starting'><i class="fa-solid fa-circle-notch fa-spin"></i> <%=tr("terminal.starting")%></span>
       </div>
       <div class='hidden btn run stop-btn'>
-        <span class='stop'><i class="fa-solid fa-stop"></i> Stop</span>
+        <span class='stop'><i class="fa-solid fa-stop"></i> <%=tr("terminal.stop")%></span>
       </div>
-      <button class='hidden btn' type='button' data-save-task-button hidden><i class="fa-solid fa-bookmark"></i> Save task</button>
+      <button class='hidden btn' type='button' data-save-task-button hidden><i class="fa-solid fa-bookmark"></i> <%=tr("terminal.save_task")%></button>
       <div class='hidden btn stopped-btn'>
-        <span class='stopped'><i class="fa-solid fa-hand"></i> Stopped</span>
+        <span class='stopped'><i class="fa-solid fa-hand"></i> <%=tr("terminal.stopped")%></span>
       </div>
       <div id='status-window'></div>
       <div id='progress-window' class='hidden'><div id='progress-bar'></div></div>
@@ -1901,6 +1890,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   <div class='terminal-container'>
     <div id='terminal'></div>
   </div>
-  <footer><b>Ready</b></footer>
+  <footer><b><%=tr("common.ready")%></b></footer>
 </body>
 </html>

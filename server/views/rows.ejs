@@ -1,4 +1,7 @@
 <html>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+%>
 <head>
 <style>
 html, body {
@@ -63,7 +66,7 @@ body[data-agent='electron'] {
 </head>
 <body class='<%=theme%>' data-agent="<%=agent%>">
 <iframe id='row0' data-src="<%= originSrc || '/home' %>" allow="fullscreen *;" allowfullscreen></iframe>
-<div id="gutter" class="gutter" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="Resize panels" aria-valuemin="120" aria-valuemax="0" aria-valuenow="0"></div>
+<div id="gutter" class="gutter" tabindex="0" role="separator" aria-orientation="horizontal" aria-label="<%=tr("common.resize_panels")%>" aria-valuemin="120" aria-valuemax="0" aria-valuenow="0"></div>
 <iframe id='row1' data-src="<%= targetSrc || originSrc || '/home' %>" allow="fullscreen *;" allowfullscreen></iframe>
 
 <script>

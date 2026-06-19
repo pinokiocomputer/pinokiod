@@ -1,3 +1,7 @@
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -1492,6 +1496,9 @@ body.dark .ace-editor {
 <script src="/ace/ace.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/nav.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/report.js"></script>
@@ -1525,25 +1532,25 @@ body.dark .ace-editor {
 <header class='navheader grabbable'>
 <h1>
 <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
-<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
+<button class='btn2' id='minimize-header' data-tippy-content="<%= tr("common.fullscreen") %>" title='<%= tr("common.fullscreen") %>'>
   <div><i class="fa-solid fa-expand"></i></div>
 </button>
-<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
-<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
-<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+<button class='btn2' id='back' data-tippy-content="<%= tr("common.back") %>"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class='btn2' id='forward' data-tippy-content="<%= tr("common.forward") %>"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class='btn2' id='refresh-page' data-tippy-content="<%= tr("common.refresh") %>"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class='btn2' id='screenshot' data-tippy-content="<%= tr("common.screen_capture") %>"><i class="fa-solid fa-camera"></i></button>
+<button class='btn2' id='inspector' data-tippy-content="<%= tr("common.xray_mode") %>"><i class="fa-solid fa-eye"></i></button>
 <div class='flexible'></div>
-<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
+<a class='btn2' href="/columns" data-tippy-content="<%= tr("common.split_columns") %>">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
-<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
+<a class='btn2' href="/rows" data-tippy-content="<%= tr("common.split_rows") %>">
   <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
 </a>
-<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
+<button class='btn2' id='new-window' data-tippy-content="<%= tr("common.open_new_window") %>" title='<%= tr("common.open_new_window") %>' data-agent="<%=agent%>">
   <div><i class="fa-solid fa-plus"></i></div>
 </button>
-<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
+<button class='btn2 hidden' id='close-window' data-tippy-content='<%= tr("common.close_section") %>'>
   <div><i class="fa-solid fa-xmark"></i></div>
 </button>
 </h1>
@@ -1552,51 +1559,51 @@ body.dark .ace-editor {
   <div class="container">
       <div class="tab-container">
         <div class="tab-nav">
-          <div class='category-label'>Create a new project</div>
+          <div class='category-label'><%= tr("init.create_new_project") %></div>
           <!-- Create category subtabs -->
           <button type="button" class="tab-button active" data-tab="launcher">
             <div class='row'>
               <i class="fa-solid fa-cloud-arrow-down"></i>
-              <div><h5>1-Click Launcher</h5></div>
+              <div><h5><%= tr("init.one_click_launcher") %></h5></div>
             </div>
           </button>
           <button type="button" class="tab-button" data-tab="cli">
             <div class='row'>
               <i class="fa-solid fa-desktop"></i>
-              <div><h5>Terminal App Launcher</h5></div>
+              <div><h5><%= tr("init.terminal_app_launcher") %></h5></div>
             </div>
           </button>
           <button type="button" class="tab-button" data-tab="project">
             <div class='row'>
               <i class="fa-regular fa-pen-to-square"></i>
-              <div><h5>Create a New App</h5></div>
+              <div><h5><%= tr("init.create_new_app") %></h5></div>
             </div>
           </button>
-          <div class='category-label'>Import an existing project</div>
+          <div class='category-label'><%= tr("init.import_existing_project") %></div>
           <!-- Import category subtabs -->
           <button type="button" class="tab-button" data-tab="import-copy">
             <div class='row'>
               <i class="fa-solid fa-clone"></i>
-              <div><h5>Import</h5></div>
+              <div><h5><%= tr("common.import") %></h5></div>
             </div>
           </button>
           <button type="button" class="tab-button" data-tab="import-link">
             <div class='row'>
               <i class="fa-solid fa-link"></i>
-              <div><h5>Link</h5></div>
+              <div><h5><%= tr("common.link") %></h5></div>
             </div>
           </button>
           <button type="button" class="tab-button" data-tab="import-clone">
             <div class='row'>
               <i class="fa-solid fa-download"></i>
-              <div><h5>Download</h5></div>
+              <div><h5><%= tr("common.download") %></h5></div>
             </div>
           </button>
-          <div class='category-label'>Create a web domain</div>
+          <div class='category-label'><%= tr("init.create_web_domain") %></div>
           <button type="button" class="tab-button" data-tab="dns">
             <div class='row'>
               <i class="fa-solid fa-link"></i>
-              <div><h5>Web Domain</h5></div>
+              <div><h5><%= tr("init.web_domain") %></h5></div>
             </div>
           </button>
         </div>
@@ -1605,62 +1612,62 @@ body.dark .ace-editor {
             <!-- Launcher Tab -->
             <div class="tab-content active" id="launcher-tab">
             <!--
-                <h2>Create a 1-Click Launcher</h2>
+                <h2><%= tr("init.create_one_click_launcher") %></h2>
                 -->
                 <div class="header-description">
                   <img class='logo2' src="/pinokio-black.png"/>
-                  <div class='bubble'>Create a launcher for any open source project cloned from git.</div>
+                  <div class='bubble'><%= tr("init.launcher_bubble") %></div>
                 </div>
                 <div class="git-url-input">
-                    <blockquote>Git URL</blockquote>
-                    <div class='explain'>Enter a git repository URL to clone from.</div>
-                    <input type="url" name="gitUrl" id="gitUrl" placeholder="example: https://github.com/username/repository.git">
+                    <blockquote><%= tr("common.git_url") %></blockquote>
+                    <div class='explain'><%= tr("init.git_url_explain") %></div>
+                    <input type="url" name="gitUrl" id="gitUrl" placeholder="<%= tr("init.git_url_placeholder") %>">
                 </div>
 
                 <div class="project-options">
-                    <blockquote>Type</blockquote>
-                    <div class='explain'>If you want to decide later, just choose "universal launcher".</div>
+                    <blockquote><%= tr("common.type") %></blockquote>
+                    <div class='explain'><%= tr("init.choose_universal_later") %></div>
                     <div class="radio-group">
                         <label>
                             <input type="radio" name="projectType" value="nodejs">
                             <img class='appicon' src="/asset/prototype/system/nodejs/icon.png"/>
-                            <span>Node.js Launcher</span>
-                            <p class="description">install and launch a Node.js project.</p>
+                            <span><%= tr("init.nodejs_launcher") %></span>
+                            <p class="description"><%= tr("init.nodejs_launcher_description") %></p>
                         </label>
                         <label>
                             <input type="radio" name="projectType" value="python">
                             <img class='appicon' src="/asset/prototype/system/python/icon.png"/>
-                            <span>Python Launcher</span>
-                            <p class='description'>install and launch a Python project.</p>
+                            <span><%= tr("init.python_launcher") %></span>
+                            <p class='description'><%= tr("init.python_launcher_description") %></p>
                         </label>
                         <label>
                             <input type="radio" name="projectType" value="empty">
                             <img class='appicon' src="/asset/prototype/system/empty/icon.png"/>
-                            <span>Universal Launcher</span>
-                            <p class='description'>Build a launcher for any Git repository.</p>
+                            <span><%= tr("init.universal_launcher") %></span>
+                            <p class='description'><%= tr("init.universal_launcher_description") %></p>
                         </label>
                     </div>
 
                     <div class='command-fields conditional-options' id="clone-command-fields">
                       <!-- Additional Fields for Clone Mode -->
                       <div class="git-url-input">
-                          <blockquote>Install Command (Leave empty to decide later)</blockquote>
-                          <div id="cloneInstallCommand" class="ace-editor" data-name="cloneInstallCommand" data-placeholder="Install commands (one per line)"></div>
+                          <blockquote><%= tr("init.install_command_optional") %></blockquote>
+                          <div id="cloneInstallCommand" class="ace-editor" data-name="cloneInstallCommand" data-placeholder="<%= tr("init.install_commands_placeholder") %>"></div>
                           <div class="checkbox-group">
                               <label>
                                   <input type="checkbox" name="allowInstallUserInput" value="true">
-                                  <span>Allow user input for install commands</span>
+                                  <span><%= tr("init.allow_install_input") %></span>
                               </label>
                           </div>
                       </div>
 
                       <div class="git-url-input">
-                          <blockquote>Start Command (Leave empty to decide later)</blockquote>
-                          <div id="cloneStartCommand" class="ace-editor" data-name="cloneStartCommand" data-placeholder="Start commands (one per line)"></div>
+                          <blockquote><%= tr("init.start_command_optional") %></blockquote>
+                          <div id="cloneStartCommand" class="ace-editor" data-name="cloneStartCommand" data-placeholder="<%= tr("init.start_commands_placeholder") %>"></div>
                           <div class="checkbox-group">
                               <label>
                                   <input type="checkbox" name="allowStartUserInput" value="true">
-                                  <span>Allow user input for start commands</span>
+                                  <span><%= tr("init.allow_start_input") %></span>
                               </label>
                           </div>
                       </div>
@@ -1668,7 +1675,7 @@ body.dark .ace-editor {
 
                     <!-- Python Options for Clone -->
                     <div id="python-options-clone" class="conditional-options">
-                        <h3>Python Options</h3>
+                        <h3><%= tr("init.python_options") %></h3>
                         <div class="checkbox-group">
                             <label>
                                 <input type="checkbox" name="pythonOptions" value="torch">
@@ -1697,39 +1704,39 @@ body.dark .ace-editor {
             <div class="tab-content" id="cli-tab">
                 <div class="header-description">
                   <img class='logo2' src="/pinokio-black.png"/>
-                  <div class='bubble'>Run any terminal app in the browser.</div>
+                  <div class='bubble'><%= tr("init.cli_bubble") %></div>
                 </div>
-                <blockquote>Type</blockquote>
-                <div class='explain'>Single-command apps vs. Installable apps.</div>
+                <blockquote><%= tr("common.type") %></blockquote>
+                <div class='explain'><%= tr("init.cli_type_explain") %></div>
                 <div class="project-options">
                     <div class="radio-group">
                         <label>
                             <input type="radio" name="cliType" value="instant">
                             <img class='appicon' src="/asset/prototype/system/cli/icon.png"/>
-                            <span>Instant Command</span>
-                            <p class="description">npx, uvx, etc.</p>
+                            <span><%= tr("init.instant_command") %></span>
+                            <p class="description"><%= tr("init.instant_command_description") %></p>
                         </label>
                         <label>
                             <input type="radio" name="cliType" value="installable">
                             <img class='appicon' src="/asset/prototype/system/cli/icon.png"/>
-                            <span>Installable CLI App</span>
-                            <p class="description">CLI apps that require installation</p>
+                            <span><%= tr("init.installable_cli_app") %></span>
+                            <p class="description"><%= tr("init.installable_cli_description") %></p>
                         </label>
                     </div>
                 </div>
 
                 <!-- Instant CLI Options -->
                 <div id="instant-cli-options" class="conditional-options">
-                    <blockquote>Launch Command</blockquote>
-                    <input type="text" name="launchCommand" placeholder="e.g., npx create-react-app">
+                    <blockquote><%= tr("init.launch_command") %></blockquote>
+                    <input type="text" name="launchCommand" placeholder="<%= tr("init.launch_command_placeholder") %>">
                 </div>
 
                 <!-- Installable CLI Options -->
                 <div id="installable-cli-options" class="conditional-options">
-                    <blockquote>Install Command</blockquote>
-                    <div id="installCommand" class="ace-editor" data-name="installCommand" data-placeholder="Install commands (one per line)"></div>
-                    <blockquote>Launch Command</blockquote>
-                    <div id="installableLaunchCommand" class="ace-editor" data-name="installableLaunchCommand" data-placeholder="Launch commands (one per line)"></div>
+                    <blockquote><%= tr("init.install_command") %></blockquote>
+                    <div id="installCommand" class="ace-editor" data-name="installCommand" data-placeholder="<%= tr("init.install_commands_placeholder") %>"></div>
+                    <blockquote><%= tr("init.launch_command") %></blockquote>
+                    <div id="installableLaunchCommand" class="ace-editor" data-name="installableLaunchCommand" data-placeholder="<%= tr("init.launch_commands_placeholder") %>"></div>
                 </div>
 
                 <!-- Virtual Environment Option -->
@@ -1737,7 +1744,7 @@ body.dark .ace-editor {
                     <div class="checkbox-group">
                         <label>
                             <input type="checkbox" name="useVenv" value="true">
-                            <span>Use virtual environment (venv)</span>
+                            <span><%= tr("init.use_venv") %></span>
                         </label>
                     </div>
                 </div>
@@ -1746,11 +1753,11 @@ body.dark .ace-editor {
             <div class="tab-content" id="import-copy-tab">
                 <div class="header-description">
                   <img class='logo2' src="/pinokio-black.png"/>
-                  <div class='bubble'>Import an external folder into Pinokio</div>
+                  <div class='bubble'><%= tr("init.import_copy_bubble") %></div>
                 </div>
                 <div class="git-url-input">
-                    <blockquote>Folder Path</blockquote>
-                    <input id='importCopy' type="text" name="importPath" placeholder="folder path">
+                    <blockquote><%= tr("init.folder_path") %></blockquote>
+                    <input id='importCopy' type="text" name="importPath" placeholder="<%= tr("init.folder_path_placeholder") %>">
                 </div>
                 <input type="hidden" name="importTypeCopy" value="copy" />
             </div>
@@ -1759,11 +1766,11 @@ body.dark .ace-editor {
             <div class="tab-content" id="import-link-tab">
                 <div class="header-description">
                   <img class='logo2' src="/pinokio-black.png"/>
-                  <div class='bubble'>Create a symbolic link to an external folder</div>
+                  <div class='bubble'><%= tr("init.import_link_bubble") %></div>
                 </div>
                 <div class="git-url-input">
-                    <blockquote>Folder Path</blockquote>
-                    <input id='importLink' type="text" name="importPath" placeholder="folder path">
+                    <blockquote><%= tr("init.folder_path") %></blockquote>
+                    <input id='importLink' type="text" name="importPath" placeholder="<%= tr("init.folder_path_placeholder") %>">
                 </div>
                 <input type="hidden" name="importTypeLink" value="link" />
             </div>
@@ -1772,11 +1779,11 @@ body.dark .ace-editor {
             <div class="tab-content" id="import-clone-tab">
                 <div class="header-description">
                   <img class='logo2' src="/pinokio-black.png"/>
-                  <div class='bubble'>Download a project by cloning its Git repository</div>
+                  <div class='bubble'><%= tr("init.import_clone_bubble") %></div>
                 </div>
                 <div class="git-url-input">
-                    <blockquote>Git URL</blockquote>
-                    <input type="url" id="importDownload" name="importDownload" placeholder="example: https://github.com/username/repository.git">
+                    <blockquote><%= tr("common.git_url") %></blockquote>
+                    <input type="url" id="importDownload" name="importDownload" placeholder="<%= tr("init.git_url_placeholder") %>">
                 </div>
             </div>
 
@@ -1787,11 +1794,11 @@ body.dark .ace-editor {
             <div class="tab-content" id="project-tab">
                 <div class="header-description">
                   <img class='logo2' src="/pinokio-black.png"/>
-                  <div class='bubble'>Set up a new project with a built-in 1-click launcher.</div>
+                  <div class='bubble'><%= tr("init.project_bubble") %></div>
                 </div>
                 <!--
-                <blockquote>Type</blockquote>
-                <div class='explain'>Set up a new 1-click launcher project.</div>
+                <blockquote><%= tr("common.type") %></blockquote>
+                <div class='explain'><%= tr("init.project_type_explain") %></div>
                 -->
                 <div class="project-options">
                     <div class="radio-group">
@@ -1799,27 +1806,27 @@ body.dark .ace-editor {
                         <label>
                             <input type="radio" name="projectType" value="documentation">
                             <img class='appicon' src="/asset/prototype/system/documentation/icon.png"/>
-                            <span>Documentation</span>
+                            <span><%= tr("init.documentation") %></span>
                         </label>
 
                         <div id="documentation-options" class="conditional-options">
                             <div class="radio-group">
                                 <label>
                                     <input type="radio" name="docType" value="local">
-                                    <span>Documentation from Local Project</span>
+                                    <span><%= tr("init.documentation_local") %></span>
                                 </label>
                                 <div id="local-doc-options" class="conditional-options">
-                                    <h4>Local Project Path</h4>
-                                    <input type="text" name="localDocPath" placeholder="e.g., /home/user/my-project" id='local'>
+                                    <h4><%= tr("init.local_project_path") %></h4>
+                                    <input type="text" name="localDocPath" placeholder="<%= tr("init.local_project_placeholder") %>" id='local'>
                                 </div>
 
                                 <label>
                                     <input type="radio" name="docType" value="remote">
-                                    <span>Documentation from Remote Git Repository</span>
+                                    <span><%= tr("init.documentation_remote") %></span>
                                 </label>
                                 <div id="remote-doc-options" class="conditional-options">
-                                    <h4>Remote Git Repository URL</h4>
-                                    <input type="text" name="remoteDocUrl" placeholder="e.g., https://github.com/user/repo.git">
+                                    <h4><%= tr("init.remote_git_url") %></h4>
+                                    <input type="text" name="remoteDocUrl" placeholder="<%= tr("init.remote_git_placeholder") %>">
                                 </div>
                             </div>
                         </div>
@@ -1827,27 +1834,27 @@ body.dark .ace-editor {
                         <label>
                             <input type="radio" name="projectType" value="nodejs">
                             <img class='appicon' src="/asset/prototype/system/nodejs/icon.png"/>
-                            <span>Node.js starter</span>
+                            <span><%= tr("init.nodejs_starter") %></span>
                         </label>
                         <label>
                             <input type="radio" name="projectType" value="python">
                             <img class='appicon' src="/asset/prototype/system/python/icon.png"/>
-                            <span>Python starter</span>
+                            <span><%= tr("init.python_starter") %></span>
                         </label>
                         <label>
                             <input type="radio" name="projectType" value="empty">
                             <img class='appicon' src="/asset/prototype/system/empty/icon.png"/>
-                            <span>Empty starter</span>
+                            <span><%= tr("init.empty_starter") %></span>
                         </label>
                         <label>
                             <input type="radio" name="projectType" value="blank">
                             <img class='appicon' src="/asset/prototype/system/empty/icon.png"/>
-                            <span>Empty folder</span>
+                            <span><%= tr("init.empty_folder") %></span>
                         </label>
                         <label>
                             <input type="radio" name="projectType" value="ai">
                             <img class='appicon' src="/asset/prototype/system/cli/icon.png"/>
-                            <span>Initialize using AI</span>
+                            <span><%= tr("init.initialize_using_ai") %></span>
                         </label>
 
                     </div>
@@ -1855,7 +1862,7 @@ body.dark .ace-editor {
 
                     <!-- Python Options -->
                     <div id="python-options" class="conditional-options">
-                        <h3>Python Options</h3>
+                        <h3><%= tr("init.python_options") %></h3>
                         <div class="checkbox-group">
                             <label>
                                 <input type="checkbox" name="pythonOptions" value="torch">
@@ -1881,7 +1888,7 @@ body.dark .ace-editor {
                 <div id="ai-options" class="conditional-options">
                   <div class="header-description">
                     <img class='logo2' src="/pinokio-black.png"/>
-                    <div class='bubble'>Use AI prompts to build a 1-click launcher</div>
+                    <div class='bubble'><%= tr("init.ai_bubble") %></div>
                   </div>
                   <div class="ai-prompt-section">
                     <div class='ai-tabs'>
@@ -1908,7 +1915,7 @@ body.dark .ace-editor {
                         </div>
                       <% }) %>
                     </div>
-                    <textarea class='hidden' id='aiPrompt' data-name="aiPrompt" data-placeholder="Describe what you want to build..." placeholder="What do you want to build?"></textarea>
+                    <textarea class='hidden' id='aiPrompt' data-name="aiPrompt" data-placeholder="<%= tr("init.ai_prompt_placeholder") %>" placeholder="<%= tr("init.ai_prompt_question") %>"></textarea>
                   </div>
                 </div>
 
@@ -1918,18 +1925,18 @@ body.dark .ace-editor {
             <div class="tab-content" id="dns-tab">
                 <div class="header-description">
                   <img class='logo2' src="/pinokio-black.png"/>
-                  <div class='bubble'>Instantly get domain names for any localhost server running on your machine. Just enter the port number and the domain you want.</div>
+                  <div class='bubble'><%= tr("init.dns_bubble") %></div>
                 </div>
                 <div class='address-section'>
-                  <input type='text' placeholder="domain name" id='dns_name'>
-                  <input type='number' placeholder="port number" id='dns_port'>
+                  <input type='text' placeholder="<%= tr("network.domain_name") %>" id='dns_name'>
+                  <input type='number' placeholder="<%= tr("network.port_number") %>" id='dns_port'>
                 </div>
                 <div id='address-result'>
                 </div>
             </div>
 
             <div class="button-group" style="margin-top: 2rem;">
-                <button type="submit" class="btn btn-success" id="create-button">Create Launcher</button>
+                <button type="submit" class="btn btn-success" id="create-button"><%= tr("create.title") %></button>
             </div>
         </form>
       </div>
@@ -2032,7 +2039,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let socket = new Socket()
         socket.run({
           method: "kernel.bin.filepicker",
-          params: { title: "Select a path", type: "folder" }
+          params: { title: <%- trj("init.select_path") %>, type: "folder" }
         }, async (packet) => {
           if (packet.type === "result") {
             if (packet.data.paths.length > 0) {
@@ -2131,14 +2138,14 @@ function showTab(tabName) {
     
     // Update create button text
     const createButton = document.getElementById('create-button');
-    createButton.textContent = 'Create'
+    createButton.textContent = <%- trj("common.create") %>
     /*
     if (tabName === 'launcher') {
-        createButton.textContent = 'Create Launcher';
+        createButton.textContent = <%- trj("create.title") %>;
     } else if (tabName === 'cli') {
-        createButton.textContent = 'Create CLI Launcher';
+        createButton.textContent = <%- trj("init.create_cli_launcher") %>;
     } else {
-        createButton.textContent = 'Create Project';
+        createButton.textContent = <%- trj("init.create_project") %>;
     }
     */
     
@@ -2382,13 +2389,13 @@ function validateForm() {
     if (isLauncher) {
         const gitUrl = document.getElementById('gitUrl').value.trim();
         if (!gitUrl) {
-            alert('Please enter a Git repository URL.');
+            alert(<%- trj("init.enter_git_url") %>);
             return false;
         }
         
         const projectType = document.querySelector('input[name="projectType"]:checked');
         if (!projectType) {
-            alert('Please select a project type.');
+            alert(<%- trj("init.select_project_type") %>);
             return false;
         }
     }
@@ -2397,25 +2404,25 @@ function validateForm() {
     if (isCli) {
         const cliType = document.querySelector('input[name="cliType"]:checked');
         if (!cliType) {
-            alert('Please select a CLI type.');
+            alert(<%- trj("init.select_cli_type") %>);
             return false;
         }
         
         if (cliType.value === 'instant') {
             const launchCommand = document.querySelector('input[name="launchCommand"]').value.trim();
             if (!launchCommand) {
-                alert('Please enter a launch command.');
+                alert(<%- trj("init.enter_launch_command") %>);
                 return false;
             }
         } else if (cliType.value === 'installable') {
             const installCommand = aceEditors['installCommand'] ? aceEditors['installCommand'].getValue().trim() : '';
             const launchCommand = aceEditors['installableLaunchCommand'] ? aceEditors['installableLaunchCommand'].getValue().trim() : '';
             if (!installCommand) {
-                alert('Please enter at least one install command.');
+                alert(<%- trj("init.enter_install_command") %>);
                 return false;
             }
             if (!launchCommand) {
-                alert('Please enter at least one launch command.');
+                alert(<%- trj("init.enter_launch_command") %>);
                 return false;
             }
         }
@@ -2424,14 +2431,14 @@ function validateForm() {
     if (isImportCopy || isImportLink) {
         const importPath = (isImportCopy ? document.getElementById('importCopy') : document.getElementById('importLink')).value.trim();
         if (!importPath) {
-            alert('Please enter a folder to import');
+            alert(<%- trj("init.enter_folder_import") %>);
             return false;
         }
     }
     if (isImportClone) {
         const gitUrl = document.getElementById('importDownload').value.trim();
         if (!gitUrl) {
-            alert('Please enter a Git repository URL.');
+            alert(<%- trj("init.enter_git_url") %>);
             return false;
         }
     }
@@ -2440,7 +2447,7 @@ function validateForm() {
     if (!isLauncher && !isCli && !isDNS && !isImport) {
         const projectType = document.querySelector('input[name="projectType"]:checked');
         if (!projectType) {
-            alert('Please select a project type.');
+            alert(<%- trj("init.select_project_type") %>);
             return false;
         }
         
@@ -2448,20 +2455,20 @@ function validateForm() {
         if (projectType.value === 'documentation') {
             const docType = document.querySelector('input[name="docType"]:checked');
             if (!docType) {
-                alert('Please select a documentation source.');
+                alert(<%- trj("init.select_documentation_source") %>);
                 return false;
             }
             
             if (docType.value === 'local') {
                 const localDocPath = document.querySelector('input[name="localDocPath"]').value.trim();
                 if (!localDocPath) {
-                    alert('Please enter a local project path.');
+                    alert(<%- trj("init.enter_local_project_path") %>);
                     return false;
                 }
             } else if (docType.value === 'remote') {
                 const remoteDocUrl = document.querySelector('input[name="remoteDocUrl"]').value.trim();
                 if (!remoteDocUrl) {
-                    alert('Please enter a remote Git repository URL.');
+                    alert(<%- trj("init.enter_remote_git_url") %>);
                     return false;
                 }
             }
@@ -2515,12 +2522,12 @@ function handleSubmit(event) {
     
     name = name.trim();
     if (!name) {
-        alert('Please enter a valid folder name.');
+        alert(<%- trj("init.enter_valid_folder_name") %>);
         return;
     }
     
     if (name.includes(' ')) {
-        alert('No spaces allowed in folder names.');
+        alert(<%- trj("init.folder_no_spaces") %>);
         return;
     }
 

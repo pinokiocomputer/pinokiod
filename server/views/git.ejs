@@ -1,3 +1,7 @@
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <html>
 <head>
 <link href="/css/fontawesome.min.css" rel="stylesheet">
@@ -477,10 +481,10 @@ body.dark .change-count {
         <a href="<%=remote%>" target="_blank"><%=remote%></a>
       </div>
     <% } else { %>
-      <div class='git-pub'>Not published</div>
+      <div class='git-pub'><%=tr("git.not_published")%></div>
     <% } %>
     <div class='branches'>
-      <div class='label'>Current Version</div>
+      <div class='label'><%=tr("git.current_version")%></div>
       <select autocomplete="off">
       <% branches.forEach((b) => { %>
         <option <%=b.selected ? 'selected' : ''%> value="/run/scripts/git/checkout.json?cwd=<%=encodeURIComponent(dir)%>&commit=<%=b.branch%>&callback_target=parent&callback=$location.href"><%=b.branch%></option>
@@ -488,31 +492,31 @@ body.dark .change-count {
       </select>
       <% if (remote) { %>
         <% if (connected) { %>
-          <a data-href="/run/scripts/git/push.json?cwd=<%=encodeURIComponent(dir)%>&callback_target=parent&callback==$location.href" class='btn'><i class="fa-brands fa-github"></i> Publish</a>
+          <a data-href="/run/scripts/git/push.json?cwd=<%=encodeURIComponent(dir)%>&callback_target=parent&callback==$location.href" class='btn'><i class="fa-brands fa-github"></i> <%=tr("app.publish")%></a>
         <% } else { %>
-          <a class='btn' href="/github" data-redirect="/github"><i class="fa-brands fa-github"></i> Publish to GitHub</a>
+          <a class='btn' href="/github" data-redirect="/github"><i class="fa-brands fa-github"></i> <%=tr("app.publish_to_github")%></a>
         <% } %>
-        <a data-href="/run/scripts/git/commit.json?cwd=<%=encodeURIComponent(dir)%>&callback_target=parent&callback=$location.href" class='btn'><i class="fa-solid fa-floppy-disk"></i> Save</a>
+        <a data-href="/run/scripts/git/commit.json?cwd=<%=encodeURIComponent(dir)%>&callback_target=parent&callback=$location.href" class='btn'><i class="fa-solid fa-floppy-disk"></i> <%=tr("common.save")%></a>
       <% } else { %>
         <% if (connected) { %>
-          <a data-href="/run/scripts/git/create.json?cwd=<%=encodeURIComponent(dir)%>&callback_target=parent&callback==$location.href" class='btn'><i class="fa-brands fa-github"></i> Publish</a>
+          <a data-href="/run/scripts/git/create.json?cwd=<%=encodeURIComponent(dir)%>&callback_target=parent&callback==$location.href" class='btn'><i class="fa-brands fa-github"></i> <%=tr("app.publish")%></a>
         <% } else { %>
-          <a class='btn' href="/github" data-redirect="/github"><i class="fa-brands fa-github"></i> Create on GitHub</a>
+          <a class='btn' href="/github" data-redirect="/github"><i class="fa-brands fa-github"></i> <%=tr("app.create_on_github")%></a>
         <% } %>
-        <a data-href="/run/scripts/git/commit.json?cwd=<%=encodeURIComponent(dir)%>&callback_target=parent&callback=$location.href" class='btn'><i class="fa-solid fa-floppy-disk"></i> Save</a>
+        <a data-href="/run/scripts/git/commit.json?cwd=<%=encodeURIComponent(dir)%>&callback_target=parent&callback=$location.href" class='btn'><i class="fa-solid fa-floppy-disk"></i> <%=tr("common.save")%></a>
       <% } %>
     </div>
   </div>
 </nav>
 <main>
   <div class='log'>
-    <div class='git-header'><i class="fa-solid fa-clock-rotate-left"></i> History</div>
+    <div class='git-header'><i class="fa-solid fa-clock-rotate-left"></i> <%=tr("app.history")%></div>
     <div class='item <%=ref === "HEAD" ? "selected": ""%>' data-ref="<%=ref%>" data-href="/gitcommit/HEAD/<%=path%>">
-      <div class='msg'><i class="fa-solid fa-pencil"></i> current version</div>
-      <div class='timestamp'>now</div>
+      <div class='msg'><i class="fa-solid fa-pencil"></i> <%=tr("git.current_version_lower")%></div>
+      <div class='timestamp'><%=tr("git.now")%></div>
       <!--
       <a target="terminal" class='btn hidden switch' href="/run/scripts/git/checkout.json?cwd=<%=encodeURIComponent(dir)%>&commit=HEAD&callback_target=parent&callback=$location.href">
-        <i class='fa-solid fa-clock-rotate-left'></i> Switch to this version
+        <i class='fa-solid fa-clock-rotate-left'></i> <%=tr("git.switch_to_version")%>
       </a>
       -->
     </div>
@@ -522,7 +526,7 @@ body.dark .change-count {
         <div class='timestamp'><%=new Date(item.commit.author.timestamp * 1000).toLocaleString()%></div>
         <div class='author'><%=item.commit.author.name%></div>
         <a target="terminal" class='btn hidden switch' href="/run/scripts/git/checkout.json?cwd=<%=encodeURIComponent(dir)%>&commit=<%=item.oid%>&callback_target=parent&callback=$location.href">
-          <i class='fa-solid fa-clock-rotate-left'></i> Switch to this version
+          <i class='fa-solid fa-clock-rotate-left'></i> <%=tr("git.switch_to_version")%>
         </a>
       </div>
     <% }) %>
@@ -553,7 +557,7 @@ new TomSelect("select", {
 const selectRef = (el) => {
   let href = el.getAttribute("data-href")
   let ref = el.getAttribute("data-ref")
-  document.querySelector(".git-version").innerHTML = `<div><i class="fa-solid fa-folder-tree"></i> Changed files <span class='change-count'></span></div><div class='flexible'></div><i class="fa-solid fa-code-commit"></i> version: ${ref}`
+  document.querySelector(".git-version").innerHTML = `<div><i class="fa-solid fa-folder-tree"></i> ${<%-trj("git.changed_files")%>} <span class='change-count'></span></div><div class='flexible'></div><i class="fa-solid fa-code-commit"></i> ${<%-trj("git.version")%>}: ${ref}`
 
   if (el.querySelector(".switch")) {
     document.querySelectorAll(".log .btn").forEach((e) => {
@@ -575,7 +579,7 @@ const selectRef = (el) => {
       }).join("")
     } else {
       document.querySelector(".change-count").innerHTML = 0
-      document.querySelector("aside .content").innerHTML = `<div class='empty'>no unsaved changes</div>`
+      document.querySelector("aside .content").innerHTML = `<div class='empty'>${<%-trj("git.no_unsaved_changes")%>}</div>`
     }
   })
 }
@@ -609,7 +613,7 @@ document.querySelector("nav").addEventListener("click", (e) => {
   if (redirect_url) {
     e.preventDefault()
     e.stopPropagation()
-    const c = confirm("Please connect with GitHub first")
+    const c = confirm(<%-trj("git.connect_github_first")%>)
     if (c) {
       open_url(redirect_url, "_blank")
     } else {
@@ -660,7 +664,7 @@ document.querySelector(".changes").addEventListener("click", (e) => {
     }
   }
   if (href) {
-    let c = confirm("are you sure? this will reset the file to the previous version.")
+    let c = confirm(<%-trj("git.reset_file_confirm")%>)
     if (c) {
       document.querySelector("#term").classList.remove("hidden")
       window.open(href, "terminal")
@@ -701,23 +705,23 @@ document.querySelector("aside").addEventListener("click", (e) => {
           <h3>
             <div class='flexible'>${res.file}</div>
             <a data-href="/run/scripts/git/reset_file.json?path=${encodeURIComponent(res.path)}&cwd=${encodeURIComponent("<%=dir%>")}&callback_target=parent&callback=$location.href" class='btn ${ref === "HEAD" ? "" : "hidden"}'>
-              <i class="fa-solid fa-arrow-rotate-left"></i> Reset
+              <i class="fa-solid fa-arrow-rotate-left"></i> ${<%-trj("common.reset")%>}
             </a>
             <a class='btn' data-filepath="${res.path}">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> ${<%-trj("common.open")%>}
             </a>
           </h3>
-          <div class="binary-notice">[Binary file]</div>
+          <div class="binary-notice">${<%-trj("git.binary_file")%>}</div>
         </div>`
       } else {
         document.querySelector(".changes .content").innerHTML = `<div class="diffs">
           <h3>
             <div class='flexible'>${res.file}</div>
             <a data-href="/run/scripts/git/reset_file.json?path=${encodeURIComponent(res.path)}&cwd=${encodeURIComponent("<%=dir%>")}&callback_target=parent&callback=$location.href" class='btn ${ref === "HEAD" ? "" : "hidden"}'>
-              <i class="fa-solid fa-arrow-rotate-left"></i> Reset
+              <i class="fa-solid fa-arrow-rotate-left"></i> ${<%-trj("common.reset")%>}
             </a>
             <a class='btn' data-filepath="${res.path}">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> ${<%-trj("common.open")%>}
             </a>
           </h3>
         <div class="diff-block">` + res.diff.map(({ line, lineOld, lineNew, type }) => {

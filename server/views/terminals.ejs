@@ -1,6 +1,10 @@
 <html>
 <head>
-<title>Pinokio Terminal Sessions</title>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
+<title><%=tr("terminals.title")%></title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <link href="/css/fontawesome.min.css" rel="stylesheet">
@@ -4211,25 +4215,25 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
 <header class="navheader grabbable">
 <h1>
 <a class="home" href="/home"><img class="icon" src="/pinokio-black.png"></a>
-<button class="btn2" id="minimize-header" data-tippy-content="fullscreen" title="fullscreen">
+<button class="btn2" id="minimize-header" data-tippy-content="<%=tr("common.fullscreen")%>" title="<%=tr("common.fullscreen")%>">
   <div><i class="fa-solid fa-expand"></i></div>
 </button>
-<button class="btn2" id="back" data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class="btn2" id="forward" data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class="btn2" id="refresh-page" data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
-<button class="btn2" id="screenshot" data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
-<button class="btn2" id="inspector" data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
+<button class="btn2" id="back" data-tippy-content="<%=tr("common.back")%>"><div><i class="fa-solid fa-chevron-left"></i></div></button>
+<button class="btn2" id="forward" data-tippy-content="<%=tr("common.forward")%>"><div><i class="fa-solid fa-chevron-right"></i></div></button>
+<button class="btn2" id="refresh-page" data-tippy-content="<%=tr("common.refresh")%>"><div><i class="fa-solid fa-rotate-right"></i></div></button>
+<button class="btn2" id="screenshot" data-tippy-content="<%=tr("common.screen_capture")%>"><i class="fa-solid fa-camera"></i></button>
+<button class="btn2" id="inspector" data-tippy-content="<%=tr("common.xray_mode")%>"><i class="fa-solid fa-eye"></i></button>
 <div class="flexible"></div>
-<a class="btn2" href="/columns" data-tippy-content="split into 2 columns">
+<a class="btn2" href="/columns" data-tippy-content="<%=tr("common.split_columns")%>">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
-<a class="btn2" href="/rows" data-tippy-content="split into 2 rows">
+<a class="btn2" href="/rows" data-tippy-content="<%=tr("common.split_rows")%>">
   <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
 </a>
-<button class="btn2" id="new-window" data-tippy-content="open a new window" title="open a new window" data-agent="<%=agent%>">
+<button class="btn2" id="new-window" data-tippy-content="<%=tr("common.open_new_window")%>" title="<%=tr("common.open_new_window")%>" data-agent="<%=agent%>">
   <div><i class="fa-solid fa-plus"></i></div>
 </button>
-<button class="btn2 hidden" id="close-window" data-tippy-content="close this section">
+<button class="btn2 hidden" id="close-window" data-tippy-content="<%=tr("common.close_section")%>">
   <div><i class="fa-solid fa-xmark"></i></div>
 </button>
 </h1>
@@ -4243,7 +4247,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           <div class="terminals-list-intro-toolbar has-actions">
             <div class="terminals-list-intro-actions terminals-list-intro-leading-actions" id="terminals-top-list-leading-actions"></div>
             <div class="terminals-list-intro-search">
-              <input id="terminals-session-search" type='search' placeholder='Search workspaces'>
+              <input id="terminals-session-search" type='search' placeholder='<%=tr("terminals.search_workspaces")%>'>
             </div>
             <div class="terminals-list-intro-actions terminals-list-intro-trailing-actions" id="terminals-top-list-actions"></div>
           </div>
@@ -4251,7 +4255,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       </div>
       <div class="terminals-top-session hidden" id="terminals-top-session" aria-live="polite">
         <div class="terminals-list-intro-actions terminals-list-intro-leading-actions terminals-top-session-leading-actions">
-          <button type="button" class="terminals-list-intro-action terminals-list-intro-refresh terminals-top-session-refresh" id="terminals-top-refresh" data-label="Refresh" aria-label="Refresh list">
+          <button type="button" class="terminals-list-intro-action terminals-list-intro-refresh terminals-top-session-refresh" id="terminals-top-refresh" data-label="<%=tr("common.refresh")%>" aria-label="<%=tr("terminals.refresh_list")%>">
             <span class="terminals-list-intro-refresh-idle">
               <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
             </span>
@@ -4264,17 +4268,17 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         <div class="terminals-top-session-search-spacer" aria-hidden="true"></div>
         <div class="terminals-chooser-actions">
           <span class="terminals-workspace-git-wrap terminals-top-session-git-wrap">
-            <button type="button" class="terminals-workspace-git-btn" id="terminals-top-git-changes" aria-label="Open changes" aria-expanded="false" disabled><span class="terminals-workspace-git-label">Changes</span><span class="terminals-workspace-git-badge hidden"></span></button>
+            <button type="button" class="terminals-workspace-git-btn" id="terminals-top-git-changes" aria-label="<%=tr("terminals.open_changes")%>" aria-expanded="false" disabled><span class="terminals-workspace-git-label"><%=tr("terminals.changes")%></span><span class="terminals-workspace-git-badge hidden"></span></button>
             <div class="terminals-workspace-git-menu hidden" id="terminals-top-git-menu" role="menu"></div>
             <div class="terminals-workspace-git-inline-error hidden" id="terminals-top-git-error"></div>
           </span>
-          <button class="terminals-open-folder" id="terminals-top-open-folder" type="button" aria-label="Open in File Explorer" disabled><i class="fa-solid fa-folder-open"></i><span>Open in File Explorer</span></button>
-          <button class="close-column" id="terminals-top-close-session" type="button" aria-label="Close selected session">×</button>
-          <button class="terminals-overflow-toggle" id="terminals-top-more-actions" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="More actions"><i class="fa-solid fa-ellipsis"></i><span>More</span></button>
-          <div class="terminals-overflow-menu hidden" id="terminals-top-overflow-menu" role="menu" aria-label="More session actions">
-            <button type="button" data-action="open-changes" role="menuitem"><i class="fa-solid fa-code-branch"></i><span>Changes</span></button>
-            <button type="button" data-action="open-folder" role="menuitem"><i class="fa-solid fa-folder-open"></i><span>Open in File Explorer</span></button>
-            <button type="button" data-action="close-session" role="menuitem"><i class="fa-solid fa-xmark"></i><span>Close session</span></button>
+          <button class="terminals-open-folder" id="terminals-top-open-folder" type="button" aria-label="<%=tr("common.open_in_file_explorer")%>" disabled><i class="fa-solid fa-folder-open"></i><span><%=tr("common.open_in_file_explorer")%></span></button>
+          <button class="close-column" id="terminals-top-close-session" type="button" aria-label="<%=tr("terminals.close_selected_session")%>">×</button>
+          <button class="terminals-overflow-toggle" id="terminals-top-more-actions" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="<%=tr("terminals.more_actions")%>"><i class="fa-solid fa-ellipsis"></i><span><%=tr("common.more")%></span></button>
+          <div class="terminals-overflow-menu hidden" id="terminals-top-overflow-menu" role="menu" aria-label="<%=tr("terminals.more_session_actions")%>">
+            <button type="button" data-action="open-changes" role="menuitem"><i class="fa-solid fa-code-branch"></i><span><%=tr("terminals.changes")%></span></button>
+            <button type="button" data-action="open-folder" role="menuitem"><i class="fa-solid fa-folder-open"></i><span><%=tr("common.open_in_file_explorer")%></span></button>
+            <button type="button" data-action="close-session" role="menuitem"><i class="fa-solid fa-xmark"></i><span><%=tr("terminals.close_session")%></span></button>
           </div>
         </div>
       </div>
@@ -4282,10 +4286,10 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     <section id='terminals-main'>
       <div id='terminals-empty-main'>
         <div>
-          <h2>Agent workspaces.</h2>
+          <h2><%=tr("terminals.agent_workspaces")%></h2>
           <br>
-          <div>No workspaces were found.</div>
-          <span>Create a workspace and start an agent chat.</span>
+          <div><%=tr("terminals.no_workspaces_found")%></div>
+          <span><%=tr("terminals.create_workspace_start_chat")%></span>
         </div>
       </div>
       <div id='terminals-columns' class='terminals-columns hidden'>
@@ -4298,28 +4302,28 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     <div class="terminals-launcher-backdrop" data-launcher-close="1"></div>
     <section class="terminals-launcher-panel" role="dialog" aria-modal="true" aria-labelledby="terminals-launcher-title">
       <header class="terminals-launcher-header">
-        <h3 id="terminals-launcher-title">Start an agent</h3>
-        <button class="terminals-launcher-close" type="button" aria-label="Close launcher">×</button>
+        <h3 id="terminals-launcher-title"><%=tr("terminals.start_agent")%></h3>
+        <button class="terminals-launcher-close" type="button" aria-label="<%=tr("terminals.close_launcher")%>">×</button>
       </header>
       <div class="terminals-launcher-body">
         <div class="terminals-launcher-view terminals-launcher-view-main" data-view="main">
           <div class="terminals-launcher-main-grid">
             <div class="terminals-launcher-main-row">
               <div class="terminals-launcher-main-label">
-                <div class="terminals-launcher-main-label-title">Agent</div>
+                <div class="terminals-launcher-main-label-title"><%=tr("terminals.agent")%></div>
               </div>
               <div class="terminals-launcher-main-value">
-                <div class="terminals-launcher-provider-options" role="group" aria-label="CLI providers"></div>
+                <div class="terminals-launcher-provider-options" role="group" aria-label="<%=tr("terminals.cli_providers")%>"></div>
               </div>
             </div>
             <div class="terminals-launcher-main-row">
               <div class="terminals-launcher-main-label">
-                <div class="terminals-launcher-main-label-title">Mode</div>
-                <div class="terminals-launcher-main-label-subtitle">Execution policy</div>
+                <div class="terminals-launcher-main-label-title"><%=tr("terminals.mode")%></div>
+                <div class="terminals-launcher-main-label-subtitle"><%=tr("terminals.execution_policy")%></div>
               </div>
               <div class="terminals-launcher-main-value">
-                <div class="terminals-launcher-mode-options" role="group" aria-label="Launch mode">
-                  <button class="terminals-launcher-mode" type="button" data-launch-mode="guarded"><span class="terminals-launcher-radio" aria-hidden="true"></span><span>Guarded</span></button>
+                <div class="terminals-launcher-mode-options" role="group" aria-label="<%=tr("terminals.launch_mode")%>">
+                  <button class="terminals-launcher-mode" type="button" data-launch-mode="guarded"><span class="terminals-launcher-radio" aria-hidden="true"></span><span><%=tr("terminals.guarded")%></span></button>
                   <button class="terminals-launcher-mode is-danger" type="button" data-launch-mode="yolo"><span class="terminals-launcher-radio" aria-hidden="true"></span><span>YOLO</span></button>
                 </div>
                 <span class="terminals-launcher-row-meta terminals-launcher-mode-meta"></span>
@@ -4327,24 +4331,24 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
             </div>
             <div class="terminals-launcher-main-row">
               <div class="terminals-launcher-main-label">
-                <div class="terminals-launcher-main-label-title">Skills</div>
-                <div class="terminals-launcher-main-label-subtitle">Optional</div>
+                <div class="terminals-launcher-main-label-title"><%=tr("terminals.skills")%></div>
+                <div class="terminals-launcher-main-label-subtitle"><%=tr("terminals.optional")%></div>
               </div>
               <div class="terminals-launcher-main-value">
-                <button class="terminals-launcher-secondary terminals-launcher-add-skills" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Add skills</span></button>
-                <span class="terminals-launcher-row-meta terminals-launcher-summary-skills">Skills: 0</span>
+                <button class="terminals-launcher-secondary terminals-launcher-add-skills" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i><span><%=tr("terminals.add_skills")%></span></button>
+                <span class="terminals-launcher-row-meta terminals-launcher-summary-skills"><%=tr("terminals.skills_count", { count: 0 })%></span>
                 <div class="terminals-launcher-selected hidden"></div>
               </div>
             </div>
             <div class="terminals-launcher-main-row">
               <div class="terminals-launcher-main-label">
-                <div class="terminals-launcher-main-label-title">Files</div>
-                <div class="terminals-launcher-main-label-subtitle">Optional</div>
+                <div class="terminals-launcher-main-label-title"><%=tr("terminals.files")%></div>
+                <div class="terminals-launcher-main-label-subtitle"><%=tr("terminals.optional")%></div>
               </div>
               <div class="terminals-launcher-main-value">
-                <button class="terminals-launcher-secondary terminals-launcher-add-files" type="button"><i class="fa-solid fa-paperclip"></i><span>Add files</span></button>
+                <button class="terminals-launcher-secondary terminals-launcher-add-files" type="button"><i class="fa-solid fa-paperclip"></i><span><%=tr("terminals.add_files")%></span></button>
                 <input class="terminals-launcher-file-input" type="file" multiple>
-                <span class="terminals-launcher-row-meta terminals-launcher-summary-files">Files: 0</span>
+                <span class="terminals-launcher-row-meta terminals-launcher-summary-files"><%=tr("terminals.files_count", { count: 0 })%></span>
                 <div class="terminals-launcher-upload-list hidden"></div>
               </div>
             </div>
@@ -4352,18 +4356,18 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         </div>
         <div class="terminals-launcher-view terminals-launcher-view-skills hidden" data-view="skills">
           <div class="terminals-launcher-skills-header">
-            <button class="terminals-launcher-secondary terminals-launcher-back" type="button"><i class="fa-solid fa-chevron-left"></i><span>Back</span></button>
-            <div class="terminals-launcher-skills-title">Add skills</div>
-            <button class="terminals-launcher-secondary terminals-launcher-skills-done" type="button">Done</button>
+            <button class="terminals-launcher-secondary terminals-launcher-back" type="button"><i class="fa-solid fa-chevron-left"></i><span><%=tr("common.back")%></span></button>
+            <div class="terminals-launcher-skills-title"><%=tr("terminals.add_skills")%></div>
+            <button class="terminals-launcher-secondary terminals-launcher-skills-done" type="button"><%=tr("common.done")%></button>
           </div>
           <form class="terminals-launcher-search-form">
-            <input class="terminals-launcher-search" type="search" placeholder="Search skills..." autocomplete="off">
+            <input class="terminals-launcher-search" type="search" placeholder="<%=tr("common.search_skills")%>" autocomplete="off">
           </form>
           <div class="terminals-launcher-skill-list"></div>
         </div>
       </div>
       <footer class="terminals-launcher-footer">
-        <button class="terminals-launcher-start" type="button">Start</button>
+        <button class="terminals-launcher-start" type="button"><%=tr("common.start")%></button>
       </footer>
     </section>
   </div>
@@ -4372,10 +4376,167 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
 <script src="/popper.min.js"></script>
 <script src="/tippy-bundle.umd.min.js"></script>
 <script src="/hotkeys.min.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/nav.js"></script>
 <script>
 (() => {
+  const CURRENT_LOCALE = <%- JSON.stringify(typeof locale === "string" && locale ? locale : "en") %>
+  const TERM_I18N = {
+    searchSessions: <%-trj("terminals.search_sessions")%>,
+    searchWorkspaces: <%-trj("terminals.search_workspaces")%>,
+    refreshList: <%-trj("terminals.refresh_list")%>,
+    changes: <%-trj("terminals.changes")%>,
+    openChanges: <%-trj("terminals.open_changes")%>,
+    checkRepositoryStatus: <%-trj("terminals.check_repository_status")%>,
+    initializeGitWorkspace: <%-trj("terminals.initialize_git_workspace")%>,
+    selectRepository: <%-trj("terminals.select_repository")%>,
+    startTrackingChanges: <%-trj("terminals.start_tracking_changes")%>,
+    noRepositoriesDetected: <%-trj("terminals.no_repositories_detected")%>,
+    changedCount: <%-trj("terminals.changed_count")%>,
+    clean: <%-trj("terminals.clean")%>,
+    initializeGitPrompt: <%-trj("terminals.initialize_git_prompt")%>,
+    initializeGitDescription: <%-trj("terminals.initialize_git_description")%>,
+    initializeGitNote: <%-trj("terminals.initialize_git_note")%>,
+    initializeGit: <%-trj("terminals.initialize_git")%>,
+    gitInitializedNoStatus: <%-trj("terminals.git_initialized_no_status")%>,
+    failedGitStatus: <%-trj("terminals.failed_git_status")%>,
+    resetSelected: <%-trj("terminals.reset_selected")%>,
+    resetSelectedCount: <%-trj("terminals.reset_selected_count")%>,
+    resetFilesTitle: <%-trj("terminals.reset_files_title")%>,
+    resetFilesDescription: <%-trj("terminals.reset_files_description")%>,
+    resetFilesNote: <%-trj("terminals.reset_files_note")%>,
+    resettingFilesTitle: <%-trj("terminals.resetting_files_title")%>,
+    resetFailed: <%-trj("terminals.reset_failed")%>,
+    failedResetSelectedFiles: <%-trj("terminals.failed_reset_selected_files")%>,
+    applyingSelection: <%-trj("terminals.applying_selection")%>,
+    discardingChanges: <%-trj("terminals.discarding_changes")%>,
+    noFilesSelectedReset: <%-trj("terminals.no_files_selected_reset")%>,
+    noChangesDisplay: <%-trj("terminals.no_changes_display")%>,
+    gitCheckout: <%-trj("terminals.git_checkout")%>,
+    commitChanges: <%-trj("terminals.commit_changes")%>,
+    selectFileChanges: <%-trj("terminals.select_file_changes")%>,
+    switchVersion: <%-trj("terminals.switch_version")%>,
+    failedCommitChanges: <%-trj("terminals.failed_commit_changes")%>,
+    commitCount: <%-trj("terminals.commit_count")%>,
+    repositoryHistory: <%-trj("terminals.repository_history")%>,
+    repoHistoryTitle: <%-trj("terminals.repo_history_title")%>,
+    currentlyViewing: <%-trj("terminals.currently_viewing")%>,
+    returnNewest: <%-trj("terminals.return_newest")%>,
+    selectBranch: <%-trj("terminals.select_branch")%>,
+    switch: <%-trj("terminals.switch")%>,
+    noCommitsFound: <%-trj("terminals.no_commits_found")%>,
+    failedGitHistory: <%-trj("terminals.failed_git_history")%>,
+    noRepositories: <%-trj("terminals.no_repositories")%>,
+    noRepositoriesWorkspace: <%-trj("terminals.no_repositories_workspace")%>,
+    fileChangesTitle: <%-trj("terminals.file_changes_title")%>,
+    filesChanged: <%-trj("terminals.files_changed")%>,
+    noTrackedChanges: <%-trj("terminals.no_tracked_changes")%>,
+    noCommitsYet: <%-trj("terminals.no_commits_yet")%>,
+    enterCommitMessage: <%-trj("terminals.enter_commit_message")%>,
+    saveSelected: <%-trj("terminals.save_selected")%>,
+    selectAll: <%-trj("terminals.select_all")%>,
+    noFilesShow: <%-trj("terminals.no_files_show")%>,
+    loadingHistory: <%-trj("terminals.loading_history")%>,
+    historyUnavailable: <%-trj("terminals.history_unavailable")%>,
+    errorLoadingDiff: <%-trj("terminals.error_loading_diff")%>,
+    selectedFile: <%-trj("terminals.selected_file")%>,
+    loading: <%-trj("common.loading_ellipsis")%>,
+    deployPrompt: <%-trj("terminals.deploy_prompt")%>,
+    folderExists: <%-trj("terminals.folder_exists")%>,
+    failedDeployLocal: <%-trj("terminals.failed_deploy_local")%>,
+    deployLocally: <%-trj("terminals.deploy_locally")%>,
+    deployDescription: <%-trj("terminals.deploy_description")%>,
+    deployNote: <%-trj("terminals.deploy_note")%>,
+    newFolderName: <%-trj("terminals.new_folder_name")%>,
+    enterFolderName: <%-trj("terminals.enter_folder_name")%>,
+    folderNoSeparators: <%-trj("terminals.folder_no_separators")%>,
+    created: <%-trj("terminals.created")%>,
+    createdApi: <%-trj("terminals.created_api")%>,
+    failedStartSession: <%-trj("terminals.failed_start_session")%>,
+    closeSessionTitle: <%-trj("terminals.close_session_title")%>,
+    closeSessionDescription: <%-trj("terminals.close_session_description")%>,
+    stopAndClose: <%-trj("terminals.stop_and_close")%>,
+    closeSessionPrompt: <%-trj("terminals.close_session_prompt")%>,
+    couldNotCloseSession: <%-trj("terminals.could_not_close_session")%>,
+    couldNotCloseDescription: <%-trj("terminals.could_not_close_description")%>,
+    couldNotConfirmStopped: <%-trj("terminals.could_not_confirm_stopped")%>,
+    createWorkspacePrompt: <%-trj("terminals.create_workspace_prompt")%>,
+    workspaceNoSpaces: <%-trj("terminals.workspace_no_spaces")%>,
+    failedCreateWorkspace: <%-trj("terminals.failed_create_workspace")%>,
+    createSandbox: <%-trj("terminals.create_sandbox")%>,
+    sandboxFolderName: <%-trj("terminals.sandbox_folder_name")%>,
+    enterWorkspaceFolder: <%-trj("terminals.enter_workspace_folder")%>,
+    pathUnavailable: <%-trj("terminals.path_unavailable")%>,
+    startNewChat: <%-trj("terminals.start_new_chat")%>,
+    startChat: <%-trj("terminals.start_chat")%>,
+    backToWorkspaces: <%-trj("terminals.back_to_workspaces")%>,
+    workspaces: <%-trj("terminals.workspaces")%>,
+    workspace: <%-trj("terminals.workspace")%>,
+    loadingMoreSessions: <%-trj("terminals.loading_more_sessions")%>,
+    scrollLoadMoreSessions: <%-trj("terminals.scroll_load_more_sessions")%>,
+    loadingSessions: <%-trj("terminals.loading_sessions")%>,
+    checkingWorkspaceSessions: <%-trj("terminals.checking_workspace_sessions")%>,
+    canStartNewChat: <%-trj("terminals.can_start_new_chat")%>,
+    loadingWorkspaces: <%-trj("terminals.loading_workspaces")%>,
+    findingSessions: <%-trj("terminals.finding_sessions")%>,
+    continueWhileFinishes: <%-trj("terminals.continue_while_finishes")%>,
+    clickStartChatFirst: <%-trj("terminals.click_start_chat_first")%>,
+    scrollLoadMoreResults: <%-trj("terminals.scroll_load_more_results")%>,
+    noWorkspacesMatched: <%-trj("terminals.no_workspaces_matched")%>,
+    noWorkspacesYet: <%-trj("terminals.no_workspaces_yet")%>,
+    noWorkspacesFound: <%-trj("terminals.no_workspaces_found")%>,
+    noWorkspacesAvailable: <%-trj("terminals.no_workspaces_available")%>,
+    noWorkspacesAvailableMessage: <%-trj("terminals.no_workspaces_available_message")%>,
+    skillsCount: <%-trj("terminals.skills_count")%>,
+    filesCount: <%-trj("terminals.files_count")%>,
+    guardedMeta: <%-trj("terminals.guarded_meta")%>,
+    yoloMeta: <%-trj("terminals.yolo_meta")%>,
+    updatedTime: <%-trj("terminals.updated_time")%>,
+    updatedUnknown: <%-trj("terminals.updated_unknown")%>,
+    sessionHistory: <%-trj("terminals.session_history")%>,
+    sessionHistoryUnavailable: <%-trj("terminals.session_history_unavailable")%>,
+    clickRefreshRetry: <%-trj("terminals.click_refresh_retry")%>,
+    loadingSkills: <%-trj("terminals.loading_skills")%>,
+    noMatchingSkills: <%-trj("terminals.no_matching_skills")%>,
+    noSkillsFound: <%-trj("terminals.no_skills_found")%>,
+    noDescription: <%-trj("common.no_description")%>,
+    sourceLabel: <%-trj("common.source_label")%>,
+    removeFile: <%-trj("common.remove_file")%>,
+    couldNotPrepareFiles: <%-trj("terminals.could_not_prepare_files")%>,
+    failedPrepareFiles: <%-trj("terminals.failed_prepare_files")%>,
+    noMatchingSessions: <%-trj("terminals.no_matching_sessions")%>,
+    noMatchingSessionsMessage: <%-trj("terminals.no_matching_sessions_message")%>,
+    searchHint: <%-trj("terminals.search_hint")%>,
+    noSessionsYet: <%-trj("terminals.no_sessions_yet")%>,
+    noSessionsYetMessage: <%-trj("terminals.no_sessions_yet_message")%>,
+    noSessionsAvailable: <%-trj("terminals.no_sessions_available")%>,
+    noSessionsAvailableMessage: <%-trj("terminals.no_sessions_available_message")%>,
+    searchingMoreWorkspaces: <%-trj("terminals.searching_more_workspaces")%>,
+    loadingAdditionalSessions: <%-trj("terminals.loading_additional_sessions")%>,
+    createWorkspaceHint: <%-trj("terminals.create_workspace_hint")%>,
+    openWorkspaceSessions: <%-trj("terminals.open_workspace_sessions")%>,
+    resumeSession: <%-trj("terminals.resume_session")%>,
+    resumeUnavailable: <%-trj("terminals.resume_unavailable")%>,
+    noMatchingWorkspaces: <%-trj("terminals.no_matching_workspaces")%>,
+    couldNotLoadWorkspaces: <%-trj("terminals.could_not_load_workspaces")%>,
+    justNow: <%-trj("terminals.just_now")%>,
+    cwdUnavailable: <%-trj("terminals.cwd_unavailable")%>,
+    thisWorkspace: <%-trj("tasks.this_workspace")%>,
+    updateFiles: <%-trj("app.update_files")%>,
+    fileCount: <%-trj("app.file_count")%>,
+    fileCountPlural: <%-trj("app.file_count_plural")%>
+  }
+  const tt = (key, fallback, replacements = {}) => {
+    let value = Object.prototype.hasOwnProperty.call(TERM_I18N, key) ? TERM_I18N[key] : `[missing translation: ${key}]`
+    value = value == null ? "" : String(value)
+    Object.entries(replacements || {}).forEach(([name, replacement]) => {
+      value = value.replace(new RegExp(`\\{${name}\\}`, "g"), String(replacement))
+    })
+    return value
+  }
   const currentHomeMode = (() => {
     try {
       const params = new URLSearchParams(window.location.search || "")
@@ -4762,8 +4923,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     const rootCrumb = document.createElement("button")
     rootCrumb.type = "button"
     rootCrumb.className = "terminals-top-session-crumb terminals-top-session-crumb-root terminals-top-session-crumb-link"
-    rootCrumb.setAttribute("aria-label", "Back to workspaces")
-    rootCrumb.textContent = "Workspaces"
+    rootCrumb.setAttribute("aria-label", tt("backToWorkspaces", "Back to workspaces"))
+    rootCrumb.textContent = tt("workspaces", "Workspaces")
     rootCrumb.addEventListener("click", (event) => {
       event.preventDefault()
       returnToWorkspaceListFromActiveSession()
@@ -4921,7 +5082,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     }
     const seconds = Math.floor((Date.now() - ts) / 1000)
     if (seconds >= 0 && seconds < 5) {
-      return "just now"
+      return tt("justNow", "just now")
     }
     const abs = Math.abs(seconds)
     const units = [
@@ -4938,8 +5099,13 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       const size = unit[1]
       if (abs >= size || size === 1) {
         const count = Math.max(1, Math.floor(abs / size))
-        const label = count === 1 ? unit[0] : `${unit[0]}s`
-        return seconds >= 0 ? `${count} ${label} ago` : `in ${count} ${label}`
+        try {
+          const formatter = new Intl.RelativeTimeFormat(CURRENT_LOCALE || undefined, { numeric: "auto" })
+          return formatter.format(seconds >= 0 ? -count : count, unit[0])
+        } catch (_) {
+          const label = count === 1 ? unit[0] : `${unit[0]}s`
+          return seconds >= 0 ? `${count} ${label} ago` : `in ${count} ${label}`
+        }
       }
     }
     return ""
@@ -4972,7 +5138,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (providerLabel) {
       parts.push(providerLabel)
     }
-    parts.push(cwd || "cwd unavailable")
+    parts.push(cwd || tt("cwdUnavailable", "cwd unavailable"))
     if (timeAgo) {
       parts.push(timeAgo)
     }
@@ -5330,7 +5496,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       autoLauncherPromptedWorkspaceKey = ""
     }
     if (sessionSearchInput) {
-      sessionSearchInput.placeholder = normalizedMode === "sessions" ? "Search sessions" : "Search workspaces"
+      sessionSearchInput.placeholder = normalizedMode === "sessions" ? tt("searchSessions", "Search sessions") : tt("searchWorkspaces", "Search workspaces")
     }
     renderChooserTopBar()
   }
@@ -5371,15 +5537,15 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     const fileCount = launcherState.pendingFiles.length
     const launchMode = normalizeLaunchMode(launcherState.launchMode, LAUNCH_MODE_GUARDED)
     if (launcherSummarySkills) {
-      launcherSummarySkills.textContent = `Skills: ${skillCount}`
+      launcherSummarySkills.textContent = tt("skillsCount", "Skills: {count}", { count: skillCount })
     }
     if (launcherSummaryFiles) {
-      launcherSummaryFiles.textContent = `Files: ${fileCount}`
+      launcherSummaryFiles.textContent = tt("filesCount", "Files: {count}", { count: fileCount })
     }
     if (launcherModeMeta) {
       launcherModeMeta.textContent = launchMode === LAUNCH_MODE_YOLO
-        ? "YOLO: run without approvals"
-        : "Guarded: provider default approval/sandbox."
+        ? tt("yoloMeta", "YOLO: run without approvals")
+        : tt("guardedMeta", "Guarded: provider default approval/sandbox.")
     }
   }
 
@@ -5504,7 +5670,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           const file = launcherState.pendingFiles[i]
           const row = document.createElement("div")
           row.className = "terminals-launcher-upload-item"
-          row.innerHTML = `<span>${escapeHtml(file.name)}${file.size ? ` (${escapeHtml(formatFileSize(file.size))})` : ""}</span><button type="button" aria-label="Remove file">×</button>`
+          row.innerHTML = `<span>${escapeHtml(file.name)}${file.size ? ` (${escapeHtml(formatFileSize(file.size))})` : ""}</span><button type="button" aria-label="${escapeHtml(tt("removeFile", "Remove file"))}">×</button>`
           const removeButton = row.querySelector("button")
           removeButton.addEventListener("click", () => {
             launcherState.pendingFiles.splice(i, 1)
@@ -5620,7 +5786,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (launcherSkillsLoading && availableSkills.length === 0) {
       const loading = document.createElement("div")
       loading.className = "terminals-launcher-empty"
-      loading.textContent = "Loading skills..."
+      loading.textContent = tt("loadingSkills", "Loading skills...")
       launcherSkillList.appendChild(loading)
       return
     }
@@ -5650,8 +5816,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         metaChunks.push(`<span class="terminals-launcher-skill-tag">${escapeHtml(tags[t])}</span>`)
       }
       const desc = skill.description || ""
-      const sourceText = skill.source ? `Source: ${skill.source}` : ""
-      const secondary = desc || sourceText || "No description"
+      const sourceText = skill.source ? tt("sourceLabel", "Source: {source}", { source: skill.source }) : ""
+      const secondary = desc || sourceText || tt("noDescription", "No description")
       const highlightedName = highlightMatches(skill.label || id, query)
       const highlightedSecondary = highlightMatches(secondary, query)
       const row = document.createElement("button")
@@ -5685,7 +5851,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (visibleCount === 0) {
       const empty = document.createElement("div")
       empty.className = "terminals-launcher-empty"
-      empty.textContent = query ? "No matching skills." : "No skills found in configured skill roots."
+      empty.textContent = query ? tt("noMatchingSkills", "No matching skills.") : tt("noSkillsFound", "No skills found in configured skill roots.")
       launcherSkillList.appendChild(empty)
     }
   }
@@ -5822,10 +5988,10 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         shouldClose = true
       }
     } catch (error) {
-      const message = error && error.message ? error.message : "Failed to prepare files"
+      const message = error && error.message ? error.message : tt("failedPrepareFiles", "Failed to prepare files")
       if (typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function") {
         await Swal.fire({
-          title: "Could not prepare files",
+          title: tt("couldNotPrepareFiles", "Could not prepare files"),
           text: message,
           icon: "error",
           customClass: {
@@ -6055,7 +6221,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     const labelEl = topSessionGitBinding.label || topSessionGitButton.querySelector(".terminals-workspace-git-label")
     const badgeEl = topSessionGitBinding.badge || topSessionGitButton.querySelector(".terminals-workspace-git-badge")
     if (labelEl) {
-      labelEl.textContent = "Changes"
+      labelEl.textContent = tt("changes", "Changes")
     }
     if (badgeEl) {
       badgeEl.textContent = ""
@@ -6063,7 +6229,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     }
     topSessionGitButton.classList.remove("is-init", "is-error")
     topSessionGitButton.setAttribute("aria-expanded", "false")
-    topSessionGitButton.title = "Open changes"
+    topSessionGitButton.title = tt("openChanges", "Open changes")
     if (topSessionGitMenu) {
       topSessionGitMenu.classList.add("hidden")
       topSessionGitMenu.innerHTML = ""
@@ -6202,7 +6368,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     const totalChanges = status && Number.isFinite(status.totalChanges)
       ? Number(status.totalChanges)
       : repos.reduce((sum, repo) => sum + (repo.changeCount || 0), 0)
-    const label = status ? (repos.length === 0 ? "Start tracking changes" : "Changes") : "Changes"
+    const label = status ? (repos.length === 0 ? tt("startTrackingChanges", "Start tracking changes") : tt("changes", "Changes")) : tt("changes", "Changes")
     const inlineError = workspaceGitInlineErrors.get(key) || ""
     const bindings = getWorkspaceGitBindings(workspacePath)
     bindings.forEach((binding) => {
@@ -6223,13 +6389,13 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       button.classList.toggle("is-init", Boolean(status) && repos.length === 0)
       button.classList.toggle("is-error", Boolean(inlineError))
       if (!status) {
-        button.title = "Check repository status"
+        button.title = tt("checkRepositoryStatus", "Check repository status")
       } else if (repos.length === 0) {
-        button.title = "Initialize git in this workspace"
+        button.title = tt("initializeGitWorkspace", "Initialize git in this workspace")
       } else if (repos.length === 1) {
-        button.title = repos[0].name || "Open changes"
+        button.title = repos[0].name || tt("openChanges", "Open changes")
       } else {
-        button.title = "Select a repository"
+        button.title = tt("selectRepository", "Select a repository")
       }
       button.setAttribute("aria-expanded", activeWorkspaceGitMenu && activeWorkspaceGitMenu.button === button ? "true" : "false")
       if (binding.error) {
@@ -6271,7 +6437,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       } catch (error) {
       }
       if (!response.ok || !payload || payload.ok !== true) {
-        const message = payload && payload.error ? payload.error : "Failed to load git status."
+        const message = payload && payload.error ? payload.error : tt("failedGitStatus", "Failed to load git status.")
         throw new Error(message)
       }
       const normalized = normalizeTerminalGitStatusPayload(payload, workspacePath)
@@ -6346,7 +6512,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (!Array.isArray(repos) || repos.length === 0) {
       const empty = document.createElement("div")
       empty.className = "terminals-workspace-git-menu-item"
-      empty.textContent = "No repositories detected"
+      empty.textContent = tt("noRepositoriesDetected", "No repositories detected")
       menu.appendChild(empty)
       return
     }
@@ -6366,7 +6532,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           <i class="fa-solid fa-code-branch" aria-hidden="true"></i>
           <span class="terminals-workspace-git-menu-name">${escapeHtml(name)}</span>
         </span>
-        <span class="terminals-workspace-git-menu-meta">${changeCount > 0 ? `${changeCount} changed` : "Clean"}</span>
+        <span class="terminals-workspace-git-menu-meta">${changeCount > 0 ? tt("changedCount", "{count} changed", { count: changeCount }) : tt("clean", "Clean")}</span>
       `
       item.addEventListener("click", async (event) => {
         event.preventDefault()
@@ -6402,9 +6568,9 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   }
 
   const confirmWorkspaceGitInitialization = async (workspaceLabel) => {
-    const name = normalizeIndex(workspaceLabel) || "this workspace"
+    const name = normalizeIndex(workspaceLabel) || tt("thisWorkspace", "this workspace")
     if (typeof Swal === "undefined" || !Swal || typeof Swal.fire !== "function") {
-      return window.confirm(`Initialize Git in ${name}?`)
+      return window.confirm(tt("initializeGitPrompt", "Initialize Git in {name}?", { name }))
     }
     const result = await Swal.fire({
       html: `
@@ -6412,18 +6578,18 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           <div class="pinokio-modal-header">
             <div class="pinokio-modal-icon"><i class="fa-solid fa-code-branch"></i></div>
             <div class="pinokio-modal-heading">
-              <div class="pinokio-modal-title">Start tracking changes</div>
-              <div class="pinokio-modal-subtitle">Initialize Git in ${escapeHtml(name)} to track file changes, commits, history, and rollbacks.</div>
+              <div class="pinokio-modal-title">${tt("startTrackingChanges", "Start tracking changes")}</div>
+              <div class="pinokio-modal-subtitle">${tt("initializeGitDescription", "Initialize Git in {name} to track file changes, commits, history, and rollbacks.", { name: escapeHtml(name) })}</div>
             </div>
           </div>
           <div class="pinokio-modal-body">
-            <p class="pinokio-modal-note">This runs <code>git init</code> in the workspace root.</p>
+            <p class="pinokio-modal-note">${tt("initializeGitNote", "This runs git init in the workspace root.").replace("git init", "<code>git init</code>")}</p>
           </div>
         </div>
       `,
       showCancelButton: true,
-      confirmButtonText: "Initialize Git",
-      cancelButtonText: "Cancel",
+      confirmButtonText: tt("initializeGit", "Initialize Git"),
+      cancelButtonText: <%-trj("common.cancel")%>,
       showCloseButton: true,
       buttonsStyling: false,
       backdrop: "rgba(9,11,15,0.65)",
@@ -6501,7 +6667,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         applyWorkspaceGitState(workspacePath)
         const initRepos = Array.isArray(status.repos) ? status.repos : []
         if (initRepos.length === 0) {
-          setWorkspaceGitInlineError(workspacePath, "Git initialized, but no repository status was detected yet.")
+          setWorkspaceGitInlineError(workspacePath, tt("gitInitializedNoStatus", "Git initialized, but no repository status was detected yet."))
           return
         }
         const targetRepo = initRepos.find((repo) => repo && repo.main) || initRepos[0]
@@ -6522,7 +6688,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       }
       toggleWorkspaceGitRepoMenu(workspace, binding, repos)
     } catch (error) {
-      setWorkspaceGitInlineError(workspacePath, error && error.message ? error.message : "Failed to load git status.")
+      setWorkspaceGitInlineError(workspacePath, error && error.message ? error.message : tt("failedGitStatus", "Failed to load git status."))
     } finally {
       if (binding && binding.button && binding.button.isConnected) {
         binding.button.disabled = false
@@ -6635,7 +6801,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
 
   const formatResetFileCountLabel = (count) => {
     const safeCount = Number.isFinite(count) && count > 0 ? count : 0
-    return `${safeCount} file${safeCount === 1 ? "" : "s"}`
+    return tt(safeCount === 1 ? "fileCount" : "fileCountPlural", "{count} files", { count: safeCount })
   }
 
   const showResetSelectedFilesConfirmModal = async (selectionCount) => {
@@ -6645,12 +6811,12 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         <div class="pinokio-modal-header">
           <div class="pinokio-modal-icon pinokio-modal-icon--warning"><i class="fa-solid fa-circle-exclamation"></i></div>
           <div class="pinokio-modal-heading">
-            <div class="pinokio-modal-title">Reset ${escapeHtml(fileLabel)}?</div>
-            <div class="pinokio-modal-subtitle">This will discard local changes for the selected files.</div>
+            <div class="pinokio-modal-title">${tt("resetFilesTitle", "Reset {label}?", { label: escapeHtml(fileLabel) })}</div>
+            <div class="pinokio-modal-subtitle">${tt("resetFilesDescription", "This will discard local changes for the selected files.")}</div>
           </div>
         </div>
         <div class="pinokio-modal-body">
-          <p class="pinokio-modal-note">Untracked files are deleted. Tracked files are restored to their Git state.</p>
+          <p class="pinokio-modal-note">${tt("resetFilesNote", "Untracked files are deleted. Tracked files are restored to their Git state.")}</p>
         </div>
       </div>
     `
@@ -6671,8 +6837,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       buttonsStyling: false,
       focusCancel: true,
       reverseButtons: true,
-      confirmButtonText: "Reset selected",
-      cancelButtonText: "Cancel"
+      confirmButtonText: tt("resetSelected", "Reset selected"),
+      cancelButtonText: <%-trj("common.cancel")%>
     })
     return Boolean(result && result.isConfirmed)
   }
@@ -6683,7 +6849,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     const untrackedSet = new Set(tracked)
     const untracked = normalizeResetPathList(untrackedPaths).filter((entry) => !untrackedSet.has(entry))
     if (!repoCwd || (tracked.length === 0 && untracked.length === 0)) {
-      throw new Error("No files selected to reset.")
+      throw new Error(tt("noFilesSelectedReset", "No files selected to reset."))
     }
 
     const fileCount = Number.isFinite(selectionCount) && selectionCount > 0
@@ -6696,12 +6862,12 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           <div class="pinokio-modal-header">
             <div class="pinokio-modal-icon"><i class="fa-solid fa-arrow-rotate-left"></i></div>
             <div class="pinokio-modal-heading">
-              <div class="pinokio-modal-title">Resetting ${escapeHtml(fileLabel)}</div>
-              <div class="pinokio-modal-subtitle">Applying your selection now...</div>
+              <div class="pinokio-modal-title">${tt("resettingFilesTitle", "Resetting {label}", { label: escapeHtml(fileLabel) })}</div>
+              <div class="pinokio-modal-subtitle">${tt("applyingSelection", "Applying your selection now...")}</div>
             </div>
           </div>
           <div class="pinokio-modal-body">
-            <p class="pinokio-modal-note pinokio-reset-progress-line"><i class="fa-solid fa-spinner fa-spin"></i> Discarding selected changes</p>
+            <p class="pinokio-modal-note pinokio-reset-progress-line"><i class="fa-solid fa-spinner fa-spin"></i> ${tt("discardingChanges", "Discarding selected changes")}</p>
           </div>
         </div>
       `,
@@ -6750,7 +6916,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
 
   const generateCommitMessage = (changes) => {
     if (!Array.isArray(changes) || changes.length === 0) {
-      return "Update files"
+      return tt("updateFiles", "Update files")
     }
     const added = []
     const modified = []
@@ -6807,7 +6973,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
   const renderDiff = (diffData, container) => {
     const lines = diffData && Array.isArray(diffData.diff) ? diffData.diff : []
     if (!lines.length) {
-      container.innerHTML = '<div class="pinokio-git-diff-empty-state">No changes to display</div>'
+      container.innerHTML = `<div class="pinokio-git-diff-empty-state">${tt("noChangesDisplay", "No changes to display")}</div>`
       return
     }
     const formatLineNumber = (value) => (value === null || typeof value === "undefined" ? "" : String(value))
@@ -6845,7 +7011,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     overlay.innerHTML = `
       <div class="pinokio-custom-terminal-modal">
         <div class="pinokio-custom-terminal-header">
-          <h3>Git Checkout</h3>
+          <h3>${tt("gitCheckout", "Git Checkout")}</h3>
           <button class="pinokio-custom-terminal-close" type="button" aria-label="Close">x</button>
         </div>
         <div class="pinokio-custom-terminal-body">
@@ -6904,7 +7070,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     overlay.innerHTML = `
       <div class="pinokio-custom-commit-modal">
         <div class="pinokio-custom-commit-header">
-          <h3>Commit Changes</h3>
+          <h3>${tt("commitChanges", "Commit Changes")}</h3>
           <button class="pinokio-custom-commit-close" type="button" aria-label="Close">x</button>
         </div>
         <div class="pinokio-custom-commit-content">
@@ -6918,13 +7084,13 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
               `).join("")}
             </div>
             <div class="pinokio-git-diff-viewer-panel">
-              <div class="pinokio-git-diff-empty-state">Select a file to view its changes</div>
+              <div class="pinokio-git-diff-empty-state">${tt("selectFileChanges", "Select a file to view its changes")}</div>
             </div>
           </div>
           ${checkoutUrl ? `
             <div class="pinokio-git-commit-actions">
               <button type="button" class="pinokio-git-commit-switch-btn">
-                <i class="fa-solid fa-clock-rotate-left"></i> Switch to this version
+                <i class="fa-solid fa-clock-rotate-left"></i> ${tt("switchVersion", "Switch to this version")}
               </button>
             </div>
           ` : ""}
@@ -6965,11 +7131,11 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         const filePath = item.getAttribute("data-filepath") || ""
         const headerHtml = `
           <div class="pinokio-git-diff-viewer-header">
-            <div class="pinokio-git-diff-viewer-title">${escapeHtml(filePath || "Selected file")}</div>
+            <div class="pinokio-git-diff-viewer-title">${escapeHtml(filePath || tt("selectedFile", "Selected file"))}</div>
           </div>
         `
         if (diffViewer) {
-          diffViewer.innerHTML = `${headerHtml}<div class="pinokio-git-diff-viewer-body"><div class="pinokio-git-diff-empty-state">Loading...</div></div>`
+          diffViewer.innerHTML = `${headerHtml}<div class="pinokio-git-diff-viewer-body"><div class="pinokio-git-diff-empty-state">${tt("loading", "Loading...")}</div></div>`
         }
         const diffBody = diffViewer ? diffViewer.querySelector(".pinokio-git-diff-viewer-body") : null
         try {
@@ -6983,7 +7149,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           }
         } catch (error) {
           if (diffBody) {
-            diffBody.innerHTML = '<div class="pinokio-git-diff-empty-state">Error loading diff</div>'
+            diffBody.innerHTML = `<div class="pinokio-git-diff-empty-state">${tt("errorLoadingDiff", "Error loading diff")}</div>`
           }
         }
       })
@@ -7014,8 +7180,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     } catch (error) {
       if (typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function") {
         await Swal.fire({
-          title: "Error",
-          text: error && error.message ? error.message : "Failed to load commit changes.",
+          title: <%-trj("common.error")%>,
+          text: error && error.message ? error.message : tt("failedCommitChanges", "Failed to load commit changes."),
           icon: "error",
           customClass: {
             popup: "terminals-confirm-modal"
@@ -7036,8 +7202,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     const isOid = (value) => typeof value === "string" && /^[0-9a-f]{7,40}$/i.test(value)
     const realBranchEntries = branchEntries.filter((entry) => entry && typeof entry.branch === "string" && entry.branch.length > 0 && !isOid(entry.branch))
     const selectedBranchName = (historyData && typeof historyData.branch === "string" && !isOid(historyData.branch)) ? historyData.branch : null
-    const subtitle = `${commits.length} commit${commits.length === 1 ? "" : "s"}`
-    const historyTitle = repoName ? `${repoName} history` : "Repository history"
+    const subtitle = tt("commitCount", "{count} commits", { count: commits.length })
+    const historyTitle = repoName ? tt("repoHistoryTitle", "{name} history", { name: repoName }) : tt("repositoryHistory", "Repository history")
     const metaBadges = [`<span class="pinokio-pill"><i class="fa-solid fa-code-branch"></i>${escapeHtml(currentRef)}</span>`]
     if (remote) {
       metaBadges.push(`<span class="pinokio-pill"><i class="fa-solid fa-cloud-arrow-up"></i>${escapeHtml(remote)}</span>`)
@@ -7053,26 +7219,26 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         </div>
         ${metaBadges.length ? `<div class="pinokio-history-meta">${metaBadges.join("")}</div>` : ""}
         <div class="pinokio-history-latest-banner" data-history-latest-banner>
-          <div class="pinokio-history-latest-text">Currently viewing ${escapeHtml(currentRef)}</div>
+          <div class="pinokio-history-latest-text">${tt("currentlyViewing", "Currently viewing {ref}", { ref: escapeHtml(currentRef) })}</div>
           <div class="pinokio-history-actions">
             <button type="button" class="pinokio-history-latest-btn" data-history-return-head>
-              <i class="fa-solid fa-arrow-rotate-left"></i> Return to newest commit
+              <i class="fa-solid fa-arrow-rotate-left"></i> ${tt("returnNewest", "Return to newest commit")}
             </button>
             ${realBranchEntries.length ? `
-              <select class="pinokio-modal-input pinokio-history-branch-select" data-history-branch-select aria-label="Select branch">
+              <select class="pinokio-modal-input pinokio-history-branch-select" data-history-branch-select aria-label="${tt("selectBranch", "Select branch")}">
                 ${realBranchEntries.map((entry) => `
                   <option value="${escapeHtml(entry.branch)}"${selectedBranchName === entry.branch ? " selected" : ""}>${escapeHtml(entry.branch)}</option>
                 `).join("")}
               </select>
               <button type="button" class="pinokio-history-latest-btn" data-history-branch-switch>
-                <i class="fa-solid fa-code-branch"></i> Switch
+                <i class="fa-solid fa-code-branch"></i> ${tt("switch", "Switch")}
               </button>
             ` : ""}
           </div>
         </div>
         <div class="pinokio-modal-body pinokio-modal-body--history">
           ${commits.length === 0
-            ? '<div class="pinokio-history-empty">No commits found</div>'
+            ? `<div class="pinokio-history-empty">${tt("noCommitsFound", "No commits found")}</div>`
             : `<div class="pinokio-git-history-list">${commits.map((commit) => createCommitItem(commit)).join("")}</div>`
           }
         </div>
@@ -7179,8 +7345,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     } catch (error) {
       if (typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function") {
         await Swal.fire({
-          title: "Error",
-          text: error && error.message ? error.message : "Failed to load git history.",
+          title: <%-trj("common.error")%>,
+          text: error && error.message ? error.message : tt("failedGitHistory", "Failed to load git history."),
           icon: "error",
           customClass: {
             popup: "terminals-confirm-modal"
@@ -7196,8 +7362,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (!repoPath) {
       if (typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function") {
         await Swal.fire({
-          title: "No repositories",
-          text: "No Git repositories were detected for this workspace.",
+          title: tt("noRepositories", "No repositories"),
+          text: tt("noRepositoriesWorkspace", "No Git repositories were detected for this workspace."),
           icon: "info",
           customClass: {
             popup: "terminals-confirm-modal"
@@ -7274,12 +7440,12 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       return
     }
 
-    const title = `File Changes${repoName ? ` - ${repoName}` : ""}`
+    const title = repoName ? `${tt("fileChangesTitle", "File Changes")} - ${repoName}` : tt("fileChangesTitle", "File Changes")
     const changeSummary = changes && changes.length > 0
-      ? `${changes.length} file${changes.length === 1 ? "" : "s"} changed`
-      : "No tracked changes yet"
+      ? tt("filesChanged", "{count} files changed", { count: changes.length })
+      : tt("noTrackedChanges", "No tracked changes yet")
     const firstCommitNote = !hasHead
-      ? `<div class="pinokio-git-first-commit-note">No commits yet. Save your first commit to unlock history and rollback features.</div>`
+      ? `<div class="pinokio-git-first-commit-note">${tt("noCommitsYet", "No commits yet. Save your first commit to unlock history and rollback features.")}</div>`
       : ""
     const showCommitFooter = Boolean(options && Object.prototype.hasOwnProperty.call(options, "showSaveButton"))
       ? Boolean(options.showSaveButton)
@@ -7287,9 +7453,9 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     const commitSection = showCommitFooter ? `
       <div class="pinokio-modal-footer pinokio-modal-footer--commit">
         <div class="pinokio-commit-message-container">
-          <input type="text" class="pinokio-modal-input pinokio-commit-message-input" placeholder="Enter commit message..." value="${escapeHtml(generateCommitMessage(changes))}">
+          <input type="text" class="pinokio-modal-input pinokio-commit-message-input" placeholder="${tt("enterCommitMessage", "Enter commit message...")}" value="${escapeHtml(generateCommitMessage(changes))}">
           <div class="pinokio-commit-actions">
-            <button type="button" class="pinokio-save-version-btn"${changes.length === 0 ? " disabled" : ""}>Save selected</button>
+            <button type="button" class="pinokio-save-version-btn"${changes.length === 0 ? " disabled" : ""}>${tt("saveSelected", "Save selected")}</button>
           </div>
         </div>
       </div>
@@ -7307,10 +7473,10 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         ${firstCommitNote}
         <div class="pinokio-modal-tabs">
           <button type="button" class="pinokio-modal-tab pinokio-modal-tab--active" data-tab-target="changes">
-            <i class="fa-solid fa-code-compare"></i> Changes
+            <i class="fa-solid fa-code-compare"></i> ${tt("changes", "Changes")}
           </button>
           <button type="button" class="pinokio-modal-tab"${historyTabDisabled} data-tab-target="history">
-            <i class="fa-solid fa-clock-rotate-left"></i> History
+            <i class="fa-solid fa-clock-rotate-left"></i> ${<%-trj("checkpoints.history")%>}
           </button>
         </div>
         <div class="pinokio-modal-body pinokio-modal-body--diff" data-tab-panel="changes">
@@ -7318,7 +7484,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
             <div class="pinokio-git-diff-file-list-panel">
               <div class="pinokio-git-diff-file-item-row pinokio-git-diff-select-all">
                 <input type="checkbox" class="pinokio-git-diff-file-checkbox" data-select-all checked>
-                <span class="pinokio-git-diff-file">Select all</span>
+                <span class="pinokio-git-diff-file">${tt("selectAll", "Select all")}</span>
                 <span></span>
               </div>
               ${changes.map((change, index) => `
@@ -7330,12 +7496,12 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
               `).join("")}
             </div>
             <div class="pinokio-git-diff-viewer-panel">
-              <div class="pinokio-git-diff-empty-state">${changes.length > 0 ? "Select a file to view its changes" : "No files to show yet."}</div>
+              <div class="pinokio-git-diff-empty-state">${changes.length > 0 ? tt("selectFileChanges", "Select a file to view its changes") : tt("noFilesShow", "No files to show yet.")}</div>
             </div>
           </div>
         </div>
         <div class="pinokio-modal-body pinokio-modal-body--history" data-tab-panel="history" style="display:none">
-          <div class="pinokio-git-diff-empty-state">${historyUrl ? "Loading history..." : "History unavailable"}</div>
+          <div class="pinokio-git-diff-empty-state">${historyUrl ? tt("loadingHistory", "Loading history...") : tt("historyUnavailable", "History unavailable")}</div>
         </div>
         ${commitSection}
       </div>
@@ -7415,7 +7581,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         bulkResetButton.type = "button"
         bulkResetButton.className = "pinokio-git-diff-revert-btn pinokio-git-diff-bulk-btn"
         bulkResetButton.disabled = true
-        bulkResetButton.textContent = "Reset selected"
+        bulkResetButton.textContent = tt("resetSelected", "Reset selected")
         const bulkResetContainer = document.createElement("div")
         bulkResetContainer.className = "pinokio-git-diff-bulk-bar"
         bulkResetContainer.setAttribute("data-bulk-bar", "true")
@@ -7457,7 +7623,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           })
           const viewerCwd = (diffViewer && diffViewer.getAttribute("data-repo-cwd")) || repoCwd || ""
           const hasTarget = Boolean(viewerCwd && (trackedPaths.length > 0 || untrackedPaths.length > 0) && selectionCount > 0)
-          bulkResetButton.textContent = `Reset selected (${selectionCount})`
+          bulkResetButton.textContent = tt("resetSelectedCount", "Reset selected ({count})", { count: selectionCount })
           bulkResetButton.disabled = selectionCount === 0
           bulkResetButton.onclick = null
           bulkResetButton.onclick = async () => {
@@ -7483,8 +7649,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
             } catch (error) {
               await Swal.fire({
                 icon: "error",
-                title: "Reset failed",
-                text: error && error.message ? error.message : "Failed to reset selected files."
+                title: tt("resetFailed", "Reset failed"),
+                text: error && error.message ? error.message : tt("failedResetSelectedFiles", "Failed to reset selected files.")
               })
             }
           }
@@ -7496,7 +7662,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           const absolutePath = item.getAttribute("data-abspath") || ""
           const headerHtml = `
             <div class="pinokio-git-diff-viewer-header">
-              <div class="pinokio-git-diff-viewer-title">${escapeHtml(filePath || "Selected file")}</div>
+              <div class="pinokio-git-diff-viewer-title">${escapeHtml(filePath || tt("selectedFile", "Selected file"))}</div>
               ${absolutePath ? `
                 <button type="button" class="pinokio-git-diff-open-file" data-open-path="${escapeHtml(absolutePath)}">
                   <i class="fa-solid fa-folder-open"></i>
@@ -7506,7 +7672,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
             </div>
           `
           if (diffViewer) {
-            diffViewer.innerHTML = `${headerHtml}<div class="pinokio-git-diff-viewer-body"><div class="pinokio-git-diff-empty-state">Loading...</div></div>`
+            diffViewer.innerHTML = `${headerHtml}<div class="pinokio-git-diff-viewer-body"><div class="pinokio-git-diff-empty-state">${tt("loading", "Loading...")}</div></div>`
           }
           const diffBody = diffViewer ? diffViewer.querySelector(".pinokio-git-diff-viewer-body") : null
           try {
@@ -7532,7 +7698,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
             }
           } catch (error) {
             if (diffBody) {
-              diffBody.innerHTML = '<div class="pinokio-git-diff-empty-state">Error loading diff</div>'
+              diffBody.innerHTML = `<div class="pinokio-git-diff-empty-state">${tt("errorLoadingDiff", "Error loading diff")}</div>`
             }
           }
         }
@@ -7655,7 +7821,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           }
           const commitMarkup = commits.length
             ? `<div class="pinokio-git-history-list">${commits.map((commit) => createCommitItem(commit)).join("")}</div>`
-            : '<div class="pinokio-history-empty">No commits found</div>'
+            : `<div class="pinokio-history-empty">${tt("noCommitsFound", "No commits found")}</div>`
           historyPanel.innerHTML = `
             <div class="pinokio-history-inline-head">
               <div class="pinokio-history-meta">${badges.join("")}</div>
@@ -7697,10 +7863,10 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
             return
           }
           if (!historyUrl) {
-            historyPanel.innerHTML = '<div class="pinokio-git-diff-empty-state">History unavailable</div>'
+            historyPanel.innerHTML = `<div class="pinokio-git-diff-empty-state">${tt("historyUnavailable", "History unavailable")}</div>`
             return
           }
-          historyPanel.innerHTML = '<div class="pinokio-git-diff-empty-state">Loading history...</div>'
+          historyPanel.innerHTML = `<div class="pinokio-git-diff-empty-state">${tt("loadingHistory", "Loading history...")}</div>`
           try {
             const response = await fetch(historyUrl)
             if (!response.ok) {
@@ -7711,7 +7877,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
             renderHistoryInline(payload)
           } catch (error) {
             historyLoaded = false
-            historyPanel.innerHTML = '<div class="pinokio-git-diff-empty-state">Unable to load history</div>'
+            historyPanel.innerHTML = `<div class="pinokio-git-diff-empty-state">${tt("failedGitHistory", "Failed to load git history.")}</div>`
           }
         }
 
@@ -7796,7 +7962,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       } catch (error) {
       }
       if (!response.ok) {
-        const message = payload && payload.error ? payload.error : "Failed to deploy locally."
+        const message = payload && payload.error ? payload.error : tt("failedDeployLocal", "Failed to deploy locally.")
         return {
           ok: false,
           error: message
@@ -7806,7 +7972,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     } catch (error) {
       return {
         ok: false,
-        error: error && error.message ? error.message : "Failed to deploy locally."
+        error: error && error.message ? error.message : tt("failedDeployLocal", "Failed to deploy locally.")
       }
     }
   }
@@ -7822,7 +7988,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       return false
     }
     if (typeof Swal === "undefined" || !Swal || typeof Swal.fire !== "function") {
-      const folderName = window.prompt("Deploy to ~/pinokio/api/<folder-name>. Enter folder name:")
+      const folderName = window.prompt(tt("deployPrompt", "Deploy to ~/pinokio/api/<folder-name>. Enter folder name:"))
       if (!folderName) {
         return false
       }
@@ -7833,11 +7999,11 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         sessionCwd
       })
       if (result && result.code === "exists") {
-        window.alert("Folder already exists.")
+        window.alert(tt("folderExists", "Folder already exists."))
         return false
       }
       if (!result || result.ok !== true) {
-        window.alert(result && result.error ? result.error : "Failed to deploy locally.")
+        window.alert(result && result.error ? result.error : tt("failedDeployLocal", "Failed to deploy locally."))
         return false
       }
       return true
@@ -7849,20 +8015,20 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           <div class="pinokio-modal-header">
             <div class="pinokio-modal-icon"><i class="fa-solid fa-rocket"></i></div>
             <div class="pinokio-modal-heading">
-              <div class="pinokio-modal-title">Deploy locally</div>
-              <div class="pinokio-modal-subtitle">Copy this active session workspace to a new local project folder.</div>
+              <div class="pinokio-modal-title">${tt("deployLocally", "Deploy locally")}</div>
+              <div class="pinokio-modal-subtitle">${tt("deployDescription", "Copy this active session workspace to a new local project folder.")}</div>
             </div>
           </div>
           <div class="pinokio-modal-body">
-            <p class="pinokio-modal-note">This will copy the current workspace to <code>~/pinokio/api/&lt;folder-name&gt;</code>.</p>
-            <label class="pinokio-modal-label" for="terminals-deploy-folder-input">New folder name</label>
+            <p class="pinokio-modal-note">${tt("deployNote", "This will copy the current workspace to ~/pinokio/api/<folder-name>.").replace("~/pinokio/api/<folder-name>", "<code>~/pinokio/api/&lt;folder-name&gt;</code>")}</p>
+            <label class="pinokio-modal-label" for="terminals-deploy-folder-input">${tt("newFolderName", "New folder name")}</label>
             <input id="terminals-deploy-folder-input" class="pinokio-modal-input" placeholder="my-local-workspace" autocomplete="off">
           </div>
         </div>
       `,
       showCancelButton: true,
-      confirmButtonText: "Create",
-      cancelButtonText: "Cancel",
+      confirmButtonText: <%-trj("common.create")%>,
+      cancelButtonText: <%-trj("common.cancel")%>,
       showCloseButton: true,
       buttonsStyling: false,
       backdrop: "rgba(9,11,15,0.65)",
@@ -7887,11 +8053,11 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         const input = Swal.getPopup().querySelector("#terminals-deploy-folder-input")
         const folderName = input ? String(input.value || "").trim() : ""
         if (!folderName) {
-          Swal.showValidationMessage("Enter a folder name.")
+          Swal.showValidationMessage(tt("enterFolderName", "Enter a folder name."))
           return false
         }
         if (folderName === "." || folderName === ".." || /[\\/]/.test(folderName) || folderName.includes("\0")) {
-          Swal.showValidationMessage("Folder name cannot include path separators.")
+          Swal.showValidationMessage(tt("folderNoSeparators", "Folder name cannot include path separators."))
           return false
         }
         const payload = await deployLocalCopy({
@@ -7901,11 +8067,11 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           sessionCwd
         })
         if (payload && payload.code === "exists") {
-          window.alert("Folder already exists.")
+          window.alert(tt("folderExists", "Folder already exists."))
           return false
         }
         if (!payload || payload.ok !== true) {
-          Swal.showValidationMessage(payload && payload.error ? payload.error : "Failed to deploy locally.")
+          Swal.showValidationMessage(payload && payload.error ? payload.error : tt("failedDeployLocal", "Failed to deploy locally."))
           return false
         }
         return payload
@@ -7916,8 +8082,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       return false
     }
     await Swal.fire({
-      title: "Created",
-      text: `Created /api/${result.value.folder || ""}`,
+      title: tt("created", "Created"),
+      text: tt("createdApi", "Created /api/{folder}", { folder: result.value.folder || "" }),
       icon: "success",
       buttonsStyling: false,
       customClass: {
@@ -8586,7 +8752,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       } catch (error) {
       }
       if (!response.ok || !payload || !payload.url) {
-        const message = payload && payload.error ? payload.error : `Failed to start ${normalizedProvider}`
+        const message = payload && payload.error ? payload.error : tt("failedStartSession", "Failed to start {provider}", { provider: normalizedProvider })
         throw new Error(message)
       }
       const uniqueIndex = normalizeIndex(payload.index) || `launch:${normalizeIndex(payload.terminal_id || `${normalizedProvider}-${Date.now()}`)}`
@@ -8594,7 +8760,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       const session = {
         index: uniqueIndex,
         name: payload.name || `${payload.label || normalizedProvider} session`,
-        description: `${payload.label || normalizedProvider} · ${payload.cwd || "cwd unavailable"}`,
+        description: `${payload.label || normalizedProvider} · ${payload.cwd || tt("cwdUnavailable", "cwd unavailable")}`,
         provider_label: payload.label || normalizedProvider,
         cwd: payload.cwd || "",
         workspace_path: payload.workspace_path || payload.cwd || "",
@@ -8618,10 +8784,10 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       })
       return true
     } catch (error) {
-      const message = error && error.message ? error.message : `Failed to start ${normalizedProvider}`
+      const message = error && error.message ? error.message : tt("failedStartSession", "Failed to start {provider}", { provider: normalizedProvider })
       if (typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function") {
         await Swal.fire({
-          title: "Could not start session",
+          title: tt("failedStartSession", "Could not start session", { provider: normalizedProvider }),
           text: message,
           icon: "error",
           customClass: {
@@ -8651,11 +8817,11 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     let confirmed = false
     if (typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function") {
       const result = await Swal.fire({
-        title: "Close session?",
-        text: "This will stop the running session and close this column.",
+        title: tt("closeSessionTitle", "Close session?"),
+        text: tt("closeSessionDescription", "This will stop the running session and close this column."),
         showCancelButton: true,
-        confirmButtonText: "Stop and close",
-        cancelButtonText: "Cancel",
+        confirmButtonText: tt("stopAndClose", "Stop and close"),
+        cancelButtonText: <%-trj("common.cancel")%>,
         reverseButtons: true,
         customClass: {
           popup: "terminals-confirm-modal"
@@ -8663,7 +8829,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       })
       confirmed = Boolean(result && result.isConfirmed)
     } else {
-      confirmed = window.confirm("Stop this running session and close this column?")
+      confirmed = window.confirm(tt("closeSessionPrompt", "Stop this running session and close this column?"))
     }
 
     if (!confirmed) {
@@ -8689,15 +8855,15 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       }
       if (typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function") {
         await Swal.fire({
-          title: "Could not close session",
-          text: "Could not confirm stop. The column was left open.",
+          title: tt("couldNotCloseSession", "Could not close session"),
+          text: tt("couldNotCloseDescription", "Could not confirm stop. The column was left open."),
           icon: "error",
           customClass: {
             popup: "terminals-confirm-modal"
           }
         })
       } else {
-        window.alert("Could not confirm that the session stopped. The column will stay open.")
+        window.alert(tt("couldNotConfirmStopped", "Could not confirm that the session stopped. The column will stay open."))
       }
       return
     }
@@ -8788,8 +8954,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     const timestampRow = document.createElement("div")
     timestampRow.className = "description"
     timestampRow.innerHTML = updatedAtLabel
-      ? `updated ${escapeHtml(updatedAtLabel)}`
-      : "updated unknown"
+      ? escapeHtml(tt("updatedTime", "updated {time}", { time: updatedAtLabel }))
+      : escapeHtml(tt("updatedUnknown", "updated unknown"))
     metaRow.appendChild(timestampRow)
     const description = document.createElement("div")
     description.className = "description"
@@ -8807,7 +8973,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       return
     }
     const normalizedState = normalizeIndex(state) || "empty"
-    const title = details && typeof details.title === "string" ? details.title : "Session history"
+    const title = details && typeof details.title === "string" ? details.title : tt("sessionHistory", "Session history")
     const message = details && typeof details.message === "string" ? details.message : ""
     const hint = details && typeof details.hint === "string" ? details.hint : ""
     let iconClass = "fa-solid fa-clock-rotate-left"
@@ -8852,7 +9018,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     const sessionMode = workspaceViewState.mode === "sessions"
     const leadingActions = []
     leadingActions.push(`
-      <button type="button" class="terminals-list-intro-action terminals-list-intro-refresh" data-list-action="refresh" data-label="Refresh" aria-label="Refresh list">
+      <button type="button" class="terminals-list-intro-action terminals-list-intro-refresh" data-list-action="refresh" data-label="${tt("refreshList", "Refresh list")}" aria-label="${tt("refreshList", "Refresh list")}">
         <span class="terminals-list-intro-refresh-idle">
           <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
         </span>
@@ -8870,7 +9036,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       toolbar.classList.toggle("has-actions", leadingActions.length > 0)
     }
     if (sessionSearchInput) {
-      sessionSearchInput.placeholder = sessionMode ? "Search sessions" : "Search workspaces"
+      sessionSearchInput.placeholder = sessionMode ? tt("searchSessions", "Search sessions") : tt("searchWorkspaces", "Search workspaces")
     }
 
     const refreshButtons = topListIntro.querySelectorAll("[data-list-action='refresh']")
@@ -8924,10 +9090,10 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         const createWorkspaceButton = document.createElement("button")
         createWorkspaceButton.type = "button"
         createWorkspaceButton.className = "terminals-session-action terminals-workspace-create-btn"
-        createWorkspaceButton.setAttribute("aria-label", "Create Sandbox")
+        createWorkspaceButton.setAttribute("aria-label", tt("createSandbox", "Create Sandbox"))
         createWorkspaceButton.hidden = true
         createWorkspaceButton.setAttribute("aria-hidden", "true")
-        createWorkspaceButton.innerHTML = '<i class="fa-solid fa-plus" aria-hidden="true"></i><span>Create Sandbox</span>'
+        createWorkspaceButton.innerHTML = `<i class="fa-solid fa-plus" aria-hidden="true"></i><span>${tt("createSandbox", "Create Sandbox")}</span>`
         createWorkspaceButton.addEventListener("click", async (event) => {
           event.preventDefault()
           event.stopPropagation()
@@ -8961,7 +9127,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           ? resolvedWorkspace.cwd
           : (workspaceViewState.key || "")
         if (sessionsHeaderPath) {
-          sessionsHeaderPath.textContent = workspacePath || "Path unavailable"
+          sessionsHeaderPath.textContent = workspacePath || tt("pathUnavailable", "Path unavailable")
         }
         if (sessionsHeaderActions) {
           sessionsHeaderActions.innerHTML = ""
@@ -8969,8 +9135,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
             const startChatButton = document.createElement("button")
             startChatButton.type = "button"
             startChatButton.className = "terminals-session-action terminals-workspace-start-chat"
-            startChatButton.setAttribute("aria-label", "Start new chat")
-            startChatButton.innerHTML = '<i class="fa-solid fa-comments" aria-hidden="true"></i><span>Start chat</span>'
+            startChatButton.setAttribute("aria-label", tt("startNewChat", "Start new chat"))
+            startChatButton.innerHTML = `<i class="fa-solid fa-comments" aria-hidden="true"></i><span>${tt("startChat", "Start chat")}</span>`
             startChatButton.addEventListener("click", (event) => {
               event.preventDefault()
               event.stopPropagation()
@@ -8981,8 +9147,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
             const openFolderButton = document.createElement("button")
             openFolderButton.type = "button"
             openFolderButton.className = "terminals-session-action terminals-session-open-folder"
-            openFolderButton.setAttribute("aria-label", "Open in File Explorer")
-            openFolderButton.innerHTML = '<i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>Open in File Explorer</span>'
+            openFolderButton.setAttribute("aria-label", <%-trj("common.open_in_file_explorer")%>)
+            openFolderButton.innerHTML = `<i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>${<%-trj("common.open_in_file_explorer")%>}</span>`
             openFolderButton.addEventListener("click", async (event) => {
               event.preventDefault()
               event.stopPropagation()
@@ -9002,9 +9168,9 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
             const gitButton = document.createElement("button")
             gitButton.type = "button"
             gitButton.className = "terminals-session-action terminals-workspace-git-btn"
-            gitButton.setAttribute("aria-label", "Open changes")
+            gitButton.setAttribute("aria-label", tt("openChanges", "Open changes"))
             gitButton.setAttribute("aria-expanded", "false")
-            gitButton.innerHTML = '<span class="terminals-workspace-git-label">Changes</span><span class="terminals-workspace-git-badge hidden"></span>'
+            gitButton.innerHTML = `<span class="terminals-workspace-git-label">${tt("changes", "Changes")}</span><span class="terminals-workspace-git-badge hidden"></span>`
             const gitMenu = document.createElement("div")
             gitMenu.className = "terminals-workspace-git-menu hidden"
             gitMenu.setAttribute("role", "menu")
@@ -9030,9 +9196,9 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         }
         if (sessionsHeaderBreadcrumb) {
           sessionsHeaderBreadcrumb.innerHTML = `
-            <button type="button" class="terminals-list-intro-crumb terminals-list-intro-crumb-root terminals-list-intro-crumb-link" data-list-action="back" aria-label="Back to workspaces">Workspaces</button>
+            <button type="button" class="terminals-list-intro-crumb terminals-list-intro-crumb-root terminals-list-intro-crumb-link" data-list-action="back" aria-label="${tt("backToWorkspaces", "Back to workspaces")}">${tt("workspaces", "Workspaces")}</button>
             <span class="terminals-list-intro-separator" aria-hidden="true"><i class="fa-solid fa-chevron-right"></i></span>
-            <span class="terminals-list-intro-crumb terminals-list-intro-crumb-current">${escapeHtml(workspaceTitle || "Workspace")}</span>
+            <span class="terminals-list-intro-crumb terminals-list-intro-crumb-current">${escapeHtml(workspaceTitle || tt("workspace", "Workspace"))}</span>
           `
           const sessionsBackButton = sessionsHeaderBreadcrumb.querySelector("[data-list-action='back']")
           if (sessionsBackButton) {
@@ -9107,7 +9273,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
           }
           openItemInColumn(column, session)
         })
-        row.setAttribute("aria-label", resumeAvailable ? `${session.name}. Resume session.` : `${session.name}. Resume unavailable.`)
+        row.setAttribute("aria-label", resumeAvailable ? tt("resumeSession", "{name}. Resume session.", { name: session.name }) : tt("resumeUnavailable", "{name}. Resume unavailable.", { name: session.name }))
         list.appendChild(row)
         visible += 1
       }
@@ -9139,7 +9305,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
             }
           })
         })
-        row.setAttribute("aria-label", `${workspace.name}. Open workspace sessions.`)
+        row.setAttribute("aria-label", tt("openWorkspaceSessions", "{name}. Open workspace sessions.", { name: workspace.name }))
         list.appendChild(row)
         visible += 1
       }
@@ -9148,9 +9314,9 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       const loadMoreRow = document.createElement("div")
       loadMoreRow.className = "terminals-load-more-indicator"
       if (sessionAppendInProgress) {
-        loadMoreRow.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i><span>Loading more sessions...</span>`
+        loadMoreRow.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i><span>${tt("loadingMoreSessions", "Loading more sessions...")}</span>`
       } else {
-        loadMoreRow.innerHTML = `<span>Scroll to load more sessions.</span>`
+        loadMoreRow.innerHTML = `<span>${tt("scrollLoadMoreSessions", "Scroll to load more sessions.")}</span>`
       }
       list.appendChild(loadMoreRow)
     }
@@ -9158,15 +9324,15 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (!hasAttemptedSessionLoad) {
       if (workspaceViewState.mode === "sessions") {
         showInlinePlaceholder("loading", {
-          title: "Loading sessions",
-          message: "Checking this workspace for discovered sessions.",
-          hint: "You can start a new one with Start chat."
+          title: tt("loadingSessions", "Loading sessions"),
+          message: tt("checkingWorkspaceSessions", "Checking this workspace for discovered sessions."),
+          hint: tt("canStartNewChat", "You can start a new one with Start chat.")
         })
       } else {
         showPlaceholder("loading", {
-          title: "Loading workspaces",
-          message: "Finding recent Codex, Claude, and Gemini sessions.",
-          hint: "You can continue using Pinokio while this finishes."
+          title: tt("loadingWorkspaces", "Loading workspaces"),
+          message: tt("findingSessions", "Finding recent Codex, Claude, and Gemini sessions."),
+          hint: tt("continueWhileFinishes", "You can continue using Pinokio while this finishes.")
         })
       }
       return
@@ -9175,9 +9341,9 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     if (visible === 0) {
       if (lastSessionLoadFailed && getDisplaySessionItems().length === 0 && !normalized && workspaceViewState.mode === "workspaces") {
         showPlaceholder("error", {
-          title: "Could not load workspaces",
-          message: "Session history is temporarily unavailable.",
-          hint: "Click Refresh to retry."
+          title: tt("couldNotLoadWorkspaces", "Could not load workspaces"),
+          message: tt("sessionHistoryUnavailable", "Session history is temporarily unavailable."),
+          hint: tt("clickRefreshRetry", "Click Refresh to retry.")
         })
         return
       }
@@ -9186,20 +9352,20 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         const totalSessions = workspace && Array.isArray(workspace.sessions) ? workspace.sessions.length : 0
         if (normalized && totalSessions > 0) {
           showInlinePlaceholder("search-empty", {
-            title: "No matching sessions",
-            message: "No sessions matched your current search.",
-            hint: "Try a provider name, session topic, or path keyword."
+            title: tt("noMatchingSessions", "No matching sessions"),
+            message: tt("noMatchingSessionsMessage", "No sessions matched your current search."),
+            hint: tt("searchHint", "Try a provider name, session topic, or path keyword.")
           })
         } else if (totalSessions === 0) {
           showInlinePlaceholder("empty", {
-            title: "No sessions yet",
-            message: "No sessions have been discovered for this workspace yet.",
-            hint: "Click Start chat to create the first agent session."
+            title: tt("noSessionsYet", "No sessions yet"),
+            message: tt("noSessionsYetMessage", "No sessions have been discovered for this workspace yet."),
+            hint: tt("clickStartChatFirst", "Click Start chat to create the first agent session.")
           })
         } else {
           showInlinePlaceholder("empty", {
-            title: "No sessions available",
-            message: "No resumable sessions are currently available.",
+            title: tt("noSessionsAvailable", "No sessions available"),
+            message: tt("noSessionsAvailableMessage", "No resumable sessions are currently available."),
             hint: ""
           })
         }
@@ -9208,28 +9374,28 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       if (normalized && workspaceItems.length > 0) {
         if (sessionHasMore || sessionAppendInProgress) {
           showPlaceholder("loading", {
-            title: "Searching more workspaces",
+            title: tt("searchingMoreWorkspaces", "Searching more workspaces"),
             message: sessionAppendInProgress
-              ? "Loading additional sessions for your search."
-              : "Scroll to load more results."
+              ? tt("loadingAdditionalSessions", "Loading additional sessions for your search.")
+              : tt("scrollLoadMoreResults", "Scroll to load more results.")
           })
         } else {
           showPlaceholder("search-empty", {
-            title: "No matching workspaces",
-            message: "No workspaces matched your current search.",
-            hint: "Try a provider name, session topic, or path keyword."
+            title: tt("noMatchingWorkspaces", "No matching workspaces"),
+            message: tt("noWorkspacesMatched", "No workspaces matched your current search."),
+            hint: tt("searchHint", "Try a provider name, session topic, or path keyword.")
           })
         }
       } else if (workspaceItems.length === 0) {
         showPlaceholder("empty", {
-          title: "No workspaces yet",
-          message: "No workspaces were found.",
-          hint: "Create a workspace to start chatting with an agent."
+          title: tt("noWorkspacesYet", "No workspaces yet"),
+          message: tt("noWorkspacesFound", "No workspaces were found."),
+          hint: tt("createWorkspaceHint", "Create a workspace to start chatting with an agent.")
         })
       } else {
         showPlaceholder("empty", {
-          title: "No workspaces available",
-          message: "No workspaces are currently available.",
+          title: tt("noWorkspacesAvailable", "No workspaces available"),
+          message: tt("noWorkspacesAvailableMessage", "No workspaces are currently available."),
           hint: ""
         })
       }
@@ -9664,7 +9830,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
     } catch (error) {
     }
     if (!response.ok || !payload || !payload.ok) {
-      const message = payload && payload.error ? payload.error : "Failed to create workspace."
+      const message = payload && payload.error ? payload.error : tt("failedCreateWorkspace", "Failed to create workspace.")
       throw new Error(message)
     }
     return payload
@@ -9749,7 +9915,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       }
     }
     if (typeof Swal === "undefined" || !Swal || typeof Swal.fire !== "function") {
-      const typed = window.prompt("Create workspace name:", defaultName)
+      const typed = window.prompt(tt("createWorkspacePrompt", "Create workspace name:"), defaultName)
       if (typed === null) {
         return false
       }
@@ -9758,7 +9924,7 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         return false
       }
       if (folderName.includes(" ")) {
-        window.alert("Workspace name cannot contain spaces.")
+        window.alert(tt("workspaceNoSpaces", "Workspace name cannot contain spaces."))
         return false
       }
       try {
@@ -9766,15 +9932,15 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         const finalized = finalizeCreatedWorkspace(payload, folderName)
         return finalized
       } catch (error) {
-        window.alert(error && error.message ? error.message : "Failed to create workspace.")
+        window.alert(error && error.message ? error.message : tt("failedCreateWorkspace", "Failed to create workspace."))
         return false
       }
     }
 
     const result = await Swal.fire({
-      title: "Create Sandbox",
+      title: tt("createSandbox", "Create Sandbox"),
       input: "text",
-      inputLabel: "Sandbox folder name (no spaces)",
+      inputLabel: tt("sandboxFolderName", "Sandbox folder name (no spaces)"),
       inputValue: defaultName,
       inputPlaceholder: "workspace-name",
       inputAttributes: {
@@ -9784,8 +9950,8 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
         autocomplete: "off"
       },
       showCancelButton: true,
-      confirmButtonText: "Create",
-      cancelButtonText: "Cancel",
+      confirmButtonText: <%-trj("common.create")%>,
+      cancelButtonText: <%-trj("common.cancel")%>,
       showCloseButton: true,
       showLoaderOnConfirm: true,
       buttonsStyling: false,
@@ -9794,18 +9960,18 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
       preConfirm: async (value) => {
         const folderName = String(value || "").trim()
         if (!folderName) {
-          Swal.showValidationMessage("Enter a workspace folder name.")
+          Swal.showValidationMessage(tt("enterWorkspaceFolder", "Enter a workspace folder name."))
           return false
         }
         if (folderName.includes(" ")) {
-          Swal.showValidationMessage("Workspace name cannot contain spaces.")
+          Swal.showValidationMessage(tt("workspaceNoSpaces", "Workspace name cannot contain spaces."))
           return false
         }
         try {
           const payload = await createWorkspace(folderName)
           return payload
         } catch (error) {
-          Swal.showValidationMessage(error && error.message ? error.message : "Failed to create workspace.")
+          Swal.showValidationMessage(error && error.message ? error.message : tt("failedCreateWorkspace", "Failed to create workspace."))
           return false
         }
       },

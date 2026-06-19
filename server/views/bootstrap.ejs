@@ -1,3 +1,7 @@
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -88,6 +92,9 @@ body {
 <script src="/xterm-theme.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/terminal-settings.js"></script>
 <script>
 function isASCII(str) {
@@ -112,12 +119,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (home && home.length > 0) {
 
       if (!isASCII(home)) {
-        alert("The Pinokio home folder cannot contain non ASCII characters. Select a different path.")
+        alert(<%-trj("bootstrap.non_ascii_error")%>)
         return
       }
 
       if (includesSpace(home)) {
-        alert("The Pinokio home folder cannot contain blank spaces. Select a different path.")
+        alert(<%-trj("bootstrap.spaces_error")%>)
         return
       }
 
@@ -195,7 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
       audio.play();
 
       n.Noty({
-        text: "Success!",
+        text: <%-trj("common.success")%>,
         callbacks: {
           onClick: () => {
             
@@ -213,7 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }, () => {
         })
         document.body.classList.add("animate")
-        document.querySelector(".loading span").innerHTML = "Restarting..."
+        document.querySelector(".loading span").innerHTML = <%-trj("common.restarting")%>
         document.querySelector(".loading").classList.remove("hidden")
 
         setInterval(async () => {
@@ -242,14 +249,14 @@ document.addEventListener("DOMContentLoaded", () => {
     <h1><img src='/pinokio-white.png'><div>pinokio</div></h1>
     <div class='field'>
       <div class='explain'>
-        <div class='label'>Select an install folder and press "Setup"</div>
-        <input id='home' type='text' value="<%=home%>" placeholder="Pinokio file system home">
+        <div class='label'><%=tr("bootstrap.select_install_folder")%></div>
+        <input id='home' type='text' value="<%=home%>" placeholder="<%=tr("bootstrap.home_placeholder")%>">
       </div>
-      <button id='bootstrap' class='btn'><i class="fa-solid fa-play"></i> Setup</button>
-      <button id='next' class='btn hidden'><i class="fa-solid fa-rocket"></i> Launch</button>
+      <button id='bootstrap' class='btn'><i class="fa-solid fa-play"></i> <%=tr("bootstrap.setup")%></button>
+      <button id='next' class='btn hidden'><i class="fa-solid fa-rocket"></i> <%=tr("bootstrap.launch")%></button>
     </div>
   </div>
-  <div class='loading hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> <span>Setting up...</span></div>
+  <div class='loading hidden'><i class="fa-solid fa-circle-notch fa-spin"></i> <span><%=tr("bootstrap.setting_up")%></span></div>
   <pre id='error'></pre>
   <div id='terminal'></div>
 </div>

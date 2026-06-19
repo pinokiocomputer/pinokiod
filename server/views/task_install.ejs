@@ -1,9 +1,12 @@
 <!doctype html>
 <html lang="en">
+<%
+  const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+%>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Install Task</title>
+  <title><%= tr("tasks.install_page_title") %></title>
   <link href="/css/fontawesome.min.css" rel="stylesheet">
   <link href="/css/solid.min.css" rel="stylesheet">
   <link href="/css/brands.min.css" rel="stylesheet">
@@ -13,6 +16,9 @@
   <% if (agent === "electron") { %>
     <link href="/electron.css" rel="stylesheet"/>
   <% } %>
+  <script>
+  window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+  </script>
   <script src="/task-launcher.js" defer></script>
 </head>
 <body class="<%= theme %> main-sidebar-page task-launcher-page task-page task-install-page" data-agent="<%= agent %>">
@@ -22,14 +28,14 @@
   <section class="task-shell">
     <header class="task-shell-header">
       <div class="task-shell-header-main">
-        <p class="task-eyebrow">Tasks / Install</p>
-        <h1 class="task-title">This task is not installed yet.</h1>
-        <p class="task-description">Install this repo and Pinokio will reopen the same task from <code><%= typeof tasksRootPath === 'string' ? tasksRootPath : 'PINOKIO_HOME/tasks' %></code>.</p>
+        <p class="task-eyebrow"><%= tr("tasks.install_eyebrow") %></p>
+        <h1 class="task-title"><%= tr("tasks.install_missing_title") %></h1>
+        <p class="task-description"><%- tr("tasks.install_missing_description", { path: `<code>${typeof tasksRootPath === 'string' ? tasksRootPath : 'PINOKIO_HOME/tasks'}</code>` }) %></p>
       </div>
       <div class="task-header-actions">
         <a class="task-link-button" href="/tasks">
           <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
-          <span>Back</span>
+          <span><%= tr("common.back") %></span>
         </a>
       </div>
     </header>
@@ -43,8 +49,8 @@
 
       <section class="task-section">
         <div class="task-section-head">
-          <h2 class="task-section-title">Remote ref</h2>
-          <div class="task-section-note">Canonical shared identity</div>
+          <h2 class="task-section-title"><%= tr("tasks.remote_ref") %></h2>
+          <div class="task-section-note"><%= tr("tasks.canonical_shared_identity") %></div>
         </div>
         <pre class="task-code"><%= ref %></pre>
       </section>
@@ -52,12 +58,12 @@
       <% if (Object.keys(inputValues).length > 0 || selectedTool) { %>
         <section class="task-section">
           <div class="task-section-head">
-            <h2 class="task-section-title">Launch context</h2>
-            <div class="task-section-note">Kept after install</div>
+            <h2 class="task-section-title"><%= tr("tasks.launch_context") %></h2>
+            <div class="task-section-note"><%= tr("tasks.kept_after_install") %></div>
           </div>
           <div class="task-context-list">
             <% if (selectedTool) { %>
-              <div class="task-context-item"><strong>Tool</strong><span><%= selectedTool %></span></div>
+              <div class="task-context-item"><strong><%= tr("tasks.tool") %></strong><span><%= selectedTool %></span></div>
             <% } %>
             <% Object.entries(inputValues).forEach(([name, value]) => { %>
               <div class="task-context-item"><strong><%= name %></strong><span><%= value %></span></div>
@@ -71,9 +77,9 @@
         <input type="hidden" name="returnTo" value="<%= returnTo %>">
         <button class="task-button primary" type="submit">
           <i class="fa-solid fa-download" aria-hidden="true"></i>
-          <span>Install and continue</span>
+          <span><%= tr("tasks.install_and_continue") %></span>
         </button>
-        <a class="task-link-button" href="/tasks">Cancel</a>
+        <a class="task-link-button" href="/tasks"><%= tr("common.cancel") %></a>
         <p class="task-submit-feedback" data-task-submit-feedback aria-live="polite" aria-hidden="true">
           <span data-task-submit-feedback-text></span>
         </p>
@@ -81,8 +87,8 @@
 
       <section class="task-section task-install-output" data-task-install-output hidden aria-hidden="true">
         <div class="task-section-head">
-          <h2 class="task-section-title">Terminal output</h2>
-          <div class="task-section-note">Live clone progress</div>
+          <h2 class="task-section-title"><%= tr("terminal.output") %></h2>
+          <div class="task-section-note"><%= tr("tasks.live_clone_progress") %></div>
         </div>
         <pre class="task-code task-install-output-code" data-task-install-output-code></pre>
       </section>

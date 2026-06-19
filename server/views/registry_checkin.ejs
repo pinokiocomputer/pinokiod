@@ -1,5 +1,9 @@
 <!DOCTYPE html>
 <html>
+  <%
+    const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+    const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+  %>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -106,24 +110,24 @@
   </head>
   <body>
     <div class="card">
-      <h1>Check-in to Registry</h1>
-      <div class="meta" id="repo">Loading...</div>
-      <div class="status" id="status">Preparing check-in...</div>
+      <h1><%= tr("registry_checkin.title") %></h1>
+      <div class="meta" id="repo"><%= tr("common.loading") %></div>
+      <div class="status" id="status"><%= tr("registry_checkin.preparing") %></div>
 
       <div class="picker" id="picker">
-        <div style="font-weight: 600; margin-bottom: 8px;">Choose an install</div>
+        <div style="font-weight: 600; margin-bottom: 8px;"><%= tr("registry_checkin.choose_install") %></div>
         <div class="picker-list" id="picker-list"></div>
       </div>
 
       <div class="actions" id="actions">
-        <button class="btn btn-primary" id="picker-submit" type="button">Check in</button>
-        <button class="btn btn-secondary" id="picker-cancel" type="button">Cancel</button>
+        <button class="btn btn-primary" id="picker-submit" type="button"><%= tr("registry_checkin.check_in") %></button>
+        <button class="btn btn-secondary" id="picker-cancel" type="button"><%= tr("common.cancel") %></button>
       </div>
 
       <% if (returnUrl) { %>
-        <a class="link" id="return-link" href="<%= returnUrl %>">Return to registry</a>
+        <a class="link" id="return-link" href="<%= returnUrl %>"><%= tr("registry_checkin.return_to_registry") %></a>
       <% } else { %>
-        <a class="link" href="/">Go back to Pinokio</a>
+        <a class="link" href="/"><%= tr("registry_checkin.go_back") %></a>
       <% } %>
     </div>
 
@@ -146,7 +150,7 @@
 
       const redirectToReturn = (params) => {
         if (!data.returnUrl) {
-          setStatus('Missing return URL. Please go back manually.', 'error');
+          setStatus(<%- trj("registry_checkin.missing_return_url_manual") %>, 'error');
           return;
         }
         try {
@@ -157,7 +161,7 @@
           });
           window.location.href = u.toString();
         } catch (err) {
-          setStatus('Invalid return URL. Please go back manually.', 'error');
+          setStatus(<%- trj("registry_checkin.invalid_return_url_manual") %>, 'error');
         }
       };
 
@@ -184,15 +188,15 @@
       }
 
       const candidates = Array.isArray(data.candidates) ? data.candidates : [];
-      const repoLabel = data.repoUrl ? `Repo: ${data.repoUrl}` : 'Missing repo URL';
+      const repoLabel = data.repoUrl ? <%- trj("registry_checkin.repo_label") %>.replace('{repo}', data.repoUrl) : <%- trj("registry_checkin.missing_repo_url") %>;
       if (repoEl) repoEl.textContent = repoLabel;
 
       if (!token) {
-        setStatus('Missing check-in token. Return to the registry and try again.', 'error');
+        setStatus(<%- trj("registry_checkin.missing_token_retry") %>, 'error');
       } else if (!data.repoUrl) {
-        setStatus('Missing repo URL. Return to the registry and try again.', 'error');
+        setStatus(<%- trj("registry_checkin.missing_repo_url_retry") %>, 'error');
       } else if (!data.returnUrl) {
-        setStatus('Missing return URL. Return to the registry and try again.', 'error');
+        setStatus(<%- trj("registry_checkin.missing_return_url_retry") %>, 'error');
       } else if (!data.registryEnabled) {
         redirectToReturn({ error: 'not_enabled' });
       } else if (!candidates.length) {
@@ -201,7 +205,7 @@
         const entry = candidates[0];
         runCheckin(entry.folder);
       } else {
-        setStatus('Multiple installs found. Choose one to check in.', '');
+        setStatus(<%- trj("registry_checkin.multiple_installs") %>, '');
         pickerEl.classList.add('visible');
         if (actionsEl) actionsEl.style.display = 'flex';
         candidates.forEach((entry, idx) => {
@@ -231,7 +235,7 @@
           const selected = document.querySelector('input[name="workspace"]:checked');
           const folder = selected && selected.value ? selected.value : '';
           if (!folder) {
-            setStatus('Select a folder to continue.', 'error');
+            setStatus(<%- trj("registry_checkin.select_folder") %>, 'error');
             return;
           }
           runCheckin(folder);
@@ -240,14 +244,14 @@
 
       async function runCheckin(folder) {
         if (!folder) {
-          setStatus('Missing folder selection.', 'error');
+          setStatus(<%- trj("registry_checkin.missing_folder") %>, 'error');
           return;
         }
         if (!token) {
-          setStatus('Missing check-in token. Return to the registry and try again.', 'error');
+          setStatus(<%- trj("registry_checkin.missing_token_retry") %>, 'error');
           return;
         }
-        setStatus('Creating checkpoint...', '');
+        setStatus(<%- trj("registry_checkin.creating_checkpoint") %>, '');
         if (submitBtn) submitBtn.disabled = true;
         if (cancelBtn) cancelBtn.disabled = true;
         try {
@@ -287,7 +291,7 @@
           }
           redirectToReturn({ error: 'not_enabled' });
         } catch (err) {
-          const msg = err && err.message ? err.message : 'Publish failed';
+          const msg = err && err.message ? err.message : <%- trj("registry_checkin.publish_failed") %>;
           redirectToReturn({ error: 'publish_failed', message: msg });
         }
       }

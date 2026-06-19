@@ -50,7 +50,7 @@
     } catch (error) {
       console.error('Failed to open file explorer', error);
       if (this && typeof setStatus === 'function') {
-        setStatus.call(this, 'Failed to open in file explorer', 'error');
+        setStatus.call(this, t.call(this, 'failedOpenFileExplorer', 'Failed to open in file explorer'), 'error');
       }
     }
   }
@@ -99,6 +99,7 @@
         sidebarCollapsedPreference: false,
         isMobile: false,
         mobileView: 'list',
+        i18n: config.i18n && typeof config.i18n === 'object' ? config.i18n : {},
       };
 
       this.dom = {
@@ -155,7 +156,7 @@
         }
       });
 
-      setStatus.call(this, 'Ready');
+      setStatus.call(this, t.call(this, 'ready', 'Ready'));
     },
 
     hasDirtySessions() {
@@ -181,7 +182,7 @@
       }
 
       try {
-        setStatus.call(this, `Opening ${displayName}…`);
+        setStatus.call(this, t.call(this, 'opening', 'Opening {name}…', { name: displayName }));
         const payload = await this.api.read(path);
         const session = ace.createEditSession(payload.content || '', undefined);
         session.setUseWrapMode(true);
@@ -220,13 +221,13 @@
 
         setActiveSession.call(this, path);
         setTreeSelection.call(this, path);
-        setStatus.call(this, `Opened ${displayName}`);
+        setStatus.call(this, t.call(this, 'opened', 'Opened {name}', { name: displayName }));
       } catch (error) {
         console.error(error);
         if (this.state.isMobile && !hadActive) {
           setMobileView.call(this, 'list', { skipFocus: true });
         }
-        setStatus.call(this, error.message || 'Failed to open file', 'error');
+        setStatus.call(this, error.message || t.call(this, 'failedOpenFile', 'Failed to open {name}', { name: displayName }), 'error');
       }
     },
 
@@ -241,7 +242,7 @@
       }
       const content = entry.session.getValue();
       this.dom.saveBtn.disabled = true;
-      setStatus.call(this, 'Saving…');
+      setStatus.call(this, t.call(this, 'saving', 'Saving…'));
       try {
         const saveResult = await this.api.save(activePath, content);
         entry.session.getUndoManager().markClean();
@@ -249,10 +250,10 @@
         entry.size = saveResult?.size ?? content.length;
         markTabStale.call(this, activePath, false);
         updateDirtyState.call(this, activePath);
-        setStatus.call(this, `Saved ${entry.name}`, 'success');
+        setStatus.call(this, t.call(this, 'savedNamed', 'Saved {name}', { name: entry.name }), 'success');
       } catch (error) {
         console.error(error);
-        setStatus.call(this, error.message || 'Failed to save file', 'error');
+        setStatus.call(this, error.message || t.call(this, 'failedSaveFile', 'Failed to save {name}', { name: entry.name }), 'error');
       } finally {
         updateSaveState.call(this);
       }
@@ -265,7 +266,7 @@
       }
       markTabStale.call(this, path, false);
       if (!force && !isSessionClean(info.session)) {
-        const confirmClose = window.confirm('Discard unsaved changes?');
+        const confirmClose = window.confirm(t.call(this, 'discardUnsaved', 'Discard unsaved changes?'));
         if (!confirmClose) {
           return;
         }
@@ -364,7 +365,7 @@
       return;
     }
     this.dom.sidebarToggle.setAttribute('aria-expanded', String(!shouldCollapse));
-    const label = shouldCollapse ? 'Show files' : 'Hide files';
+    const label = shouldCollapse ? t.call(this, 'showFiles', 'Show files') : t.call(this, 'hideFiles', 'Hide files');
     this.dom.sidebarToggle.setAttribute('aria-label', label);
     this.dom.sidebarToggle.title = label;
     const srText = this.dom.sidebarToggle.querySelector('.sr-only');
@@ -595,9 +596,9 @@
     if (absoluteFsPath) {
       const openBtn = createElement('span', 'files-app__tree-action files-app__tree-action--open');
       openBtn.setAttribute('role', 'button');
-      openBtn.setAttribute('aria-label', 'Open in file explorer');
+      openBtn.setAttribute('aria-label', t.call(this, 'openInFileExplorer', 'Open in file explorer'));
       openBtn.tabIndex = 0;
-      openBtn.title = 'Open in file explorer';
+      openBtn.title = t.call(this, 'openInFileExplorer', 'Open in file explorer');
       openBtn.innerHTML = '<i class="fa-solid fa-up-right-from-square"></i>';
       const triggerOpen = (event) => {
         event.preventDefault();
@@ -613,7 +614,7 @@
       actions.appendChild(openBtn);
       availableActions.push({
         id: 'open',
-        label: 'Open in file explorer',
+        label: t.call(this, 'openInFileExplorer', 'Open in file explorer'),
         handler: () => openInFileExplorer.call(this, absoluteFsPath),
       });
     }
@@ -621,7 +622,7 @@
     if (!entry.isRoot) {
       const renameBtn = createElement('span', 'files-app__tree-action files-app__tree-action--rename');
       renameBtn.setAttribute('role', 'button');
-      const renameLabel = entry.type === 'directory' ? 'Rename folder' : 'Rename file';
+      const renameLabel = entry.type === 'directory' ? t.call(this, 'renameFolder', 'Rename folder') : t.call(this, 'renameFile', 'Rename file');
       renameBtn.setAttribute('aria-label', renameLabel);
       renameBtn.tabIndex = 0;
       renameBtn.title = renameLabel;
@@ -646,7 +647,7 @@
 
       const deleteBtn = createElement('span', 'files-app__tree-action files-app__tree-action--delete');
       deleteBtn.setAttribute('role', 'button');
-      const deleteLabel = entry.type === 'directory' ? 'Delete folder' : 'Delete file';
+      const deleteLabel = entry.type === 'directory' ? t.call(this, 'deleteFolder', 'Delete folder') : t.call(this, 'deleteFile', 'Delete file');
       deleteBtn.setAttribute('aria-label', deleteLabel);
       deleteBtn.tabIndex = 0;
       deleteBtn.title = deleteLabel;
@@ -677,7 +678,7 @@
       const moreBtn = createElement('span', 'files-app__tree-more');
       moreBtn.setAttribute('role', 'button');
       moreBtn.tabIndex = 0;
-      moreBtn.setAttribute('aria-label', 'More actions');
+      moreBtn.setAttribute('aria-label', t.call(this, 'moreActions', 'More actions'));
       moreBtn.innerHTML = '<i class="fa-solid fa-ellipsis"></i>';
       const triggerMore = (event) => {
         event.preventDefault();
@@ -728,7 +729,7 @@
       updateDirectoryIcon(treeItem);
     } catch (error) {
       console.error(error);
-      setStatus.call(this, error.message || 'Unable to load directory', 'error');
+      setStatus.call(this, error.message || t.call(this, 'unableLoadDirectory', 'Unable to load directory'), 'error');
     } finally {
       treeItem.dataset.loading = 'false';
     }
@@ -749,7 +750,7 @@
 
     if (!entries.length) {
       const empty = createElement('div', 'files-app__empty-state');
-      empty.textContent = 'No files yet';
+      empty.textContent = t.call(this, 'noFilesYet', 'No files yet');
       container.appendChild(empty);
       parentItem.dataset.expanded = 'true';
       return;
@@ -771,7 +772,7 @@
     if (!Array.isArray(actions) || actions.length === 0) {
       return;
     }
-    const title = entry && entry.name ? entry.name : 'Actions';
+    const title = entry && entry.name ? entry.name : t.call(this, 'actions', 'Actions');
     if (typeof Swal !== 'undefined' && Swal && typeof Swal.fire === 'function') {
       const inputOptions = actions.reduce((options, action) => {
         options[action.id] = action.label;
@@ -781,10 +782,10 @@
         title,
         input: 'select',
         inputOptions,
-        inputPlaceholder: 'Choose action',
+        inputPlaceholder: t.call(this, 'chooseAction', 'Choose action'),
         showCancelButton: true,
-        confirmButtonText: 'Go',
-        cancelButtonText: 'Cancel',
+        confirmButtonText: t.call(this, 'go', 'Go'),
+        cancelButtonText: t.call(this, 'cancel', 'Cancel'),
         buttonsStyling: false,
         customClass: {
           popup: 'pinokio-modern',
@@ -806,7 +807,7 @@
       return;
     }
     const menu = actions.map((action, index) => `${index + 1}. ${action.label}`).join('\n');
-    const choice = window.prompt(`Choose action:\n${menu}`);
+    const choice = window.prompt(`${t.call(this, 'chooseAction', 'Choose action')}:\n${menu}`);
     const index = parseInt(choice, 10) - 1;
     if (Number.isInteger(index) && actions[index] && typeof actions[index].handler === 'function') {
       actions[index].handler();
@@ -826,10 +827,10 @@
       }
     }
     let message = entry.type === 'directory'
-      ? `Delete folder "${displayName}" and all of its contents?`
-      : `Delete file "${displayName}"?`;
+      ? t.call(this, 'deleteFolderConfirm', 'Delete folder "{name}" and all of its contents?', { name: displayName })
+      : t.call(this, 'deleteFileConfirm', 'Delete file "{name}"?', { name: displayName });
     if (impacted.some(({ info }) => info && info.session && !isSessionClean(info.session))) {
-      message += '\n\nUnsaved changes in open editors will be lost.';
+      message += `\n\n${t.call(this, 'unsavedLost', 'Unsaved changes in open editors will be lost.')}`;
     }
     const confirmed = window.confirm(message);
     if (!confirmed) {
@@ -844,17 +845,17 @@
     }
     const path = entry.path;
     const displayName = entry.name || path.split('/').pop() || this.state.workspaceLabel;
-    let nextName = window.prompt('Rename to:', displayName);
+    let nextName = window.prompt(t.call(this, 'renameTo', 'Rename to:'), displayName);
     if (nextName === null) {
       return;
     }
     nextName = nextName.trim();
     if (!nextName) {
-      setStatus.call(this, 'Name cannot be empty', 'error');
+      setStatus.call(this, t.call(this, 'nameCannotEmpty', 'Name cannot be empty'), 'error');
       return;
     }
     if (nextName.includes('/') || nextName.includes('\\')) {
-      setStatus.call(this, 'Name cannot contain path separators', 'error');
+      setStatus.call(this, t.call(this, 'nameNoSeparators', 'Name cannot contain path separators'), 'error');
       return;
     }
     if (nextName === displayName) {
@@ -870,10 +871,10 @@
     const path = entry.path;
     const displayName = entry.name || path.split('/').pop() || this.state.workspaceLabel;
     if (!this.api || typeof this.api.rename !== 'function') {
-      setStatus.call(this, 'Rename is not available', 'error');
+      setStatus.call(this, t.call(this, 'renameUnavailable', 'Rename is not available'), 'error');
       return;
     }
-    setStatus.call(this, `Renaming ${displayName}…`);
+    setStatus.call(this, t.call(this, 'renaming', 'Renaming {name}…', { name: displayName }));
     try {
       const result = await this.api.rename(path, newName);
       const targetPath = result && typeof result.target === 'string' ? result.target : path;
@@ -941,10 +942,10 @@
         }
       }
 
-      setStatus.call(this, `${displayName} renamed`, 'success');
+      setStatus.call(this, t.call(this, 'renamedNamed', '{name} renamed', { name: displayName }), 'success');
     } catch (error) {
       console.error(error);
-      setStatus.call(this, error.message || 'Failed to rename', 'error');
+      setStatus.call(this, error.message || t.call(this, 'failedRename', 'Failed to rename'), 'error');
     }
   }
 
@@ -955,10 +956,10 @@
     const path = entry.path;
     const displayName = entry.name || path.split('/').pop() || this.state.workspaceLabel;
     if (!this.api || typeof this.api.remove !== 'function') {
-      setStatus.call(this, 'Delete is not available', 'error');
+      setStatus.call(this, t.call(this, 'deleteUnavailable', 'Delete is not available'), 'error');
       return;
     }
-    setStatus.call(this, `Deleting ${displayName}…`);
+    setStatus.call(this, t.call(this, 'deleting', 'Deleting {name}…', { name: displayName }));
     try {
       await this.api.remove(path);
 
@@ -982,10 +983,10 @@
         setTreeSelection.call(this, null);
       }
 
-      setStatus.call(this, `${displayName} deleted`, 'success');
+      setStatus.call(this, t.call(this, 'deletedNamed', '{name} deleted', { name: displayName }), 'success');
     } catch (error) {
       console.error(error);
-      setStatus.call(this, error.message || 'Failed to delete', 'error');
+      setStatus.call(this, error.message || t.call(this, 'failedDelete', 'Failed to delete'), 'error');
     }
   }
 
@@ -1102,11 +1103,11 @@
       if (!isSessionClean(entry.session)) {
         markTabStale.call(this, path, true);
         if (!entry.stale) {
-          setStatus.call(this, `${entry.name} changed on disk`, 'error');
+          setStatus.call(this, t.call(this, 'changedOnDiskNamed', '{name} changed on disk', { name: entry.name }), 'error');
         }
         return;
       }
-      const shouldReload = window.confirm(`${entry.name} changed on disk. Reload from disk?`);
+      const shouldReload = window.confirm(t.call(this, 'changedReloadNamed', '{name} changed on disk. Reload from disk?', { name: entry.name }));
       if (!shouldReload) {
         markTabStale.call(this, path, true);
         return;
@@ -1121,7 +1122,7 @@
       entry.lastPromptMtime = null;
       markTabStale.call(this, path, false);
       updateDirtyState.call(this, path);
-      setStatus.call(this, `${entry.name} reloaded`, 'success');
+      setStatus.call(this, t.call(this, 'reloadedNamed', '{name} reloaded', { name: entry.name }), 'success');
     } catch (error) {
       console.error(error);
     }
@@ -1171,7 +1172,7 @@
     if (path === this.state.activePath) {
       updateSaveState.call(this);
       if (dirty) {
-        setStatus.call(this, 'Unsaved changes');
+        setStatus.call(this, t.call(this, 'unsavedChanges', 'Unsaved changes'));
       }
     }
   }
@@ -1216,6 +1217,17 @@
     this.state.selectedTreePath = path;
   }
 
+  function t(key, fallback, replacements) {
+    const catalog = this && this.state && this.state.i18n && typeof this.state.i18n === 'object' ? this.state.i18n : {};
+    let value = typeof catalog[key] === 'string' ? catalog[key] : `[missing translation: ${key}]`;
+    if (replacements && typeof replacements === 'object') {
+      Object.keys(replacements).forEach((name) => {
+        value = value.replace(new RegExp(`\\{${name}\\}`, 'g'), () => String(replacements[name]));
+      });
+    }
+    return value;
+  }
+
   function setStatus(message, type = 'info') {
     if (this.state.statusTimer) {
       clearTimeout(this.state.statusTimer);
@@ -1226,7 +1238,7 @@
     if (type === 'success') {
       this.state.statusTimer = setTimeout(() => {
         this.dom.status.dataset.state = 'info';
-        this.dom.status.textContent = 'Ready';
+        this.dom.status.textContent = t.call(this, 'ready', 'Ready');
         this.state.statusTimer = null;
       }, 3000);
     }

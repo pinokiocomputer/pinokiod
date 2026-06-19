@@ -1,4 +1,8 @@
 <html class='columns'>
+<%
+const tr = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+const trj = (key, replacements = {}) => JSON.stringify(tr(key, replacements))
+%>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <script src="/hotkeys.min.js"></script>
@@ -13,6 +17,9 @@
 <script src="/xterm-addon-search-bar.js"></script>
 <script src="/sweetalert2.js"></script>
 <script src="/Socket.js"></script>
+<script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
 <script src="/common.js"></script>
 <script src="/he.js"></script>
 <script src="/opener.js"></script>
@@ -249,7 +256,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     })
     console.log("res" ,res)
     n.Noty({
-      text: `Updated!`
+      text: <%- trj("keys.updated") %>
     })
     setTimeout(() => {
       location.href = location.href
@@ -265,9 +272,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         <a class='home-button home' href="/home"><i class='fa-solid fa-home'></i></a>
         <div class='flexible'></div>
         <div class='nav-btns'>
-          <button class='btn' id='open-fs' data-filepath="<%=filepath%>" data-command="view"><i class="fa-solid fa-eye"></i> Open in File Explorer</button>
+          <button class='btn' id='open-fs' data-filepath="<%=filepath%>" data-command="view"><i class="fa-solid fa-eye"></i> <%= tr("app.open_in_file_explorer") %></button>
           <div id='save' class='btn'>
-            <span class='save'><i class="fa-solid fa-check"></i> Save</span>
+            <span class='save'><i class="fa-solid fa-check"></i> <%= tr("common.save") %></span>
           </div>
         </div>
       </h1>
@@ -285,9 +292,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       </div>
     <% } else { %>
       <div class='empty'>
-        <div>no keys are set</div>
+        <div><%= tr("keys.empty") %></div>
         <br>
-        <a target="_blank" href="https://pinokiocomputer.github.io/home/docs/#/?id=autofill-from-shared-key-store" class='btn'>Learn how this works</a>
+        <a target="_blank" href="https://pinokiocomputer.github.io/home/docs/#/?id=autofill-from-shared-key-store" class='btn'><%= tr("keys.learn_how") %></a>
       </div>
     <% } %>
   </main>

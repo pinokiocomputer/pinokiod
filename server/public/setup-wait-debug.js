@@ -1,5 +1,16 @@
 (function () {
   const HISTORY_LIMIT = 12
+  const t = (key, fallback, replacements = {}) => {
+    const catalog = window.PINOKIO_I18N && typeof window.PINOKIO_I18N === "object" ? window.PINOKIO_I18N : {}
+    let value = Object.prototype.hasOwnProperty.call(catalog, key) ? catalog[key] : `[missing translation: ${key}]`
+    if (typeof value !== "string") {
+      value = `[missing translation: ${key}]`
+    }
+    Object.entries(replacements || {}).forEach(([name, replacement]) => {
+      value = value.replace(new RegExp(`\\{${name}\\}`, "g"), replacement == null ? "" : String(replacement))
+    })
+    return value
+  }
 
   function create(waitRoot) {
     const state = {
@@ -24,7 +35,7 @@
         panel.style.background = "rgba(255,255,255,0.04)"
         panel.style.textAlign = "left"
         panel.innerHTML = [
-          '<div style="font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;opacity:0.75;margin-bottom:8px;">Debug</div>',
+          `<div style="font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;opacity:0.75;margin-bottom:8px;">${t("setup.debug", "Debug")}</div>`,
           '<pre class="wait-debug-body" style="margin:0;text-align:left;white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.5;opacity:0.9;"></pre>'
         ].join("")
         waitRoot.appendChild(panel)
@@ -68,30 +79,30 @@
       }
       const elapsedSeconds = startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0
       const lines = [
-        `Elapsed: ${elapsedSeconds}s`,
-        `Startup phase: ${startupStatus && startupStatus.phase ? startupStatus.phase : "-"}`,
-        `Startup error: ${startupStatus && startupStatus.error ? startupStatus.error : "-"}`,
-        `Router check: ${routerStatus ? JSON.stringify(routerStatus) : "-"}`,
+        `${t("setup.elapsed", "Elapsed")}: ${elapsedSeconds}s`,
+        `${t("setup.startup_phase", "Startup phase")}: ${startupStatus && startupStatus.phase ? startupStatus.phase : "-"}`,
+        `${t("setup.startup_error", "Startup error")}: ${startupStatus && startupStatus.error ? startupStatus.error : "-"}`,
+        `${t("setup.router_check", "Router check")}: ${routerStatus ? JSON.stringify(routerStatus) : "-"}`,
       ]
       if (serverDebug) {
-        lines.push(`Flags: ${JSON.stringify(serverDebug.flags || null)}`)
-        lines.push(`Caddy: ${JSON.stringify(serverDebug.caddy || null)}`)
+        lines.push(`${t("setup.flags", "Flags")}: ${JSON.stringify(serverDebug.flags || null)}`)
+        lines.push(`${t("setup.caddy", "Caddy")}: ${JSON.stringify(serverDebug.caddy || null)}`)
         if (serverDebug.caddy && Array.isArray(serverDebug.caddy.startup_output) && serverDebug.caddy.startup_output.length > 0) {
-          lines.push("Caddy startup output:")
+          lines.push(`${t("setup.caddy_startup_output", "Caddy startup output")}:`)
           lines.push(...serverDebug.caddy.startup_output)
         }
-        lines.push(`Peer: ${JSON.stringify(serverDebug.peer || null)}`)
-        lines.push(`Router: ${JSON.stringify(serverDebug.router || null)}`)
-        lines.push(`Wait: ${JSON.stringify(serverDebug.wait || null)}`)
+        lines.push(`${t("setup.peer", "Peer")}: ${JSON.stringify(serverDebug.peer || null)}`)
+        lines.push(`${t("setup.router", "Router")}: ${JSON.stringify(serverDebug.router || null)}`)
+        lines.push(`${t("setup.wait", "Wait")}: ${JSON.stringify(serverDebug.wait || null)}`)
       }
       if (state.events.length > 0) {
         lines.push("")
-        lines.push("Recent page events:")
+        lines.push(`${t("setup.recent_page_events", "Recent page events")}:`)
         lines.push(...state.events)
       }
       if (serverDebug && Array.isArray(serverDebug.events) && serverDebug.events.length > 0) {
         lines.push("")
-        lines.push("Recent server events:")
+        lines.push(`${t("setup.recent_server_events", "Recent server events")}:`)
         for (const entry of serverDebug.events) {
           lines.push(`[${entry.at}] ${entry.message}`)
         }

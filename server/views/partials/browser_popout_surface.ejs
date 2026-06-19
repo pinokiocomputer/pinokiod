@@ -1,7 +1,10 @@
-<div class='browserview-external-surface hidden' id='browserview-external-surface' hidden role='button' tabindex='0' aria-label='Open selected page in browser'>
+<%
+const browserPopoutT = typeof t === "function" ? t : ((key) => { throw new Error("i18n translator is not initialized") })
+%>
+<div class='browserview-external-surface hidden' id='browserview-external-surface' hidden role='button' tabindex='0' aria-label='<%=browserPopoutT("common.open_selected_page_browser")%>'>
   <div class='browserview-external-panel'>
     <div class='browserview-external-icon'><i class="fa-solid fa-up-right-from-square" aria-hidden="true"></i></div>
-    <div class='browserview-external-title' data-browserview-external-title>Click to open in browser</div>
+    <div class='browserview-external-title' data-browserview-external-title><%=browserPopoutT("common.click_open_browser")%></div>
     <div class='browserview-external-url' data-browserview-external-url></div>
   </div>
 </div>

@@ -174,7 +174,10 @@
     }) %>
   </script>
   <script src="/Socket.js"></script>
-  <script src="/common.js"></script>
+  <script>
+window.PINOKIO_I18N = Object.assign({}, window.PINOKIO_I18N || {}, <%- JSON.stringify(typeof i18nCatalog === "object" && i18nCatalog ? i18nCatalog : {}) %>);
+</script>
+<script src="/common.js"></script>
   <script src="/layout.js"></script>
 </body>
 </html>
