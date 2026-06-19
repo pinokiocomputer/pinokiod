@@ -3,7 +3,7 @@ class Huggingface {
   description = "Installs huggingface_hub for downloading models and assets from Hugging Face."
   cmd() {
     //return 'huggingface_hub "hf-xet!=1.1.10"'
-    return 'huggingface_hub=1.0.1'
+    return 'huggingface_hub=1.20.1'
   }
   async install(req, ondata) {
     await this.kernel.bin.exec({
@@ -18,7 +18,7 @@ class Huggingface {
       let version = this.kernel.bin.installed.conda_versions.huggingface_hub
       if (version) {
         let coerced = semver.coerce(version)
-        if (coerced && semver.eq(coerced, "1.0.1")) {
+        if (coerced && semver.eq(coerced, "1.20.1")) {
           return true
         }
       }
