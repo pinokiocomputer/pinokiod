@@ -6962,20 +6962,20 @@ header.navheader h1 {
         <% if (typeof autolaunch_app !== 'undefined' && autolaunch_app) { %>
           <div class="app-autolaunch" data-app-autolaunch data-app-id="<%=name%>">
             <button type="button" class="app-autolaunch-row" data-app-autolaunch-button data-enabled="<%= autolaunch_app.autolaunch_enabled ? 'true' : 'false' %>" aria-haspopup="dialog" aria-expanded="false">
-              <span class="app-autolaunch-label"><i class="fa-solid fa-power-off"></i><span>Auto</span></span>
+              <span class="app-autolaunch-label"><i class="fa-solid fa-power-off"></i><span>Autolaunch</span></span>
               <span class="app-autolaunch-spacer" aria-hidden="true"></span>
               <span class="app-autolaunch-status" data-app-autolaunch-status><%= autolaunch_app.autolaunch_enabled ? 'ON' : 'OFF' %></span>
               <i class="fa-solid fa-angle-down app-autolaunch-chevron" aria-hidden="true"></i>
             </button>
-            <div class="app-autolaunch-modal hidden" data-app-autolaunch-modal role="dialog" aria-modal="true" aria-label="Auto launch">
+            <div class="app-autolaunch-modal hidden" data-app-autolaunch-modal role="dialog" aria-modal="true" aria-label="Autolaunch">
               <div class="app-autolaunch-panel" data-app-autolaunch-panel>
                 <div class="app-autolaunch-modal-head">
                   <div>
-                    <div class="app-autolaunch-title">Auto launch</div>
+                    <div class="app-autolaunch-title">Autolaunch</div>
                     <div class="app-autolaunch-note">Run this app when Pinokio starts.</div>
                   </div>
                   <div class="app-autolaunch-modal-actions">
-                    <button type="button" class="app-autolaunch-switch" role="switch" aria-checked="<%= autolaunch_app.autolaunch_enabled ? 'true' : 'false' %>" data-app-autolaunch-switch aria-label="Auto launch" title="Auto launch is <%= autolaunch_app.autolaunch_enabled ? 'on' : 'off' %>">
+                    <button type="button" class="app-autolaunch-switch" role="switch" aria-checked="<%= autolaunch_app.autolaunch_enabled ? 'true' : 'false' %>" data-app-autolaunch-switch aria-label="Autolaunch" title="Autolaunch is <%= autolaunch_app.autolaunch_enabled ? 'on' : 'off' %>">
                       <span class="app-autolaunch-switch-label" data-app-autolaunch-switch-label><%= autolaunch_app.autolaunch_enabled ? 'ON' : 'OFF' %></span>
                       <span class="app-autolaunch-switch-thumb" aria-hidden="true"></span>
                     </button>

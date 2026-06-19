@@ -509,9 +509,9 @@ aside .btn-tab .btn .caption {
   position: relative;
   align-items: center;
   gap: 5px;
-  height: 30px;
-  min-height: 30px;
-  padding: 0 10px;
+  height: var(--home-filter-control-height);
+  min-height: var(--home-filter-control-height);
+  padding: 0 12px;
   border: 1px solid var(--home-sort-border);
   border-radius: 6px;
   background: var(--home-sort-bg);
@@ -581,9 +581,12 @@ aside .btn-tab .btn .caption {
   flex: 0 0 auto;
   width: 132px;
   min-width: 132px;
+  height: 100%;
 }
 
 .home-search-form .home-apps-sort .ts-wrapper.single .ts-control {
+  display: flex;
+  align-items: center;
   border: 0;
   outline: none;
   background: transparent;
@@ -595,6 +598,7 @@ aside .btn-tab .btn .caption {
   border-radius: 0;
   cursor: pointer;
   color: inherit;
+  height: 100%;
 }
 
 .home-search-form .home-apps-sort .ts-control > .item {
@@ -704,6 +708,7 @@ body.dark .home-search-form .home-apps-sort .ts-dropdown [data-selectable].optio
   color: var(--home-sort-option-hover-text);
 }
 .home-search-form {
+  --home-filter-control-height: 40px;
   align-items: center;
   gap: 8px;
 }
@@ -731,11 +736,11 @@ body.dark .home-search-form {
   border-bottom-color: rgba(148, 163, 184, 0.22);
 }
 .home-search-form input[type='search'].flexible {
-  height: 30px;
-  min-height: 30px;
+  height: var(--home-filter-control-height);
+  min-height: var(--home-filter-control-height);
   box-sizing: border-box;
-  padding: 0 10px;
-  border-radius: 5px;
+  padding: 0 12px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 400;
   line-height: 1;

@@ -348,25 +348,6 @@ body.dark {
 [data-install-spinner-variant="binary-shuffle"] .install-status-grid-tile-4 {
   animation: pinokio-binary-shuffle-4 1.1s steps(1, end) infinite;
 }
-.install-loader-popup.swal2-popup.loader-popup {
-  background: var(--install-status-bg) !important;
-  color: var(--install-status-fg) !important;
-  border: 1px solid var(--install-status-border) !important;
-  border-radius: 999px !important;
-  box-shadow: none !important;
-}
-.install-loader-dialog.loader-dialog {
-  padding: 0 !important;
-}
-.install-loader-shell {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--install-status-fg);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-}
 @keyframes pinokio-grid-shift-1 {
   0%, 100% { transform: translate(0, 0); }
   25% { transform: translate(11px, 0); }
@@ -641,13 +622,17 @@ const setInstallStatus = (html) => {
   }
   statusScreen.innerHTML = normalizeInstallStatusHtml(html)
 }
-const renderInstallLoader = (msg) => {
-  return `
-    <span class="install-loader-shell">
+const setRestartStatus = () => {
+  applyInstallSpinnerVariant("corner-chase")
+  setInstallStatus(`
+    <div class="install-status-shell">
       ${INSTALL_STATUS_SPINNER_HTML}
-      <span>${msg}</span>
-    </span>
-  `
+      <div class="install-status-copy">
+        <div class="install-status-title">Restarting Pinokio...</div>
+        <div class="install-status-detail">Applying the updated system tools. Pinokio will continue automatically.</div>
+      </div>
+    </div>
+  `)
 }
 const createTerm = async (_theme) => {
   //const theme = Object.assign({ }, xtermTheme.Terminal_Basic, {
@@ -844,36 +829,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     })
   })
-  const LoadingDialog = {
-    start: (msg) => {
-      Swal.fire({
-        html: renderInstallLoader(msg),
-        customClass: {
-          container: "loader-container",
-          popup: "loader-popup install-loader-popup",
-          htmlContainer: "loader-dialog install-loader-dialog",
-          footer: "hidden",
-          actions: "hidden"
-        }
-      });
-    },
-    end: () => {
-      Swal.close()
-    }
-  }
-  LoadingDialog.start("Restarting...")
+  setRestartStatus()
   fetch("/restart", {
     method: "post"
-  }, () => {
+  }).catch((error) => {
+    console.warn("restart request ended early", error)
   })
-  setInterval(async () => {
+  const restartPoll = setInterval(async () => {
     try {
       let res = await fetch("/bin_ready").then((res) => {
         return res.json()
       })
       if (res.success) {
         //location.href = location.href
-        LoadingDialog.end()
+        clearInterval(restartPoll)
         location.href = document.querySelector("#callback").value
       }
     } catch (e) {

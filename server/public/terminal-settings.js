@@ -730,6 +730,9 @@
         : null;
       this.forceResizeButtons = new WeakMap();
       this.forceResizeHandler = null;
+      this.tooltipElement = null;
+      this.activeTooltipTarget = null;
+      this.boundTooltipReposition = () => this.positionTerminalTooltip();
       this.minimalRunnerMode = detectMinimalRunnerMode();
       this.currentFontFamily = typeof this.preferences.fontFamily === 'string' ? this.preferences.fontFamily.trim() : '';
       if (typeof document !== 'undefined') {
@@ -1287,15 +1290,111 @@
       return false;
     }
 
+    getTerminalTooltipElement() {
+      if (typeof document === 'undefined' || !document.body) {
+        return null;
+      }
+      if (this.tooltipElement && document.body.contains(this.tooltipElement)) {
+        return this.tooltipElement;
+      }
+      const tooltip = document.createElement('div');
+      tooltip.className = 'terminal-tooltip';
+      tooltip.setAttribute('role', 'tooltip');
+      tooltip.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(tooltip);
+      this.tooltipElement = tooltip;
+      return tooltip;
+    }
+
+    attachTerminalTooltip(target, text) {
+      if (!target || typeof text !== 'string' || !text.trim()) {
+        return;
+      }
+      target.setAttribute('data-terminal-tooltip', text);
+      target.addEventListener('mouseenter', () => this.showTerminalTooltip(target));
+      target.addEventListener('focus', () => this.showTerminalTooltip(target));
+      target.addEventListener('mouseleave', () => this.hideTerminalTooltip(target));
+      target.addEventListener('blur', () => this.hideTerminalTooltip(target));
+      target.addEventListener('click', () => this.hideTerminalTooltip(target));
+      target.addEventListener('keydown', (event) => {
+        if (event && event.key === 'Escape') {
+          this.hideTerminalTooltip(target);
+        }
+      });
+    }
+
+    showTerminalTooltip(target) {
+      if (typeof window === 'undefined' || !target) {
+        return;
+      }
+      const text = target.getAttribute('data-terminal-tooltip') || '';
+      if (!text.trim()) {
+        return;
+      }
+      const tooltip = this.getTerminalTooltipElement();
+      if (!tooltip) {
+        return;
+      }
+      this.activeTooltipTarget = target;
+      tooltip.textContent = text;
+      tooltip.setAttribute('aria-hidden', 'false');
+      tooltip.classList.remove('is-visible');
+      this.positionTerminalTooltip();
+      tooltip.classList.add('is-visible');
+      window.addEventListener('resize', this.boundTooltipReposition);
+      window.addEventListener('scroll', this.boundTooltipReposition, true);
+    }
+
+    hideTerminalTooltip(target) {
+      if (target && this.activeTooltipTarget && target !== this.activeTooltipTarget) {
+        return;
+      }
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('resize', this.boundTooltipReposition);
+        window.removeEventListener('scroll', this.boundTooltipReposition, true);
+      }
+      this.activeTooltipTarget = null;
+      if (this.tooltipElement) {
+        this.tooltipElement.classList.remove('is-visible');
+        this.tooltipElement.setAttribute('aria-hidden', 'true');
+      }
+    }
+
+    positionTerminalTooltip() {
+      if (typeof window === 'undefined' || !this.activeTooltipTarget || !this.tooltipElement) {
+        return;
+      }
+      const targetRect = this.activeTooltipTarget.getBoundingClientRect();
+      const tooltipRect = this.tooltipElement.getBoundingClientRect();
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      const margin = 8;
+      const gap = 8;
+      const tooltipWidth = tooltipRect.width || this.tooltipElement.offsetWidth || 0;
+      const tooltipHeight = tooltipRect.height || this.tooltipElement.offsetHeight || 0;
+      let left = targetRect.right - tooltipWidth;
+      let top = targetRect.bottom + gap;
+
+      if (top + tooltipHeight + margin > viewportHeight && targetRect.top - tooltipHeight - gap >= margin) {
+        top = targetRect.top - tooltipHeight - gap;
+      }
+      left = Math.max(margin, Math.min(left, viewportWidth - tooltipWidth - margin));
+      top = Math.max(margin, Math.min(top, viewportHeight - tooltipHeight - margin));
+
+      this.tooltipElement.style.left = `${Math.round(left)}px`;
+      this.tooltipElement.style.top = `${Math.round(top)}px`;
+    }
+
     attachForceResizeButton(runner, host) {
       if (typeof document === 'undefined' || !runner || !host || this.forceResizeButtons.has(runner)) {
         return;
       }
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = 'btn terminal-resize-button';
-      button.innerHTML = '<i class="fa-solid fa-expand"></i> Resize';
-      button.title = 'Resize to this window';
+      button.className = 'btn terminal-utility-button terminal-resize-button';
+      button.innerHTML = '<i class="fa-solid fa-ruler-combined" aria-hidden="true"></i>';
+      button.setAttribute('aria-label', 'Sync terminal to current viewport');
+      this.attachTerminalTooltip(button, 'Sync terminal to current viewport');
       button.addEventListener('click', (event) => {
         if (event) {
           event.preventDefault();
@@ -1390,10 +1489,12 @@
 
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = 'btn terminal-config-button';
-      button.innerHTML = '<span class="terminal-config-label"><i class="fa-solid fa-sliders"></i> Config</span>';
+      button.className = 'btn terminal-utility-button terminal-config-button';
+      button.innerHTML = '<span class="terminal-config-label"><i class="fa-solid fa-sliders" aria-hidden="true"></i></span>';
       button.setAttribute('aria-haspopup', 'true');
       button.setAttribute('aria-expanded', 'false');
+      button.setAttribute('aria-label', 'Terminal appearance');
+      this.attachTerminalTooltip(button, 'Terminal appearance');
 
       const menu = document.createElement('div');
       menu.className = 'terminal-config-menu';

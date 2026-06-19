@@ -2886,7 +2886,10 @@ const compactLayoutMedia = window.matchMedia(COMPACT_LAYOUT_QUERY);
 
 function initTippy() {
   try {
-    tippyInstances = tippy("[data-tippy-content]", {
+    const targets = Array.from(document.querySelectorAll("[data-tippy-content]")).filter((target) => {
+      return !target.closest('aside');
+    });
+    tippyInstances = tippy(targets, {
       theme: "pointer",
       onCreate(instance) {
         updateTippyPlacement(instance);
@@ -2898,13 +2901,9 @@ function initTippy() {
 
 function updateTippyPlacement(instance) {
   const isCompact = compactLayoutMedia.matches;
-  const isHeaderElement = instance.reference.closest('header.navheader');
-  const isSidebarTab = instance.reference.closest('aside') && instance.reference.classList.contains('tab');
   
   if (isCompact) {
     instance.setProps({ placement: 'right' });
-  } else if (isSidebarTab) {
-    instance.setProps({ placement: 'left' });
   } else {
     instance.setProps({ placement: 'top' });
   }
@@ -2912,17 +2911,6 @@ function updateTippyPlacement(instance) {
 
 function updateAllTooltips() {
   tippyInstances.forEach(updateTippyPlacement);
-}
-
-function setTabTooltips() {
-  // Set data-tippy-content for sidebar tabs based on their .caption text
-  const tabs = document.querySelectorAll('aside .tab');
-  tabs.forEach(tab => {
-    const caption = tab.querySelector('.caption');
-    if (caption && caption.textContent.trim()) {
-      tab.setAttribute('data-tippy-content', caption.textContent.trim());
-    }
-  });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -3019,7 +3007,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return null;
   };
 
-  setTabTooltips();
   initTippy();
 
 //  if (window !== window.top) {

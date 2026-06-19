@@ -106,56 +106,103 @@ td.key {
 }
 header.navheader2 {
   position: relative;
-  padding: 10px 0;
+  padding: 8px 0;
 }
 .navheader2 .runner .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  height: 22px;
-  padding: 0 8px !important;
-  border: 1px solid rgba(15, 23, 42, 0.16);
-  border-radius: 3px;
-  background: linear-gradient(180deg, rgba(60, 67, 92, 0.96), rgba(49, 55, 78, 0.96));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.96);
+  gap: 6px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0 9px !important;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: none;
+  color: rgba(17, 24, 39, 0.88);
   font-size: 12px;
   font-weight: 600;
   line-height: 1;
   text-decoration: none;
   box-sizing: border-box;
-  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease;
 }
 .navheader2 .runner .btn:hover {
-  border-color: rgba(111, 143, 255, 0.32);
-  background: linear-gradient(180deg, rgba(67, 74, 101, 0.98), rgba(55, 62, 86, 0.98));
+  border-color: rgba(15, 23, 42, 0.18);
+  background: rgba(15, 23, 42, 0.04);
+  color: rgba(17, 24, 39, 0.96);
 }
 .navheader2 .runner .btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(66, 113, 174, 0.2), inset 0 1px 0 rgba(255,255,255,0.06);
+  box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.2);
 }
 .navheader2 .runner .btn:active {
   transform: translateY(1px);
 }
+.navheader2 .runner .btn i {
+  font-size: 12px;
+  line-height: 1;
+}
 .navheader2 .runner .run > span {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
+}
+.navheader2 .runner .terminal-utility-button {
+  position: relative;
+  width: 24px;
+  min-width: 24px;
+  padding: 0 !important;
+  gap: 0;
+}
+.terminal-tooltip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 2147483000;
+  max-width: calc(100vw - 16px);
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: rgba(17, 24, 39, 0.96);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s ease;
+  transform: translateY(-2px);
+}
+.terminal-tooltip.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.navheader2 .runner .terminal-config-button .terminal-config-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 body.dark .navheader2 .runner .btn {
-  border-color: rgba(255,255,255,0.12);
-  background: linear-gradient(180deg, rgba(255,255,255,0.11), rgba(255,255,255,0.07));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: none;
+  color: rgba(248, 250, 252, 0.88);
 }
 body.dark .navheader2 .runner .btn:hover {
-  border-color: rgba(111, 143, 255, 0.28);
-  background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.1));
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(248, 250, 252, 0.96);
 }
 .protection-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  padding: 0 7px !important;
   white-space: nowrap;
 }
 .protection-toggle.is-saving {
@@ -168,51 +215,52 @@ body.dark .navheader2 .runner .btn:hover {
 .protection-toggle-copy {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 5px;
   min-width: 0;
 }
 .protection-toggle-icon-wrap {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(126, 155, 255, 0.14);
-  box-shadow: inset 0 0 0 1px rgba(126, 155, 255, 0.14);
+  background: transparent;
+  box-shadow: none;
   flex-shrink: 0;
 }
 .protection-toggle-icon {
-  color: #89a6ff;
+  color: rgba(75, 85, 99, 0.86);
   font-size: 10px;
 }
 .protection-toggle-label {
   font-weight: 600;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
 .protection-toggle-state {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px;
-  padding: 1px 5px;
+  min-width: 22px;
+  height: 14px;
+  padding: 0 5px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.08);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.84);
+  background: rgba(217, 119, 6, 0.1);
+  box-shadow: none;
+  color: #a16207;
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   line-height: 1;
 }
 .protection-toggle-switch {
   position: relative;
-  width: 24px;
-  height: 14px;
+  width: 22px;
+  height: 12px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.1);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
+  background: rgba(15, 23, 42, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
   flex-shrink: 0;
   transition: background 0.2s ease, box-shadow 0.2s ease;
 }
@@ -221,11 +269,11 @@ body.dark .navheader2 .runner .btn:hover {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.94);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.22);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s ease;
 }
 .protection-toggle[aria-checked="true"] .protection-toggle-switch::after {
@@ -235,42 +283,78 @@ body.dark .navheader2 .runner .btn:hover {
   transform: translateX(0);
 }
 .protection-toggle[aria-checked="true"] .protection-toggle-state {
-  background: rgba(111, 143, 255, 0.16);
-  box-shadow: inset 0 0 0 1px rgba(111, 143, 255, 0.18);
-  color: #e2eaff;
+  background: rgba(37, 99, 235, 0.12);
+  box-shadow: none;
+  color: #2563eb;
 }
 .protection-toggle[aria-checked="true"] .protection-toggle-switch {
-  background: rgba(111, 143, 255, 0.24);
-  box-shadow: inset 0 0 0 1px rgba(111, 143, 255, 0.34);
+  background: rgba(37, 99, 235, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.24);
 }
 .protection-toggle[aria-checked="false"] .protection-toggle-icon-wrap {
-  background: rgba(217, 119, 6, 0.16);
-  box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.2);
+  background: transparent;
+  box-shadow: none;
 }
 .protection-toggle[aria-checked="false"] .protection-toggle-icon {
-  color: #f0ba61;
+  color: #b45309;
 }
 .protection-toggle[aria-checked="false"] .protection-toggle-state {
-  background: rgba(217, 119, 6, 0.16);
-  box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.2);
-  color: #f7ca81;
+  background: rgba(217, 119, 6, 0.1);
+  box-shadow: none;
+  color: #a16207;
 }
 .protection-toggle[aria-checked="false"] .protection-toggle-switch {
-  background: rgba(217, 119, 6, 0.18);
-  box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.24);
+  background: rgba(217, 119, 6, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.18);
+}
+body.dark .protection-toggle-icon {
+  color: rgba(209, 213, 219, 0.86);
+}
+body.dark .protection-toggle-state {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f0b45f;
+}
+body.dark .protection-toggle-switch {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+body.dark .protection-toggle[aria-checked="true"] .protection-toggle-state {
+  background: rgba(96, 165, 250, 0.16);
+  color: #93c5fd;
+}
+body.dark .protection-toggle[aria-checked="true"] .protection-toggle-switch {
+  background: rgba(96, 165, 250, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.3);
+}
+body.dark .protection-toggle[aria-checked="false"] .protection-toggle-icon {
+  color: #f0b45f;
+}
+body.dark .protection-toggle[aria-checked="false"] .protection-toggle-state {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f0b45f;
+}
+body.dark .protection-toggle[aria-checked="false"] .protection-toggle-switch {
+  background: rgba(245, 158, 11, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.2);
 }
 @media (max-width: 640px) {
   .navheader2 .runner .btn {
-    height: 22px;
+    height: 24px;
     padding: 0 8px !important;
-    border-radius: 3px;
+    border-radius: 6px;
+  }
+  .navheader2 .runner .terminal-utility-button {
+    width: 24px;
+    min-width: 24px;
+    padding: 0 !important;
   }
   .protection-toggle-copy {
-    gap: 6px;
+    gap: 5px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .navheader2 .runner .btn,
+  .terminal-tooltip,
   .protection-toggle,
   .protection-toggle-switch,
   .protection-toggle-switch::after {

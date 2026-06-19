@@ -29,31 +29,31 @@
 
     <div class='main-sidebar-section' aria-label="Computer">
       <div class="main-sidebar-section-title">Computer</div>
-      <a href="/home" class="tab <%= sidebarSelected === 'home' ? 'selected' : '' %>" data-tippy-content="This machine"><i class='fas fa-laptop-code'></i><div class='caption'>This machine</div></a>
-      <a href="/network" class="tab <%= sidebarSelected === 'network' ? 'selected' : '' %>" data-tippy-content="Local network"><i class="fa-solid fa-wifi"></i><div class='caption'>Local network</div></a>
+      <a href="/home" class="tab <%= sidebarSelected === 'home' ? 'selected' : '' %>"><i class='fas fa-laptop-code'></i><div class='caption'>This machine</div></a>
+      <a href="/network" class="tab <%= sidebarSelected === 'network' ? 'selected' : '' %>"><i class="fa-solid fa-wifi"></i><div class='caption'>Local network</div></a>
       <% if (sidebarList.length > 0) { %>
         <% sidebarList.forEach(({ host, name, platform }) => { %>
           <% const selectedNet = sidebarSelectedNetName && String(name || "") === sidebarSelectedNetName; %>
-          <a href="/net/<%=name%>" class="submenu tab <%= selectedNet ? 'selected' : '' %>" data-tippy-content="<%=name%> (<%=sidebarCurrentHost === host ? 'this machine' : host%>)"><i class="fa-brands fa-<%=brands[platform]%>"></i><div class='caption'><%=name%> (<%=sidebarCurrentHost === host ? 'this machine' : host%>)</div></a>
+          <a href="/net/<%=name%>" class="submenu tab <%= selectedNet ? 'selected' : '' %>"><i class="fa-brands fa-<%=brands[platform]%>"></i><div class='caption'><%=name%> (<%=sidebarCurrentHost === host ? 'this machine' : host%>)</div></a>
         <% }) %>
       <% } %>
     </div>
 
     <div class='main-sidebar-section' aria-label="Manage">
       <div class="main-sidebar-section-title">Manage</div>
-      <a class="tab <%= sidebarSelected === 'checkpoints' ? 'selected' : '' %>" href="/checkpoints" data-tippy-content="Checkpoints"><i class="fa-solid fa-clock-rotate-left"></i><div class='caption'>Checkpoints</div></a>
-      <a class="tab <%= sidebarSelected === 'tools' ? 'selected' : '' %>" href="/tools" data-tippy-content="Installed Tools"><i class="fa-solid fa-toolbox"></i><div class='caption'>Tools</div></a>
-      <a class="tab <%= sidebarSelected === 'plugins' ? 'selected' : '' %>" href="/plugins" data-tippy-content="Plugins"><i class="fa-solid fa-plug-circle-bolt"></i><div class='caption'>Plugins</div></a>
-      <a class="tab <%= sidebarSelected === 'tasks' ? 'selected' : '' %>" href="/tasks" data-tippy-content="Tasks"><i class="fa-solid fa-list-check"></i><div class='caption'>Tasks</div></a>
-      <a class="tab <%= sidebarSelected === 'skills' ? 'selected' : '' %>" href="/skills" data-tippy-content="Skills"><i class="fa-solid fa-wand-magic-sparkles"></i><div class='caption'>Skills</div></a>
-      <a class="tab <%= sidebarSelected === 'logs' ? 'selected' : '' %>" id='genlog' href="/logs" data-tippy-content="Logs"><i class="fa-solid fa-laptop-code"></i><div class='caption'>Logs</div></a>
+      <a class="tab <%= sidebarSelected === 'checkpoints' ? 'selected' : '' %>" href="/checkpoints"><i class="fa-solid fa-clock-rotate-left"></i><div class='caption'>Checkpoints</div></a>
+      <a class="tab <%= sidebarSelected === 'tools' ? 'selected' : '' %>" href="/tools"><i class="fa-solid fa-toolbox"></i><div class='caption'>Tools</div></a>
+      <a class="tab <%= sidebarSelected === 'plugins' ? 'selected' : '' %>" href="/plugins"><i class="fa-solid fa-plug-circle-bolt"></i><div class='caption'>Plugins</div></a>
+      <a class="tab <%= sidebarSelected === 'tasks' ? 'selected' : '' %>" href="/tasks"><i class="fa-solid fa-list-check"></i><div class='caption'>Tasks</div></a>
+      <a class="tab <%= sidebarSelected === 'skills' ? 'selected' : '' %>" href="/skills"><i class="fa-solid fa-wand-magic-sparkles"></i><div class='caption'>Skills</div></a>
+      <a class="tab <%= sidebarSelected === 'logs' ? 'selected' : '' %>" id='genlog' href="/logs"><i class="fa-solid fa-laptop-code"></i><div class='caption'>Logs</div></a>
     </div>
 
     <div class='main-sidebar-section' aria-label="Configure">
       <div class="main-sidebar-section-title">Configure</div>
-      <a class="tab <%= sidebarSelected === 'autolaunch' ? 'selected' : '' %>" href="/autolaunch" data-tippy-content="Autolaunch"><i class="fa-solid fa-power-off"></i><div class='caption'>Autolaunch</div></a>
-      <a href="/connect" class="tab <%= sidebarSelected === 'connect' ? 'selected' : '' %>" data-tippy-content="Login"><i class="fa-solid fa-plug"></i><div class='caption'>Login</div></a>
-      <a class="tab <%= sidebarSelected === 'settings' ? 'selected' : '' %>" href="/home?mode=settings" data-tippy-content="Settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
+      <a class="tab <%= sidebarSelected === 'autolaunch' ? 'selected' : '' %>" href="/autolaunch"><i class="fa-solid fa-power-off"></i><div class='caption'>Autolaunch</div></a>
+      <a href="/connect" class="tab <%= sidebarSelected === 'connect' ? 'selected' : '' %>"><i class="fa-solid fa-plug"></i><div class='caption'>Login</div></a>
+      <a class="tab <%= sidebarSelected === 'settings' ? 'selected' : '' %>" href="/home?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
     </div>
   </nav>
 

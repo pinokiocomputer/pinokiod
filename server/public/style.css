@@ -1445,6 +1445,11 @@ body.main-sidebar-page main > .task-container {
   color: var(--pinokio-sidebar-tab-active-color) !important;
   font-weight: 600 !important;
 }
+body.main-sidebar-page aside.main-sidebar .tab:hover,
+body.main-sidebar-page aside.main-sidebar .tab:focus-visible,
+body.main-sidebar-page aside.main-sidebar .tab.selected {
+  color: var(--pinokio-sidebar-tab-active-color) !important;
+}
 .main-sidebar .tab i,
 .main-sidebar .tab .main-sidebar-action-icon {
   grid-column: 1;
@@ -1465,6 +1470,14 @@ body.main-sidebar-page main > .task-container {
 .main-sidebar .tab:hover .main-sidebar-action-icon,
 .main-sidebar .tab:focus-visible .main-sidebar-action-icon,
 .main-sidebar .tab.selected .main-sidebar-action-icon {
+  color: var(--pinokio-sidebar-icon-active) !important;
+}
+body.main-sidebar-page aside.main-sidebar .tab:hover i,
+body.main-sidebar-page aside.main-sidebar .tab:focus-visible i,
+body.main-sidebar-page aside.main-sidebar .tab.selected i,
+body.main-sidebar-page aside.main-sidebar .tab:hover .main-sidebar-action-icon,
+body.main-sidebar-page aside.main-sidebar .tab:focus-visible .main-sidebar-action-icon,
+body.main-sidebar-page aside.main-sidebar .tab.selected .main-sidebar-action-icon {
   color: var(--pinokio-sidebar-icon-active) !important;
 }
 .main-sidebar .tab .caption {
@@ -1947,7 +1960,7 @@ header .runner.terminal-runner-minimal .btn span {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   flex-wrap: wrap;
   justify-content: flex-end;
   min-width: 0;
