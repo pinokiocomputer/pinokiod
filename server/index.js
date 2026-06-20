@@ -1089,7 +1089,7 @@ class Server {
     const doneMarker = "PINOKIO_GITHUB_LOGIN_DONE"
     const delimiter = this.kernel.platform === "win32" ? " && " : " ; "
     const verifyCommand = this.kernel.platform === "win32"
-      ? "cmd /C \"set GIT_TERMINAL_PROMPT=0&& set GCM_INTERACTIVE=never&& (echo protocol=https& echo host=github.com& echo.) | git credential fill >NUL\""
+      ? "powershell.exe -NoProfile -Command \"$env:GIT_TERMINAL_PROMPT='0'; $env:GCM_INTERACTIVE='never'; @('protocol=https','host=github.com','') | git credential fill > $null; exit $LASTEXITCODE\""
       : "printf 'protocol=https\\nhost=github.com\\n\\n' | GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=never git credential fill >/dev/null"
     const doneCommand = this.kernel.platform === "win32"
       ? "echo P^INOKIO_GITHUB_LOGIN_DONE"

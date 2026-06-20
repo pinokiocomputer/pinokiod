@@ -76,7 +76,7 @@ test('GitHub login uses success-only credential verification on Windows', () => 
     kernel: { platform: 'win32' }
   })
 
-  assert.match(message, /git credential-manager github login --web --force && cmd \/C "set GIT_TERMINAL_PROMPT=0&& set GCM_INTERACTIVE=never&& \(echo protocol=https& echo host=github\.com& echo\.\) \| git credential fill >NUL" && echo P\^INOKIO_GITHUB_LOGIN_DONE/)
+  assert.match(message, /git credential-manager github login --web --force && powershell\.exe -NoProfile -Command "\$env:GIT_TERMINAL_PROMPT='0'; \$env:GCM_INTERACTIVE='never'; @\('protocol=https','host=github\.com',''\) \| git credential fill > \$null; exit \$LASTEXITCODE" && echo P\^INOKIO_GITHUB_LOGIN_DONE/)
   assert.doesNotMatch(message, /PINOKIO_GITHUB_LOGIN_DONE/)
 })
 
