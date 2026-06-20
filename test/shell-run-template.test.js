@@ -157,15 +157,19 @@ test('Shell.init_env disables Hugging Face hub update checks by default without 
     env: {}
   })
   assert.equal(defaultShell.env.HF_HUB_DISABLE_UPDATE_CHECK, '1')
+  assert.equal(defaultShell.env.HF_TOKEN_PATH, path.join(root, 'cache', 'HF_AUTH', 'token'))
+  assert.equal(defaultShell.env.HF_TOKEN, undefined)
 
   const overrideShell = createShell(createKernel(root))
   await overrideShell.init_env({
     path: process.cwd(),
     env: {
-      HF_HUB_DISABLE_UPDATE_CHECK: '0'
+      HF_HUB_DISABLE_UPDATE_CHECK: '0',
+      HF_TOKEN_PATH: path.join(root, 'custom', 'hf-token')
     }
   })
   assert.equal(overrideShell.env.HF_HUB_DISABLE_UPDATE_CHECK, '0')
+  assert.equal(overrideShell.env.HF_TOKEN_PATH, path.join(root, 'custom', 'hf-token'))
 })
 
 test('Shell.init_env keeps Windows Hugging Face symlink defaults scoped to win32', async () => {

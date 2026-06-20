@@ -280,7 +280,7 @@ module.exports = {
       { name: "git", },
       { name: "uv", },
       { name: "node", },
-      { name: "caddy", },
+      { name: "huggingface" },
       { name: "py", },
       { name: "bluefairy" },
     ])
@@ -293,8 +293,7 @@ module.exports = {
         zip_cmd,
         "huggingface",
         "uv",
-        "git",
-        "caddy"
+        "git"
       ]
     }
   },

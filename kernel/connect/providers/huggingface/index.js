@@ -1,97 +1,235 @@
-const fetch = require('cross-fetch')
+const { execFile, spawn } = require('child_process')
 const fs = require('fs')
 const path = require('path')
+const fetch = require('cross-fetch')
+const Environment = require('../../../environment')
+
+const stripAnsi = (value) => String(value || "").replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, "")
+
 class Huggingface {
-  CLIENT_ID = 'e90d4a4d-68a6-4c12-ae71-64756b5918de'
-  REDIRECT_URI = 'https://pinokio.localhost/connect/huggingface'
-  HF_OAUTH_URL = 'https://huggingface.co/oauth/authorize'
-  HF_TOKEN_URL = 'https://huggingface.co/oauth/token'
-  HF_API_URL = 'https://huggingface.co/api/whoami-v2'
-  constructor(kernel) {
+  constructor(kernel, config) {
     this.kernel = kernel
+    this.config = config
+    this.loginSession = null
   }
   async readme() {
     return ""
   }
-  async persist(auth) {
-    console.log("PERSIST", auth)
-    this.auth = auth
-    this.auth.expires_at = Date.now() + (this.auth.expires_in * 1000);
-    let authPath = this.kernel.path('connect/huggingface.json')
-    await fs.promises.mkdir(this.kernel.path("connect"), { recursive: true }).catch((e) => { })
-    await fs.promises.writeFile(authPath, JSON.stringify(this.auth, null, 2))
-
-    // huggingface-cli login
-    await this.kernel.exec({
-      message: `hf auth login --token ${this.auth.access_token} --add-to-git-credential`
-    }, (stream) => {
-      process.stdout.write(stream.raw)
+  defaultTokenPath() {
+    return this.kernel.path("cache", "HF_AUTH", "token")
+  }
+  async authEnv() {
+    let systemEnv = {}
+    try {
+      systemEnv = await Environment.get(this.kernel.homedir, this.kernel)
+    } catch (_) {
+      systemEnv = {}
+    }
+    const env = Object.assign({}, process.env, systemEnv)
+    if (!env.HF_TOKEN_PATH) {
+      env.HF_TOKEN_PATH = this.defaultTokenPath()
+    }
+    if (!env.HF_HUB_DISABLE_UPDATE_CHECK) {
+      env.HF_HUB_DISABLE_UPDATE_CHECK = "1"
+    }
+    delete env.HF_TOKEN
+    delete env.HUGGING_FACE_HUB_TOKEN
+    await fs.promises.mkdir(path.dirname(env.HF_TOKEN_PATH), { recursive: true }).catch(() => {})
+    return env
+  }
+  hfPath() {
+    const candidates = this.kernel.platform === "win32" ? [
+      this.kernel.path("bin", "miniconda", "Scripts", "hf.exe"),
+      this.kernel.path("bin", "miniconda", "Scripts", "hf"),
+      this.kernel.path("bin", "miniconda", "bin", "hf"),
+    ] : [
+      this.kernel.path("bin", "miniconda", "bin", "hf"),
+    ]
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate)) {
+        return candidate
+      }
+    }
+    return candidates[0]
+  }
+  async runHf(args) {
+    const env = await this.authEnv()
+    return new Promise((resolve, reject) => {
+      execFile(this.hfPath(), args, {
+        cwd: this.kernel.homedir,
+        env,
+        maxBuffer: 1024 * 1024,
+      }, (error, stdout, stderr) => {
+        if (error) {
+          error.stdout = stdout
+          error.stderr = stderr
+          reject(error)
+        } else {
+          resolve({ stdout, stderr, env })
+        }
+      })
     })
   }
-  async destroy() {
-    await fs.promises.rm(this.kernel.path("connect/huggingface.json"))
-    this.auth = null
+  serializeLoginSession(session) {
+    if (!session) {
+      return null
+    }
+    return {
+      status: session.status,
+      login: session.login,
+      error: session.error,
+      token_path: session.tokenPath,
+    }
   }
-  async sync() {
-    // check if auth exists
-    //  if not, throw error
-    let authPath = this.kernel.path('connect/huggingface.json')
-    this.auth = (await this.kernel.loader.load(authPath)).resolved
-    if (!this.auth) {
+  parseDeviceLogin(output) {
+    const clean = stripAnsi(output).replace(/\s+/g, " ")
+    for (const line of stripAnsi(output).split(/\r?\n/)) {
+      if (!line.trim()) {
+        continue
+      }
+      let event
+      try {
+        event = JSON.parse(line)
+      } catch (_) {
+        continue
+      }
+      if (event && event.event === "device_code" && event.user_code) {
+        return {
+          verification_uri_complete: event.verification_uri_complete || event.verification_uri,
+          user_code: event.user_code,
+          expires_in: event.expires_in || null,
+          interval: event.interval || null,
+        }
+      }
+    }
+    const urlMatch = clean.match(/open\s+(https?:\/\/\S+)/i)
+    const codeMatch = clean.match(/enter the code\s+([A-Z0-9-]+)/i)
+    const expiresMatch = clean.match(/expires in\s+(\d+)\s+seconds/i)
+    if (!urlMatch || !codeMatch) {
       return null
     }
-    if (!this.auth.refresh_token) {
-      console.log("no refresh token")
-      return null
+    return {
+      verification_uri_complete: urlMatch[1].replace(/[).,]+$/, ""),
+      user_code: codeMatch[1],
+      expires_in: expiresMatch ? Number(expiresMatch[1]) : null,
     }
-
-    // check if auth has expired
-    //  if expired, refresh and return
-    if (Date.now() < this.auth.expires_at) {
-      return
+  }
+  async login() {
+    if (this.loginSession && this.loginSession.status === "pending") {
+      return this.serializeLoginSession(this.loginSession)
     }
-    console.log("auth expired. refresh....", JSON.stringify({ auth: this.auth, id: this.CLIENT_ID }, null, 2))
-    // expired — refresh
-    const response = await fetch(this.HF_TOKEN_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: this.auth.refresh_token,
-        client_id: this.CLIENT_ID,
-      })
-    }).then((res) => {
-      return res.json()
-    });
-    await this.persist(response)
-    return this.auth
+    const env = await this.authEnv()
+    const session = {
+      status: "pending",
+      login: null,
+      error: null,
+      output: "",
+      tokenPath: env.HF_TOKEN_PATH,
+      child: null,
+      readyResolved: false,
+    }
+    this.loginSession = session
+    let resolveReady
+    const ready = new Promise((resolve) => {
+      resolveReady = resolve
+    })
+    const markReady = () => {
+      if (!session.readyResolved) {
+        session.readyResolved = true
+        resolveReady()
+      }
+    }
+    const appendOutput = (chunk) => {
+      session.output += stripAnsi(chunk)
+      const parsed = this.parseDeviceLogin(session.output)
+      if (parsed && !session.login) {
+        session.login = parsed
+        markReady()
+      }
+    }
+    const child = spawn(this.hfPath(), ["auth", "login", "--format", "agent", "--force"], {
+      cwd: this.kernel.homedir,
+      env,
+      windowsHide: false,
+    })
+    session.child = child
+    child.stdout.on("data", appendOutput)
+    child.stderr.on("data", appendOutput)
+    child.on("error", (error) => {
+      session.status = "error"
+      session.error = error.message
+      markReady()
+    })
+    const readyTimer = setTimeout(() => {
+      if (session.status === "pending" && !session.login) {
+        session.status = "error"
+        session.error = "Timed out waiting for Hugging Face login code."
+        child.kill()
+        markReady()
+      }
+    }, 15000)
+    child.on("close", (code) => {
+      clearTimeout(readyTimer)
+      if (code === 0) {
+        session.status = "success"
+      } else {
+        session.status = "error"
+        session.error = session.error || stripAnsi(session.output).trim() || `hf auth login exited with code ${code}`
+      }
+      markReady()
+    })
+    await ready
+    if (session.status === "error") {
+      return this.serializeLoginSession(session)
+    }
+    return this.serializeLoginSession(session)
   }
   async keys() {
-    await this.sync()
-    return this.auth
+    if (this.loginSession && this.loginSession.status === "pending") {
+      return this.serializeLoginSession(this.loginSession)
+    }
+    try {
+      const { stdout, env } = await this.runHf(["auth", "token", "--format", "quiet"])
+      const access_token = stripAnsi(stdout).trim().split(/\r?\n/).find(Boolean)
+      if (!access_token) {
+        return null
+      }
+      return { access_token, token_path: env.HF_TOKEN_PATH }
+    } catch (error) {
+      return null
+    }
   }
-  async login(req) {
-    console.log("huggingface login", req)
-    await this.persist(req)
-    return this.auth
+  async profile() {
+    const keys = await this.keys()
+    if (!keys || !keys.access_token) {
+      return null
+    }
+    const response = await fetch(this.config.profile.url, {
+      headers: {
+        'Authorization': 'Bearer ' + keys.access_token
+      }
+    }).then((res) => {
+      if (!res.ok) {
+        throw new Error(`Hugging Face profile request failed with ${res.status}`)
+      }
+      return res.json()
+    })
+    const connectPath = this.kernel.path("connect", "huggingface")
+    await fs.promises.mkdir(connectPath, { recursive: true }).catch(() => {})
+    await this.config.profile.cache(response, connectPath).catch(() => {})
+    return this.config.profile.render(response)
   }
-//  async login (req) {
-//    const authHeader = 'Basic ' + Buffer.from(`${this.id}:`).toString('base64');
-//    const response = await fetch('https://api.x.com/2/oauth2/token', {
-//      method: 'POST',
-//      headers: {
-//        'Content-Type': 'application/json',
-////        'Authorization': authHeader
-//      },
-//      body: JSON.stringify(req.payload)
-//    }).then((res) => {
-//      return res.json()
-//    });
-//    await this.persist(response)
-//    return this.auth
-//  }
-  async logout (req) {
-    await this.destroy() 
+  async destroy() {
+    if (this.loginSession && this.loginSession.child && this.loginSession.status === "pending") {
+      this.loginSession.child.kill()
+    }
+    this.loginSession = null
+    await this.runHf(["auth", "logout"]).catch(() => {})
+    await fs.promises.rm(this.kernel.path("connect", "huggingface"), { recursive: true, force: true }).catch(() => {})
+  }
+  async logout() {
+    await this.destroy()
   }
 }
+
 module.exports = Huggingface

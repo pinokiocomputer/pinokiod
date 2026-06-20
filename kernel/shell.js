@@ -208,11 +208,6 @@ class Shell {
     let system_env = await Environment.get(this.kernel.homedir, this.kernel)
     this.env = Object.assign(this.env, system_env)
 
-    let hf_keys = await this.kernel.connect.keys("huggingface")
-    if (hf_keys && hf_keys.access_token) {
-      this.env.HF_TOKEN = hf_keys.access_token
-    }
-
     const parentPath = (params.$parent && params.$parent.path) ? path.resolve(params.$parent.path) : null
     const apiRoot = path.resolve(this.kernel.path("api")) + path.sep
     const parentStat = parentPath ? await fs.promises.stat(parentPath).catch(() => null) : null
@@ -295,6 +290,7 @@ class Shell {
     }
 
     setDefaultEnvValue(this.env, "HF_HUB_DISABLE_UPDATE_CHECK", "1")
+    setDefaultEnvValue(this.env, "HF_TOKEN_PATH", path.resolve(this.kernel.homedir, "cache", "HF_AUTH", "token"))
 
     if (this.platform === "win32") {
       // Hugging Face file symlinks regularly fail on non-admin Windows setups.

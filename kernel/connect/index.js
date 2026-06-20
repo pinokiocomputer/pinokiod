@@ -9,7 +9,11 @@ class Connect {
     this.config = config
     this.clients = {}
     for(let name in this.config) {
-      this.clients[name] = new Backend(kernel, name, this.config[name])
+      if (name === "huggingface") {
+        this.clients[name] = new Huggingface(kernel, this.config[name])
+      } else {
+        this.clients[name] = new Backend(kernel, name, this.config[name])
+      }
     }
   }
   async profile(provider, req) {

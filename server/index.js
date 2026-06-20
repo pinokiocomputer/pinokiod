@@ -12380,49 +12380,53 @@ class Server {
     *  GET /connect/discord
     */
     this.app.get("/connect/:provider", ex(async (req, res) => {
+      const providerUsesDeviceLogin = req.params.provider === "huggingface"
+      const setupMode = providerUsesDeviceLogin ? "connect" : "network"
 
       // check if all the connect related modules are installed
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
-        bin: this.kernel.bin.preset("connect"),
+        bin: this.kernel.bin.preset(setupMode),
       })
       if (!requirements_pending && install_required) {
         console.log("REDIRECT", req.params.provider)
-        res.redirect("/setup/connect?callback=/connect/" + req.params.provider)
+        res.redirect(`/setup/${setupMode}?callback=/connect/${req.params.provider}`)
         return
       }
 
-      let https_running = false
-      try {
-        let res = await axios.get(`http://127.0.0.1:2019/config/`, {
-          timeout: 2000
-        })
-        let test = /pinokio\.localhost/.test(JSON.stringify(res.data))
-        if (test) {
-          https_running = true
+      if (!providerUsesDeviceLogin) {
+        let https_running = false
+        try {
+          let res = await axios.get(`http://127.0.0.1:2019/config/`, {
+            timeout: 2000
+          })
+          let test = /pinokio\.localhost/.test(JSON.stringify(res.data))
+          if (test) {
+            https_running = true
+          }
+        } catch (e) {
+          console.log(e)
         }
-      } catch (e) {
-        console.log(e)
-      }
-      if (!https_running) {
+        if (!https_running) {
 //        res.json({ error: "pinokio.host not yet available" })
-        res.redirect("/setup/connect?callback=/connect/" + req.params.provider)
-        return
-      }
-
-      // check if pinokio.localhost router is running
-      let router_running = false
-      let router = this.kernel.router.published()
-      for(let ip in router) {
-        let domains = router[ip]
-        if (domains.includes("pinokio.localhost")) {
-          router_running = true
-          break
+          res.redirect(`/setup/${setupMode}?callback=/connect/${req.params.provider}`)
+          return
         }
-      }
-      if (!router_running) {
+
+        // check if pinokio.localhost router is running
+        let router_running = false
+        let router = this.kernel.router.published()
+        for(let ip in router) {
+          let domains = router[ip]
+          if (domains.includes("pinokio.localhost")) {
+            router_running = true
+            break
+          }
+        }
+        if (!router_running) {
 //        res.json({ error: "pinokio.localhost not yet available" })
-        res.redirect("/setup/connect?callback=/connect/" + req.params.provider)
-        return
+          res.redirect(`/setup/${setupMode}?callback=/connect/${req.params.provider}`)
+          return
+        }
       }
 
 
@@ -12437,7 +12441,7 @@ class Server {
       const config = this.kernel.connect.config[req.params.provider]
       const isPinokioHost = req.hostname === 'pinokio.localhost'
       const renderProtocol = isPinokioHost ? 'https' : 'http'
-      res.render(`connect/index`, {
+      res.render(providerUsesDeviceLogin ? `connect/huggingface` : `connect/index`, {
         protocol: renderProtocol,
         name: req.params.provider,
         config,
@@ -13516,7 +13520,7 @@ class Server {
       1. mode:ai => all
       2. mode:coding => conda, nodejs, git
       3. mode:network => conda, git, caddy
-      4. mode:connect => conda, git, caddy
+      4. mode:connect => conda, git, huggingface
       */
 
       let bin = this.kernel.bin.preset(req.params.mode)

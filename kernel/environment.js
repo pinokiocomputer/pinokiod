@@ -402,6 +402,21 @@ const ENVS = async () => {
       "##########################################################################",
     ],
   }, {
+    type: ["system"],
+    key: "HF_TOKEN_PATH",
+    val: "./cache/HF_AUTH/token",
+    comment: [
+      "##########################################################################",
+      "#",
+      "# HF_TOKEN_PATH",
+      "#",
+      "# Hugging Face authentication token file",
+      "# Pinokio keeps this shared across apps so each app can customize HF_HOME",
+      "# for model/cache files without changing the logged-in Hugging Face account.",
+      "#",
+      "##########################################################################",
+    ],
+  }, {
     type: ["system", "app"],
     key: "TORCH_HOME",
     val: "./cache/TORCH_HOME",
@@ -535,7 +550,7 @@ const init_folders = async (homedir, kernel) => {
     if (is_absolute || is_relative) {
 
       // skip condarc and pipconfig => special case
-      if (["PIP_CONFIG_FILE", "CONDARC"].includes(key)) {
+      if (["PIP_CONFIG_FILE", "CONDARC", "HF_TOKEN_PATH"].includes(key)) {
         continue
       }
       // it's a path
