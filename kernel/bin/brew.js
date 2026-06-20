@@ -51,7 +51,11 @@ class Brew {
     await this.kernel.bin.rm("Homebrew.zip", ondata)
 //
     ondata({ raw: "installing gettext\r\n" })
-    await this.kernel.bin.exec({ message: "brew install gettext --force-bottle", conda: { skip: true } }, (stream) => { ondata(stream) })
+    await this.kernel.bin.exec({
+      message: "brew install gettext --force-bottle",
+      conda: { skip: true },
+      env: this.nonInteractiveEnv()
+    }, (stream) => { ondata(stream) })
 //
     ondata({ raw: `Install finished\r\n` })
   }
@@ -96,7 +100,13 @@ class Brew {
       HOMEBREW_PREFIX: this.kernel.bin.path("homebrew"),
       HOMEBREW_CELLAR: this.kernel.bin.path("homebrew", "Cellar"),
       HOMEBREW_REPOSITORY: this.kernel.bin.path("homebrew"),
-      HOMEBREW_CACHE: this.kernel.bin.path("homebrew", "cache")
+      HOMEBREW_CACHE: this.kernel.bin.path("homebrew", "cache"),
+      ...this.nonInteractiveEnv()
+    }
+  }
+  nonInteractiveEnv() {
+    return {
+      HOMEBREW_NO_ASK: "1"
     }
   }
 }
