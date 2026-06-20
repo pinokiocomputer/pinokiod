@@ -54,16 +54,16 @@
       <div class="main-sidebar-section-title">Computer</div>
       <a href="/home" class="tab <%= sidebarSelected === 'home' ? 'selected' : '' %>"><i class='fas fa-laptop-code'></i><div class='caption'>This machine</div></a>
       <a href="/network" class="tab <%= sidebarSelected === 'network' ? 'selected' : '' %>"><i class="fa-solid fa-wifi"></i><div class='caption'>Local network</div></a>
-      <% if (sidebarShowPhoneAccess) { %>
-        <button type="button" class="tab main-sidebar-phone-trigger" data-peer-access-open aria-haspopup="dialog" aria-controls="main-sidebar-peer-dialog" aria-expanded="false">
-          <i class="fa-solid fa-mobile-screen-button"></i><div class='caption'>Phone</div>
-        </button>
-      <% } %>
       <% if (sidebarList.length > 0) { %>
         <% sidebarList.forEach(({ host, name, platform }) => { %>
           <% const selectedNet = sidebarSelectedNetName && String(name || "") === sidebarSelectedNetName; %>
           <a href="/net/<%=name%>" class="submenu tab <%= selectedNet ? 'selected' : '' %>"><i class="fa-brands fa-<%=brands[platform]%>"></i><div class='caption'><%=name%> (<%=sidebarCurrentHost === host ? 'this machine' : host%>)</div></a>
         <% }) %>
+      <% } %>
+      <% if (sidebarShowPhoneAccess) { %>
+        <button type="button" class="tab main-sidebar-phone-trigger" data-peer-access-open aria-haspopup="dialog" aria-controls="main-sidebar-peer-dialog" aria-expanded="false">
+          <i class="fa-solid fa-mobile-screen-button"></i><div class='caption'>Phone</div>
+        </button>
       <% } %>
     </div>
 
