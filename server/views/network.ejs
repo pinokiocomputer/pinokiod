@@ -1084,6 +1084,9 @@ body.network-page .network-config-section {
 }
 body.network-page .network-config-head {
   align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--task-border);
 }
 body.network-page .config {
   margin: 0;
@@ -1113,17 +1116,21 @@ body.network-page .config-row .label {
   font-weight: 700;
   color: var(--task-text);
 }
-body.network-page .config-toggle-row {
+body.network-page .config-access-copy {
+  min-width: 0;
+}
+body.network-page .config-access-titleline {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+body.network-page .config-toggle-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--task-border);
-}
-body.network-page .config-toggle-copy {
-  display: grid;
-  gap: 3px;
+  justify-content: flex-end;
+  gap: 12px;
+  flex: 0 0 auto;
 }
 body.network-page #active-label {
   padding: 0;
@@ -1314,6 +1321,12 @@ body.dark.network-page .badge {
   body.network-page .task-shell-body {
     padding-bottom: 22px;
   }
+  body.network-page .network-config-head {
+    align-items: flex-start;
+  }
+  body.network-page .config-toggle-actions {
+    gap: 10px;
+  }
   body.network-page .line.align-top h3 {
     grid-template-columns: 1fr;
   }
@@ -1397,24 +1410,23 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class='c'>
   <section class='task-section network-config-section' aria-label='Network access'>
     <div class='task-section-head network-config-head'>
-      <div>
-        <h2 class='task-section-title'>Network access</h2>
+      <div class='config-access-copy'>
+        <div class='config-access-titleline'>
+          <h2 class='task-section-title'>Network access</h2>
+          <div id='active-label'><%=peer_active ? "On" : "Off"%></div>
+        </div>
         <p class='task-section-subcopy'>Enable local sharing and set this machine's network name.</p>
       </div>
-      <button class='task-button primary save config-save-btn'>Save</button>
+      <div class='config-toggle-actions'>
+        <label class="switcher">
+          <input id='active' type="checkbox" <%=peer_active ? 'checked' : ''%>>
+          <span class="slider"></span>
+        </label>
+        <button class='task-button primary save config-save-btn'>Save</button>
+      </div>
     </div>
     <div class='config'>
       <div class='config-body'>
-        <div class='config-row config-toggle-row'>
-          <div class='config-toggle-copy'>
-            <div class='label'>Status</div>
-            <div id='active-label'><%=peer_active ? "On" : "Off"%></div>
-          </div>
-          <label class="switcher">
-            <input id='active' type="checkbox" <%=peer_active ? 'checked' : ''%>>
-            <span class="slider"></span>
-          </label>
-        </div>
         <div class='config-row' id='network_name'>
           <div class='label'>Network Name</div>
           <div class='network-name'>
