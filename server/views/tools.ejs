@@ -1,1839 +1,755 @@
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-<link href="/xterm.min.css" rel="stylesheet" />
-<link href="/css/fontawesome.min.css" rel="stylesheet">
-<link href="/css/solid.min.css" rel="stylesheet">
-<link href="/css/regular.min.css" rel="stylesheet">
-<link href="/css/brands.min.css" rel="stylesheet">
-<link href="/markdown.css" rel="stylesheet"/>
-<link href="/noty.css" rel="stylesheet"/>
-<link href="/style.css" rel="stylesheet"/>
-<link href="/task-launcher.css" rel="stylesheet"/>
-<link href="/urldropdown.css" rel="stylesheet" />
-<% if (agent === "electron") { %>
-  <link href="/electron.css" rel="stylesheet"/>
-<% } %>
-<style>
-.line2 {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  background: rgba(0,0,100,0.04);
-}
-.line2 a {
-  text-decoration: none;
-  color: black;
-}
-.status {
-  padding: 10px;
-  margin: 10px;
-  border-radius: 10px;
-}
-.status.offline {
-  background: silver;
-}
-.status.online {
-  background: yellowgreen;
-}
-.switch {
-  padding: 10px;
-  margin: 10px 0;
-}
-.switch[data-online=true] {
-  color: yellowgreen;
-}
-.button {
-  padding: 10px;
-}
-.on, .off {
-  display: flex;
-  align-items: center;
-}
-/*
-.btn {
-  margin-right: 5px;
-  font-weight: normal;
-  padding: 5px 15px;
-  min-width: 100px;
-  text-align: center;
-}
-*/
-.items {
-  max-width: 600px;
-  margin: 50px auto;
-}
-body.dark .item {
-  border-left: 5px solid rgba(255,255,255,0.06);
-}
-.item {
-  margin: 0;
-  /*
-  border-top: 1px solid rgba(255,255,255,0.1);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  */
-  padding: 10px;
-  border-left: 5px solid rgba(0,0,0,0.06);
-}
-.titleview {
-  margin: 0;
-  padding: 25px;
-  max-width: 600px;
-}
-.titleview h1 {
-  word-break: break-word;
-  font-size: 40px;
-  margin-bottom: 10px;
-}
-.item > .d {
-  padding-bottom: 10px;
-}
-.item label {
-  display: block;
-  text-transform: capitalize;
-  font-size: 20px;
-  font-weight: bold;
-  padding-bottom: 5px;
-}
-.item .explanation {
-  padding-top: 5px;
-  color: #bf411d;
-  font-size: 12px;
-}
-.item input[type=text] {
-  background: whitesmoke;
-}
-.item select {
-  background: whitesmoke;
-}
-/*
-body.dark .item input[type=text] {
-  background: rgba(255,255,255,0.1);
-  color: white;
-}
-body.dark .item select {
-  color: white;
-  background: rgba(255,255,255,0.1);
-}
-*/
-.item input[type=text] {
-  padding: 10px;
-  flex-grow: 1;
-  border: none;
-  /*
-  background: rgba(0,0,0,0.05);
-  */
-  width: 100%;
-}
-.item select {
-/*
-  -webkit-appearance: none;
-  -moz-appearance:    none;
-  appearance:         none;
-  */
-
-/*
-  background: rgba(0,0,0,0.05);
-  */
-  padding: 10px;
-  box-sizing: border-box;
-  width: 100%;
-  border: none;
-}
-.item img {
-  width: 100px;
-}
-.item .title {
-  text-decoration: none;
-  color: royalblue;
-}
-.item .col {
-  padding: 10px;
-}
-.item .col > * {
-  margin: 5px 0;
-}
-.item .stat {
-  color: rgba(0,0,0,0.8);
-  display: flex;
-}
-.item .stat > * {
-  margin-right: 15px;
-}
-.timestamp {
-  color: rgba(0,0,0,0.5);
-}
-body.dark .loading {
-  background: rgba(255,255,255,0.06);
-}
-.loading {
-  padding: 20px;
-  text-align: center;
-  background: rgba(0,0,0,0.06);
-}
-body.dark .btn {
-  color: white;
-  background: rgba(255,255,255,0.1);
-}
-body.light {
-/*
-  background: var(--light-nav-bg);
-  */
-}
-/*
-form {
-  text-align: center;
-}
-body.dark header .btn2 {
-  color: var(--light-link-color); 
-}
-header .btn2 {
-  color: var(--light-color); 
-}
-*/
-/*
-body.dark header .home {
-  color: var(--light-link-color); 
-}
-*/
-header .home {
-  color: var(--light-color); 
-}
-body.dark hr {
-  background: white;
-}
-hr {
-  opacity: 0.03;
-  background: black;
-  margin: 30px 0;
-  height: 1px;
-  border: none;
-}
-body.dark .config {
-  color: white;
-}
-.config {
-  color: black;
-  padding: 30px;
-  margin: 10px 0;
-}
-.config-header {
-}
-.config-body {
-  padding-top: 20px;
-  margin-top: 20px;
-}
-.config .btn {
-  font-size: 16px;
-  font-weight: bold;
-  width: 100px;
-  background: royalblue;
-  flex-shrink: 0;
-}
-.config-row {
-  padding: 10px 20px 0 0;
-}
-.label {
-  padding-bottom: 5px;
-  font-weight: bold;
-}
-.config-row input[type=text] {
-  padding: 7px;
-}
-.header-label {
-  padding: 0;
-  font-size: 30px;
-  text-transform: capitalize;
-}
-body.dark .container {
-  color: white;
-}
-.container {
-}
-.dark .container-row {
-  background: rgba(255, 255, 255, 0.04);
-}
-.container-row {
-  background: rgba(0, 0, 100, 0.04);
-  box-sizing: border-box;
-}
-.header-label-sub h1 {
-  font-size: 25px;
-  letter-spacing: -1px;
-  font-weight: lighter;
-}
-.header-label-sub {
-  font-size: 16px;
-  padding: 10px 0;
-  border-bottom: 1px solid rgba(0,0,0,0.1);
-}
-.header-label-sub .s {
-  padding: 10px 0;
-  opacity: 0.7;
-}
-body.dark .section-header {
-}
-.section-header {
-  font-weight: normal;
-  font-size: 14px;
-  padding: 15px 5px;
-}
-.section-header h2 {
-  font-size: 20px;
-  font-weight: lighter;
-  margin: 0;
-}
-.section-header .section {
-  padding: 0;
-}
-.section-header .section div {
-  font-weight: normal;
-  opacity: 0.6;
-  font-size: 14px;
-}
-.section-header h3 {
-  display: flex;
-  margin: 0;
-}
-.section-header .col {
-  padding-left: 10px;
-  flex-grow: 1;
-  min-width: 0;
-  word-wrap: break-word;
-}
-.tab-content {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-.tab:hover {
-  color: royalblue;
-}
-.tab-content .tab {
-  text-decoration: none;
-  display: flex;
-  font-size: 14px;
-  font-weight: bold;
-  color: black;
-  overflow: hidden;
-  box-sizing: border-box;
-  align-items: center;
-  gap: 2px;
-  background: rgba(0,0,0,0.04);
-  border-radius: 5px;
-  padding: 5px;
-}
-body.dark .tab {
-  color: white;
-  background: rgba(255,255,255,0.03);
-}
-.tab h2 {
-  margin: 0;
-  font-size: 14px;
-}
-.tab .col {
-  flex-grow: 1;
-  margin-left: 10px;
-}
-.tab .emoji {
-  width: 30px;
-  height: 30px;
-  font-size: 20px;
-  box-sizing: border-box;
-  text-align:center;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.tab i.img {
-  height: 30px;
-  width: 30px;
-  display: flex;
-  justify-content: center;
-  font-size: 20px;
-  align-items: center;
-  border-radius: 3px;
-}
-.menu-container {
-/*
-  max-width: 800px;
-  */
-  padding: 20px;
-  align-items: stretch;
-}
-.menu-container {
-  display: flex;
-  box-sizing: border-box;
-  flex-direction: column;
-}
-.package-tabs {
-  display: flex;
-  border-bottom: 2px solid rgba(0,0,0,0.1);
-  margin-bottom: 20px;
-}
-body.dark .package-tabs {
-  border-bottom: 2px solid rgba(255,255,255,0.1);
-}
-.package-tab {
-  padding: 10px 20px;
-  background: rgba(0,0,0,0.04);
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: bold;
-  color: rgba(0,0,0,0.7);
-  margin-right: 2px;
-  border-radius: 5px 5px 0 0;
-  transition: all 0.2s ease;
-}
-body.dark .package-tab {
-  background: rgba(255,255,255,0.04);
-  color: rgba(255,255,255,0.7);
-}
-.package-tab:hover {
-  color: royalblue;
-  background: rgba(0,0,100,0.08);
-}
-body.dark .package-tab:hover {
-  background: rgba(255,255,255,0.08);
-}
-.package-tab.active {
-  background: royalblue;
-  color: white;
-}
-.package-tab.active:hover {
-  background: royalblue;
-  color: white;
-}
-.tab-panel {
-  display: none;
-}
-.tab-panel.active {
-  display: block;
-}
-.bundles-section {
-  margin-bottom: 30px;
-}
-.bundles-header {
-  padding: 15px 0;
-  border-bottom: 1px solid rgba(0,0,0,0.1);
-  margin-bottom: 20px;
-}
-body.dark .bundles-header {
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-.bundles-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: lighter;
-  color: rgba(0,0,0,0.8);
-}
-body.dark .bundles-header h3 {
-  color: rgba(255,255,255,0.8);
-}
-.bundles-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 15px;
-}
-.bundle-card {
-  background: rgba(0,0,0,0.04);
-  padding: 15px;
-  border-left: 4px solid royalblue;
-}
-body.dark .bundle-card {
-  background: rgba(255,255,255,0.04);
-}
-.bundle-card.installed {
-  border-left-color: #28a745;
-}
-.bundle-card.pending {
-  border-left-color: #ffc107;
-}
-.bundle-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 15px;
-}
-.bundle-title-section {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-grow: 1;
-}
-.bundle-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: royalblue;
-  color: white;
-  border-radius: 8px;
-  font-size: 18px;
-  flex-shrink: 0;
-}
-body.dark .bundle-icon {
-  background: lightblue;
-  color: black;
-}
-.bundle-title-text {
-  flex-grow: 1;
-}
-.bundle-name {
-  font-size: 16px;
-  font-weight: bold;
-  color: royalblue;
-  margin-bottom: 2px;
-}
-body.dark .bundle-name {
-  color: lightblue;
-}
-.bundle-code {
-  font-size: 12px;
-  color: rgba(0,0,0,0.6);
-  font-weight: normal;
-}
-body.dark .bundle-code {
-  color: rgba(255,255,255,0.6);
-}
-.bundle-description {
-  font-size: 13px;
-  color: rgba(0,0,0,0.7);
-  margin-bottom: 15px;
-  line-height: 1.4;
-}
-body.dark .bundle-description {
-  color: rgba(255,255,255,0.7);
-}
-.bundle-status {
-  font-size: 12px;
-  padding: 3px 8px;
-  border-radius: 12px;
-  text-transform: uppercase;
-  font-weight: bold;
-}
-.bundle-status.installed {
-  background: #28a745;
-  color: white;
-}
-.bundle-status.pending {
-  background: #ffc107;
-  color: black;
-}
-.bundle-packages {
-  margin-bottom: 15px;
-}
-.bundle-packages-title {
-  font-size: 12px;
-  font-weight: bold;
-  color: rgba(0,0,0,0.6);
-  margin-bottom: 5px;
-}
-body.dark .bundle-packages-title {
-  color: rgba(255,255,255,0.6);
-}
-.bundle-packages-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-.package-badge {
-  background: rgba(0,0,100,0.1);
-  color: rgba(0,0,0,0.8);
-  padding: 2px 6px;
-  border-radius: 10px;
-  font-size: 11px;
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-body.dark .package-badge {
-  background: rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.8);
-}
-.package-badge.installed {
-  background: rgba(40, 167, 69, 0.2);
-  color: #28a745;
-  border: 1px solid rgba(40, 167, 69, 0.3);
-}
-body.dark .package-badge.installed {
-  background: rgba(40, 167, 69, 0.3);
-  color: #4caf50;
-  border: 1px solid rgba(40, 167, 69, 0.4);
-}
-.package-badge.not-installed {
-  background: rgba(220, 53, 69, 0.2);
-  color: #dc3545;
-  border: 1px solid rgba(220, 53, 69, 0.3);
-}
-body.dark .package-badge.not-installed {
-  background: rgba(220, 53, 69, 0.3);
-  color: #f56565;
-  border: 1px solid rgba(220, 53, 69, 0.4);
-}
-.package-badge-icon {
-  font-size: 8px;
-  font-weight: bold;
-}
-.bundle-install-btn {
-  background: royalblue;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 5px;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 12px;
-  font-weight: bold;
-  text-align: center;
-  transition: background 0.2s ease;
-  width: 100%;
-  box-sizing: border-box;
-}
-.bundle-install-btn:hover {
-  background: #4169e1;
-  color: white;
-}
-.bundle-install-btn.installed {
-  background: #28a745;
-  cursor: default;
-}
-.bundle-install-btn.installed:hover {
-  background: #28a745;
-}
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  text-align: center;
-}
-.loading-spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid rgba(0,0,0,0.1);
-  border-left: 4px solid royalblue;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
-}
-body.dark .loading-spinner {
-  border: 4px solid rgba(255,255,255,0.1);
-  border-left: 4px solid lightblue;
-}
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-.loading-text {
-  font-size: 16px;
-  color: rgba(0,0,0,0.7);
-  margin-bottom: 10px;
-}
-body.dark .loading-text {
-  color: rgba(255,255,255,0.7);
-}
-.loading-subtext {
-  font-size: 14px;
-  color: rgba(0,0,0,0.5);
-}
-body.dark .loading-subtext {
-  color: rgba(255,255,255,0.5);
-}
-.reset-cache-loading {
-  padding: 10px;
-  background: rgba(0,0,0,0.1);
-  margin-bottom: 10px;
-  text-align: center;
-}
-.reset-bin-loading {
-  padding: 10px;
-  background: rgba(0,0,0,0.1);
-  margin-bottom: 10px;
-  text-align: center;
-}
-#proxy {
-  text-decoration: underline;
-  margin-left: 10px;
-  display: inline-block;
-  cursor: pointer;
-}
-body.dark .keys pre {
-  background: rgba(255,255,255,0.02) !important;
-}
-.keys pre {
-  padding: 20px;
-  margin: 20px 0;
-  background: rgba(0,0,100,0.04) !important;
-}
-.swal2-actions {
-  justify-content: center !important;
-}
-.swal2-title {
-  text-align: center !important;
-}
-
-.package-install-card {
-  background: rgba(0, 0, 0, 0.035);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 10px;
-  padding: 15px;
-  margin-bottom: 20px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-body.dark .package-install-card {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-.package-install-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-  align-items: flex-end;
-}
-.package-install-field {
-  flex: 1 1 220px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.package-install-label {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: rgba(0, 0, 0, 0.55);
-}
-body.dark .package-install-label {
-  color: rgba(255, 255, 255, 0.65);
-}
-.package-install-input {
-  border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.14);
-  padding: 10px 12px;
-  font-size: 14px;
-  background: rgba(255, 255, 255, 0.95);
-  color: rgba(15, 23, 42, 0.95);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-body.dark .package-install-input {
-  background: rgba(15, 23, 42, 0.85);
-  border-color: rgba(148, 163, 184, 0.3);
-  color: rgba(226, 232, 240, 0.92);
-}
-.package-install-input:focus {
-  outline: none;
-  border-color: rgba(59, 130, 246, 0.6);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-}
-body.dark .package-install-input:focus {
-  border-color: rgba(96, 165, 250, 0.7);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
-}
-.package-install-submit {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 11px 18px;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  background: rgba(59, 130, 246, 0.9);
-  color: #ffffff;
-  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
-}
-.package-install-submit:hover {
-  background: rgba(37, 99, 235, 0.95);
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25);
-  transform: translateY(-1px);
-}
-.package-install-submit:active {
-  transform: translateY(0);
-  box-shadow: none;
-}
-.package-install-submit i {
-  font-size: 16px;
-}
-.package-install-description {
-  margin-top: 12px;
-  font-size: 12px;
-  color: rgba(0, 0, 0, 0.55);
-}
-body.dark .package-install-description {
-  color: rgba(255, 255, 255, 0.55);
-}
-.package-install-description code {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  background: rgba(15, 23, 42, 0.06);
-  padding: 2px 6px;
-  border-radius: 6px;
-  color: inherit;
-}
-body.dark .package-install-description code {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-@media only screen and (max-width: 720px) {
-  .package-install-form {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .package-install-field {
-    width: 100%;
-  }
-  .package-install-submit {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-:root {
-  --pinokio-modal-bg: #ffffff;
-  --pinokio-modal-text: #0f172a;
-  --pinokio-modal-title-color: #0f172a;
-  --pinokio-modal-subtitle-color: rgba(71, 85, 105, 0.75);
-  --pinokio-modal-body-bg: rgba(241, 245, 249, 0.9);
-  --pinokio-modal-body-border: rgba(203, 213, 225, 0.7);
-  --pinokio-modal-body-iframe-bg: #ffffff;
-  --pinokio-modal-label-color: rgba(71, 85, 105, 0.95);
-  --pinokio-modal-input-bg: #ffffff;
-  --pinokio-modal-input-border: rgba(148, 163, 184, 0.5);
-  --pinokio-modal-input-text: #0f172a;
-  --pinokio-modal-input-focus-border: rgba(59, 130, 246, 0.6);
-  --pinokio-modal-input-focus-shadow: rgba(59, 130, 246, 0.2);
-  --pinokio-modern-shadow: 0 32px 80px rgba(15, 23, 42, 0.25);
-  --pinokio-modern-close-color: rgba(71, 85, 105, 0.65);
-  --pinokio-modern-close-hover-bg: rgba(148, 163, 184, 0.18);
-  --pinokio-modern-close-hover-color: #0f172a;
-}
-body.dark {
-  --pinokio-modal-bg: #0f172a;
-  --pinokio-modal-text: #e2e8f0;
-  --pinokio-modal-title-color: #f8fafc;
-  --pinokio-modal-subtitle-color: rgba(148, 163, 184, 0.85);
-  --pinokio-modal-body-bg: rgba(15, 23, 42, 0.6);
-  --pinokio-modal-body-border: rgba(59, 130, 246, 0.18);
-  --pinokio-modal-body-iframe-bg: #0b1220;
-  --pinokio-modal-label-color: rgba(203, 213, 225, 0.9);
-  --pinokio-modal-input-bg: rgba(15, 23, 42, 0.85);
-  --pinokio-modal-input-border: rgba(148, 163, 184, 0.25);
-  --pinokio-modal-input-text: #f8fafc;
-  --pinokio-modal-input-focus-border: rgba(96, 165, 250, 0.7);
-  --pinokio-modal-input-focus-shadow: rgba(37, 99, 235, 0.25);
-  --pinokio-modern-shadow: 0 40px 120px rgba(2, 8, 23, 0.7);
-  --pinokio-modern-close-color: rgba(226, 232, 240, 0.6);
-  --pinokio-modern-close-hover-bg: rgba(148, 163, 184, 0.12);
-  --pinokio-modern-close-hover-color: #f8fafc;
-}
-
-.pinokio-modern-modal.swal2-popup {
-  background: var(--pinokio-modal-bg) !important;
-  color: var(--pinokio-modal-text) !important;
-  border-radius: 18px;
-  padding: 0 !important;
-  box-shadow: var(--pinokio-modern-shadow) !important;
-  overflow: hidden;
-}
-.pinokio-modern-html {
-  padding: 0 !important;
-}
-.pinokio-modern-close {
-  color: var(--pinokio-modern-close-color) !important;
-  border-radius: 50%;
-  width: 34px;
-  height: 34px;
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-.pinokio-modern-close:hover {
-  background: var(--pinokio-modern-close-hover-bg) !important;
-  color: var(--pinokio-modern-close-hover-color) !important;
-}
-
-.pinokio-modal-surface {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  color: var(--pinokio-modal-text);
-}
-.pinokio-modal-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 22px;
-}
-.pinokio-modal-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  background: rgba(59, 130, 246, 0.12);
-  color: rgba(37, 99, 235, 0.95);
-}
-body.dark .pinokio-modal-icon {
-  background: rgba(59, 130, 246, 0.18);
-  color: rgba(147, 197, 253, 0.95);
-}
-.pinokio-modal-heading {
-  text-align: left;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.pinokio-modal-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--pinokio-modal-title-color);
-}
-.pinokio-modal-subtitle {
-  font-size: 13px;
-  color: var(--pinokio-modal-subtitle-color);
-  line-height: 1.4;
-}
-.pinokio-modal-subtitle code {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 6px;
-  background: rgba(15, 23, 42, 0.08);
-  color: inherit;
-}
-body.dark .pinokio-modal-subtitle code {
-  background: rgba(15, 23, 42, 0.4);
-}
-.pinokio-modal-body {
-  background: var(--pinokio-modal-body-bg);
-  border-top: 1px solid var(--pinokio-modal-body-border);
-  padding: 10px;
-}
-.pinokio-modal-body--iframe {
-  height: 520px;
-  background: var(--pinokio-modal-body-iframe-bg);
-}
-.pinokio-modal-body--iframe iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-  background: transparent;
-}
-
-main {
-  display: flex;
-}
-aside {
-  width: 200px;
-  display: block;
-  flex-shrink: 0;
-}
-aside .tab i {
-  width: 20px;
-  text-align: center;
-}
-body.dark aside .tab {
-  color: white;
-}
-body.dark aside .tab:hover, aside .tab:hover {
-  color: royalblue !important;
-  opacity: 1;
-}
-aside .tab {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: black;
-  text-decoration: none;
-  padding: 10px;
-  font-size: 12px;
-  opacity: 0.5;
-  border-left: 10px solid transparent;
-}
-body.dark aside .tab.selected {
-  color: white;
-}
-aside .selected {
-  font-weight: bold;
-  opacity: 1;
-}
-@media only screen and (max-width: 600px) {
-  .bundle-header {
-    display: block;
-  }
-  .bundle-status {
-    margin-top: 10px;
-  }
-  .bundles-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  aside {
-    width: unset;
-    flex-shrink: unset;
-  }
-  aside {
-    padding: 0 10px;
-  }
-  aside .tab i {
-    width: 100%;
-  }
-  aside .tab .caption {
-    display: none;
-  }
-  aside .tab {
-    margin: 0;
-    padding: 10px;
-    border-left: none;
-  }
-  aside .btn-tab {
-    flex-direction: column;
-    padding: 10px 0;
-  }
-  aside .btn-tab .btn {
-    display: flex;
-    justify-content: center;
-  }
-  aside .btn-tab .btn .caption {
-    display: none; 
-  }
-  header .flexible {
-    min-width: unset;
-  }
-}
-@media only screen and (max-width: 480px) {
-  .btn2 {
-    padding: 5px;
-    font-size: 11px;
-  }
-  .nav-btns {
-    flex-grow: 1;
-    justify-content: center;
-    padding: 0;
-  }
-}
-
-/*
-@media only screen and (max-width: 800px) {
-  body {
-    display: flex !important;
-    flex-direction: row !important;
-  }
-}
-*/
-@media only screen and (max-width: 600px) {
-  aside {
-    width: unset;
-    flex-shrink: unset;
-  }
-  aside {
-    padding: 0 10px;
-  }
-  aside .tab.submenu {
-    padding: 10px;
-  }
-  aside .tab i {
-    width: 100%;
-  }
-  aside .tab .caption {
-    display: none;
-  }
-  aside .tab {
-    margin: 0;
-    padding: 10px;
-    border-left: none;
-  }
-  aside .btn-tab {
-    flex-direction: column;
-    padding: 10px 0;
-  }
-  aside .btn-tab .btn {
-    display: flex;
-    justify-content: center;
-  }
-  aside .btn-tab .btn .caption {
-    display: none; 
-  }
-  header .flexible {
-    min-width: unset;
-  }
-}
-body.tools-page .task-container {
-  padding: 20px 28px 32px;
-}
-body.tools-page .task-shell {
-  width: min(1140px, 100%);
-  margin: 0;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  overflow: visible;
-  backdrop-filter: none;
-}
-body.tools-page .task-shell-header {
-  padding-bottom: 18px;
-}
-body.tools-page .task-shell-body {
-  padding: 0 28px 28px;
-}
-body.tools-page .menu-container {
-  display: grid;
-  gap: 28px;
-}
-body.tools-page .loading-container {
-  min-height: 320px;
-  border: 1px solid var(--task-border);
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
-}
-body.tools-page .loading-spinner {
-  border-color: color-mix(in srgb, var(--task-text) 10%, transparent);
-  border-left-color: var(--task-accent);
-}
-body.dark.tools-page .loading-spinner {
-  border-color: color-mix(in srgb, white 10%, transparent);
-  border-left-color: var(--task-accent);
-}
-body.tools-page .loading-text,
-body.tools-page .loading-subtext,
-body.dark.tools-page .loading-text,
-body.dark.tools-page .loading-subtext {
-  color: var(--task-muted);
-}
-body.tools-page .bundles-section {
-  margin: 0;
-}
-body.tools-page .bundles-header {
-  margin: 0 0 14px;
-  padding: 0;
-  border: 0;
-}
-body.tools-page .bundles-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--task-text);
-}
-body.dark.tools-page .bundles-header h3 {
-  color: var(--task-text);
-}
-body.tools-page .bundles-grid {
-  gap: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-}
-body.tools-page .bundle-card {
-  border: 1px solid var(--task-border);
-  border-left: 0;
-  border-radius: 16px;
-  padding: 18px;
-  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
-}
-body.tools-page .bundle-card.installed {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, #22c55e 22%, transparent);
-}
-body.tools-page .bundle-card.pending {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, #f59e0b 24%, transparent);
-}
-body.tools-page .bundle-icon,
-body.dark.tools-page .bundle-icon {
-  background: var(--task-accent-surface);
-  color: var(--task-accent-contrast);
-  border-radius: 12px;
-}
-body.tools-page .bundle-name,
-body.dark.tools-page .bundle-name {
-  color: var(--task-text);
-}
-body.tools-page .bundle-code,
-body.tools-page .bundle-description,
-body.tools-page .bundle-packages-title,
-body.dark.tools-page .bundle-code,
-body.dark.tools-page .bundle-description,
-body.dark.tools-page .bundle-packages-title {
-  color: var(--task-muted);
-}
-body.tools-page .bundle-status {
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  letter-spacing: 0.02em;
-}
-body.tools-page .bundle-status.installed {
-  background: color-mix(in srgb, #22c55e 14%, var(--task-panel));
-  color: #15803d;
-}
-body.dark.tools-page .bundle-status.installed {
-  color: #86efac;
-}
-body.tools-page .bundle-status.pending {
-  background: color-mix(in srgb, #f59e0b 14%, var(--task-panel));
-  color: #b45309;
-}
-body.dark.tools-page .bundle-status.pending {
-  color: #fcd34d;
-}
-body.tools-page .package-badge,
-body.dark.tools-page .package-badge {
-  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
-  color: var(--task-text);
-  border: 1px solid var(--task-border);
-  border-radius: 999px;
-  padding: 3px 8px;
-}
-body.tools-page .package-badge.installed {
-  background: color-mix(in srgb, #22c55e 12%, var(--task-panel));
-  color: #15803d;
-  border-color: color-mix(in srgb, #22c55e 28%, transparent);
-}
-body.dark.tools-page .package-badge.installed {
-  color: #86efac;
-}
-body.tools-page .package-badge.not-installed {
-  background: color-mix(in srgb, #ef4444 10%, var(--task-panel));
-  color: #b91c1c;
-  border-color: color-mix(in srgb, #ef4444 24%, transparent);
-}
-body.dark.tools-page .package-badge.not-installed {
-  color: #fca5a5;
-}
-body.tools-page .bundle-install-btn,
-body.tools-page .package-install-submit {
-  border-radius: 12px;
-  background: var(--task-accent-surface);
-  color: var(--task-accent-contrast);
-}
-body.tools-page .bundle-install-btn:hover,
-body.tools-page .package-install-submit:hover {
-  background: var(--task-accent-hover);
-}
-body.tools-page .bundle-install-btn.installed {
-  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
-  border: 1px solid var(--task-border);
-  color: var(--task-muted);
-}
-body.tools-page .package-tabs {
-  margin: 0;
-  border: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-body.tools-page .package-tab,
-body.dark.tools-page .package-tab {
-  margin: 0;
-  padding: 8px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--task-border);
-  background: transparent;
-  color: var(--task-muted);
-}
-body.tools-page .package-tab:hover {
-  background: color-mix(in srgb, var(--task-panel) 92%, var(--task-soft));
-  color: var(--task-text);
-}
-body.tools-page .package-tab.active {
-  background: var(--task-accent-surface);
-  color: var(--task-accent-contrast);
-  border-color: transparent;
-}
-body.tools-page .section-header {
-  padding: 0 0 10px;
-}
-body.tools-page .section-header h2 {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--task-text);
-}
-body.tools-page .section-header .section div {
-  color: var(--task-muted);
-}
-body.tools-page .package-install-card {
-  margin-bottom: 16px;
-  border: 1px solid var(--task-border);
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
-  box-shadow: none;
-}
-body.tools-page .package-install-label,
-body.dark.tools-page .package-install-label {
-  color: var(--task-muted);
-}
-body.tools-page .package-install-input {
-  border-radius: 12px;
-  border-color: var(--task-border-strong);
-  background: color-mix(in srgb, var(--task-panel) 98%, white);
-  color: var(--task-text);
-}
-body.dark.tools-page .package-install-input {
-  background: color-mix(in srgb, var(--task-panel) 96%, black);
-  color: var(--task-text);
-}
-body.tools-page .package-install-input:focus,
-body.dark.tools-page .package-install-input:focus {
-  border-color: var(--task-accent);
-}
-body.tools-page .package-install-description,
-body.dark.tools-page .package-install-description {
-  color: var(--task-muted);
-}
-body.tools-page .package-install-description code {
-  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
-}
-body.tools-page .tab-content {
-  gap: 8px;
-}
-body.tools-page .tab-content .tab,
-body.dark.tools-page .tab-content .tab {
-  padding: 12px 14px;
-  border: 1px solid var(--task-border);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
-  color: var(--task-text);
-}
-body.tools-page .tab .col {
-  margin-left: 8px;
-}
-body.tools-page .tab h2 {
-  font-size: 14px;
-  color: inherit;
-}
-body.tools-page .tab .emoji {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--task-accent) 12%, transparent);
-  color: var(--task-accent);
-}
-@media only screen and (max-width: 820px) {
-  body.tools-page .task-shell-header,
-  body.tools-page .task-shell-body {
-    padding-left: 18px;
-    padding-right: 18px;
-  }
-}
-@media only screen and (max-width: 560px) {
-  body.tools-page .task-container {
-    padding: 16px 14px 24px;
-  }
-  body.tools-page .task-shell-body {
-    padding-bottom: 22px;
-  }
-}
-
-/* Minimal modal normalization for tools package install dialogs. */
-:root {
-  --pinokio-modal-bg: #ffffff;
-  --pinokio-modal-text: #18181b;
-  --pinokio-modal-title-color: #18181b;
-  --pinokio-modal-subtitle-color: #71717a;
-  --pinokio-modal-border: rgba(24, 24, 27, 0.12);
-  --pinokio-modal-body-bg: rgba(24, 24, 27, 0.03);
-  --pinokio-modal-body-border: rgba(24, 24, 27, 0.1);
-  --pinokio-modal-body-iframe-bg: #ffffff;
-  --pinokio-modal-icon-bg: rgba(24, 24, 27, 0.04);
-  --pinokio-modal-icon-color: #52525b;
-  --pinokio-modern-shadow: 0 18px 50px rgba(15, 23, 42, 0.16);
-  --pinokio-modern-close-color: #71717a;
-  --pinokio-modern-close-hover-bg: rgba(24, 24, 27, 0.06);
-  --pinokio-modern-close-hover-color: #18181b;
-}
-
-body.dark {
-  --pinokio-modal-bg: #1b1c1d;
-  --pinokio-modal-text: rgba(250, 250, 250, 0.94);
-  --pinokio-modal-title-color: rgba(250, 250, 250, 0.94);
-  --pinokio-modal-subtitle-color: rgba(229, 231, 235, 0.62);
-  --pinokio-modal-border: rgba(255, 255, 255, 0.1);
-  --pinokio-modal-body-bg: rgba(255, 255, 255, 0.04);
-  --pinokio-modal-body-border: rgba(255, 255, 255, 0.09);
-  --pinokio-modal-body-iframe-bg: #161718;
-  --pinokio-modal-icon-bg: rgba(255, 255, 255, 0.055);
-  --pinokio-modal-icon-color: rgba(229, 231, 235, 0.76);
-  --pinokio-modern-shadow: 0 24px 72px rgba(0, 0, 0, 0.42);
-  --pinokio-modern-close-color: rgba(229, 231, 235, 0.58);
-  --pinokio-modern-close-hover-bg: rgba(255, 255, 255, 0.07);
-  --pinokio-modern-close-hover-color: rgba(250, 250, 250, 0.94);
-}
-
-.pinokio-modern-modal.swal2-popup {
-  background: var(--pinokio-modal-bg) !important;
-  color: var(--pinokio-modal-text) !important;
-  border: 1px solid var(--pinokio-modal-border) !important;
-  border-radius: 8px !important;
-  box-shadow: var(--pinokio-modern-shadow) !important;
-}
-
-.pinokio-modern-close {
-  top: 12px !important;
-  right: 12px !important;
-  width: 28px !important;
-  height: 28px !important;
-  border-radius: 6px !important;
-  color: var(--pinokio-modern-close-color) !important;
-}
-
-.pinokio-modern-close:hover,
-.pinokio-modern-close:focus-visible {
-  background: var(--pinokio-modern-close-hover-bg) !important;
-  color: var(--pinokio-modern-close-hover-color) !important;
-  outline: none !important;
-}
-
-.pinokio-modal-surface {
-  background: var(--pinokio-modal-bg) !important;
-  color: var(--pinokio-modal-text) !important;
-  border-radius: 8px !important;
-}
-
-.pinokio-modal-header {
-  gap: 10px !important;
-  padding: 14px !important;
-}
-
-.pinokio-modal-icon {
-  width: 32px !important;
-  height: 32px !important;
-  border-radius: 7px !important;
-  background: var(--pinokio-modal-icon-bg) !important;
-  color: var(--pinokio-modal-icon-color) !important;
-  font-size: 14px !important;
-}
-
-.pinokio-modal-title {
-  color: var(--pinokio-modal-title-color) !important;
-  font-size: 16px !important;
-  line-height: 1.25 !important;
-  font-weight: 600 !important;
-}
-
-.pinokio-modal-subtitle {
-  color: var(--pinokio-modal-subtitle-color) !important;
-  font-size: 12px !important;
-  line-height: 1.45 !important;
-}
-
-.pinokio-modal-body {
-  border-top: 1px solid var(--pinokio-modal-body-border) !important;
-  background: var(--pinokio-modal-body-bg) !important;
-}
-
-.pinokio-modal-body--iframe {
-  padding: 0 !important;
-}
-
-.pinokio-modal-body--iframe iframe {
-  background: var(--pinokio-modal-body-iframe-bg) !important;
-  border-radius: 0 !important;
-}
-</style>
-<script src="/window_storage.js"></script>
-<script src="/popper.min.js"></script>
-<script src="/tippy-bundle.umd.min.js"></script>
-<script src="/hotkeys.min.js"></script>
-<script src="/sweetalert2.js"></script>
-<script src="/noty.js"></script>
-<script src="/notyq.js"></script>
-<script src="/xterm.js"></script>
-<script src="/xterm-addon-fit.js"></script>
-<script src="/xterm-addon-web-links.js"></script>
-<script src="/xterm-theme.js"></script>
-<script src="/install.js"></script>
-<script src="/timeago.min.js"></script>
-<script src="/common.js"></script>
-<script src="/opener.js"></script>
-<script src="/nav.js"></script>
-<script src="/urldropdown.js"></script>
-<script>
-// Initialize URL Dropdown with empty behavior for tools page
-document.addEventListener('DOMContentLoaded', function() {
-  initUrlDropdown({
-    clearBehavior: 'empty'
-  });
-});
-</script>
-<script src="/report.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tools</title>
+  <link href="/css/fontawesome.min.css" rel="stylesheet">
+  <link href="/css/solid.min.css" rel="stylesheet">
+  <link href="/css/brands.min.css" rel="stylesheet">
+  <link href="/noty.css" rel="stylesheet">
+  <link href="/style.css" rel="stylesheet">
+  <link href="/task-launcher.css" rel="stylesheet">
+  <% if (agent === "electron") { %>
+    <link href="/electron.css" rel="stylesheet"/>
+  <% } %>
+  <style>
+    body.tools-page .task-shell-header-main {
+      max-width: 720px;
+    }
+    body.tools-page .task-description {
+      max-width: 70ch;
+    }
+    body.tools-page .tools-summary {
+      align-items: flex-start;
+    }
+    body.tools-page .tools-summary-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      min-height: 26px;
+      box-sizing: border-box;
+      padding: 0 9px;
+      border: 1px solid var(--task-border);
+      border-radius: 999px;
+      color: var(--task-muted);
+      font-size: 11px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    body.tools-page .tools-summary-item strong {
+      color: var(--task-text);
+      font-weight: 700;
+    }
+    body.tools-page .tools-loading-state {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      min-height: 150px;
+      box-sizing: border-box;
+      padding: 18px;
+      border: 1px solid var(--task-border);
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+    }
+    body.tools-page .tools-loading-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--task-accent) 10%, transparent);
+      color: var(--task-accent);
+      font-size: 15px;
+    }
+    body.tools-page .tools-loading-title,
+    body.tools-page .tools-bundle-title,
+    body.tools-page .tools-module-title {
+      color: var(--task-text);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+    }
+    body.tools-page .tools-loading-copy {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+    body.tools-page .tools-loading-text,
+    body.tools-page .tools-bundle-code,
+    body.tools-page .tools-bundle-description,
+    body.tools-page .tools-command-copy,
+    body.tools-page .tools-manager-count {
+      margin: 0;
+      color: var(--task-muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    body.tools-page .tools-bundle-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 10px;
+    }
+    body.tools-page .tools-bundle-card {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+      min-width: 0;
+      padding: 14px;
+      border: 1px solid var(--task-border);
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+    }
+    body.tools-page .tools-bundle-head {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: start;
+      min-width: 0;
+    }
+    body.tools-page .tools-bundle-icon,
+    body.tools-page .tools-module-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--task-accent) 10%, transparent);
+      color: var(--task-accent);
+      font-size: 14px;
+    }
+    body.tools-page .tools-bundle-heading {
+      min-width: 0;
+    }
+    body.tools-page .tools-bundle-title,
+    body.tools-page .tools-module-title {
+      overflow-wrap: anywhere;
+    }
+    body.tools-page .tools-bundle-packages {
+      display: grid;
+      gap: 7px;
+    }
+    body.tools-page .tools-bundle-packages-title {
+      color: var(--task-muted);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    body.tools-page .tools-package-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      min-width: 0;
+    }
+    body.tools-page .tools-package-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      max-width: 100%;
+      min-height: 22px;
+      box-sizing: border-box;
+      padding: 0 8px;
+      border: 1px solid var(--task-border);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--task-panel) 92%, var(--task-soft));
+      color: var(--task-text);
+      font-size: 11px;
+      font-weight: 650;
+      line-height: 1;
+    }
+    body.tools-page .tools-package-pill span:last-child {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    body.tools-page .tools-package-pill.is-installed {
+      border-color: color-mix(in srgb, #22c55e 28%, transparent);
+      background: color-mix(in srgb, #22c55e 10%, var(--task-panel));
+      color: #15803d;
+    }
+    body.dark.tools-page .tools-package-pill.is-installed {
+      color: #86efac;
+    }
+    body.tools-page .tools-package-pill.needs-install {
+      border-color: color-mix(in srgb, #ef4444 24%, transparent);
+      background: color-mix(in srgb, #ef4444 8%, var(--task-panel));
+      color: #b91c1c;
+    }
+    body.dark.tools-page .tools-package-pill.needs-install {
+      color: #fca5a5;
+    }
+    body.tools-page .tools-package-pill i {
+      font-size: 10px;
+      flex: 0 0 auto;
+    }
+    body.tools-page .tools-tabs {
+      margin-bottom: 16px;
+    }
+    body.tools-page .tools-tab-button {
+      appearance: none;
+      cursor: pointer;
+    }
+    body.tools-page .tools-package-panel {
+      display: none;
+    }
+    body.tools-page .tools-package-panel.active {
+      display: grid;
+      gap: 14px;
+    }
+    body.tools-page .tools-manager-section-head {
+      margin-bottom: 0;
+    }
+    body.tools-page .tools-install-card {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid var(--task-border);
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+    }
+    body.tools-page .tools-install-form {
+      display: grid;
+      grid-template-columns: minmax(160px, 1fr) auto;
+      gap: 10px;
+      align-items: end;
+    }
+    body.tools-page .tools-install-form.has-channel {
+      grid-template-columns: minmax(120px, 0.45fr) minmax(160px, 1fr) auto;
+    }
+    body.tools-page .tools-install-submit {
+      min-width: 92px;
+      min-height: 38px;
+      font-size: 12px;
+      font-weight: 650;
+    }
+    body.tools-page .tools-module-list {
+      display: grid;
+      gap: 6px;
+    }
+    body.tools-page .tools-module-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      padding: 10px 0;
+      border-top: 1px solid var(--task-border);
+    }
+    body.tools-page .tools-module-row:first-child {
+      padding-top: 0;
+      border-top: 0;
+    }
+    body.tools-page .tools-module-row:last-child {
+      padding-bottom: 0;
+    }
+    body.tools-page .tools-module-icon {
+      width: 28px;
+      height: 28px;
+      font-size: 12px;
+    }
+    body.tools-page .pinokio-modern-modal.swal2-popup {
+      background: var(--task-panel) !important;
+      color: var(--task-text) !important;
+      border: 1px solid var(--task-border) !important;
+      border-radius: 8px !important;
+      box-shadow: var(--task-shadow) !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+    }
+    body.tools-page .pinokio-modern-html {
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    body.tools-page .pinokio-modern-close {
+      top: 10px !important;
+      right: 10px !important;
+      width: 28px !important;
+      height: 28px !important;
+      border-radius: 6px !important;
+      color: var(--task-muted) !important;
+    }
+    body.tools-page .pinokio-modern-close:hover,
+    body.tools-page .pinokio-modern-close:focus-visible {
+      background: var(--task-soft) !important;
+      color: var(--task-text) !important;
+      outline: none !important;
+    }
+    body.tools-page .pinokio-modal-surface {
+      display: grid;
+      background: var(--task-panel);
+      color: var(--task-text);
+    }
+    body.tools-page .pinokio-modal-header {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 14px;
+    }
+    body.tools-page .pinokio-modal-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 7px;
+      background: color-mix(in srgb, var(--task-accent) 10%, transparent);
+      color: var(--task-accent);
+      font-size: 14px;
+    }
+    body.tools-page .pinokio-modal-heading {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+      text-align: left;
+    }
+    body.tools-page .pinokio-modal-title {
+      color: var(--task-text);
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    body.tools-page .pinokio-modal-subtitle {
+      color: var(--task-muted);
+      font-size: 12px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+    body.tools-page .pinokio-modal-subtitle code {
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: color-mix(in srgb, var(--task-panel) 88%, var(--task-soft));
+      color: inherit;
+    }
+    body.tools-page .pinokio-modal-body {
+      border-top: 1px solid var(--task-border);
+      background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+    }
+    body.tools-page .pinokio-modal-body--iframe {
+      height: 520px;
+    }
+    body.tools-page .pinokio-modal-body--iframe iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: var(--task-panel);
+    }
+    @media (max-width: 760px) {
+      body.tools-page .tools-bundle-head {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+      body.tools-page .tools-bundle-head .task-badge {
+        grid-column: 1 / -1;
+        justify-self: start;
+      }
+      body.tools-page .tools-install-form,
+      body.tools-page .tools-install-form.has-channel {
+        grid-template-columns: 1fr;
+      }
+      body.tools-page .tools-install-submit {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
-<body class='<%=theme%> main-sidebar-page task-launcher-page task-page tools-page' data-agent="<%=agent%>">
-<!--
-<nav>
-  <a class='logo' href="/home">dal</a>
-</nav>
-  -->
-<header class='navheader grabbable'>
-<h1>
-<a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
-<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
-  <div><i class="fa-solid fa-expand"></i></div>
-</button>
-<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
-<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
-<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
-<button class='btn2 mobile-link-button' id='mobile-link-button' data-tippy-content="enter url"><i class="fa-solid fa-link"></i></button>
-<div class='mobile-flexible'></div>
-<form class='urlbar'>
-  <div class='url-input-container'>
-    <input type='url' placeholder='enter any local url to open in pinokio'>
-    <div class='url-dropdown' id='url-dropdown'></div>
-  </div>
-</form>
-<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
-  <div><i class="fa-solid fa-table-columns"></i></div>
-</a>
-<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
-  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
-</a>
-<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
-  <div><i class="fa-solid fa-plus"></i></div>
-</button>
-<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
-  <div><i class="fa-solid fa-xmark"></i></div>
-</button>
-</h1>
-</header>
-<main>
-<div class='task-container'>
-  <section class='task-shell tools-shell'>
-    <header class='task-shell-header'>
-      <div class='task-shell-header-main'>
-        <p class='task-eyebrow'>Tools</p>
-        <h1 class='task-title'>Installed tools</h1>
-        <p class='task-description'>Package bundles and package-manager modules available on this machine.</p>
-      </div>
-    </header>
-    <div class='task-shell-body tools-shell-body'>
-      <div class='menu-container'>
-    <% if (pending) { %>
-      <div class="loading-container">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">Loading installed tools...</div>
-        <div class="loading-subtext">Scanning package managers and modules</div>
-      </div>
-    <% } else { %>
-      <div class="bundles-section">
-        <div class="bundles-header">
-          <h3>Package Bundles</h3>
-        </div>
-        <div class="bundles-grid">
-          <% bundles.forEach((bundle) => { %>
-            <div class="bundle-card <%= !bundle.install_required ? 'installed' : 'pending' %>">
-              <div class="bundle-header">
-                <div class="bundle-title-section">
-                  <div class="bundle-icon">
-                    <i class="<%= bundle.icon %>"></i>
-                  </div>
-                  <div class="bundle-title-text">
-                    <div class="bundle-name"><%= bundle.title %></div>
-                    <div class="bundle-code">(<%= bundle.name %>)</div>
-                  </div>
+<%
+  const bundleList = Array.isArray(bundles) ? bundles : [];
+  const installList = Array.isArray(installs) ? installs : [];
+  const installedBundleCount = bundleList.filter((bundle) => !bundle.install_required).length;
+  const moduleCount = installList.reduce((count, install) => {
+    return count + (Array.isArray(install.modules) ? install.modules.length : 0);
+  }, 0);
+  const managerLabel = (manager) => String(manager || "package").toUpperCase();
+  const managerPanelId = (manager) => `tools-${String(manager || "package").replace(/[^a-z0-9_-]/gi, "-").toLowerCase()}-panel`;
+%>
+<body class="<%= theme %> main-sidebar-page task-launcher-page task-page task-library-page tools-page" data-agent="<%= agent %>">
+  <%- include('partials/app_navheader', { agent }) %>
+  <main>
+    <div class="task-container">
+      <section class="task-shell tools-shell">
+        <header class="task-shell-header">
+          <div class="task-shell-header-main">
+            <p class="task-eyebrow">Tools</p>
+            <h1 class="task-title">Tools</h1>
+            <p class="task-description">Package bundles and package-manager modules available on this machine.</p>
+          </div>
+          <div class="task-header-actions tools-summary">
+            <span class="tools-summary-item"><strong><%= installedBundleCount %></strong> of <%= bundleList.length %> bundles ready</span>
+            <span class="tools-summary-item"><strong><%= moduleCount %></strong> modules</span>
+          </div>
+        </header>
+
+        <div class="task-shell-body tools-shell-body">
+          <% if (pending) { %>
+            <section class="task-section task-section-subtle" aria-live="polite">
+              <div class="tools-loading-state">
+                <div class="tools-loading-icon" aria-hidden="true">
+                  <i class="fa-solid fa-circle-notch fa-spin"></i>
                 </div>
-                <div class="bundle-status <%= !bundle.install_required ? 'installed' : 'pending' %>">
-                  <%= !bundle.install_required ? 'Installed' : 'Not installed' %>
+                <div class="tools-loading-copy">
+                  <div class="tools-loading-title">Loading installed tools</div>
+                  <p class="tools-loading-text">Scanning package managers and modules. This page will refresh when the scan finishes.</p>
                 </div>
               </div>
-              
-              <div class="bundle-description">
-                <%= bundle.description %>
+            </section>
+          <% } else { %>
+            <section class="task-section" aria-label="Package bundles">
+              <div class="task-section-head">
+                <div>
+                  <h2 class="task-section-title">Package Bundles</h2>
+                  <p class="task-section-subcopy"><%= installedBundleCount %> ready, <%= bundleList.length - installedBundleCount %> need install.</p>
+                </div>
               </div>
-              
-              <div class="bundle-packages">
-                <div class="bundle-packages-title">Included packages:</div>
-                <div class="bundle-packages-list">
-                  <% bundle.requirements.forEach((req) => { %>
-                    <span class="package-badge <%= req.installed ? 'installed' : 'not-installed' %>">
-                      <span class="package-badge-icon">
-                        <%= req.installed ? '✓' : '✗' %>
-                      </span>
-                      <%= req.name %>
-                    </span>
+
+              <% if (!bundleList.length) { %>
+                <div class="task-empty-state">
+                  <p class="task-empty-copy">No package bundles were found.</p>
+                </div>
+              <% } else { %>
+                <div class="tools-bundle-grid">
+                  <% bundleList.forEach((bundle) => { %>
+                    <article class="tools-bundle-card <%= !bundle.install_required ? 'is-installed' : 'needs-install' %>">
+                      <div class="tools-bundle-head">
+                        <div class="tools-bundle-icon" aria-hidden="true">
+                          <i class="<%= bundle.icon %>"></i>
+                        </div>
+                        <div class="tools-bundle-heading">
+                          <div class="tools-bundle-title"><%= bundle.title %></div>
+                          <p class="tools-bundle-code"><%= bundle.name %></p>
+                        </div>
+                        <span class="task-badge <%= !bundle.install_required ? 'task-badge-accent' : 'task-badge-warning' %>">
+                          <%= !bundle.install_required ? 'Installed' : 'Not installed' %>
+                        </span>
+                      </div>
+
+                      <p class="tools-bundle-description"><%= bundle.description %></p>
+
+                      <div class="tools-bundle-packages">
+                        <div class="tools-bundle-packages-title">Included packages</div>
+                        <div class="tools-package-list">
+                          <% bundle.requirements.forEach((req) => { %>
+                            <span class="tools-package-pill <%= req.installed ? 'is-installed' : 'needs-install' %>">
+                              <i class="fa-solid <%= req.installed ? 'fa-check' : 'fa-xmark' %>" aria-hidden="true"></i>
+                              <span><%= req.name %></span>
+                            </span>
+                          <% }) %>
+                        </div>
+                      </div>
+
+                      <% if (bundle.install_required) { %>
+                        <a href="<%= bundle.setup %>" class="task-link-button primary">
+                          <i class="fa-solid fa-download" aria-hidden="true"></i>
+                          <span>Install Bundle</span>
+                        </a>
+                      <% } %>
+                    </article>
                   <% }) %>
                 </div>
-              </div>
-              
-              <% if (bundle.install_required) { %>
-                <a href="<%= bundle.setup %>" class="bundle-install-btn">Install Bundle</a>
               <% } %>
-            </div>
-          <% }) %>
-        </div>
-      </div>
-      
-      <div class="package-tabs">
-        <% installs.forEach((install, index) => { %>
-          <button class="package-tab <%= index === 0 ? 'active' : '' %>" data-tab="<%= install.package_manager %>">
-            <%= install.package_manager.toUpperCase() %> (<%= install.modules.length %>)
-          </button>
-        <% }) %>
-      </div>
-      
-      <% installs.forEach((install, index) => { %>
-        <div class="tab-panel <%= index === 0 ? 'active' : '' %>" id="<%= install.package_manager %>-panel">
-          <div class="section-header">
-            <h2><%= install.package_manager.toUpperCase() %></h2>
-            <div class="section">
-              <div><%= install.modules.length %> modules installed</div>
-            </div>
-          </div>
-          <div class="package-install-card">
-            <form class="package-install-form" data-manager="<%= install.package_manager %>">
-              <% if (install.package_manager === 'conda') { %>
-                <div class="package-install-field">
-                  <label class="package-install-label" for="install-channel-<%= install.package_manager %>">Channel</label>
-                  <input id="install-channel-<%= install.package_manager %>" class="package-install-input" name="channel" type="text" value="conda-forge" placeholder="Enter channel" autocomplete="off">
-                </div>
-                <div class="package-install-field">
-                  <label class="package-install-label" for="install-name-<%= install.package_manager %>">Package name</label>
-                  <input id="install-name-<%= install.package_manager %>" class="package-install-input" name="name" type="text" placeholder="Enter package name" autocomplete="off" required>
-                </div>
-              <% } else { %>
-                <div class="package-install-field">
-                  <label class="package-install-label" for="install-name-<%= install.package_manager %>">Package name</label>
-                  <input id="install-name-<%= install.package_manager %>" class="package-install-input" name="name" type="text" placeholder="Enter package name" autocomplete="off" required>
-                </div>
-              <% } %>
-              <button type="submit" class="package-install-submit">
-                <i class="fa-solid fa-terminal"></i>
-                <span>Install</span>
-              </button>
-            </form>
-            <div class="package-install-description">
-              <% if (install.package_manager === 'conda') { %>
-                Runs <code>conda install -y --channel &lt;channel&gt; &lt;name&gt;</code>
-              <% } else if (install.package_manager === 'brew') { %>
-                Runs <code>brew install &lt;name&gt;</code>
-              <% } else { %>
-                Runs <code><%= install.package_manager %> install &lt;name&gt;</code>
-              <% } %>
-            </div>
-          </div>
-          <div class='tab-content'>
-            <% install.modules.forEach((module) => { %>
-              <div class="tab">
-                <div class='emoji'><i class="fa-solid fa-cube"></i></div>
-                <div class='col'>
-                  <h2><%= module %></h2>
+            </section>
+
+            <section class="task-section" aria-label="Installed modules">
+              <div class="task-section-head">
+                <div>
+                  <h2 class="task-section-title">Modules</h2>
+                  <p class="task-section-subcopy"><%= moduleCount %> modules across <%= installList.length %> package managers.</p>
                 </div>
               </div>
-            <% }) %>
-          </div>
+
+              <% if (!installList.length) { %>
+                <div class="task-empty-state">
+                  <p class="task-empty-copy">No package managers were found.</p>
+                </div>
+              <% } else { %>
+                <div class="task-filter-row tools-tabs" role="tablist" aria-label="Package managers">
+                  <% installList.forEach((install, index) => { %>
+                    <% const panelId = managerPanelId(install.package_manager); %>
+                    <button
+                      class="task-filter-chip tools-tab-button <%= index === 0 ? 'active' : '' %>"
+                      type="button"
+                      role="tab"
+                      aria-selected="<%= index === 0 ? 'true' : 'false' %>"
+                      aria-controls="<%= panelId %>"
+                      data-tab="<%= install.package_manager %>">
+                      <%= managerLabel(install.package_manager) %> (<%= install.modules.length %>)
+                    </button>
+                  <% }) %>
+                </div>
+
+                <% installList.forEach((install, index) => { %>
+                  <% const panelId = managerPanelId(install.package_manager); %>
+                  <div
+                    class="tools-package-panel <%= index === 0 ? 'active' : '' %>"
+                    id="<%= panelId %>"
+                    role="tabpanel"
+                    aria-label="<%= managerLabel(install.package_manager) %> modules"
+                    data-panel="<%= install.package_manager %>">
+                    <div class="task-section-head tools-manager-section-head">
+                      <div>
+                        <h3 class="task-section-title"><%= managerLabel(install.package_manager) %></h3>
+                        <p class="tools-manager-count"><%= install.modules.length %> modules installed.</p>
+                      </div>
+                    </div>
+
+                    <div class="tools-install-card">
+                      <form class="tools-install-form package-install-form <%= install.package_manager === 'conda' ? 'has-channel' : '' %>" data-manager="<%= install.package_manager %>">
+                        <% if (install.package_manager === 'conda') { %>
+                          <label class="task-field">
+                            <span class="task-label">Channel</span>
+                            <input class="task-input" name="channel" type="text" value="conda-forge" placeholder="Enter channel" autocomplete="off">
+                          </label>
+                          <label class="task-field">
+                            <span class="task-label">Package name</span>
+                            <input class="task-input" name="name" type="text" placeholder="Enter package name" autocomplete="off" required>
+                          </label>
+                        <% } else { %>
+                          <label class="task-field">
+                            <span class="task-label">Package name</span>
+                            <input class="task-input" name="name" type="text" placeholder="Enter package name" autocomplete="off" required>
+                          </label>
+                        <% } %>
+                        <button type="submit" class="task-button primary tools-install-submit">
+                          <i class="fa-solid fa-terminal" aria-hidden="true"></i>
+                          <span>Install</span>
+                        </button>
+                      </form>
+                      <p class="tools-command-copy">
+                        <% if (install.package_manager === 'conda') { %>
+                          Runs <code>conda install -y --channel &lt;channel&gt; &lt;name&gt;</code>
+                        <% } else if (install.package_manager === 'brew') { %>
+                          Runs <code>brew install &lt;name&gt;</code>
+                        <% } else { %>
+                          Runs <code><%= install.package_manager %> install &lt;name&gt;</code>
+                        <% } %>
+                      </p>
+                    </div>
+
+                    <% if (!install.modules.length) { %>
+                      <div class="task-empty-state">
+                        <p class="task-empty-copy">No modules installed for <%= managerLabel(install.package_manager) %>.</p>
+                      </div>
+                    <% } else { %>
+                      <div class="tools-module-list">
+                        <% install.modules.forEach((module) => { %>
+                          <div class="tools-module-row">
+                            <div class="tools-module-icon" aria-hidden="true">
+                              <i class="fa-solid fa-cube"></i>
+                            </div>
+                            <div class="tools-module-title"><%= module %></div>
+                          </div>
+                        <% }) %>
+                      </div>
+                    <% } %>
+                  </div>
+                <% }) %>
+              <% } %>
+            </section>
+          <% } %>
         </div>
-      <% }) %>
-    <% } %>
-      </div>
+      </section>
     </div>
-  </section>
-</div>
-<%- include('partials/main_sidebar', { selected: 'tools' }) %>
-</main>
-<script>
-const PACKAGE_MANAGER_ICONS = {
-  conda: 'fa-solid fa-flask',
-  brew: 'fa-solid fa-beer-mug-empty',
-  pip: 'fa-brands fa-python',
-  npm: 'fa-brands fa-npm',
-  yarn: 'fa-brands fa-yarn',
-  cargo: 'fa-solid fa-box-open'
-};
+    <%- include('partials/main_sidebar', { selected: 'tools' }) %>
+  </main>
 
-const escapeHtml = (value) => {
-  if (!value) return '';
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-};
-
-const toDisplayName = (manager) => {
-  if (!manager) return 'Package Manager';
-  return manager
-    .split(/[\s_-]+/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
-
-const buildInstallPayload = (manager, formData) => {
-  const trimmedManager = (manager || '').trim();
-  const normalizedManager = trimmedManager.toLowerCase();
-  const name = (formData.get('name') || '').trim();
-  if (!normalizedManager || !name) {
-    return null;
-  }
-
-  if (normalizedManager === 'conda') {
-    let channel = (formData.get('channel') || '').trim();
-    if (!channel) {
-      channel = 'conda-forge';
-    }
-    return {
-      manager: normalizedManager,
-      command: `conda install -y --channel ${channel} ${name}`,
-      name,
-      channel
+  <%- include('partials/app_common_scripts') %>
+  <script>
+    const PACKAGE_MANAGER_ICONS = {
+      conda: "fa-solid fa-flask",
+      brew: "fa-solid fa-beer-mug-empty",
+      pip: "fa-brands fa-python",
+      npm: "fa-brands fa-npm",
+      yarn: "fa-brands fa-yarn",
+      cargo: "fa-solid fa-box-open"
     };
-  }
 
-  if (normalizedManager === 'brew') {
-    return {
-      manager: normalizedManager,
-      command: `brew install ${name}`,
-      name
+    const escapeHtml = (value) => {
+      if (!value) return "";
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     };
-  }
 
-  return {
-    manager: normalizedManager,
-    command: `${normalizedManager} install ${name}`,
-    name
-  };
-};
+    const toDisplayName = (manager) => {
+      if (!manager) return "Package Manager";
+      return manager
+        .split(/[\s_-]+/)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+    };
 
-const openPackageInstallModal = ({ manager, command, name, channel }) => {
-  if (typeof Swal === 'undefined') {
-    console.error('SweetAlert2 is not available.');
-    return;
-  }
+    const buildInstallPayload = (manager, formData) => {
+      const trimmedManager = (manager || "").trim();
+      const normalizedManager = trimmedManager.toLowerCase();
+      const name = (formData.get("name") || "").trim();
+      if (!normalizedManager || !name) {
+        return null;
+      }
 
-  const icon = PACKAGE_MANAGER_ICONS[manager] || 'fa-solid fa-box-open';
-  const displayName = toDisplayName(manager);
-  const safeName = escapeHtml(name);
-  const safeChannel = channel ? escapeHtml(channel) : null;
-  const commandHtml = escapeHtml(command);
-  const detailParts = [];
-  if (safeChannel) {
-    detailParts.push(`Channel: ${safeChannel}`);
-  }
-  if (safeName) {
-    detailParts.push(`Package: ${safeName}`);
-  }
-  const detailsHtml = detailParts.join(' · ');
+      if (normalizedManager === "conda") {
+        let channel = (formData.get("channel") || "").trim();
+        if (!channel) {
+          channel = "conda-forge";
+        }
+        return {
+          manager: normalizedManager,
+          command: `conda install -y --channel ${channel} ${name}`,
+          name,
+          channel
+        };
+      }
 
-  const sanitizedManager = (manager || 'pkg').replace(/[^a-z0-9_-]/gi, '-').toLowerCase();
-  const shellId = encodeURIComponent(`pkg-install-${sanitizedManager}-${Date.now()}`);
-  const params = new URLSearchParams();
-  params.set('path', '~/');
-  params.set('message', command);
-  params.set('target', '_top');
-  const shellUrl = `/shell/${shellId}?${params.toString()}`;
+      if (normalizedManager === "brew") {
+        return {
+          manager: normalizedManager,
+          command: `brew install ${name}`,
+          name
+        };
+      }
 
-  const modalHtml = `
-    <div class="pinokio-modal-surface">
-      <div class="pinokio-modal-header">
-        <div class="pinokio-modal-icon"><i class="${icon}"></i></div>
-        <div class="pinokio-modal-heading">
-          <div class="pinokio-modal-title">${escapeHtml(displayName)} install</div>
-          <div class="pinokio-modal-subtitle">
-            ${detailsHtml ? `${detailsHtml} · ` : ''}Running <code>${commandHtml}</code>
-          </div>
-        </div>
-      </div>
-      <div class="pinokio-modal-body pinokio-modal-body--iframe">
-        <iframe src="${shellUrl}" allow="fullscreen *;" allowfullscreen></iframe>
-      </div>
-    </div>
-  `;
+      return {
+        manager: normalizedManager,
+        command: `${normalizedManager} install ${name}`,
+        name
+      };
+    };
 
-  Swal.fire({
-    html: modalHtml,
-    customClass: {
-      popup: 'pinokio-modern-modal',
-      htmlContainer: 'pinokio-modern-html',
-      closeButton: 'pinokio-modern-close'
-    },
-    backdrop: 'rgba(9,11,15,0.65)',
-    width: 'min(760px, 90vw)',
-    showConfirmButton: false,
-    showCloseButton: true,
-    buttonsStyling: false,
-    focusConfirm: false
-  });
-};
-
-const registerPackageInstallForms = () => {
-  const forms = document.querySelectorAll('.package-install-form');
-  forms.forEach((form) => {
-    form.addEventListener('submit', (event) => {
-      event.preventDefault();
-      if (typeof form.reportValidity === 'function' && !form.reportValidity()) {
+    const openPackageInstallModal = ({ manager, command, name, channel }) => {
+      if (typeof Swal === "undefined") {
+        console.error("SweetAlert2 is not available.");
         return;
       }
 
-      const manager = (form.dataset.manager || '').toLowerCase();
-      const formData = new FormData(form);
-      const payload = buildInstallPayload(manager, formData);
-      if (!payload) {
-        const nameInput = form.querySelector('input[name="name"]');
-        if (nameInput) {
-          nameInput.focus();
-        }
+      const icon = PACKAGE_MANAGER_ICONS[manager] || "fa-solid fa-box-open";
+      const displayName = toDisplayName(manager);
+      const safeName = escapeHtml(name);
+      const safeChannel = channel ? escapeHtml(channel) : null;
+      const commandHtml = escapeHtml(command);
+      const detailParts = [];
+      if (safeChannel) {
+        detailParts.push(`Channel: ${safeChannel}`);
+      }
+      if (safeName) {
+        detailParts.push(`Package: ${safeName}`);
+      }
+      const detailsHtml = detailParts.join(" - ");
+
+      const sanitizedManager = (manager || "pkg").replace(/[^a-z0-9_-]/gi, "-").toLowerCase();
+      const shellId = encodeURIComponent(`pkg-install-${sanitizedManager}-${Date.now()}`);
+      const params = new URLSearchParams();
+      params.set("path", "~/");
+      params.set("message", command);
+      params.set("target", "_top");
+      const shellUrl = `/shell/${shellId}?${params.toString()}`;
+
+      const modalHtml = `
+        <div class="pinokio-modal-surface">
+          <div class="pinokio-modal-header">
+            <div class="pinokio-modal-icon"><i class="${icon}"></i></div>
+            <div class="pinokio-modal-heading">
+              <div class="pinokio-modal-title">${escapeHtml(displayName)} install</div>
+              <div class="pinokio-modal-subtitle">
+                ${detailsHtml ? `${detailsHtml} - ` : ""}Running <code>${commandHtml}</code>
+              </div>
+            </div>
+          </div>
+          <div class="pinokio-modal-body pinokio-modal-body--iframe">
+            <iframe src="${shellUrl}" allow="fullscreen *;" allowfullscreen></iframe>
+          </div>
+        </div>
+      `;
+
+      Swal.fire({
+        html: modalHtml,
+        customClass: {
+          popup: "pinokio-modern-modal",
+          htmlContainer: "pinokio-modern-html",
+          closeButton: "pinokio-modern-close"
+        },
+        backdrop: "rgba(9, 11, 15, 0.65)",
+        width: "min(760px, 90vw)",
+        showConfirmButton: false,
+        showCloseButton: true,
+        buttonsStyling: false,
+        focusConfirm: false
+      });
+    };
+
+    const registerPackageInstallForms = () => {
+      const forms = document.querySelectorAll(".package-install-form");
+      forms.forEach((form) => {
+        form.addEventListener("submit", (event) => {
+          event.preventDefault();
+          if (typeof form.reportValidity === "function" && !form.reportValidity()) {
+            return;
+          }
+
+          const manager = (form.dataset.manager || "").toLowerCase();
+          const formData = new FormData(form);
+          const payload = buildInstallPayload(manager, formData);
+          if (!payload) {
+            const nameInput = form.querySelector("input[name=\"name\"]");
+            if (nameInput) {
+              nameInput.focus();
+            }
+            return;
+          }
+
+          openPackageInstallModal(payload);
+          form.reset();
+          if (manager === "conda") {
+            const channelInput = form.querySelector("input[name=\"channel\"]");
+            if (channelInput && !channelInput.value) {
+              channelInput.value = "conda-forge";
+            }
+          }
+        });
+      });
+    };
+
+    document.addEventListener("DOMContentLoaded", function() {
+      const isPending = <%= pending ? 'true' : 'false' %>;
+
+      if (isPending) {
+        setTimeout(function() {
+          window.location.reload();
+        }, 3000);
         return;
       }
 
-      openPackageInstallModal(payload);
-      form.reset();
-      if (manager === 'conda') {
-        const channelInput = form.querySelector('input[name="channel"]');
-        if (channelInput && !channelInput.value) {
-          channelInput.value = 'conda-forge';
-        }
-      }
-    });
-  });
-};
+      registerPackageInstallForms();
 
-document.addEventListener('DOMContentLoaded', function() {
-  const isPending = <%= pending ? 'true' : 'false' %>;
-  
-  // Auto-refresh when pending
-  if (isPending) {
-    setTimeout(function() {
-      window.location.reload();
-    }, 3000);
-  }
-  
-  // Tab functionality (only when not pending)
-  if (!isPending) {
-    const tabs = document.querySelectorAll('.package-tab');
-    const panels = document.querySelectorAll('.tab-panel');
-    
-    registerPackageInstallForms();
+      const tabs = document.querySelectorAll(".tools-tab-button");
+      const panels = document.querySelectorAll(".tools-package-panel");
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", function() {
+          const targetTab = this.getAttribute("data-tab");
 
-    tabs.forEach(tab => {
-      tab.addEventListener('click', function() {
-        const targetTab = this.getAttribute('data-tab');
-        
-        // Remove active class from all tabs and panels
-        tabs.forEach(t => t.classList.remove('active'));
-        panels.forEach(p => p.classList.remove('active'));
-        
-        // Add active class to clicked tab
-        this.classList.add('active');
-        
-        // Show corresponding panel
-        const targetPanel = document.getElementById(targetTab + '-panel');
-        if (targetPanel) {
-          targetPanel.classList.add('active');
-        }
+          tabs.forEach((item) => {
+            item.classList.remove("active");
+            item.setAttribute("aria-selected", "false");
+          });
+          panels.forEach((panel) => {
+            panel.classList.remove("active");
+          });
+
+          this.classList.add("active");
+          this.setAttribute("aria-selected", "true");
+
+          const targetPanel = Array.from(panels).find((panel) => panel.getAttribute("data-panel") === targetTab);
+          if (targetPanel) {
+            targetPanel.classList.add("active");
+          }
+        });
       });
     });
-  }
-});
-</script>
+  </script>
 </body>
 </html>
