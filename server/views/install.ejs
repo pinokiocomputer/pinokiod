@@ -657,6 +657,77 @@ const setRestartStatus = () => {
     </div>
   `)
 }
+let networkSharingWarningOpen = false
+const isLoopbackHost = (hostname) => {
+  const normalized = String(hostname || "").toLowerCase()
+  return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1" || normalized === "[::1]"
+}
+const defaultPortForProtocol = (protocol) => {
+  return protocol === "https:" ? "443" : "80"
+}
+const normalizedPort = (url) => {
+  return url.port || defaultPortForProtocol(url.protocol)
+}
+const resolveLanCallbackHref = (href) => {
+  if (!href) {
+    return "/"
+  }
+  try {
+    const target = new URL(href, window.location.href)
+    const current = new URL(window.location.href)
+    if (
+      !isLoopbackHost(current.hostname) &&
+      isLoopbackHost(target.hostname) &&
+      target.protocol === current.protocol &&
+      normalizedPort(target) === normalizedPort(current)
+    ) {
+      target.hostname = current.hostname
+      return target.toString()
+    }
+  } catch (_) {}
+  return href
+}
+const requiresNetworkSharing = (href) => {
+  if (isLoopbackHost(window.location.hostname)) {
+    return false
+  }
+  try {
+    const parsed = new URL(href, window.location.href)
+    return parsed.protocol === "http:" && isLoopbackHost(parsed.hostname)
+  } catch (_) {
+    return false
+  }
+}
+const showNetworkSharingRequired = (href) => {
+  if (!requiresNetworkSharing(href)) {
+    return false
+  }
+  if (networkSharingWarningOpen) {
+    return true
+  }
+  networkSharingWarningOpen = true
+  Swal.fire({
+    title: "Turn on network sharing",
+    text: "Open Network to turn on local network sharing, then come back to this install.",
+    showCancelButton: true,
+    confirmButtonText: "Open Network",
+    cancelButtonText: "Stay here"
+  }).then((result) => {
+    networkSharingWarningOpen = false
+    if (result.isConfirmed) {
+      window.location.href = "/network"
+    }
+  })
+  return true
+}
+const navigateToCallback = () => {
+  const callback = document.querySelector("#callback")
+  const href = resolveLanCallbackHref(callback && callback.value ? callback.value : "/")
+  if (showNetworkSharingRequired(href)) {
+    return
+  }
+  location.href = href
+}
 const createTerm = async (_theme) => {
   //const theme = Object.assign({ }, xtermTheme.Terminal_Basic, {
   const theme = Object.assign({ }, _theme, {
@@ -745,18 +816,30 @@ document.addEventListener("DOMContentLoaded", async () => {
   observer.observe(document.body)
   await new Promise((resolve, reject) => {
     console.log({ cols: term.cols, rows: term.rows })
-    socket.run({
+    const requirements = document.querySelector("#requirements").value
+    const rpc = {
       id: location.pathname,
       method: "kernel.bin.install",
-//      params: options,
-      params: document.querySelector("#requirements").value,
       client: {
         cols: term.cols,
         rows: term.rows,
       }
-    }, async (packet) => {
+    }
+    if (requirements && requirements.trim().length > 0) {
+      rpc.params = requirements
+    } else {
+      rpc.mode = "listen"
+    }
+    socket.run(rpc, async (packet) => {
       console.log("packet", packet)
-      if (packet.type === "stream") {
+      if (packet.type === "connect") {
+        if (packet.data && packet.data.shell) {
+          shell_id = packet.data.shell
+        }
+        if (packet.data && packet.data.state) {
+          term.write(packet.data.state)
+        }
+      } else if (packet.type === "stream") {
         if (packet.data.id) {
           shell_id = packet.data.id
         }
@@ -795,7 +878,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             confirm: "OK",
           })
           if (packet.data.blocker) {
-            location.href = document.querySelector("#callback").value
+            navigateToCallback()
             return
           }
         }
@@ -866,18 +949,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (res.success) {
         //location.href = location.href
         clearInterval(restartPoll)
-        location.href = document.querySelector("#callback").value
+        navigateToCallback()
       }
     } catch (e) {
       console.log(e)
     }
   }, 1000)
-//  let ok = confirm("Install Complete! Click OK to Proceed.")
-//  if (ok) {
-//  }
-
-
-//    location.href = document.querySelector("#callback").value
 })
 </script>
 </body>
