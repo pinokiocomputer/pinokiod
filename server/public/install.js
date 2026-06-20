@@ -102,6 +102,23 @@ const escapeInstallHtml = (value) => {
     .replace(/'/g, '&#39;')
 }
 
+const INLINE_INSTALL_STATUS_SPINNER_HTML = `
+  <span class="pinokio-install-inline-status-spinner" aria-hidden="true">
+    <span class="pinokio-install-inline-status-spinner-dot pinokio-install-inline-status-spinner-dot-1"></span>
+    <span class="pinokio-install-inline-status-spinner-dot pinokio-install-inline-status-spinner-dot-2"></span>
+    <span class="pinokio-install-inline-status-spinner-dot pinokio-install-inline-status-spinner-dot-3"></span>
+    <span class="pinokio-install-inline-status-spinner-dot pinokio-install-inline-status-spinner-dot-4"></span>
+  </span>`
+
+const getInlineInstallStatusIconHtml = (iconClass) => {
+  const normalizedIconClass = String(iconClass || '')
+  const isProgressIcon = /\bfa-circle-notch\b/.test(normalizedIconClass) || /\bfa-spin\b/.test(normalizedIconClass)
+  if (isProgressIcon) {
+    return INLINE_INSTALL_STATUS_SPINNER_HTML
+  }
+  return `<span class="pinokio-install-inline-status-icon" aria-hidden="true"><i class="${escapeInstallHtml(normalizedIconClass)}"></i></span>`
+}
+
 const ensureInlineInstallStatus = () => {
   let status = document.getElementById(INLINE_INSTALL_STATUS_ID)
   if (status) {
@@ -127,7 +144,7 @@ const setInlineInstallStatus = ({ state, title, detailHtml, iconClass }) => {
   status.className = `pinokio-install-inline-status is-${normalizedState}`
   status.innerHTML = `
     <div class="pinokio-install-inline-status-shell">
-      <span class="pinokio-install-inline-status-icon" aria-hidden="true"><i class="${iconClass}"></i></span>
+      ${getInlineInstallStatusIconHtml(iconClass)}
       <div class="pinokio-install-inline-status-copy">
         <div class="pinokio-install-inline-status-title">${escapeInstallHtml(title || '')}</div>
         ${detailHtml ? `<div class="pinokio-install-inline-status-detail">${detailHtml}</div>` : ''}

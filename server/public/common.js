@@ -116,6 +116,14 @@ function escapePinokioStatusHtml(value) {
     .replace(/'/g, '&#39;')
 }
 
+const PINOKIO_WAIT_STATUS_SPINNER_HTML = `
+  <span class="pinokio-install-inline-status-spinner" aria-hidden="true">
+    <span class="pinokio-install-inline-status-spinner-dot pinokio-install-inline-status-spinner-dot-1"></span>
+    <span class="pinokio-install-inline-status-spinner-dot pinokio-install-inline-status-spinner-dot-2"></span>
+    <span class="pinokio-install-inline-status-spinner-dot pinokio-install-inline-status-spinner-dot-3"></span>
+    <span class="pinokio-install-inline-status-spinner-dot pinokio-install-inline-status-spinner-dot-4"></span>
+  </span>`
+
 function ensurePinokioWaitFooterStatus() {
   let status = document.getElementById(PINOKIO_WAIT_FOOTER_ID)
   if (status) {
@@ -148,9 +156,7 @@ function showPinokioWaitFooterStatus(data = {}) {
   status.className = 'pinokio-install-inline-status pinokio-process-wait-footer-status is-progress'
   status.innerHTML = `
     <div class="pinokio-install-inline-status-shell">
-      <span class="pinokio-install-inline-status-icon" aria-hidden="true">
-        <i class="fa-solid fa-circle-notch fa-spin"></i>
-      </span>
+      ${PINOKIO_WAIT_STATUS_SPINNER_HTML}
       <div class="pinokio-install-inline-status-copy">
         <div class="pinokio-install-inline-status-title">${escapePinokioStatusHtml(title)}</div>
         ${description ? `<div class="pinokio-install-inline-status-detail">${escapePinokioStatusHtml(description)}</div>` : ''}
