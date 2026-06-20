@@ -4611,6 +4611,11 @@ aside .qr {
     bottom: var(--main-mobile-navbar-total-height);
   }
 }
+header.navheader #screenshot,
+header.navheader #inspector,
+header.navheader #mobile-link-button {
+  display: none !important;
+}
 /*
 body[data-agent='electron'] {
   padding-top: 26px;
