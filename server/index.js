@@ -8092,6 +8092,8 @@ class Server {
       if (!requireSkillsHome(res)) {
         return
       }
+      const peerAccess = await this.composePeerAccessPayload()
+      const list = this.getPeers()
       let skills = []
       let indexError = ""
       try {
@@ -8100,8 +8102,11 @@ class Server {
         indexError = error && error.message ? error.message : "Failed to read managed skills index."
       }
       res.render("skills", {
+        current_host: this.kernel.peer.host,
+        ...peerAccess,
         theme: this.theme,
         agent: req.agent,
+        list,
         skills,
         skillsRootPath: ManagedSkills.skillsRoot(this.kernel),
         indexPath: ManagedSkills.indexPath(this.kernel),
