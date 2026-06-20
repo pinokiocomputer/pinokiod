@@ -1,0 +1,24 @@
+services:
+  pinokiod:
+    build: 
+      context: .
+      dockerfile: Docker/Dockerfile
+    network_mode: "host"
+  
+    environment:
+      - HOME=/root
+      - PINOKIO_HOME=/root/pinokio
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+ 
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ./Docker/volumes/pinokio:/root/pinokio
+      - ./Docker/volumes/pinokio-config:/root/config
