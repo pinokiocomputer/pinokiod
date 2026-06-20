@@ -1,333 +1,286 @@
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<link href="/xterm.min.css" rel="stylesheet" />
-<link href="/css/fontawesome.min.css" rel="stylesheet">
-<link href="/css/solid.min.css" rel="stylesheet">
-<link href="/css/regular.min.css" rel="stylesheet">
-<link href="/css/brands.min.css" rel="stylesheet">
-<link href="/markdown.css" rel="stylesheet"/>
-<link href="/noty.css" rel="stylesheet"/>
-<link href="/style.css" rel="stylesheet"/>
-<% if (agent === "electron") { %>
-  <link href="/electron.css" rel="stylesheet"/>
-<% } %>
-<style>
-html {
-  scroll-behavior: smooth;
-  height: 100%;
-  overflow: hidden;
-}
-body {
-  height: 100%;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-}
-.line2 {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  background: rgba(0,0,100,0.04);
-}
-.line2 a {
-  text-decoration: none;
-  color: black;
-}
-.status {
-  padding: 10px;
-  margin: 10px;
-  border-radius: 10px;
-}
-.status.offline {
-  background: silver;
-}
-.status.online {
-  background: yellowgreen;
-}
-.switch {
-  padding: 10px;
-  margin: 10px 0;
-}
-.switch[data-online=true] {
-  color: yellowgreen;
-}
-.button {
-  padding: 10px;
-}
-.on, .off {
-  display: flex;
-  align-items: center;
-}
-.btn {
-  text-align: center;
-  padding: 10px;
-  background: black;
-  color: white;
-  text-decoration: none;
-  font-weight: normal;
-}
-.item {
-  display: flex;
-  align-items: flex-start;
-  margin: 10px;
-  background: rgba(0,0,0,0.04);
-}
-.item img {
-  width: 100px;
-}
-.item .title {
-  text-decoration: none;
-  color: royalblue;
-}
-.item .col {
-  padding: 10px;
-}
-.item .col > * {
-  margin: 5px 0;
-}
-.item .stat {
-  color: rgba(0,0,0,0.8);
-  display: flex;
-}
-.item .stat > * {
-  margin-right: 15px;
-}
-.timestamp {
-  color: rgba(0,0,0,0.5);
-}
-main {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-}
-.setup-items {
-  display: flex;
-  justify-content: center;
-  margin: 0 auto;
-  /*
-  max-width: 800px;
-  */
-  width: 100%;
-  align-items: center;
-}
-.setup-items .gitconfig .field input {
-  padding: 10px;
-  box-sizing: border-box;
-  border: 1px solid silver;
-  width: 100%;
-
-}
-.setup-items .gitconfig .field {
-  padding-bottom: 15px;
-}
-.setup-items .gitconfig label {
-  display: block;
-  margin-bottom: 5px;
-}
-.setup-items .gitconfig-footer {
-  text-align: center;
-}
-.setup-items .btn {
-  width: 100%;
-  margin-bottom: 10px;
-}
-.setup-items .gitconfig {
-  flex-grow: 1;
-  margin-bottom: 20px;
-}
-body.dark .setup-items pre, body.dark .setup-items .pre {
-  background: rgba(255,255,255,0.04) !important;
-}
-.setup-items pre, .setup-items .pre {
-  box-sizing: border-box;
-  margin: 10px 0;
-  width: 100%;
-  padding: 20px;
-  background: rgba(0,0,0,0.04) !important;
-}
-.head {
-  padding: 30px;
-  text-align: center;
-}
-.head .desc {
-  opacity: 0.7;
-  padding: 10px;
-}
-.head h3 {
-  font-size: 20px;
-  text-transform: uppercase;
-  margin: 0;
-}
-.head h3 i {
-  font-size: 80px;
-}
-body.dark .card {
-  color: white;
-}
-.card {
-  text-decoration: none;
-  width: 200px;
-  color: rgba(0,0,0,0.9);
-  text-align: center;
-  margin: 20px;
-}
-.card:hover {
-  color: royalblue !important;
-}
-.card .desc {
-  opacity: 0.7;
-}
-.card h3 {
-  font-size: 30px;
-  letter-spacing: -1px;
-}
-.card i {
-  font-size: 50px;
-}
-a {
-  color: royalblue;
-}
-body.dark hr {
-  background: rgba(255,255,255,0.05);
-}
-hr {
-  background: rgba(0,0,0,0.05);
-  height: 4px;
-  border: none;
-  margin: 40px 0;
-}
-#readme {
-  flex-grow: 1;
-}
-.cols {
-  max-width: 1000px;
-  margin: 0 auto;
-  display: flex; 
-}
-body.dark .column {
-  background: rgba(0,0,0,0.1);
-}
-.column {
-  background: rgba(0,0,0,0.04);
-  margin: 10px;
-  width: 50%;
-  padding: 20px;
-  box-sizing: border-box;
-}
-.column h1 {
-  padding: 5px;
-  letter-spacing: -1px;
-}
-ol {
-  padding-inline-start: 20px;
-}
-</style>
-<script src="/popper.min.js"></script>
-<script src="/tippy-bundle.umd.min.js"></script>
-<script src="/hotkeys.min.js"></script>
-<script src="/sweetalert2.js"></script>
-<script src="/common.js"></script>
-<script src="/opener.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Configure Git</title>
+  <link href="/css/fontawesome.min.css" rel="stylesheet">
+  <link href="/css/solid.min.css" rel="stylesheet">
+  <link href="/css/regular.min.css" rel="stylesheet">
+  <link href="/css/brands.min.css" rel="stylesheet">
+  <link href="/markdown.css" rel="stylesheet">
+  <link href="/noty.css" rel="stylesheet">
+  <link href="/style.css" rel="stylesheet">
+  <link href="/task-launcher.css" rel="stylesheet">
+  <% if (agent === "electron") { %>
+    <link href="/electron.css" rel="stylesheet"/>
+  <% } %>
+  <style>
+    .github-login-shell {
+      max-width: 980px;
+    }
+    .github-section-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 0.72fr);
+      gap: 24px;
+      align-items: start;
+    }
+    .github-state-panel {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      min-width: 0;
+    }
+    .github-state-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      background: var(--task-chip-bg, var(--task-soft));
+      border: 1px solid var(--task-border);
+      color: var(--task-text);
+    }
+    .github-state-copy {
+      min-width: 0;
+      display: grid;
+      gap: 10px;
+    }
+    .github-state-title {
+      margin: 0;
+      color: var(--task-text);
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+    .github-state-detail {
+      margin: 0;
+      color: var(--task-muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .github-action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 2px;
+    }
+    .github-account-box {
+      box-sizing: border-box;
+      max-width: 520px;
+      width: 100%;
+      margin: 2px 0 0;
+      padding: 12px 14px;
+      border: 1px solid var(--task-border);
+      border-radius: 8px;
+      background: var(--task-panel);
+      color: var(--task-text);
+      font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .github-readme {
+      display: grid;
+      gap: 10px;
+      color: var(--task-muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .github-readme :first-child {
+      margin-top: 0;
+    }
+    .github-readme :last-child {
+      margin-bottom: 0;
+    }
+    .github-readme p {
+      margin: 0;
+    }
+    .github-readme ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .github-readme code {
+      color: var(--task-text);
+    }
+    .github-config-form {
+      display: grid;
+      gap: 14px;
+      margin: 0;
+    }
+    .github-config-fields {
+      display: grid;
+      gap: 13px;
+      max-width: 520px;
+    }
+    .github-config-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .github-config-submit {
+      min-width: 112px;
+    }
+    .github-config-path {
+      color: var(--task-muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .github-config-feedback {
+      margin: 0;
+    }
+    .github-config-feedback.success {
+      border-color: color-mix(in srgb, #16a34a 22%, transparent);
+      background: color-mix(in srgb, #16a34a 10%, var(--task-panel));
+      color: #166534;
+    }
+    body.dark .github-config-feedback.success {
+      border-color: color-mix(in srgb, #86efac 28%, transparent);
+      background: rgba(34, 197, 94, 0.12);
+      color: #86efac;
+    }
+    @media (max-width: 820px) {
+      .github-section-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
-<body class='<%=theme%>' data-agent="<%=agent%>">
-<header class='navheader grabbable'>
-<h1>
-<a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
-<button class='btn2' id='minimize-header' data-tippy-content="fullscreen" title='fullscreen'>
-  <div><i class="fa-solid fa-expand"></i></div>
-</button>
-<button class='btn2' id='back' data-tippy-content="back"><div><i class="fa-solid fa-chevron-left"></i></div></button>
-<button class='btn2' id='forward' data-tippy-content="forward"><div><i class="fa-solid fa-chevron-right"></i></div></button>
-<button class='btn2' id='refresh-page' data-tippy-content="refresh"><div><i class="fa-solid fa-rotate-right"></i></div></button>
-<button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
-<button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
-<div class='flexible'></div>
-<a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
-  <div><i class="fa-solid fa-table-columns"></i></div>
-</a>
-<a class='btn2' href="/rows" data-tippy-content="split into 2 rows">
-  <div><i class="fa-solid fa-table-columns fa-rotate-270"></i></div>
-</a>
-<button class='btn2' id='new-window' data-tippy-content="open a new window" title='open a new window' data-agent="<%=agent%>">
-  <div><i class="fa-solid fa-plus"></i></div>
-</button>
-<button class='btn2 hidden' id='close-window' data-tippy-content='close this section'>
-  <div><i class="fa-solid fa-xmark"></i></div>
-</button>
-</h1>
-</header>
-<main>
-  <div class='head'>
-    <h3><i class="fa-brands fa-git-alt"></i><br><br>Configure Git</h3>
-  </div>
-  <div class='cols'>
-    <div class='column'>
-      <h1><i class="fa-brands fa-github"></i> GitHub</h1>
-      <div>Connect with GitHub to publish projects to GitHub.</div>
-      <div class='setup-items'>
-        <% if (hosts.length > 0) { %>
-          <pre><%=hosts%></pre>
-        <% } else { %>
-          <pre>not logged in</pre>
-        <% } %>
-      </div>
-      <div class='setup-items'>
-        <% items.forEach((item) => { %>
-          <a class='btn' href="<%=item.url%>">
-            <i class="<%=item.icon%>"></i> <%=item.title%>
-          </a>
-        <% }) %>
-      </div>
-      <div class='setup-items'>
-        <div id='readme'><%-readme%></div>
-      </div>
-    </div>
-    <div class='column'>
-      <h1><i class="fa-brands fa-square-git"></i> Git Config</h1>
-      <div>These credentials will show up on every commit.</div>
-      <div class='setup-items'>
-        <form class='gitconfig'>
-          <div class='pre'>
-            <div class='field'>
-              <label>username</label>
-              <input id='username' type='text' value="<%=gitconfig.user && gitconfig.user.name ? gitconfig.user.name : ''%>">
+<%
+  const selected = "connect";
+  const isGithubConnected = typeof hosts === "string" && hosts.trim().length > 0;
+  const connectionLabel = isGithubConnected ? "Connected" : "Not connected";
+  const connectionIcon = isGithubConnected ? "fa-solid fa-circle-check" : "fa-regular fa-circle";
+  const connectionDetail = isGithubConnected
+    ? "Git Credential Manager is ready for GitHub operations inside Pinokio."
+    : "Connect GitHub to clone private repositories and publish from Pinokio.";
+%>
+<body class="<%= theme %> main-sidebar-page task-launcher-page task-page setup-page github-page" data-agent="<%= agent %>" data-page="github-config">
+  <%- include('partials/app_navheader', { agent }) %>
+  <main>
+    <div class="task-container">
+      <section class="task-shell github-login-shell">
+        <header class="task-shell-header">
+          <div class="task-shell-header-main">
+            <div class="task-shell-topline">
+              <p class="task-eyebrow">Login / GitHub</p>
             </div>
-            <div class='field'>
-              <label>email</label>
-              <input id='email' type='text' value="<%=gitconfig.user && gitconfig.user.email ? gitconfig.user.email : ''%>">
+            <h1 class="task-title">Configure Git</h1>
+            <p class="task-description">Connect GitHub for private repositories and publishing, then set the identity Git writes on commits.</p>
+            <div class="task-badge-row task-header-badges">
+              <span class="task-badge <%= isGithubConnected ? 'task-badge-accent' : 'task-badge-neutral' %>"><%= connectionLabel %></span>
+              <span class="task-badge task-badge-neutral">Git Credential Manager</span>
+              <span class="task-badge task-badge-neutral">~/pinokio/gitconfig</span>
             </div>
           </div>
-          <div class='gitconfig-footer'>
-            <button class='btn'><i class="fa-solid fa-check"></i> Update</button>
-            <div>gitconfig stored in ~/pinokio/gitconfig file </div>
-          </div>
-        </form>
-      </div>
+        </header>
+
+        <div class="task-shell-body">
+          <section class="task-section task-section-subtle">
+            <div class="github-section-grid">
+              <div class="github-state-panel">
+                <div class="github-state-icon" aria-hidden="true">
+                  <i class="<%= connectionIcon %>"></i>
+                </div>
+                <div class="github-state-copy">
+                  <h2 class="github-state-title">GitHub <%= connectionLabel.toLowerCase() %></h2>
+                  <p class="github-state-detail"><%= connectionDetail %></p>
+                  <pre class="github-account-box"><%= isGithubConnected ? hosts : 'not logged in' %></pre>
+                  <div class="github-action-row">
+                    <% items.forEach((item) => { %>
+                      <a class="task-button <%= item.title === 'Login' ? 'primary' : 'danger' %>" href="<%= item.url %>">
+                        <i class="<%= item.icon %>" aria-hidden="true"></i>
+                        <span><%= item.title %></span>
+                      </a>
+                    <% }) %>
+                  </div>
+                </div>
+              </div>
+              <div class="github-readme">
+                <%- readme %>
+              </div>
+            </div>
+          </section>
+
+          <section class="task-section">
+            <div class="task-section-head">
+              <div>
+                <h2 class="task-section-title">Git identity</h2>
+                <p class="task-section-subcopy">These values appear as the author on commits created from Pinokio shells.</p>
+              </div>
+              <div class="task-section-note">gitconfig</div>
+            </div>
+
+            <form class="github-config-form" data-github-config-form>
+              <div class="github-config-fields">
+                <label class="task-field">
+                  <span class="task-label">Username</span>
+                  <input class="task-input" id="username" type="text" autocomplete="name" value="<%= gitconfig.user && gitconfig.user.name ? gitconfig.user.name : '' %>">
+                </label>
+                <label class="task-field">
+                  <span class="task-label">Email</span>
+                  <input class="task-input" id="email" type="email" autocomplete="email" value="<%= gitconfig.user && gitconfig.user.email ? gitconfig.user.email : '' %>">
+                </label>
+              </div>
+              <div class="github-config-actions">
+                <button class="task-button primary task-run-button github-config-submit" type="submit">
+                  <i class="fa-solid fa-check" aria-hidden="true"></i>
+                  <span>Update</span>
+                </button>
+                <span class="github-config-path">Stored in ~/pinokio/gitconfig.</span>
+              </div>
+              <div class="task-status github-config-feedback hidden" data-github-config-feedback></div>
+            </form>
+          </section>
+        </div>
+      </section>
     </div>
-  </div>
-</main>
-<script>
-document.querySelector("form.gitconfig").addEventListener("submit", (e) => {
-  e.preventDefault()
-  e.stopPropagation()
-  fetch("/github/config", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      "user.name": document.querySelector("#username").value,
-      "user.email": document.querySelector("#email").value
+    <%- include('partials/main_sidebar', { selected }) %>
+  </main>
+
+  <script>
+    const configForm = document.querySelector("[data-github-config-form]")
+    const feedback = document.querySelector("[data-github-config-feedback]")
+    const submitButton = configForm.querySelector(".github-config-submit")
+
+    function showFeedback(message, type) {
+      feedback.textContent = message
+      feedback.classList.remove("hidden", "success", "error")
+      feedback.classList.add(type)
+    }
+
+    configForm.addEventListener("submit", async (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      submitButton.disabled = true
+      submitButton.classList.add("is-busy")
+      try {
+        const res = await fetch("/github/config", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            "user.name": document.querySelector("#username").value,
+            "user.email": document.querySelector("#email").value
+          })
+        })
+        const json = await res.json()
+        if (json.error) {
+          throw new Error(json.error)
+        }
+        showFeedback("Git identity updated.", "success")
+      } catch (error) {
+        showFeedback(error.message || "Git identity could not be updated.", "error")
+      } finally {
+        submitButton.disabled = false
+        submitButton.classList.remove("is-busy")
+      }
     })
-  }).then((res) => {
-    return res.json()
-  }).then((res) => {
-    alert("Updated")
-    location.href = location.href
-  })
-})
-</script>
+  </script>
+  <%- include('partials/app_common_scripts') %>
 </body>
 </html>

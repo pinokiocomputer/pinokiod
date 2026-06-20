@@ -31,7 +31,7 @@
       align-items: center;
       justify-content: center;
       flex: 0 0 auto;
-      background: var(--task-chip-bg);
+      background: var(--task-chip-bg, var(--task-soft));
       border: 1px solid var(--task-border);
       color: var(--task-text);
     }
@@ -140,6 +140,10 @@
                     <i class="fa-solid fa-check" aria-hidden="true"></i>
                     <span>Done</span>
                   </a>
+                  <button class="task-button danger hidden" id="hf-logout" type="button">
+                    <i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>
+                    <span>Logout</span>
+                  </button>
                 </div>
                 <div class="hf-code-panel hidden" id="hf-code">
                   <p class="hf-code-label">Hugging Face is asking for this device code.</p>
@@ -163,6 +167,7 @@
 
   <script>
     const LOGIN_URL = "/connect/huggingface/login"
+    const LOGOUT_URL = "/connect/huggingface/logout"
     const KEYS_URL = "/connect/huggingface/keys"
     const PROFILE_URL = "/connect/huggingface/profile"
     const POLL_INTERVAL = 2000
@@ -175,6 +180,7 @@
     const openButton = document.getElementById("hf-open")
     const retryButton = document.getElementById("hf-retry")
     const doneLink = document.getElementById("hf-done")
+    const logoutButton = document.getElementById("hf-logout")
     const codeElement = document.getElementById("hf-code")
     const codeValueElement = document.getElementById("hf-code-value")
     const errorElement = document.getElementById("hf-error")
@@ -191,10 +197,17 @@
       doneLink.classList.toggle("hidden", !done)
     }
 
+    function setRetryLabel(label) {
+      const labelElement = retryButton.querySelector("span")
+      if (labelElement) labelElement.textContent = label
+    }
+
     function showError(message) {
       errorElement.textContent = message
       errorElement.classList.remove("hidden")
+      setRetryLabel("Try Again")
       retryButton.classList.remove("hidden")
+      logoutButton.classList.add("hidden")
       setState({
         badge: "Needs attention",
         icon: "fa-solid fa-triangle-exclamation",
@@ -238,6 +251,8 @@
       stopPolling()
       clearError()
       codeElement.classList.add("hidden")
+      retryButton.classList.add("hidden")
+      logoutButton.classList.remove("hidden")
       try {
         const res = await fetch(PROFILE_URL)
         const profile = await res.json()
@@ -258,6 +273,38 @@
           detail: "Pinokio is signed in.",
           done: true
         })
+      }
+    }
+
+    async function logout() {
+      stopPolling()
+      clearError()
+      logoutButton.disabled = true
+      logoutButton.classList.add("is-busy")
+      try {
+        const response = await postJSON(LOGOUT_URL)
+        if (response.error) {
+          throw new Error(response.error)
+        }
+        loginUrl = null
+        codeElement.classList.add("hidden")
+        codeValueElement.textContent = ""
+        logoutButton.classList.add("hidden")
+        setRetryLabel("Log In Again")
+        retryButton.classList.remove("hidden")
+        setState({
+          badge: "Signed out",
+          icon: "fa-solid fa-circle-xmark",
+          title: "Hugging Face signed out",
+          detail: "Pinokio removed the saved Hugging Face token.",
+          done: true
+        })
+      } catch (error) {
+        showError(error.message)
+        logoutButton.classList.remove("hidden")
+      } finally {
+        logoutButton.disabled = false
+        logoutButton.classList.remove("is-busy")
       }
     }
 
@@ -308,6 +355,8 @@
       clearError()
       loginUrl = null
       doneLink.classList.add("hidden")
+      logoutButton.classList.add("hidden")
+      setRetryLabel("Try Again")
       codeElement.classList.add("hidden")
       codeValueElement.textContent = ""
       setState({
@@ -343,6 +392,7 @@
 
     openButton.addEventListener("click", copyAndOpen)
     retryButton.addEventListener("click", startLogin)
+    logoutButton.addEventListener("click", logout)
 
     window.addEventListener("load", async () => {
       try {
