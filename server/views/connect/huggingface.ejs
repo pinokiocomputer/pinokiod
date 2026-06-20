@@ -129,12 +129,12 @@
                 <i class="fa-solid fa-circle-notch fa-spin" id="hf-icon"></i>
               </div>
               <div class="hf-state-copy">
-                <h2 class="hf-state-title" id="hf-title">Starting browser login</h2>
-                <p class="hf-state-detail" id="hf-detail">Pinokio is preparing a Hugging Face device login.</p>
+                <h2 class="hf-state-title" id="hf-title">Checking Hugging Face login</h2>
+                <p class="hf-state-detail" id="hf-detail">Pinokio is checking whether a Hugging Face token is already saved.</p>
                 <div class="hf-action-row">
-                  <button class="task-button hidden" id="hf-retry" type="button">
-                    <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-                    <span>Try Again</span>
+                  <button class="task-button primary hidden" id="hf-login" type="button">
+                    <i class="fa-solid fa-key" aria-hidden="true"></i>
+                    <span>Log In</span>
                   </button>
                   <a class="task-button hidden" id="hf-done" href="/connect">
                     <i class="fa-solid fa-check" aria-hidden="true"></i>
@@ -178,7 +178,7 @@
     const titleElement = document.getElementById("hf-title")
     const detailElement = document.getElementById("hf-detail")
     const openButton = document.getElementById("hf-open")
-    const retryButton = document.getElementById("hf-retry")
+    const loginButton = document.getElementById("hf-login")
     const doneLink = document.getElementById("hf-done")
     const logoutButton = document.getElementById("hf-logout")
     const codeElement = document.getElementById("hf-code")
@@ -197,16 +197,17 @@
       doneLink.classList.toggle("hidden", !done)
     }
 
-    function setRetryLabel(label) {
-      const labelElement = retryButton.querySelector("span")
+    function setLoginLabel(label) {
+      const labelElement = loginButton.querySelector("span")
       if (labelElement) labelElement.textContent = label
     }
 
-    function showError(message) {
+    function showError(message, options = {}) {
+      const allowLogin = options.allowLogin !== false
       errorElement.textContent = message
       errorElement.classList.remove("hidden")
-      setRetryLabel("Try Again")
-      retryButton.classList.remove("hidden")
+      setLoginLabel("Try Again")
+      loginButton.classList.toggle("hidden", !allowLogin)
       logoutButton.classList.add("hidden")
       setState({
         badge: "Needs attention",
@@ -219,7 +220,7 @@
     function clearError() {
       errorElement.textContent = ""
       errorElement.classList.add("hidden")
-      retryButton.classList.add("hidden")
+      loginButton.classList.add("hidden")
     }
 
     function stopPolling() {
@@ -231,6 +232,24 @@
         clearTimeout(timeoutTimer)
         timeoutTimer = null
       }
+    }
+
+    function showLoggedOut(options = {}) {
+      stopPolling()
+      clearError()
+      loginUrl = null
+      codeElement.classList.add("hidden")
+      codeValueElement.textContent = ""
+      logoutButton.classList.add("hidden")
+      setLoginLabel(options.loginLabel || "Log In")
+      loginButton.classList.remove("hidden")
+      setState({
+        badge: options.badge || "Not connected",
+        icon: options.icon || "fa-regular fa-circle",
+        title: options.title || "Hugging Face not connected",
+        detail: options.detail || "Log in when you need Hugging Face access for gated models or private repositories.",
+        done: Boolean(options.done)
+      })
     }
 
     async function postJSON(url, body = {}) {
@@ -251,7 +270,7 @@
       stopPolling()
       clearError()
       codeElement.classList.add("hidden")
-      retryButton.classList.add("hidden")
+      loginButton.classList.add("hidden")
       logoutButton.classList.remove("hidden")
       try {
         const res = await fetch(PROFILE_URL)
@@ -289,18 +308,16 @@
         loginUrl = null
         codeElement.classList.add("hidden")
         codeValueElement.textContent = ""
-        logoutButton.classList.add("hidden")
-        setRetryLabel("Log In Again")
-        retryButton.classList.remove("hidden")
-        setState({
+        showLoggedOut({
           badge: "Signed out",
           icon: "fa-solid fa-circle-xmark",
           title: "Hugging Face signed out",
           detail: "Pinokio removed the saved Hugging Face token.",
-          done: true
+          done: true,
+          loginLabel: "Log In Again"
         })
       } catch (error) {
-        showError(error.message)
+        showError(error.message, { allowLogin: false })
         logoutButton.classList.remove("hidden")
       } finally {
         logoutButton.disabled = false
@@ -321,7 +338,8 @@
       pollTimer = setInterval(pollLoginStatus, POLL_INTERVAL)
       timeoutTimer = setTimeout(() => {
         stopPolling()
-        retryButton.classList.remove("hidden")
+        setLoginLabel("Try Again")
+        loginButton.classList.remove("hidden")
         setState({
           badge: "Still waiting",
           icon: "fa-regular fa-clock",
@@ -356,7 +374,8 @@
       loginUrl = null
       doneLink.classList.add("hidden")
       logoutButton.classList.add("hidden")
-      setRetryLabel("Try Again")
+      loginButton.classList.add("hidden")
+      setLoginLabel("Try Again")
       codeElement.classList.add("hidden")
       codeValueElement.textContent = ""
       setState({
@@ -391,7 +410,7 @@
     }
 
     openButton.addEventListener("click", copyAndOpen)
-    retryButton.addEventListener("click", startLogin)
+    loginButton.addEventListener("click", startLogin)
     logoutButton.addEventListener("click", logout)
 
     window.addEventListener("load", async () => {
@@ -401,7 +420,7 @@
           await showConnected()
           return
         }
-        await startLogin()
+        showLoggedOut()
       } catch (error) {
         showError(error.message)
       }
