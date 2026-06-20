@@ -4159,15 +4159,46 @@ body.dark .swal2-popup.pinokio-diff-modal .pinokio-modal-footer--commit .pinokio
 
 .swal2-popup.pinokio-diff-modal .pinokio-git-history-list,
 .swal2-popup.pinokio-history-modal .pinokio-git-history-list {
-  gap: 6px;
-  padding: 0 14px 10px;
+  gap: 0;
+  padding: 0 14px 14px;
 }
 
 .swal2-popup.pinokio-diff-modal .pinokio-git-commit-item,
 .swal2-popup.pinokio-history-modal .pinokio-git-commit-item {
-  border-radius: 6px;
-  padding: 7px 8px;
-  gap: 8px;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid var(--pinokio-modal-border);
+  border-radius: 0;
+  background: transparent;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 10px;
+}
+
+.swal2-popup.pinokio-history-modal .pinokio-modal-body--history {
+  padding: 0;
+  background: var(--pinokio-modal-bg);
+}
+
+.swal2-popup.pinokio-history-modal .pinokio-history-latest-banner {
+  border-radius: 4px;
+  margin: 0 14px 10px;
+  padding: 8px 10px;
+}
+
+.swal2-popup.pinokio-history-modal .pinokio-history-latest-btn,
+.swal2-popup.pinokio-history-modal .pinokio-history-branch-select.pinokio-modal-input {
+  box-sizing: border-box;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 10px !important;
+}
+
+.swal2-popup.pinokio-history-modal .pinokio-git-commit-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  font-size: 13px;
 }
 
 .swal2-popup.pinokio-diff-modal .pinokio-git-commit-message,
