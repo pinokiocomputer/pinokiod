@@ -1068,15 +1068,22 @@ body.network-page .task-shell-header {
   padding: 12px 18px 14px;
 }
 body.network-page .task-shell-body {
-  padding: 28px 28px 28px;
+  padding: 0 28px 28px;
 }
 body.network-page .c {
   display: grid;
-  gap: 24px;
+  gap: 0;
   min-width: 0;
 }
 body.network-page .container {
   margin: 0;
+}
+body.network-page .network-config-section {
+  padding-top: 18px;
+  border-top: 0;
+}
+body.network-page .network-config-head {
+  align-items: center;
 }
 body.network-page .config {
   margin: 0;
@@ -1088,13 +1095,13 @@ body.network-page .config-header {
 }
 body.network-page .config-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px 18px;
-  padding: 18px 22px;
-  border: 1px solid var(--task-border);
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  align-items: stretch;
 }
 body.network-page .config-row {
   padding: 0;
@@ -1111,6 +1118,8 @@ body.network-page .config-toggle-row {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--task-border);
 }
 body.network-page .config-toggle-copy {
   display: grid;
@@ -1129,18 +1138,11 @@ body.network-page .switcher {
 }
 body.network-page .config-save-btn {
   min-width: 104px;
-  min-height: 42px;
-  padding: 0 16px;
-  border-radius: 12px;
-  background: var(--task-accent-surface) !important;
-  color: var(--task-accent-contrast) !important;
-  border: 1px solid var(--task-accent-surface) !important;
-  font-size: 14px;
-  font-weight: 700;
-}
-body.network-page .config-save-btn:hover {
-  background: var(--task-accent-hover) !important;
-  border-color: var(--task-accent-hover) !important;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
 }
 body.network-page .slider {
   border: 1px solid var(--task-border-strong);
@@ -1158,7 +1160,8 @@ body.network-page .switcher input:checked + .slider {
   border-color: color-mix(in srgb, var(--task-accent) 72%, var(--task-panel));
 }
 body.network-page #network_name {
-  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
 }
 body.network-page .network-name {
   display: block;
@@ -1166,22 +1169,22 @@ body.network-page .network-name {
 body.network-page .network-name input[type=text] {
   width: 100%;
   min-width: 0;
+  min-height: 38px;
+  padding: 7px 12px;
   border: 1px solid var(--task-border-strong);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--task-panel) 98%, white);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--task-panel) 92%, var(--task-soft));
   color: var(--task-text);
-  padding: 0 14px;
-  height: 44px;
   box-sizing: border-box;
 }
 body.dark.network-page .network-name input[type=text] {
-  background: color-mix(in srgb, var(--task-panel) 96%, black);
+  background: color-mix(in srgb, var(--task-panel) 92%, var(--task-soft));
 }
 body.network-page #network_name .label {
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 body.network-page .advanced {
-  margin-top: 12px;
+  margin-top: 14px;
   justify-content: flex-start;
 }
 body.network-page .troubleshoot,
@@ -1200,9 +1203,9 @@ body.network-page .link-label {
 }
 body.network-page .loading {
   margin-top: 16px;
-  border: 1px solid var(--task-border);
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  border-top: 1px solid var(--task-border);
+  border-radius: 0;
+  background: transparent;
   color: var(--task-muted);
 }
 body.network-page .running-apps {
@@ -1300,12 +1303,8 @@ body.dark.network-page .badge {
     padding-left: 18px;
     padding-right: 18px;
   }
-  body.network-page .config-body {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
   body.network-page .config-save-btn {
-    width: 100%;
+    width: auto;
   }
 }
 @media only screen and (max-width: 560px) {
@@ -1328,7 +1327,7 @@ body.dark.network-page .badge {
     display: block;
   }
   body.network-page .network-name input[type=text] {
-    border-radius: 14px;
+    border-radius: 9px;
   }
 }
 </style>
@@ -1396,12 +1395,19 @@ document.addEventListener('DOMContentLoaded', function() {
     </header>
     <div class='task-shell-body network-shell-body'>
       <div class='c'>
-  <div class='container'>
+  <section class='task-section network-config-section' aria-label='Network access'>
+    <div class='task-section-head network-config-head'>
+      <div>
+        <h2 class='task-section-title'>Network access</h2>
+        <p class='task-section-subcopy'>Enable local sharing and set this machine's network name.</p>
+      </div>
+      <button class='task-button primary save config-save-btn'>Save</button>
+    </div>
     <div class='config'>
       <div class='config-body'>
         <div class='config-row config-toggle-row'>
           <div class='config-toggle-copy'>
-            <div class='label'>Network access</div>
+            <div class='label'>Status</div>
             <div id='active-label'><%=peer_active ? "On" : "Off"%></div>
           </div>
           <label class="switcher">
@@ -1409,11 +1415,10 @@ document.addEventListener('DOMContentLoaded', function() {
             <span class="slider"></span>
           </label>
         </div>
-        <button class='btn save config-save-btn'>Save</button>
         <div class='config-row' id='network_name'>
           <div class='label'>Network Name</div>
           <div class='network-name'>
-            <input id='name' type='text' value="<%=name%>">
+            <input id='name' class='task-input' type='text' value="<%=name%>">
           </div>
         </div>
       </div>
@@ -1430,7 +1435,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class='loading hidden'>
       <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
     </div>
-  </div>
+  </section>
   <div class='container'>
     <div class='running-apps'>
       <% if (requirements_pending || peer_active && processes.length === 0) { %>
