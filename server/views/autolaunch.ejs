@@ -14,10 +14,10 @@
 <% } %>
 <style>
 body.autolaunch-page .task-container {
-  padding: 20px 28px 32px;
+  padding: 0;
 }
 body.autolaunch-page .task-shell {
-  width: min(1140px, 100%);
+  width: 100%;
   margin: 0;
   background: transparent;
   border: 0;
@@ -27,7 +27,7 @@ body.autolaunch-page .task-shell {
   backdrop-filter: none;
 }
 body.autolaunch-page .task-shell-header {
-  padding-bottom: 18px;
+  padding: 12px 18px 14px;
 }
 body.autolaunch-page .task-shell-body {
   padding: 0 28px 28px;
@@ -479,9 +479,8 @@ body.autolaunch-page .autolaunch-loading i {
     <section class="task-shell autolaunch-shell">
       <header class="task-shell-header">
         <div class="task-shell-header-main">
-          <p class="task-eyebrow">Autolaunch</p>
           <h1 class="task-title">Startup scripts</h1>
-          <p class="task-description">Choose which installed app script runs when Pinokio starts. Script choices load when you select an app.</p>
+          <p class="task-description">Choose which installed app script runs when Pinokio starts.</p>
         </div>
         <div class="task-header-actions autolaunch-summary">
           <span class="autolaunch-summary-item"><strong data-enabled-count><%= enabledCount %></strong> enabled</span>

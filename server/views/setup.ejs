@@ -21,8 +21,6 @@
   const attentionCount = requirementList.filter((requirement) => !requirement.installed).length;
   const installedCount = Math.max(0, requirementList.length - attentionCount);
   const setupMode = typeof mode === "string" && mode.trim() ? mode.trim() : "";
-  const modeLabel = setupMode ? `${setupMode.charAt(0).toUpperCase()}${setupMode.slice(1)}` : "";
-  const eyebrow = modeLabel ? `Setup / ${modeLabel}` : "Setup";
   const targetPath = current || "/";
   const readyTitle = install_required ? "System requirements need attention" : "System ready";
   const readyDescription = install_required
@@ -49,9 +47,6 @@
       <section class="task-shell setup-shell">
         <header class="task-shell-header">
           <div class="task-shell-header-main">
-            <div class="task-shell-topline">
-              <p class="task-eyebrow" data-setup-eyebrow><%= eyebrow %></p>
-            </div>
             <% if (requirements_pending) { %>
               <h1 class="task-title">Checking system requirements</h1>
               <p class="task-description">Pinokio is checking what this machine needs before reopening <code><%= targetPath %></code>.</p>

@@ -597,7 +597,7 @@ body.plugin-page .plugin-grid {
   overflow: hidden;
   border: 1px solid var(--task-border);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+  background: transparent;
 }
 
 body.plugin-page .plugin-card {
@@ -621,7 +621,7 @@ body.plugin-page .plugin-card:last-child {
 body.plugin-page .plugin-card:hover,
 body.plugin-page .plugin-card:focus-visible,
 body.plugin-page .plugin-card:focus-within {
-  background: color-mix(in srgb, var(--task-soft) 60%, transparent);
+  background: color-mix(in srgb, var(--task-text) 5%, transparent);
   border-color: var(--task-border);
   transform: none;
   outline: none;
@@ -645,6 +645,8 @@ body.plugin-page .plugin-card .plugin-icon {
   width: 28px;
   height: 28px;
   border-radius: 6px;
+  border: 1px solid var(--task-border);
+  background: color-mix(in srgb, var(--task-text) 5%, transparent);
 }
 
 body.plugin-page .plugin-card .plugin-icon {
@@ -864,7 +866,6 @@ body.dark {
     <section class='task-shell plugin-shell'>
       <header class='task-shell-header'>
         <div class='task-shell-header-main'>
-          <p class='task-eyebrow'>Plugins</p>
           <h1 class='task-title'>Plugins</h1>
           <p class='task-description'>Open desktop editors externally or launch coding tools inside Pinokio.</p>
         </div>

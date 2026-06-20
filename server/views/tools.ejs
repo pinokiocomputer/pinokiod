@@ -80,87 +80,117 @@
     }
     body.tools-page .tools-loading-text,
     body.tools-page .tools-bundle-code,
-    body.tools-page .tools-bundle-description,
-    body.tools-page .tools-command-copy,
-    body.tools-page .tools-manager-count {
+    body.tools-page .tools-bundle-description {
       margin: 0;
       color: var(--task-muted);
       font-size: 12px;
       line-height: 1.45;
     }
-    body.tools-page .tools-bundle-grid {
+    body.tools-page .tools-bundle-list {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 10px;
     }
-    body.tools-page .tools-bundle-card {
+    body.tools-page .tools-bundle-row {
       display: grid;
-      gap: 12px;
-      align-content: start;
-      min-width: 0;
-      padding: 14px;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: start;
       border: 1px solid var(--task-border);
       border-radius: 8px;
-      background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+      padding: 14px;
+      background: transparent;
     }
-    body.tools-page .tools-bundle-head {
+    body.tools-page .tools-bundle-main {
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto;
       gap: 10px;
-      align-items: start;
       min-width: 0;
     }
-    body.tools-page .tools-bundle-icon,
-    body.tools-page .tools-module-icon {
-      display: inline-flex;
+    body.tools-page .tools-bundle-title-line {
+      display: flex;
       align-items: center;
-      justify-content: center;
-      flex: 0 0 auto;
-      width: 34px;
-      height: 34px;
-      border-radius: 8px;
-      background: color-mix(in srgb, var(--task-accent) 10%, transparent);
-      color: var(--task-accent);
-      font-size: 14px;
-    }
-    body.tools-page .tools-bundle-heading {
+      gap: 8px;
+      flex-wrap: wrap;
       min-width: 0;
+    }
+    body.tools-page .tools-bundle-title {
+      font-size: 16px;
+      line-height: 1.2;
+      font-weight: 650;
     }
     body.tools-page .tools-bundle-title,
     body.tools-page .tools-module-title {
       overflow-wrap: anywhere;
     }
-    body.tools-page .tools-bundle-packages {
-      display: grid;
-      gap: 7px;
-    }
-    body.tools-page .tools-bundle-packages-title {
+    body.tools-page .tools-bundle-code {
+      display: inline-flex;
+      align-items: center;
+      margin: 0;
       color: var(--task-muted);
-      font-size: 11px;
-      font-weight: 700;
+      font-size: 12px;
       line-height: 1.2;
+    }
+    body.tools-page .tools-bundle-description {
+      max-width: 72ch;
+      font-size: 13px;
+      line-height: 1.45;
+      opacity: 0.72;
+    }
+    body.tools-page .tools-bundle-detail {
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+      min-width: 0;
+      font-size: 12px;
+    }
+    body.tools-page .tools-bundle-detail-label {
+      flex: 0 0 auto;
+      width: 108px;
+      color: var(--task-muted);
+      opacity: 0.72;
+    }
+    body.tools-page .tools-bundle-actions {
+      display: grid;
+      gap: 8px;
+      justify-items: end;
+      min-width: 118px;
+    }
+    body.tools-page .tools-bundle-status {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      color: var(--task-muted);
+      font-size: 12px;
+      line-height: 1.2;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    body.tools-page .tools-bundle-status.good {
+      color: #166534;
+    }
+    body.tools-page .tools-bundle-status.warn {
+      color: #9a3412;
+    }
+    body.dark.tools-page .tools-bundle-status.good {
+      color: #86efac;
+    }
+    body.dark.tools-page .tools-bundle-status.warn {
+      color: #fdba74;
     }
     body.tools-page .tools-package-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 5px;
+      gap: 5px 13px;
       min-width: 0;
     }
     body.tools-page .tools-package-pill {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
       max-width: 100%;
-      min-height: 22px;
-      box-sizing: border-box;
-      padding: 0 8px;
-      border: 1px solid var(--task-border);
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--task-panel) 92%, var(--task-soft));
-      color: var(--task-text);
-      font-size: 11px;
-      font-weight: 650;
-      line-height: 1;
+      min-height: 18px;
+      color: var(--task-muted);
+      font-size: 12px;
+      line-height: 1.25;
     }
     body.tools-page .tools-package-pill span:last-child {
       min-width: 0;
@@ -169,64 +199,72 @@
       white-space: nowrap;
     }
     body.tools-page .tools-package-pill.is-installed {
-      border-color: color-mix(in srgb, #22c55e 28%, transparent);
-      background: color-mix(in srgb, #22c55e 10%, var(--task-panel));
-      color: #15803d;
-    }
-    body.dark.tools-page .tools-package-pill.is-installed {
-      color: #86efac;
+      color: var(--task-muted);
     }
     body.tools-page .tools-package-pill.needs-install {
-      border-color: color-mix(in srgb, #ef4444 24%, transparent);
-      background: color-mix(in srgb, #ef4444 8%, var(--task-panel));
       color: #b91c1c;
     }
     body.dark.tools-page .tools-package-pill.needs-install {
       color: #fca5a5;
     }
     body.tools-page .tools-package-pill i {
-      font-size: 10px;
+      width: 12px;
+      font-size: 11px;
+      text-align: center;
       flex: 0 0 auto;
     }
+    body.tools-page .tools-package-pill.is-installed i {
+      color: #15803d;
+    }
+    body.dark.tools-page .tools-package-pill.is-installed i {
+      color: #86efac;
+    }
     body.tools-page .tools-tabs {
-      margin-bottom: 16px;
+      margin-bottom: 12px;
+    }
+    body.tools-page .tools-module-section-head {
+      align-items: center;
     }
     body.tools-page .tools-tab-button {
       appearance: none;
       cursor: pointer;
+      gap: 6px;
+      text-transform: none;
+    }
+    body.tools-page .tools-tab-count {
+      color: var(--task-muted);
+      font-weight: 600;
+    }
+    body.tools-page .tools-tab-button.active .tools-tab-count {
+      color: inherit;
+    }
+    body.tools-page .tools-install-open {
+      min-height: 30px;
+      padding: 0 10px;
+      font-size: 12px;
+      white-space: nowrap;
     }
     body.tools-page .tools-package-panel {
       display: none;
     }
     body.tools-page .tools-package-panel.active {
       display: grid;
-      gap: 14px;
-    }
-    body.tools-page .tools-manager-section-head {
-      margin-bottom: 0;
-    }
-    body.tools-page .tools-install-card {
-      display: grid;
       gap: 10px;
-      padding: 14px;
-      border: 1px solid var(--task-border);
-      border-radius: 8px;
-      background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
     }
     body.tools-page .tools-install-form {
       display: grid;
-      grid-template-columns: minmax(160px, 1fr) auto;
-      gap: 10px;
-      align-items: end;
-    }
-    body.tools-page .tools-install-form.has-channel {
-      grid-template-columns: minmax(120px, 0.45fr) minmax(160px, 1fr) auto;
+      gap: 12px;
     }
     body.tools-page .tools-install-submit {
-      min-width: 92px;
+      min-width: 96px;
       min-height: 38px;
       font-size: 12px;
       font-weight: 650;
+    }
+    body.tools-page .tools-install-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
     }
     body.tools-page .tools-module-list {
       display: grid;
@@ -234,9 +272,7 @@
     }
     body.tools-page .tools-module-row {
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr);
-      gap: 10px;
-      align-items: center;
+      grid-template-columns: minmax(0, 1fr);
       padding: 10px 0;
       border-top: 1px solid var(--task-border);
     }
@@ -246,11 +282,6 @@
     }
     body.tools-page .tools-module-row:last-child {
       padding-bottom: 0;
-    }
-    body.tools-page .tools-module-icon {
-      width: 28px;
-      height: 28px;
-      font-size: 12px;
     }
     body.tools-page .pinokio-modern-modal.swal2-popup {
       background: var(--task-panel) !important;
@@ -340,19 +371,31 @@
       background: var(--task-panel);
     }
     @media (max-width: 760px) {
-      body.tools-page .tools-bundle-head {
-        grid-template-columns: auto minmax(0, 1fr);
-      }
-      body.tools-page .tools-bundle-head .task-badge {
-        grid-column: 1 / -1;
-        justify-self: start;
-      }
-      body.tools-page .tools-install-form,
-      body.tools-page .tools-install-form.has-channel {
+      body.tools-page .tools-bundle-row {
         grid-template-columns: 1fr;
       }
+      body.tools-page .tools-bundle-actions {
+        justify-items: start;
+        min-width: 0;
+      }
+      body.tools-page .tools-bundle-detail {
+        display: grid;
+        gap: 6px;
+      }
+      body.tools-page .tools-bundle-detail-label {
+        width: auto;
+      }
+      body.tools-page .tools-module-section-head {
+        display: grid;
+        gap: 10px;
+      }
+      body.tools-page .tools-install-open,
       body.tools-page .tools-install-submit {
         width: 100%;
+      }
+      body.tools-page .tools-install-actions {
+        display: grid;
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -364,7 +407,14 @@
   const moduleCount = installList.reduce((count, install) => {
     return count + (Array.isArray(install.modules) ? install.modules.length : 0);
   }, 0);
-  const managerLabel = (manager) => String(manager || "package").toUpperCase();
+  const managerName = (manager) => {
+    const value = String(manager || "package").trim();
+    if (!value) return "Package";
+    return value
+      .split(/[\s_-]+/)
+      .map((word) => word ? word.charAt(0).toUpperCase() + word.slice(1) : "")
+      .join(" ");
+  };
   const managerPanelId = (manager) => `tools-${String(manager || "package").replace(/[^a-z0-9_-]/gi, "-").toLowerCase()}-panel`;
 %>
 <body class="<%= theme %> main-sidebar-page task-launcher-page task-page task-library-page tools-page" data-agent="<%= agent %>">
@@ -374,7 +424,6 @@
       <section class="task-shell tools-shell">
         <header class="task-shell-header">
           <div class="task-shell-header-main">
-            <p class="task-eyebrow">Tools</p>
             <h1 class="task-title">Tools</h1>
             <p class="task-description">Package bundles and package-manager modules available on this machine.</p>
           </div>
@@ -411,42 +460,42 @@
                   <p class="task-empty-copy">No package bundles were found.</p>
                 </div>
               <% } else { %>
-                <div class="tools-bundle-grid">
+                <div class="tools-bundle-list">
                   <% bundleList.forEach((bundle) => { %>
-                    <article class="tools-bundle-card <%= !bundle.install_required ? 'is-installed' : 'needs-install' %>">
-                      <div class="tools-bundle-head">
-                        <div class="tools-bundle-icon" aria-hidden="true">
-                          <i class="<%= bundle.icon %>"></i>
+                    <article class="tools-bundle-row <%= !bundle.install_required ? 'is-installed' : 'needs-install' %>">
+                      <div class="tools-bundle-main">
+                        <div>
+                          <div class="tools-bundle-title-line">
+                            <span class="tools-bundle-title"><%= bundle.title %></span>
+                            <span class="tools-bundle-code"><%= bundle.name %></span>
+                          </div>
+                          <p class="tools-bundle-description"><%= bundle.description %></p>
                         </div>
-                        <div class="tools-bundle-heading">
-                          <div class="tools-bundle-title"><%= bundle.title %></div>
-                          <p class="tools-bundle-code"><%= bundle.name %></p>
+
+                        <div class="tools-bundle-detail">
+                          <span class="tools-bundle-detail-label">Packages</span>
+                          <div class="tools-package-list">
+                            <% bundle.requirements.forEach((req) => { %>
+                              <span class="tools-package-pill <%= req.installed ? 'is-installed' : 'needs-install' %>">
+                                <i class="fa-solid <%= req.installed ? 'fa-check' : 'fa-xmark' %>" aria-hidden="true"></i>
+                                <span><%= req.name %></span>
+                              </span>
+                            <% }) %>
+                          </div>
                         </div>
-                        <span class="task-badge <%= !bundle.install_required ? 'task-badge-accent' : 'task-badge-warning' %>">
+                      </div>
+
+                      <div class="tools-bundle-actions">
+                        <span class="tools-bundle-status <%= !bundle.install_required ? 'good' : 'warn' %>">
                           <%= !bundle.install_required ? 'Installed' : 'Not installed' %>
                         </span>
+                        <% if (bundle.install_required) { %>
+                          <a href="<%= bundle.setup %>" class="task-link-button">
+                            <i class="fa-solid fa-download" aria-hidden="true"></i>
+                            <span>Install</span>
+                          </a>
+                        <% } %>
                       </div>
-
-                      <p class="tools-bundle-description"><%= bundle.description %></p>
-
-                      <div class="tools-bundle-packages">
-                        <div class="tools-bundle-packages-title">Included packages</div>
-                        <div class="tools-package-list">
-                          <% bundle.requirements.forEach((req) => { %>
-                            <span class="tools-package-pill <%= req.installed ? 'is-installed' : 'needs-install' %>">
-                              <i class="fa-solid <%= req.installed ? 'fa-check' : 'fa-xmark' %>" aria-hidden="true"></i>
-                              <span><%= req.name %></span>
-                            </span>
-                          <% }) %>
-                        </div>
-                      </div>
-
-                      <% if (bundle.install_required) { %>
-                        <a href="<%= bundle.setup %>" class="task-link-button primary">
-                          <i class="fa-solid fa-download" aria-hidden="true"></i>
-                          <span>Install Bundle</span>
-                        </a>
-                      <% } %>
                     </article>
                   <% }) %>
                 </div>
@@ -454,11 +503,16 @@
             </section>
 
             <section class="task-section" aria-label="Installed modules">
-              <div class="task-section-head">
+              <div class="task-section-head tools-module-section-head">
                 <div>
                   <h2 class="task-section-title">Modules</h2>
-                  <p class="task-section-subcopy"><%= moduleCount %> modules across <%= installList.length %> package managers.</p>
                 </div>
+                <% if (installList.length) { %>
+                  <button class="task-link-button tools-install-open" type="button" data-package-install-open-active>
+                    <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                    <span>Install package</span>
+                  </button>
+                <% } %>
               </div>
 
               <% if (!installList.length) { %>
@@ -476,7 +530,8 @@
                       aria-selected="<%= index === 0 ? 'true' : 'false' %>"
                       aria-controls="<%= panelId %>"
                       data-tab="<%= install.package_manager %>">
-                      <%= managerLabel(install.package_manager) %> (<%= install.modules.length %>)
+                      <span><%= managerName(install.package_manager) %></span>
+                      <span class="tools-tab-count"><%= install.modules.length %></span>
                     </button>
                   <% }) %>
                 </div>
@@ -487,17 +542,38 @@
                     class="tools-package-panel <%= index === 0 ? 'active' : '' %>"
                     id="<%= panelId %>"
                     role="tabpanel"
-                    aria-label="<%= managerLabel(install.package_manager) %> modules"
+                    aria-label="<%= managerName(install.package_manager) %> modules"
                     data-panel="<%= install.package_manager %>">
-                    <div class="task-section-head tools-manager-section-head">
-                      <div>
-                        <h3 class="task-section-title"><%= managerLabel(install.package_manager) %></h3>
-                        <p class="tools-manager-count"><%= install.modules.length %> modules installed.</p>
+                    <% if (!install.modules.length) { %>
+                      <div class="task-empty-state">
+                        <p class="task-empty-copy">No modules installed.</p>
                       </div>
-                    </div>
-
-                    <div class="tools-install-card">
-                      <form class="tools-install-form package-install-form <%= install.package_manager === 'conda' ? 'has-channel' : '' %>" data-manager="<%= install.package_manager %>">
+                    <% } else { %>
+                      <div class="tools-module-list">
+                        <% install.modules.forEach((module) => { %>
+                          <div class="tools-module-row">
+                            <div class="tools-module-title"><%= module %></div>
+                          </div>
+                        <% }) %>
+                      </div>
+                    <% } %>
+                  </div>
+                <% }) %>
+                <% installList.forEach((install) => { %>
+                  <% const sheetTitleId = `${managerPanelId(install.package_manager)}-install-title`; %>
+                  <div class="task-tool-sheet-layer tools-package-install-layer" data-package-install-layer="<%= install.package_manager %>" hidden>
+                    <button type="button" class="task-tool-sheet-backdrop" aria-label="Close install package dialog" data-package-install-close></button>
+                    <section class="task-tool-sheet tools-package-install-sheet" role="dialog" aria-modal="true" aria-labelledby="<%= sheetTitleId %>">
+                      <div class="task-tool-sheet-header">
+                        <div class="task-tool-sheet-heading">
+                          <div class="task-tool-sheet-title" id="<%= sheetTitleId %>">Install package</div>
+                          <div class="task-tool-sheet-description">Add a package through <%= managerName(install.package_manager) %>.</div>
+                        </div>
+                        <button type="button" class="task-tool-sheet-close" aria-label="Close install package dialog" data-package-install-close>
+                          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                      <form class="task-tool-sheet-body tools-install-form package-install-form" data-manager="<%= install.package_manager %>">
                         <% if (install.package_manager === 'conda') { %>
                           <label class="task-field">
                             <span class="task-label">Channel</span>
@@ -513,38 +589,15 @@
                             <input class="task-input" name="name" type="text" placeholder="Enter package name" autocomplete="off" required>
                           </label>
                         <% } %>
-                        <button type="submit" class="task-button primary tools-install-submit">
-                          <i class="fa-solid fa-terminal" aria-hidden="true"></i>
-                          <span>Install</span>
-                        </button>
+                        <div class="task-actions tools-install-actions">
+                          <button class="task-link-button" type="button" data-package-install-close>Cancel</button>
+                          <button type="submit" class="task-button primary tools-install-submit">
+                            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                            <span>Install</span>
+                          </button>
+                        </div>
                       </form>
-                      <p class="tools-command-copy">
-                        <% if (install.package_manager === 'conda') { %>
-                          Runs <code>conda install -y --channel &lt;channel&gt; &lt;name&gt;</code>
-                        <% } else if (install.package_manager === 'brew') { %>
-                          Runs <code>brew install &lt;name&gt;</code>
-                        <% } else { %>
-                          Runs <code><%= install.package_manager %> install &lt;name&gt;</code>
-                        <% } %>
-                      </p>
-                    </div>
-
-                    <% if (!install.modules.length) { %>
-                      <div class="task-empty-state">
-                        <p class="task-empty-copy">No modules installed for <%= managerLabel(install.package_manager) %>.</p>
-                      </div>
-                    <% } else { %>
-                      <div class="tools-module-list">
-                        <% install.modules.forEach((module) => { %>
-                          <div class="tools-module-row">
-                            <div class="tools-module-icon" aria-hidden="true">
-                              <i class="fa-solid fa-cube"></i>
-                            </div>
-                            <div class="tools-module-title"><%= module %></div>
-                          </div>
-                        <% }) %>
-                      </div>
-                    <% } %>
+                    </section>
                   </div>
                 <% }) %>
               <% } %>
@@ -631,7 +684,6 @@
       const displayName = toDisplayName(manager);
       const safeName = escapeHtml(name);
       const safeChannel = channel ? escapeHtml(channel) : null;
-      const commandHtml = escapeHtml(command);
       const detailParts = [];
       if (safeChannel) {
         detailParts.push(`Channel: ${safeChannel}`);
@@ -654,9 +706,9 @@
           <div class="pinokio-modal-header">
             <div class="pinokio-modal-icon"><i class="${icon}"></i></div>
             <div class="pinokio-modal-heading">
-              <div class="pinokio-modal-title">${escapeHtml(displayName)} install</div>
+              <div class="pinokio-modal-title">Install with ${escapeHtml(displayName)}</div>
               <div class="pinokio-modal-subtitle">
-                ${detailsHtml ? `${detailsHtml} - ` : ""}Running <code>${commandHtml}</code>
+                ${detailsHtml || "Pinokio opens an install terminal for this package manager."}
               </div>
             </div>
           </div>
@@ -682,6 +734,67 @@
       });
     };
 
+    const packageInstallLayers = () => Array.from(document.querySelectorAll("[data-package-install-layer]"));
+
+    const closePackageInstallLayer = (layer) => {
+      if (!layer) return;
+      layer.hidden = true;
+      layer.setAttribute("aria-hidden", "true");
+
+      const hasOpenLayer = packageInstallLayers().some((item) => !item.hidden);
+      if (!hasOpenLayer) {
+        document.body.classList.remove("task-modal-open");
+      }
+    };
+
+    const openPackageInstallLayer = (manager) => {
+      const layer = packageInstallLayers().find((item) => item.dataset.packageInstallLayer === manager);
+      if (!layer) return;
+
+      packageInstallLayers().forEach((item) => {
+        if (item !== layer) {
+          closePackageInstallLayer(item);
+        }
+      });
+
+      layer.hidden = false;
+      layer.removeAttribute("aria-hidden");
+      document.body.classList.add("task-modal-open");
+
+      const nameInput = layer.querySelector("input[name=\"name\"]");
+      const firstInput = nameInput || layer.querySelector("input");
+      if (firstInput) {
+        setTimeout(() => firstInput.focus(), 0);
+      }
+    };
+
+    const registerPackageInstallSheets = () => {
+      const openButton = document.querySelector("[data-package-install-open-active]");
+      if (openButton) {
+        openButton.addEventListener("click", () => {
+          const activeTab = document.querySelector(".tools-tab-button.active") || document.querySelector(".tools-tab-button");
+          if (activeTab) {
+            openPackageInstallLayer(activeTab.dataset.tab);
+          }
+        });
+      }
+
+      document.querySelectorAll("[data-package-install-close]").forEach((button) => {
+        button.addEventListener("click", () => {
+          closePackageInstallLayer(button.closest("[data-package-install-layer]"));
+        });
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        packageInstallLayers().forEach((layer) => {
+          if (!layer.hidden) {
+            closePackageInstallLayer(layer);
+          }
+        });
+      });
+    };
+
     const registerPackageInstallForms = () => {
       const forms = document.querySelectorAll(".package-install-form");
       forms.forEach((form) => {
@@ -702,6 +815,7 @@
             return;
           }
 
+          closePackageInstallLayer(form.closest("[data-package-install-layer]"));
           openPackageInstallModal(payload);
           form.reset();
           if (manager === "conda") {
@@ -724,6 +838,7 @@
         return;
       }
 
+      registerPackageInstallSheets();
       registerPackageInstallForms();
 
       const tabs = document.querySelectorAll(".tools-tab-button");

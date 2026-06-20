@@ -464,11 +464,11 @@ aside .selected {
 body.settings-page .task-container {
   --settings-radius: 6px;
   --settings-radius-tight: 4px;
-  padding: 20px 28px 32px;
+  padding: 0;
 }
 
 body.settings-page .settings-shell {
-  width: min(980px, 100%);
+  width: 100%;
   margin: 0;
   background: transparent;
   border: 0;
@@ -536,8 +536,8 @@ body.settings-page .task-shell-header-main {
 
 body.settings-page .task-description {
   max-width: 70ch;
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 body.settings-page .task-section-head {
@@ -1050,12 +1050,11 @@ document.addEventListener('DOMContentLoaded', function() {
   <section class='task-shell settings-shell'>
     <header class='task-shell-header'>
       <div class='task-shell-header-main'>
-        <p class='task-eyebrow'>Settings</p>
         <h1 class='task-title'>Settings</h1>
         <% if (hasHome) { %>
-          <p class='task-description'>Manage Pinokio system preferences, storage paths, troubleshooting tools, and debug utilities.</p>
+          <p class='task-description'>Manage preferences, storage paths, troubleshooting, and debug utilities.</p>
         <% } else { %>
-          <p class='task-description'>Set and save a Pinokio home folder before using apps, tools, plugins, or troubleshooting features.</p>
+          <p class='task-description'>Set a Pinokio home folder before using apps and tools.</p>
         <% } %>
       </div>
     </header>

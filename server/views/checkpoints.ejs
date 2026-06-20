@@ -380,10 +380,10 @@ body.dark .backup-loading .backup-loading-text {
   color: rgba(226, 232, 240, 0.95);
 }
 body.checkpoints-page .task-container {
-  padding: 20px 28px 32px;
+  padding: 0;
 }
 body.checkpoints-page .task-shell {
-  width: min(1080px, 100%);
+  width: 100%;
   margin: 0;
   background: transparent;
   border: 0;
@@ -393,7 +393,7 @@ body.checkpoints-page .task-shell {
   backdrop-filter: none;
 }
 body.checkpoints-page .task-shell-header {
-  padding-bottom: 18px;
+  padding: 12px 18px 14px;
 }
 body.checkpoints-page .task-shell-body {
   padding: 28px 28px 28px;
@@ -412,31 +412,40 @@ body.checkpoints-page .checkpoints-toolbar {
   margin: 0 0 18px;
 }
 body.checkpoints-page .checkpoints-list {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--task-border);
+  border-radius: 8px;
+  background: transparent;
 }
 body.checkpoints-page .backup-row {
-  padding: 16px 0;
-  border-top: 1px solid var(--task-border);
+  display: block;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--task-border);
+  background: transparent;
+  color: var(--task-text);
+  text-decoration: none;
+  transform: none;
 }
-body.checkpoints-page .checkpoints-list > .backup-row:first-child {
-  padding-top: 0;
-  border-top: 0;
+body.checkpoints-page .backup-row:last-child {
+  border-bottom: 0;
 }
 body.checkpoints-page .backup-row h3 {
   margin: 0;
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  gap: 14px;
-  align-items: start;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
 }
 body.checkpoints-page .backup-row .item-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   overflow: hidden;
-  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
   border: 1px solid var(--task-border);
+  background: color-mix(in srgb, var(--task-text) 5%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -454,40 +463,71 @@ body.checkpoints-page .backup-row .title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 18px;
-  font-weight: 700;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 450;
+  letter-spacing: 0;
+  line-height: 1.2;
   color: var(--task-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 body.checkpoints-page .backup-row .uri {
-  margin-top: 3px;
-  font-size: 13px;
-  line-height: 1.45;
+  overflow: hidden;
+  margin-top: 1px;
+  font-size: 11px;
+  line-height: 1.2;
   color: var(--task-muted);
-  word-break: break-word;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 body.checkpoints-page .backup-row .description {
-  margin-top: 6px;
-  font-size: 13px;
-  line-height: 1.5;
+  overflow: hidden;
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.2;
   color: var(--task-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 body.checkpoints-page .backup-row .backup-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 body.checkpoints-page .backup-row .badge {
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
-  padding: 0 9px;
-  border-radius: 999px;
-  border: 1px solid var(--task-border);
-  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
-  color: var(--task-text);
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--task-muted);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
+}
+body.checkpoints-page .checkpoint-row-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--task-muted);
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.7;
+  transition: color 140ms ease, opacity 140ms ease, transform 140ms ease;
+}
+body.checkpoints-page .backup-row:hover .checkpoint-row-action,
+body.checkpoints-page .backup-row:focus-visible .checkpoint-row-action,
+body.checkpoints-page .backup-row:focus-within .checkpoint-row-action {
+  color: var(--task-text);
+  opacity: 1;
+  transform: translateX(1px);
+}
+body.checkpoints-page .checkpoint-row-action i {
+  font-size: 12px;
 }
 body.checkpoints-page .backups-empty {
   margin: 0;
@@ -507,13 +547,16 @@ body.checkpoints-page .backups-empty {
     padding: 16px 14px 24px;
   }
   body.checkpoints-page .backup-row h3 {
-    grid-template-columns: 44px minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 12px;
   }
   body.checkpoints-page .backup-row .item-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+  }
+  body.checkpoints-page .checkpoint-row-action span {
+    display: none;
   }
 }
 /* Minimal modal normalization for backup install/rename dialogs. */
@@ -1177,7 +1220,6 @@ document.addEventListener("DOMContentLoaded", () => {
     <section class='task-shell checkpoints-shell'>
       <header class='task-shell-header'>
         <div class='task-shell-header-main'>
-          <p class='task-eyebrow'>Checkpoints</p>
           <h1 class='task-title'>Checkpoints</h1>
           <p class='task-description'>Local version history for workspaces on this machine.</p>
         </div>
@@ -1230,6 +1272,10 @@ document.addEventListener("DOMContentLoaded", () => {
                           <span>Latest checkpoint: <%= new Date(Number(latest.id)).toLocaleString() %></span>
                         </div>
                       <% } %>
+                    </div>
+                    <div class="checkpoint-row-action" aria-hidden="true">
+                      <i class="fa-solid fa-clock-rotate-left"></i>
+                      <span>Manage</span>
                     </div>
                   </h3>
                 </div>

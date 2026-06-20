@@ -235,28 +235,30 @@ body.plugin-detail-page .pinokio-modal-body--iframe iframe {
 }
 
 .task-library-page .task-shell-header {
-  padding: 0 28px 12px;
+  padding: 12px 18px 14px;
 }
 
 .task-library-page .task-title {
-  font-size: clamp(28px, 3.2vw, 38px);
+  font-size: 22px;
+  line-height: 1.12;
+  letter-spacing: 0;
 }
 
 .task-library-page .task-description {
-  margin-top: 6px;
+  margin-top: 4px;
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
 .task-container {
   flex: 1;
   min-width: 0;
-  padding: 20px 28px 32px;
+  padding: 0;
   box-sizing: border-box;
 }
 
 body.task-page .task-shell {
-  width: min(980px, 100%);
+  width: 100%;
   margin: 0;
   background: transparent;
   border: 0;
@@ -314,27 +316,28 @@ body.task-page .task-shell {
 }
 
 body.plugin-page .task-shell {
-  width: min(1140px, 100%);
+  width: 100%;
 }
 
 body.connect-page .task-shell {
-  width: min(980px, 100%);
+  width: 100%;
 }
 
 .task-shell-header {
   position: static;
   top: auto;
   z-index: auto;
-  padding: 4px 28px 18px;
+  padding: 12px 18px 14px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 20px 24px;
-  align-items: flex-start;
+  gap: 16px 24px;
+  align-items: center;
   border-bottom: 1px solid var(--task-border);
 }
 
 .task-shell-header .task-title {
   display: block;
+  margin: 0;
   padding: 0;
 }
 
@@ -359,15 +362,15 @@ body.connect-page .task-shell {
   align-items: center;
   justify-content: flex-start;
   gap: 12px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .task-eyebrow {
   margin: 0;
   color: var(--task-accent);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -387,9 +390,10 @@ body.connect-page .task-shell {
 
 .task-title {
   margin: 0;
-  font-size: clamp(26px, 3vw, 34px);
-  line-height: 1.08;
-  letter-spacing: -0.045em;
+  font-size: 22px;
+  line-height: 1.12;
+  letter-spacing: 0;
+  font-weight: 760;
 }
 
 .task-detail-page .task-title {
@@ -398,10 +402,14 @@ body.connect-page .task-shell {
 }
 
 .task-description {
-  margin: 10px 0 0;
+  margin: 4px 0 0;
   color: var(--task-muted);
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+body.task-page .task-shell-header .task-description {
+  max-width: none;
 }
 
 .task-header-badges {
@@ -488,7 +496,7 @@ body.connect-page .task-shell {
 }
 
 .task-shell-body {
-  padding: 12px 28px 12px;
+  padding: 28px 28px 32px;
   display: grid;
   gap: 0;
 }
@@ -1628,43 +1636,45 @@ body.dark .task-link-button.danger {
 }
 
 .setup-shell {
-  width: min(1080px, 100%);
+  width: 100%;
 }
 
 body.setup-page .task-shell-header {
-  padding-bottom: 16px;
+  padding-bottom: 14px;
 }
 
 body.setup-page .task-shell-header-main {
   max-width: 820px;
 }
 
-body.setup-page .task-eyebrow {
-  color: var(--task-muted);
-  letter-spacing: 0;
-}
-
 body.setup-page .task-title {
-  font-size: clamp(24px, 2.4vw, 30px);
-  line-height: 1.1;
+  font-size: 22px;
+  line-height: 1.12;
   letter-spacing: 0;
+  font-weight: 760;
 }
 
 body.setup-page .task-description {
   max-width: 76ch;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 body.setup-page .task-badge {
   min-height: 22px;
   border-radius: 7px;
+  background: transparent;
 }
 
 body.setup-page .task-badge-warning {
-  border-color: color-mix(in srgb, var(--task-accent) 20%, var(--task-border));
-  background: color-mix(in srgb, var(--task-accent) 7%, var(--task-panel));
-  color: color-mix(in srgb, var(--task-accent) 58%, var(--task-text));
+  border-color: rgba(180, 83, 9, 0.26);
+  background: transparent;
+  color: #92400e;
+}
+
+body.dark.setup-page .task-badge-warning {
+  border-color: rgba(251, 191, 36, 0.28);
+  color: #f5d69a;
 }
 
 .setup-layout {
@@ -1682,7 +1692,9 @@ body.setup-page .task-badge-warning {
 
 .setup-requirement-list {
   display: grid;
-  gap: 8px;
+  gap: 0;
+  border-top: 1px solid var(--task-border);
+  border-bottom: 1px solid var(--task-border);
 }
 
 .setup-requirement-row {
@@ -1690,15 +1702,18 @@ body.setup-page .task-badge-warning {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 14px;
   align-items: center;
-  padding: 11px 12px;
-  border: 1px solid var(--task-border);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--task-panel) 97%, var(--task-soft));
+  padding: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--task-border);
+  background: transparent;
 }
 
 .setup-requirement-row.needs-update {
-  border-color: var(--task-border-strong);
-  background: color-mix(in srgb, var(--task-panel) 95%, var(--task-soft));
+  background: transparent;
+}
+
+.setup-requirement-row:first-child {
+  border-top: 0;
 }
 
 .setup-requirement-copy {
@@ -1726,9 +1741,9 @@ body.setup-page .task-badge-warning {
   justify-content: center;
   gap: 6px;
   min-height: 26px;
-  padding: 0 9px;
-  border: 1px solid var(--task-border);
-  border-radius: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   background: transparent;
   color: var(--task-muted);
   font-size: 10px;
@@ -1742,14 +1757,15 @@ body.setup-page .task-badge-warning {
 }
 
 .setup-requirement-row.is-installed .setup-requirement-state {
-  border-color: color-mix(in srgb, var(--task-border) 72%, transparent);
-  color: var(--task-text);
+  color: var(--task-muted);
 }
 
 .setup-requirement-row.needs-update .setup-requirement-state {
-  border-color: color-mix(in srgb, var(--task-accent) 22%, var(--task-border-strong));
-  background: color-mix(in srgb, var(--task-accent) 6%, var(--task-panel));
-  color: color-mix(in srgb, var(--task-accent) 56%, var(--task-text));
+  color: #92400e;
+}
+
+body.dark .setup-requirement-row.needs-update .setup-requirement-state {
+  color: #f5d69a;
 }
 
 .setup-actions-column {
@@ -1767,12 +1783,31 @@ body.setup-page .task-badge-warning {
 }
 
 .setup-summary-grid {
-  margin-top: 4px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+  margin-top: 6px;
 }
 
 .setup-summary-grid .task-meta-chip {
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.setup-summary-grid .task-meta-chip-label {
+  margin-bottom: 0;
+  letter-spacing: 0.04em;
+}
+
+.setup-summary-grid .task-meta-chip-value {
+  font-size: 12px;
+  color: var(--task-text);
 }
 
 .setup-primary-button {
@@ -1835,10 +1870,12 @@ body.setup-page .task-badge-warning {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px;
-  border: 1px solid var(--task-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+  padding: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--task-border);
+  border-bottom: 1px solid var(--task-border);
+  border-radius: 0;
+  background: transparent;
   box-sizing: border-box;
 }
 
@@ -1851,8 +1888,8 @@ body.setup-page .task-badge-warning {
   justify-content: center;
   border: 1px solid var(--task-border);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
-  color: var(--task-accent);
+  background: transparent;
+  color: var(--task-muted);
   font-size: 14px;
 }
 
@@ -2318,7 +2355,7 @@ body.plugin-page .plugin-card {
   padding: 15px;
   border-radius: 16px;
   border: 1px solid var(--task-border);
-  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+  background: transparent;
   color: var(--task-text);
   text-decoration: none;
   transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
@@ -2326,7 +2363,7 @@ body.plugin-page .plugin-card {
 
 body.plugin-page .plugin-card:hover,
 body.plugin-page .plugin-card:focus-within {
-  background: color-mix(in srgb, var(--task-panel) 88%, var(--task-soft));
+  background: color-mix(in srgb, var(--task-text) 5%, transparent);
   border-color: var(--task-border-strong);
   transform: translateY(-1px);
 }
@@ -2338,7 +2375,7 @@ body.plugin-page .plugin-card .plugin-icon {
   border-radius: 12px;
   object-fit: cover;
   flex-shrink: 0;
-  background: color-mix(in srgb, var(--task-panel) 90%, white);
+  background: color-mix(in srgb, var(--task-text) 5%, transparent);
   border: 1px solid var(--task-border);
 }
 
@@ -2415,7 +2452,7 @@ body.plugin-page .plugin-empty {
   padding: 22px;
   border-radius: 16px;
   border: 1px dashed var(--task-border-strong);
-  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+  background: transparent;
 }
 
 body.plugin-page .plugin-install-trigger {

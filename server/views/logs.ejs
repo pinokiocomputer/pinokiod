@@ -41,14 +41,16 @@
     <% if (!logsError) { %>
     <section class="logs-page" id="logs-root" data-workspace="<%= logsWorkspace ? logsWorkspace : '' %>" data-report-url="<%= logsReportUrl || '' %>" data-initial-view="<%= logsInitialView || 'raw' %>">
       <div class="logs-page-header">
-        <div class="logs-page-switch">
+        <div class="logs-page-header-main">
+          <h1 class="logs-page-title">Logs</h1>
+          <p class="logs-page-description">Inspect live log files and export diagnostics from this machine.</p>
           <% if (logsReportUrl) { %>
-            <div class="logs-view-switch" role="tablist" aria-label="Log views">
-              <button type="button" class="logs-view-tab" data-logs-view="latest" role="tab" aria-controls="logs-latest-panel">Latest</button>
-              <button type="button" class="logs-view-tab" data-logs-view="raw" role="tab" aria-controls="logs-raw-panel">Raw logs</button>
+            <div class="logs-page-switch">
+              <div class="logs-view-switch" role="tablist" aria-label="Log views">
+                <button type="button" class="logs-view-tab" data-logs-view="latest" role="tab" aria-controls="logs-latest-panel">Latest</button>
+                <button type="button" class="logs-view-tab" data-logs-view="raw" role="tab" aria-controls="logs-raw-panel">Raw logs</button>
+              </div>
             </div>
-          <% } else { %>
-            <div class="logs-raw-only-title"><i class="fa-solid fa-laptop-code" aria-hidden="true"></i><span>Logs</span></div>
           <% } %>
         </div>
         <div class="logs-page-controls">
@@ -144,9 +146,8 @@
         <div class="logs-sidebar" aria-label="Log folders">
           <div class="logs-sidebar-header">
             <div>
-              <p class="logs-sidebar-eyebrow">Raw log files</p>
               <h2>Files</h2>
-              <div class="logs-tree-hint">Select a file to stream live output.</div>
+              <div class="logs-tree-hint">Select a log file to stream.</div>
             </div>
             <div class="logs-zip-status" id="logs-zip-status" role="status" aria-live="polite"></div>
           </div>

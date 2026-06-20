@@ -606,10 +606,10 @@ body.dark .net .mark {
   }
 }
 body.net-page .task-container {
-  padding: 20px 28px 32px;
+  padding: 0;
 }
 body.net-page .task-shell {
-  width: min(1180px, 100%);
+  width: 100%;
   margin: 0;
   background: transparent;
   border: 0;
@@ -619,7 +619,7 @@ body.net-page .task-shell {
   backdrop-filter: none;
 }
 body.net-page .task-shell-header {
-  padding-bottom: 18px;
+  padding: 12px 18px 14px;
 }
 body.net-page .task-shell-body {
   padding: 28px 28px 28px;
@@ -1167,7 +1167,6 @@ document.addEventListener('DOMContentLoaded', function() {
   <section class='task-shell net-shell'>
     <header class='task-shell-header'>
       <div class='task-shell-header-main'>
-        <p class='task-eyebrow'>Network</p>
         <h1 class='task-title'><%= peer && peer.name ? peer.name : host %></h1>
         <p class='task-description'><%= current_host === host ? 'Live local, LAN, and peer routes for apps on this machine.' : 'Available routes and installed apps exposed by this peer.' %></p>
       </div>
