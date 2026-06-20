@@ -7947,6 +7947,44 @@ body.dark .pinokio-custom-terminal-header {
   let initialHomeSelectionRetries = 0
   let ignorePersistedSelection = pluginLaunchActive || Boolean(initialHomeSelectionPayload)
   let lastForegroundSignature = null
+  let networkSharingWarningOpen = false
+  const isLoopbackHost = (hostname) => {
+    const normalized = String(hostname || "").toLowerCase()
+    return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1" || normalized === "[::1]"
+  }
+  const requiresNetworkSharing = (href) => {
+    if (isLoopbackHost(window.location.hostname)) {
+      return false
+    }
+    try {
+      const parsed = new URL(href, window.location.href)
+      return parsed.protocol === "http:" && isLoopbackHost(parsed.hostname)
+    } catch (_) {
+      return false
+    }
+  }
+  const showNetworkSharingRequired = (href) => {
+    if (!requiresNetworkSharing(href)) {
+      return false
+    }
+    if (networkSharingWarningOpen) {
+      return true
+    }
+    networkSharingWarningOpen = true
+    Swal.fire({
+      title: "Turn on network sharing",
+      text: "Open Network to turn on local network sharing, then come back to this app.",
+      showCancelButton: true,
+      confirmButtonText: "Open Network",
+      cancelButtonText: "Stay here"
+    }).then((result) => {
+      networkSharingWarningOpen = false
+      if (result.isConfirmed) {
+        window.location.href = "/network"
+      }
+    })
+    return true
+  }
   const browserPopoutSurface = window.createBrowserPopoutSurface({
     onShow: () => {
       lastForegroundSignature = null
@@ -8088,6 +8126,9 @@ body.dark .pinokio-custom-terminal-header {
     frame.setAttribute("data-pinokio-inject", serialized)
   }
   const create_iframe = (name, href, injectDescriptors = []) => {
+    if (showNetworkSharingRequired(href)) {
+      return
+    }
     document.querySelectorAll(".menu-container .selected").forEach((el) => {
       el.classList.remove("selected")
     })
@@ -9570,6 +9611,13 @@ const rerenderMenuSection = (container, html) => {
 		    if (!target.href) {
 		      return
 		    }
+    if (showNetworkSharingRequired(target.href)) {
+      if (eventParam) {
+        eventParam.preventDefault()
+        eventParam.stopPropagation()
+      }
+      return
+    }
     //document.querySelector("#location").value = url
 
 //    document.querySelector("#open-location").setAttribute('href', target.href)
@@ -11416,11 +11464,13 @@ const rerenderMenuSection = (container, html) => {
                 refresh()
               }
             } else {
+              const launchLink = getTabLink(rawName) || findFrameLinkByTarget(rawName)
+              const launchHref = launchLink && launchLink.href && requiresNetworkSharing(event.data.launch.href) && !requiresNetworkSharing(launchLink.href) ? launchLink.href : event.data.launch.href
               const frameExists = Array.from(document.querySelectorAll("main.browserview iframe")).some((frame) => {
                 return frame.name === rawName
               })
               if (!frameExists) {
-                create_iframe(rawName, event.data.launch.href)
+                create_iframe(rawName, launchHref)
               }
               refresh()
             }

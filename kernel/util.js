@@ -1208,6 +1208,7 @@ const rewrite_localhost= (kernel, obj, source) => {
           }
         } else {
           let proxyPort = kernel.peer.info[kernel.peer.host].port_mapping["" + port]
+          if (!proxyPort) return url
           u.hostname = sourceIp;
           u.port = proxyPort;
         }
