@@ -1355,6 +1355,7 @@ body.main-sidebar-page main > .task-container {
   width: 180px;
   display: flex;
   flex-direction: column;
+  align-self: flex-start;
   flex-shrink: 0;
   min-height: 0;
   padding: 8px 5px;
@@ -1529,6 +1530,39 @@ body.main-sidebar-page aside.main-sidebar .tab.selected .main-sidebar-action-ico
   max-width: calc(100% - 24px);
 }
 @media only screen and (min-width: 601px) {
+  body.main-sidebar-page .main-sidebar {
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+  }
+
+  body.dark.main-sidebar-page .main-sidebar {
+    scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+  }
+
+  body.main-sidebar-page .main-sidebar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  body.main-sidebar-page .main-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  body.main-sidebar-page .main-sidebar::-webkit-scrollbar-thumb {
+    background-color: rgba(148, 163, 184, 0.42);
+    border: 0;
+    border-radius: 999px;
+  }
+
+  body.dark.main-sidebar-page .main-sidebar::-webkit-scrollbar-thumb {
+    background-color: rgba(148, 163, 184, 0.32);
+  }
+
   body.main-sidebar-page.main-sidebar-collapsed .main-sidebar {
     width: 0;
     min-width: 0;
