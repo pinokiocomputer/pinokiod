@@ -1,11 +1,14 @@
-const fs = require('fs')
-const fetch = require('cross-fetch')
-const { rimraf } = require('rimraf')
-const decompress = require('decompress');
+const UV_VERSION = "0.11.23"
+
+const normalizeVersion = (version) => {
+  const match = String(version || "").match(/^\d+\.\d+\.\d+/)
+  return match ? match[0] : null
+}
+
 class UV {
   description = "Installs uv, a fast Python package and virtual environment manager."
   cmd() {
-    return "uv"
+    return `uv=${UV_VERSION}`
   }
   async install(req, ondata) {
     await this.kernel.bin.exec({
@@ -16,7 +19,11 @@ class UV {
     }, ondata)
   }
   async installed() {
-    return this.kernel.bin.installed.conda.has("uv")
+    if (!this.kernel.bin.installed.conda.has("uv")) {
+      return false
+    }
+    let version = this.kernel.bin.installed.conda_versions && this.kernel.bin.installed.conda_versions.uv
+    return normalizeVersion(version) === UV_VERSION
   }
   async uninstall(req, ondata) {
     await this.kernel.bin.exec({
