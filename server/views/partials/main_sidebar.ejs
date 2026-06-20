@@ -294,14 +294,31 @@
 
     const html = document.documentElement;
     const toggle = document.querySelector("[data-main-sidebar-toggle]");
+    const mobileHomeToggle = document.querySelector("body.main-sidebar-page > header.navheader .home");
     const backdrop = document.querySelector("[data-main-sidebar-backdrop]");
-    const mobileMq = window.matchMedia("(max-width: 600px)");
+    const mobileMq = window.matchMedia("(max-width: 768px)");
 
     if (!body || !html || !sidebar || !toggle || !backdrop) return;
 
     const sync = () => {
       const open = body.classList.contains("main-sidebar-mobile-open");
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      if (mobileHomeToggle) {
+        if (mobileMq.matches) {
+          const label = open ? "Close navigation" : "Open navigation";
+          mobileHomeToggle.setAttribute("role", "button");
+          mobileHomeToggle.setAttribute("aria-controls", "main-sidebar");
+          mobileHomeToggle.setAttribute("aria-expanded", open ? "true" : "false");
+          mobileHomeToggle.setAttribute("aria-label", label);
+          mobileHomeToggle.setAttribute("title", label);
+        } else {
+          mobileHomeToggle.removeAttribute("role");
+          mobileHomeToggle.removeAttribute("aria-controls");
+          mobileHomeToggle.removeAttribute("aria-expanded");
+          mobileHomeToggle.removeAttribute("aria-label");
+          mobileHomeToggle.removeAttribute("title");
+        }
+      }
       const icon = toggle.querySelector("i");
       if (icon) {
         icon.classList.toggle("fa-bars", !open);
@@ -323,13 +340,27 @@
       sync();
     };
 
-    toggle.addEventListener("click", () => {
+    const toggleMobileSidebar = () => {
       if (body.classList.contains("main-sidebar-mobile-open")) {
         close();
       } else {
         open();
       }
+    };
+
+    toggle.addEventListener("click", () => {
+      toggleMobileSidebar();
     });
+
+    if (mobileHomeToggle) {
+      mobileHomeToggle.addEventListener("click", (event) => {
+        if (!mobileMq.matches) {
+          return;
+        }
+        event.preventDefault();
+        toggleMobileSidebar();
+      });
+    }
 
     backdrop.addEventListener("click", close);
 
