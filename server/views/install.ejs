@@ -17,22 +17,33 @@
 document.documentElement.dataset.installSpinnerVariant = "grid-shift"
 </script>
 <style>
-body {
+html {
+  height: 100%;
+}
+body.install-page {
   --install-status-bg: var(--pinokio-chrome-accent-bg-light);
   --install-spinner-fg: rgba(0,0,0,0.8);
   --install-status-fg: var(--pinokio-chrome-accent-fg-light);
   --install-status-fg-soft: rgba(225, 178, 97, 0.34);
   --install-status-border: rgba(15, 23, 42, 0.12);
   --install-status-detail: rgba(0, 0, 0, 0.6);
-  height: 100%;
+  height: 100vh;
+  min-height: 100vh;
   overflow: hidden;
   /*
   background: rgb(44, 29, 22);
   */
   display: flex;
-  flex-direction: column;
+  flex-direction: column !important;
+  align-items: stretch;
 }
-body.dark {
+@supports (height: 100dvh) {
+  body.install-page {
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+}
+body.install-page.dark {
   --install-status-bg: var(--pinokio-chrome-accent-bg-dark);
   --install-spinner-fg: white;
   --install-status-fg: var(--pinokio-chrome-accent-fg-dark);
@@ -40,8 +51,18 @@ body.dark {
   --install-status-border: rgba(255, 255, 255, 0.08);
   --install-status-detail: rgba(239, 233, 214, 0.76);
 }
+body.install-page > header.grabbable {
+  flex: 0 0 auto;
+}
+body.install-page > .terminal-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
 #terminal {
   flex-grow: 1;
+  height: 100%;
+  min-height: 0;
 }
 .line2 {
   display: flex;
@@ -111,7 +132,9 @@ body.dark {
   color: rgba(0,0,0,0.5);
 }
 #status-screen {
+  flex: 0 0 auto;
   padding: 14px 18px;
+  padding-bottom: calc(14px + env(safe-area-inset-bottom));
   box-sizing: border-box;
   width: 100%;
   margin: 0;
@@ -487,7 +510,7 @@ body.dark {
 <script src="/waitmodal.js"></script>
 <script src="/notifyinput.js"></script>
 </head>
-<body class='<%=theme%>' data-agent="<%=agent%>">
+<body class='install-page <%=theme%>' data-agent="<%=agent%>">
 <header class='grabbable'></header>
 <div class='terminal-container'>
   <div id='terminal'></div>

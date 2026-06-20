@@ -3268,6 +3268,7 @@ body.dark .swal2-popup.pinokio-download-modal {
   --pinokio-inline-status-title: #18181b;
   --pinokio-inline-status-detail: #71717a;
   --pinokio-inline-status-progress: #18181b;
+  flex: 0 0 auto;
   padding: 12px 14px;
   box-sizing: border-box;
   width: 100%;
@@ -3287,10 +3288,12 @@ body.dark .pinokio-install-inline-status {
 body.pinokio-install-status-visible {
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
+  flex-direction: column !important;
+  align-items: stretch;
 }
-body.pinokio-install-status-visible main,
-body.pinokio-install-status-visible .terminal-container {
+body.pinokio-install-status-visible > main,
+body.pinokio-install-status-visible > .terminal-container,
+body.pinokio-install-status-visible > .containers {
   flex: 1 1 auto;
   min-height: 0;
 }
