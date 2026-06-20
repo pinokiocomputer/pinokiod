@@ -1155,11 +1155,63 @@ body.dark aside .current.selected {
 */
 @media only screen and (max-width: 760px) {
   .home-search-form {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
   }
+  .home-search-form input[type='search'].flexible {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
   .home-search-form .home-apps-sort {
+    width: var(--home-filter-control-height);
+    min-width: var(--home-filter-control-height);
+    padding: 0;
+    justify-content: center;
     margin-left: 0;
+  }
+  .home-search-form .home-apps-sort label,
+  .home-search-form .home-apps-sort .ts-control > .item {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .home-search-form .home-apps-sort .home-apps-sort-icon {
+    font-size: 14px;
+  }
+  .home-search-form .home-apps-sort .home-apps-sort-caret {
+    position: absolute;
+    right: 7px;
+    bottom: 7px;
+    font-size: 7px;
+  }
+  .home-search-form .home-apps-sort select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    min-width: 0;
+    opacity: 0;
+    z-index: 1;
+  }
+  .home-search-form .home-apps-sort .ts-wrapper {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    opacity: 0;
+    z-index: 1;
+  }
+  .home-search-form .home-apps-sort .ts-dropdown {
+    left: auto !important;
+    right: 0 !important;
+    width: 164px !important;
+    min-width: 164px !important;
   }
   header .flexible {
     min-width: unset;
