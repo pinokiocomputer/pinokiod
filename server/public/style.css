@@ -1355,7 +1355,6 @@ body.main-sidebar-page main > .task-container {
   width: 180px;
   display: flex;
   flex-direction: column;
-  align-self: flex-start;
   flex-shrink: 0;
   min-height: 0;
   padding: 8px 5px;
@@ -1530,10 +1529,39 @@ body.main-sidebar-page aside.main-sidebar .tab.selected .main-sidebar-action-ico
   max-width: calc(100% - 24px);
 }
 @media only screen and (min-width: 601px) {
+  body.main-sidebar-page {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  body.main-sidebar-page > header.navheader {
+    flex: 0 0 auto;
+  }
+
+  body.main-sidebar-page main {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  body.main-sidebar-page main > :not(.main-sidebar) {
+    min-height: 0;
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  body.main-sidebar-page main > iframe {
+    overflow: hidden;
+  }
+
   body.main-sidebar-page .main-sidebar {
-    position: sticky;
-    top: 0;
-    max-height: 100vh;
+    align-self: stretch;
+    height: auto;
+    max-height: none;
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
