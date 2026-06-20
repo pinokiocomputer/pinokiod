@@ -155,13 +155,9 @@ body.dark .backup-modal-description {
   padding: 2px 6px 6px 2px;
   overscroll-behavior: contain;
 }
-.line.backup-row {
+body.checkpoints-page .backup-row {
   cursor: pointer;
-  transition: background 0.15s ease, box-shadow 0.15s ease;
-}
-.line.backup-row:hover {
-  background: royalblue;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+  transition: background 0.15s ease;
 }
 .snapshot-option {
   display: flex;
@@ -463,10 +459,6 @@ body.checkpoints-page .backup-row .title {
   font-weight: 700;
   color: var(--task-text);
 }
-body.checkpoints-page .backup-row .title i {
-  font-size: 10px;
-  color: var(--task-accent);
-}
 body.checkpoints-page .backup-row .uri {
   margin-top: 3px;
   font-size: 13px;
@@ -567,21 +559,12 @@ body.dark .backup-meta {
   color: rgba(229, 231, 235, 0.62) !important;
 }
 
-.line.backup-row {
-  border-radius: 7px !important;
-  border: 1px solid rgba(24, 24, 27, 0.1) !important;
-}
-
-body.dark .line.backup-row {
-  border-color: rgba(255, 255, 255, 0.09) !important;
-}
-
-.line.backup-row:hover {
+body.checkpoints-page .backup-row:hover {
   background: rgba(24, 24, 27, 0.04) !important;
   box-shadow: none !important;
 }
 
-body.dark .line.backup-row:hover {
+body.dark.checkpoints-page .backup-row:hover {
   background: rgba(255, 255, 255, 0.05) !important;
 }
 
@@ -1223,7 +1206,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <% if (items && items.length > 0) { %>
             <div class="checkpoints-list">
               <% items.forEach((item) => { %>
-                <div class='line align-top backup-row' data-remote-key="<%=item.remoteKey%>">
+                <div class='backup-row' data-remote-key="<%=item.remoteKey%>">
                   <h3>
                     <div class='item-icon'>
                       <% if (item.icon) { %>
@@ -1234,7 +1217,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                     <div class='col'>
                       <div class='title'>
-                        <i class="fa-solid fa-circle"></i>
                         <span><%= item.title || item.displayName %></span>
                       </div>
                       <div class='uri'><%= item.remoteUrl %></div>
