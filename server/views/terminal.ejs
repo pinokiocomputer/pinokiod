@@ -2618,10 +2618,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           config = window.PinokioTerminalSettings.applyToConfig(config)
         }
         const term = new Terminal(config)
+        term.open(document.querySelector("#terminal"))
         if (window.PinokioTerminalSettings && typeof window.PinokioTerminalSettings.register === 'function') {
           window.PinokioTerminalSettings.register(term, { baseConfig })
         }
-        term.open(document.querySelector("#terminal"))
         const terminalContainer = document.querySelector("#terminal")
         const dropOverlay = document.createElement("div")
         dropOverlay.className = "terminal-drop-overlay"

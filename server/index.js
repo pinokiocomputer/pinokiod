@@ -15635,6 +15635,32 @@ class Server {
         res.json({ https_active: false, router_info: [], rewrite_mapping: {}, router: {} })
       }
     }))
+    this.app.get("/info/network-sharing", ex(async (req, res) => {
+      res.set("Cache-Control", "no-store")
+      const https_active = !!(this.kernel.peer && this.kernel.peer.https_active)
+      let installed = false
+      let running = false
+      try {
+        const caddy = this.kernel.bin && this.kernel.bin.mod ? this.kernel.bin.mod.caddy : null
+        if (caddy && typeof caddy.installed === "function") {
+          installed = !!(await caddy.installed())
+        }
+      } catch (err) {
+        installed = false
+      }
+      try {
+        await axios.get("http://127.0.0.1:2019/config/", { timeout: 750 })
+        running = true
+      } catch (err) {
+        running = false
+      }
+      res.json({
+        active: https_active,
+        installed,
+        running,
+        available: https_active && installed
+      })
+    }))
     this.app.get("/qr", ex(async (req, res) => {
       try {
         const data = typeof req.query.data === 'string' ? req.query.data : ''
@@ -16051,6 +16077,7 @@ class Server {
       })
     }))
     this.app.get("/pinokio/install", ex((req, res) => {
+      res.set("Cache-Control", "no-store")
       let requirements = req.session.requirements
       let callback = req.session.callback
       req.session.requirements = null

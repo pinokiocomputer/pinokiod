@@ -132,26 +132,6 @@
     }
 
     shouldPreferModalInput() {
-      if (typeof navigator !== 'undefined') {
-        try {
-          if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean') {
-            if (navigator.userAgentData.mobile) {
-              return true;
-            }
-          }
-        } catch (_) {}
-        const ua = navigator.userAgent || '';
-        if (/Mobi|Android|iPhone|iPad|Tablet/i.test(ua)) {
-          return true;
-        }
-        const platform = navigator.platform || '';
-        const maxTouchPoints = typeof navigator.maxTouchPoints === 'number'
-          ? navigator.maxTouchPoints
-          : 0;
-        if (/Mac/i.test(platform) && maxTouchPoints > 1) {
-          return true;
-        }
-      }
       return false;
     }
 
@@ -651,41 +631,134 @@
         return;
       }
       const tracker = {
-        lastTime: 0,
-        lastX: 0,
-        lastY: 0,
-        handler: null,
-        eventName: this.supportsPointer ? 'pointerdown' : 'touchstart'
+        active: false,
+        startTime: 0,
+        startX: 0,
+        startY: 0,
+        startScroll: null,
+        moved: false,
+        handlers: []
       };
-      const handlePointerDown = (event) => {
-        if (!event) {
-          return;
+      const getScrollSnapshot = () => {
+        const viewport = node.querySelector('.xterm-viewport');
+        const doc = typeof document !== 'undefined' ? document.documentElement : null;
+        const body = typeof document !== 'undefined' ? document.body : null;
+        return {
+          viewportTop: viewport ? viewport.scrollTop : 0,
+          viewportLeft: viewport ? viewport.scrollLeft : 0,
+          pageTop: typeof window !== 'undefined' ? (window.pageYOffset || doc && doc.scrollTop || body && body.scrollTop || 0) : 0,
+          pageLeft: typeof window !== 'undefined' ? (window.pageXOffset || doc && doc.scrollLeft || body && body.scrollLeft || 0) : 0
+        };
+      };
+      const didScrollChange = (start, end) => {
+        if (!start || !end) {
+          return false;
         }
-        if (this.supportsPointer) {
+        return Math.abs(end.viewportTop - start.viewportTop) > 1
+          || Math.abs(end.viewportLeft - start.viewportLeft) > 1
+          || Math.abs(end.pageTop - start.pageTop) > 1
+          || Math.abs(end.pageLeft - start.pageLeft) > 1;
+      };
+      const resetTracker = () => {
+        tracker.active = false;
+        tracker.startScroll = null;
+      };
+      const getTouchPoint = (event, phase) => {
+        if (!event) {
+          return null;
+        }
+        if (event.touches || event.changedTouches) {
+          const list = phase === 'end' ? event.changedTouches : event.touches;
+          const touch = list && list[0];
+          return touch && typeof touch.clientX === 'number' && typeof touch.clientY === 'number'
+            ? { x: touch.clientX, y: touch.clientY }
+            : null;
+        }
+        return typeof event.clientX === 'number' && typeof event.clientY === 'number'
+          ? { x: event.clientX, y: event.clientY }
+          : null;
+      };
+      const isInteractiveTarget = (target) => {
+        return Boolean(target && target.closest && target.closest('a, button, input, textarea, select, label, [role="button"], [contenteditable="true"], .terminal-keyboard-modal, .terminal-keyboard-backdrop'));
+      };
+      const isTouchEvent = (event) => {
+        if (!event) {
+          return false;
+        }
+        if (event.touches || event.changedTouches) {
+          const list = event.touches || event.changedTouches;
+          if (list && list.length > 1) {
+            return false;
+          }
+        } else if (this.supportsPointer) {
           const pointerType = event.pointerType;
           if (pointerType && pointerType !== 'touch' && pointerType !== 'pen') {
-            return;
+            return false;
           }
-        } else if (event.touches && event.touches.length !== 1) {
+        }
+        return true;
+      };
+      const handleStart = (event) => {
+        if (!isTouchEvent(event) || this.modalOpen || isInteractiveTarget(event.target)) {
+          resetTracker();
           return;
         }
-        const pointSource = this.supportsPointer ? event : (event.touches && event.touches[0]);
-        const pointX = pointSource && typeof pointSource.clientX === 'number' ? pointSource.clientX : 0;
-        const pointY = pointSource && typeof pointSource.clientY === 'number' ? pointSource.clientY : 0;
-        const now = Date.now();
-        const delta = now - tracker.lastTime;
-        const distance = Math.hypot(pointX - tracker.lastX, pointY - tracker.lastY);
-        if (delta < 320 && distance < 40) {
+        const point = getTouchPoint(event, 'start');
+        if (!point) {
+          resetTracker();
+          return;
+        }
+        tracker.active = true;
+        tracker.moved = false;
+        tracker.startTime = Date.now();
+        tracker.startX = point.x;
+        tracker.startY = point.y;
+        tracker.startScroll = getScrollSnapshot();
+      };
+      const handleMove = (event) => {
+        if (!tracker.active) {
+          return;
+        }
+        const point = getTouchPoint(event, 'move');
+        if (!point) {
+          return;
+        }
+        const distance = Math.hypot(point.x - tracker.startX, point.y - tracker.startY);
+        if (distance > 12) {
+          tracker.moved = true;
+        }
+      };
+      const handleEnd = (event) => {
+        if (!tracker.active) {
+          return;
+        }
+        const point = getTouchPoint(event, 'end');
+        const duration = Date.now() - tracker.startTime;
+        const distance = point ? Math.hypot(point.x - tracker.startX, point.y - tracker.startY) : Infinity;
+        const scrolled = didScrollChange(tracker.startScroll, getScrollSnapshot());
+        resetTracker();
+        if (!tracker.moved && !scrolled && duration < 700 && distance <= 12 && !isInteractiveTarget(event.target)) {
           event.preventDefault();
           event.stopPropagation();
           this.openModalFromGesture();
         }
-        tracker.lastTime = now;
-        tracker.lastX = pointX;
-        tracker.lastY = pointY;
       };
-      node.addEventListener(tracker.eventName, handlePointerDown, { passive: false });
-      tracker.handler = handlePointerDown;
+      const addTrackedListener = (eventName, handler, options) => {
+        node.addEventListener(eventName, handler, options);
+        tracker.handlers.push({ eventName, handler, options });
+      };
+      if (this.supportsPointer) {
+        addTrackedListener('pointerdown', handleStart, { passive: true });
+        addTrackedListener('pointermove', handleMove, { passive: true });
+        addTrackedListener('pointerup', handleEnd, { passive: false });
+        addTrackedListener('pointercancel', resetTracker, { passive: true });
+      }
+      if (typeof window !== 'undefined' && 'TouchEvent' in window) {
+        addTrackedListener('touchstart', handleStart, { passive: true });
+        addTrackedListener('touchmove', handleMove, { passive: true });
+        addTrackedListener('touchend', handleEnd, { passive: false });
+        addTrackedListener('touchcancel', resetTracker, { passive: true });
+      }
       tracker.node = node;
       this.tapTrackers.set(term, tracker);
     }
@@ -706,9 +779,10 @@
       if (!tracker) {
         return;
       }
-      if (tracker.node && tracker.handler) {
-        const eventName = tracker.eventName || (this.supportsPointer ? 'pointerdown' : 'touchstart');
-        tracker.node.removeEventListener(eventName, tracker.handler, { passive: false });
+      if (tracker.node && Array.isArray(tracker.handlers)) {
+        tracker.handlers.forEach(({ eventName, handler, options }) => {
+          tracker.node.removeEventListener(eventName, handler, options);
+        });
       }
       this.tapTrackers.delete(term);
     }
@@ -1189,6 +1263,8 @@
       }
       const nextTheme = Object.assign({}, theme);
       const applied = this.applyOption(term, 'theme', nextTheme);
+
+      console.log("nextTheme", nextTheme)
 
       const element = term.element;
       if (element && element.style) {

@@ -579,6 +579,142 @@ main.browserview {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+.browserview-network-status {
+  --install-spinner-fg: rgba(31, 41, 55, 0.78);
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  padding: 24px;
+  text-align: center;
+  color: rgba(17, 24, 39, 0.9);
+  background: var(--app-page-canvas-bg, #fff);
+  pointer-events: auto;
+}
+.browserview-network-status[hidden] {
+  display: none !important;
+}
+body.dark .browserview-network-status {
+  --install-spinner-fg: rgba(248, 250, 252, 0.88);
+  color: rgba(248, 250, 252, 0.9);
+  background: var(--app-page-canvas-bg, #1b1c1d);
+}
+.browserview-network-status-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: min(420px, 100%);
+}
+.browserview-network-status-title {
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+.browserview-network-status-detail {
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(75, 85, 99, 0.95);
+}
+body.dark .browserview-network-status-detail {
+  color: rgba(209, 213, 219, 0.84);
+}
+.browserview-network-status-route {
+  max-width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  color: rgba(107, 114, 128, 0.88);
+  overflow-wrap: anywhere;
+}
+body.dark .browserview-network-status-route {
+  color: rgba(156, 163, 175, 0.86);
+}
+.browserview-network-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 6px;
+}
+.browserview-network-status .btn2 {
+  gap: 7px;
+  min-height: 30px;
+  padding: 6px 11px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.browserview-network-status .browserview-network-status-primary {
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.88);
+  color: rgba(17, 24, 39, 0.96);
+}
+.browserview-network-status .browserview-network-status-primary:hover,
+.browserview-network-status .browserview-network-status-primary:focus-visible {
+  background: rgba(255, 255, 255, 1);
+}
+.browserview-network-status .browserview-network-status-secondary {
+  border-color: transparent;
+  background: transparent;
+  color: rgba(75, 85, 99, 0.86);
+  font-weight: 600;
+}
+.browserview-network-status .browserview-network-status-secondary:hover,
+.browserview-network-status .browserview-network-status-secondary:focus-visible {
+  background: rgba(0, 0, 0, 0.05);
+}
+body.dark .browserview-network-status .browserview-network-status-primary {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(248, 250, 252, 0.94);
+}
+body.dark .browserview-network-status .browserview-network-status-primary:hover,
+body.dark .browserview-network-status .browserview-network-status-primary:focus-visible {
+  background: rgba(255, 255, 255, 0.15);
+}
+body.dark .browserview-network-status .browserview-network-status-secondary {
+  color: rgba(209, 213, 219, 0.78);
+}
+body.dark .browserview-network-status .browserview-network-status-secondary:hover,
+body.dark .browserview-network-status .browserview-network-status-secondary:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+}
+.browserview-network-status .install-status-spinner {
+  position: relative;
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  margin-bottom: 3px;
+}
+.browserview-network-status .install-status-grid-anchor,
+.browserview-network-status .install-status-grid-chaser {
+  position: absolute;
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--install-spinner-fg);
+}
+.browserview-network-status .install-status-grid-anchor {
+  opacity: 0.16;
+}
+.browserview-network-status .install-status-grid-anchor-1,
+.browserview-network-status .install-status-grid-chaser { top: 1px; left: 1px; }
+.browserview-network-status .install-status-grid-anchor-2 { top: 1px; left: 12px; }
+.browserview-network-status .install-status-grid-anchor-3 { top: 12px; left: 12px; }
+.browserview-network-status .install-status-grid-anchor-4 { top: 12px; left: 1px; }
+.browserview-network-status .install-status-grid-chaser {
+  animation: pinokio-browserview-corner-chase 1.05s cubic-bezier(0.6, 0, 0.2, 1) infinite;
+}
+@keyframes pinokio-browserview-corner-chase {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(11px, 0); }
+  50% { transform: translate(11px, 11px); }
+  75% { transform: translate(0, 11px); }
 }
 .community-drawer {
   display: none;
@@ -7598,6 +7734,7 @@ body.dark .pinokio-custom-terminal-header {
         <% if (type === 'files') { %>
           <iframe class='selected' src="<%=editor_tab%>" allow="fullscreen *;" allowfullscreen></iframe>
         <% } %>
+        <div id="browserview-network-status" class="browserview-network-status" hidden aria-live="polite"></div>
         <%- include('./partials/browser_popout_surface') %>
       </main>
       <% if (type === 'run') { %>
@@ -7948,6 +8085,25 @@ body.dark .pinokio-custom-terminal-header {
   let ignorePersistedSelection = pluginLaunchActive || Boolean(initialHomeSelectionPayload)
   let lastForegroundSignature = null
   let networkSharingWarningOpen = false
+  let pendingNetworkSharingSelectionRetry = null
+  const networkSharingSelectionRetries = new Map()
+  let networkSharingStatusRequest = null
+  const NETWORK_SHARING_SELECTION_RETRY_LIMIT = 30
+  const scheduleNetworkSharingSelectionRetry = (delay = 1000) => {
+    if (pendingNetworkSharingSelectionRetry !== null) {
+      return
+    }
+    pendingNetworkSharingSelectionRetry = setTimeout(() => {
+      pendingNetworkSharingSelectionRetry = null
+      refresh(false, { nodelay: true })
+    }, delay)
+  }
+  const cancelNetworkSharingSelectionRetry = () => {
+    if (pendingNetworkSharingSelectionRetry !== null) {
+      clearTimeout(pendingNetworkSharingSelectionRetry)
+      pendingNetworkSharingSelectionRetry = null
+    }
+  }
   const isLoopbackHost = (hostname) => {
     const normalized = String(hostname || "").toLowerCase()
     return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1" || normalized === "[::1]"
@@ -7961,6 +8117,38 @@ body.dark .pinokio-custom-terminal-header {
       return parsed.protocol === "http:" && isLoopbackHost(parsed.hostname)
     } catch (_) {
       return false
+    }
+  }
+  const isNetworkSharedHref = (href) => {
+    if (isLoopbackHost(window.location.hostname)) {
+      return false
+    }
+    try {
+      const parsed = new URL(href, window.location.href)
+      const page = new URL(window.location.href)
+      return parsed.protocol === "http:" && parsed.hostname === page.hostname && parsed.port && parsed.port !== page.port
+    } catch (_) {
+      return false
+    }
+  }
+  const canLoadNetworkSharedHref = async (href, timeout = 750) => {
+    if (!isNetworkSharedHref(href)) {
+      return true
+    }
+    if (typeof AbortController !== "function") {
+      return true
+    }
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      controller.abort()
+    }, timeout)
+    try {
+      await fetch(href, { cache: "no-store", mode: "no-cors", signal: controller.signal })
+      return true
+    } catch (_) {
+      return false
+    } finally {
+      clearTimeout(timer)
     }
   }
   const showNetworkSharingRequired = (href) => {
@@ -8129,6 +8317,7 @@ body.dark .pinokio-custom-terminal-header {
     if (showNetworkSharingRequired(href)) {
       return
     }
+    clearBrowserviewNetworkStatus()
     document.querySelectorAll(".menu-container .selected").forEach((el) => {
       el.classList.remove("selected")
     })
@@ -8213,6 +8402,113 @@ body.dark .pinokio-custom-terminal-header {
           return match
       }
     })
+  }
+  const NETWORK_STATUS_SPINNER_HTML = `
+  <span class="install-status-spinner" aria-hidden="true">
+    <span class="install-status-grid-anchor install-status-grid-anchor-1"></span>
+    <span class="install-status-grid-anchor install-status-grid-anchor-2"></span>
+    <span class="install-status-grid-anchor install-status-grid-anchor-3"></span>
+    <span class="install-status-grid-anchor install-status-grid-anchor-4"></span>
+    <span class="install-status-grid-chaser"></span>
+  </span>`
+  const browserviewNetworkStatusElement = () => {
+    return document.getElementById("browserview-network-status")
+  }
+  const formatNetworkStatusRoute = (href) => {
+    try {
+      const parsed = new URL(href, window.location.href)
+      const targetHost = `${parsed.hostname}${parsed.port ? `:${parsed.port}` : ""}`
+      if (requiresNetworkSharing(href)) {
+        return `${targetHost} -> ${window.location.hostname}`
+      }
+      if (isNetworkSharedHref(href)) {
+        return targetHost
+      }
+    } catch (_) {}
+    return ""
+  }
+  const clearBrowserviewNetworkStatus = () => {
+    const status = browserviewNetworkStatusElement()
+    if (status) {
+      status.hidden = true
+      status.dataset.state = "waiting"
+      status.innerHTML = ""
+    }
+    cancelNetworkSharingSelectionRetry()
+    networkSharingSelectionRetries.clear()
+  }
+  const setBrowserviewNetworkStatus = ({ state = "waiting", title = "", detail = "", route = "", actions = false } = {}) => {
+    const status = browserviewNetworkStatusElement()
+    if (!status) {
+      return
+    }
+    status.hidden = false
+    status.dataset.state = state
+    status.dataset.installSpinnerVariant = "corner-chase"
+    const spinnerHtml = state === "waiting" ? NETWORK_STATUS_SPINNER_HTML : ""
+    const routeHtml = route ? `<div class="browserview-network-status-route">${escapeTabHtml(route)}</div>` : ""
+    const actionsHtml = actions ? `
+      <div class="browserview-network-status-actions">
+        <button type="button" class="btn2 browserview-network-status-primary" data-network-status-action="network">
+          <span>Set Up</span>
+        </button>
+        <button type="button" class="btn2 browserview-network-status-secondary" data-network-status-action="cancel">
+          <span>Cancel</span>
+        </button>
+      </div>` : ""
+    status.innerHTML = `
+      <div class="browserview-network-status-inner">
+        ${spinnerHtml}
+        <div class="browserview-network-status-title">${escapeTabHtml(title)}</div>
+        <div class="browserview-network-status-detail">${escapeTabHtml(detail)}</div>
+        ${routeHtml}
+        ${actionsHtml}
+      </div>`
+    const networkButton = status.querySelector('[data-network-status-action="network"]')
+    if (networkButton) {
+      networkButton.addEventListener("click", (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        window.location.href = "/network"
+      })
+    }
+    const cancelButton = status.querySelector('[data-network-status-action="cancel"]')
+    if (cancelButton) {
+      cancelButton.addEventListener("click", (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        clearBrowserviewNetworkStatus()
+      })
+    }
+  }
+  const queryNetworkSharingStatus = async () => {
+    if (networkSharingStatusRequest) {
+      return networkSharingStatusRequest
+    }
+    networkSharingStatusRequest = fetch("/info/network-sharing", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`network sharing status failed: ${response.status}`)
+        }
+        return response.json()
+      })
+      .catch(() => null)
+      .finally(() => {
+        networkSharingStatusRequest = null
+      })
+    return networkSharingStatusRequest
+  }
+  const networkSharingBlockedDetail = (status) => {
+    if (!status) {
+      return null
+    }
+    if (status.installed === false) {
+      return "Network sharing has not finished setup. Set it up, then come back to this app."
+    }
+    if (status.active === false) {
+      return "Network sharing is turned off. Set it up, then come back to this app."
+    }
+    return null
   }
   const previewClass = "tab-preview"
   const tabMainClass = "tab-main"
@@ -9592,6 +9888,7 @@ const rerenderMenuSection = (container, html) => {
     }
 
     if (!target) {
+      clearBrowserviewNetworkStatus()
       syncActiveNestedPath()
       if (typeof syncLogsSelectedState === "function") {
         syncLogsSelectedState(null)
@@ -9602,15 +9899,85 @@ const rerenderMenuSection = (container, html) => {
       return
     }
 
-	    document.querySelector(".container").classList.add("active")
-	    document.querySelector("aside").classList.remove("active")
+    document.querySelector(".container").classList.add("active")
+    document.querySelector("aside").classList.remove("active")
 
 
-		    // Instantiate a frame with the selected target's href
-	      const targetInjectDescriptors = readLinkInjectDescriptors(target)
-		    if (!target.href) {
-		      return
-		    }
+    // Instantiate a frame with the selected target's href
+    const targetInjectDescriptors = readLinkInjectDescriptors(target)
+    if (!target.href) {
+      return
+    }
+    const automaticDefaultSelection = target.hasAttribute('data-default') && !(eventParam && eventParam.isTrusted)
+    const networkSharingRetryKey = target.getAttribute("target") || target.href
+    if (automaticDefaultSelection && requiresNetworkSharing(target.href)) {
+      const route = formatNetworkStatusRoute(target.href)
+      const retries = networkSharingSelectionRetries.get(networkSharingRetryKey) || 0
+      if (retries === 0) {
+        setBrowserviewNetworkStatus({
+          state: "waiting",
+          title: "Opening Web UI",
+          detail: "Checking network sharing...",
+          route
+        })
+        const status = await queryNetworkSharingStatus()
+        const blockedDetail = networkSharingBlockedDetail(status)
+        if (blockedDetail) {
+          networkSharingSelectionRetries.delete(networkSharingRetryKey)
+          setBrowserviewNetworkStatus({
+            state: "blocked",
+            title: "Network sharing is not ready",
+            detail: blockedDetail,
+            route,
+            actions: true
+          })
+          return
+        }
+      }
+      if (retries < NETWORK_SHARING_SELECTION_RETRY_LIMIT) {
+        networkSharingSelectionRetries.set(networkSharingRetryKey, retries + 1)
+        setBrowserviewNetworkStatus({
+          state: "waiting",
+          title: "Opening Web UI",
+          detail: "Waiting for the network sharing route...",
+          route
+        })
+        scheduleNetworkSharingSelectionRetry()
+        return
+      }
+      setBrowserviewNetworkStatus({
+        state: "blocked",
+        title: "Network sharing is not ready",
+        detail: "The local app is running, but Pinokio has not created a network route for this Web UI yet.",
+        route,
+        actions: true
+      })
+      return
+    }
+    if (automaticDefaultSelection && isNetworkSharedHref(target.href) && !(await canLoadNetworkSharedHref(target.href))) {
+      const route = formatNetworkStatusRoute(target.href)
+      const retries = networkSharingSelectionRetries.get(networkSharingRetryKey) || 0
+      if (retries < NETWORK_SHARING_SELECTION_RETRY_LIMIT) {
+        networkSharingSelectionRetries.set(networkSharingRetryKey, retries + 1)
+        setBrowserviewNetworkStatus({
+          state: "waiting",
+          title: "Opening Web UI",
+          detail: "Waiting for the Web UI to respond...",
+          route
+        })
+        scheduleNetworkSharingSelectionRetry()
+        return
+      }
+      setBrowserviewNetworkStatus({
+        state: "blocked",
+        title: "Web UI is not responding",
+        detail: "Pinokio created the network route, but the Web UI did not respond yet.",
+        route,
+        actions: true
+      })
+      return
+    }
+    clearBrowserviewNetworkStatus()
     if (showNetworkSharingRequired(target.href)) {
       if (eventParam) {
         eventParam.preventDefault()
