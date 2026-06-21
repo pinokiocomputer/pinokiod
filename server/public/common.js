@@ -2589,13 +2589,13 @@ if (typeof hotkeys === 'function') {
   }
 })();
 
-// Mobile "Tap to connect" curtain to prime audio on the top-level page
-(function initMobileConnectCurtain() {
+// Mobile first-interaction audio primer for notification sounds on the top-level page
+(function initMobileAudioPrimer() {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return;
   }
   try {
-    if (window.__pinokioConnectCurtainInstalled || window.__pinokioConnectCurtainInstalling) {
+    if (window.__pinokioAudioPrimerInstalled || window.__pinokioAudioPrimerInstalling) {
       return;
     }
   } catch (_) {}
@@ -2607,7 +2607,7 @@ if (typeof hotkeys === 'function') {
     // cross-origin parent; just bail
     return;
   }
-  if (window.__pinokioConnectCurtainInstalled) {
+  if (window.__pinokioAudioPrimerInstalled) {
     return;
   }
 
@@ -2661,37 +2661,6 @@ if (typeof hotkeys === 'function') {
       }
     } catch (_) {}
     return uaMobile;
-  };
-
-  const createCurtain = () => {
-    const style = document.createElement('style');
-    style.textContent = `
-.pinokio-connect-curtain{position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483646;background:rgba(15,23,42,0.35);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center}
-.pinokio-connect-msg{user-select:none;-webkit-user-select:none;color:#fff;background:rgba(15,23,42,0.85);padding:14px 18px;border-radius:12px;font:500 15px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;box-shadow:0 16px 40px rgba(0,0,0,.38);text-align:center;max-width:200px}
-.pinokio-connect-msg-title{font-weight:600;font-size:16px;margin-bottom:4px}
-.pinokio-connect-msg-hint{font-size:13px;opacity:.72}
-@media (max-width:768px){.pinokio-connect-msg{font-size:14px;padding:12px 16px}}
-    `;
-    document.head.appendChild(style);
-
-    const overlay = document.createElement('div');
-    overlay.className = 'pinokio-connect-curtain';
-    overlay.setAttribute('role', 'button');
-    overlay.setAttribute('aria-label', 'Tap to connect');
-    overlay.tabIndex = 0;
-    const msg = document.createElement('div');
-    msg.className = 'pinokio-connect-msg';
-    const msgTitle = document.createElement('div');
-    msgTitle.className = 'pinokio-connect-msg-title';
-    msgTitle.textContent = 'Tap to connect';
-    const msgHint = document.createElement('div');
-    msgHint.className = 'pinokio-connect-msg-hint';
-    msgHint.textContent = 'To type into the terminal, use the "Input" button.';
-    msg.appendChild(msgTitle);
-    msg.appendChild(msgHint);
-    overlay.appendChild(msg);
-    window.__pinokioConnectCurtainInstalled = true;
-    return overlay;
   };
 
   const SOUND_PREF_STORAGE_KEY = 'pinokio:idle-sound';
@@ -2757,31 +2726,26 @@ if (typeof hotkeys === 'function') {
     if (!(forceParam || isLikelyMobile())) {
       return;
     }
-    if (window.__pinokioConnectCurtainInstalled || window.__pinokioConnectCurtainInstalling) {
+    if (window.__pinokioAudioPrimerInstalled || window.__pinokioAudioPrimerInstalling) {
       return;
     }
-    try { window.__pinokioConnectCurtainInstalling = true; } catch (_) {}
-    const overlay = createCurtain();
+    try { window.__pinokioAudioPrimerInstalling = true; } catch (_) {}
     let handled = false;
-    const onTap = async (e) => {
+    const cleanup = () => {
+      document.removeEventListener('click', onFirstInteraction, true);
+      document.removeEventListener('touchend', onFirstInteraction, true);
+      document.removeEventListener('keydown', onFirstInteraction, true);
+    };
+    const onFirstInteraction = async () => {
       if (handled) return;
       handled = true;
-      try { e.preventDefault(); e.stopPropagation(); } catch (_) {}
+      cleanup();
       try { await primeAudio(); } catch (_) {}
-      try { overlay.remove(); } catch (_) {}
-      try { window.__pinokioConnectCurtainInstalled = true; window.__pinokioConnectCurtainInstalling = false; } catch (_) {}
+      try { window.__pinokioAudioPrimerInstalled = true; window.__pinokioAudioPrimerInstalling = false; } catch (_) {}
     };
-    overlay.addEventListener('click', onTap, { once: true, capture: true });
-    overlay.addEventListener('keydown', (e) => {
-      if (!e) {
-        return;
-      }
-      const key = e.key || '';
-      if (key === 'Enter' || key === ' ' || key === 'Spacebar') {
-        onTap(e);
-      }
-    }, { capture: true });
-    document.body.appendChild(overlay);
+    document.addEventListener('click', onFirstInteraction, true);
+    document.addEventListener('touchend', onFirstInteraction, true);
+    document.addEventListener('keydown', onFirstInteraction, true);
   };
 
   if (document.readyState === 'loading') {

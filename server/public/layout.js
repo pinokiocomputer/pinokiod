@@ -801,7 +801,7 @@
   };
 
   window.PinokioLayout = api;
-  // Mobile "Tap to connect" curtain is centralized in common.js to avoid duplicates
+  // Mobile notification audio priming is centralized in common.js to avoid duplicates
   
   // Top-level notification listener (indicator + optional chime) for mobile
   (function initTopLevelNotificationListener() {
