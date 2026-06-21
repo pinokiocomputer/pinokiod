@@ -6331,6 +6331,7 @@ body.dark .snapshot-footer-input input {
 }
 	.mobile-bottom-nav,
 	.mobile-sheet-actions,
+	.mobile-drawer-home,
 	.mobile-drawer-actions,
 	.mobile-menu-backdrop,
 	.mobile-menu-fallback {
@@ -6790,11 +6791,21 @@ header.navheader h1 {
 	  body.mobile-menu-open .appcanvas > aside .menu-scroller .tab,
 	  body.mobile-menu-open .appcanvas > aside .menu-actions .tab {
 	    gap: 12px;
+	    font-size: 12px;
+	    line-height: 1.25;
+	    font-weight: 500;
 	  }
 	  body.mobile-menu-open .appcanvas > aside .menu-scroller .display,
 	  body.mobile-menu-open .appcanvas > aside .menu-actions .display {
 	    font-size: 12px;
-	    font-weight: 600;
+	    line-height: 1.25;
+	    font-weight: 500;
+	  }
+	  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn.selected .tab,
+	  body.mobile-menu-open .appcanvas > aside .menu-actions .btn.selected .tab,
+	  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn.selected .display,
+	  body.mobile-menu-open .appcanvas > aside .menu-actions .btn.selected .display {
+	    font-weight: 600 !important;
 	  }
 	  body.mobile-menu-open .appcanvas > aside .menu-scroller .tab i,
 	  body.mobile-menu-open .appcanvas > aside .menu-actions .tab i {
@@ -6816,6 +6827,7 @@ header.navheader h1 {
 	  }
 	  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .header-item,
 	  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .header-item {
+	    display: flex;
 	    max-width: none;
 	    min-width: 0;
 	    width: 100%;
@@ -6828,6 +6840,7 @@ header.navheader h1 {
 	    box-shadow: none;
 	    box-sizing: border-box;
 	    text-align: left;
+	    text-decoration: none;
 	  }
 	  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .header-item:hover,
 	  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .header-item:focus-visible,
@@ -6857,7 +6870,12 @@ header.navheader h1 {
 	    text-overflow: ellipsis;
 	    white-space: nowrap;
 	    font-size: 12px;
-	    font-weight: 600;
+	    line-height: 1.25;
+	    font-weight: 500;
+	  }
+	  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .header-item.selected .display,
+	  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .header-item.selected .display {
+	    font-weight: 600 !important;
 	  }
 	  .mobile-menu-fallback {
 	    display: none;
@@ -7664,9 +7682,6 @@ body.dark .pinokio-custom-terminal-header {
           <button type='button' id='menu-mobile-close' class='btn mobile-sheet-action' data-tippy-content="Close menu" aria-label="Close menu" title="Close menu">
             <i class="fa-solid fa-xmark"></i>
           </button>
-          <a class='btn mobile-sheet-action' href="/home" aria-label="Home" title="Home">
-            <i class="fa-solid fa-house"></i>
-          </a>
           <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#refresh-page" data-mobile-close-menu="true" aria-label="Refresh" title="Refresh">
             <i class="fa-solid fa-rotate-right"></i>
           </button>
@@ -7765,6 +7780,13 @@ body.dark .pinokio-custom-terminal-header {
 	          </div>
 	        </button>
 	        <% } %>
+	        <a class='btn header-item mobile-drawer-home' href="/home" aria-label="Home">
+	          <div class='tab'>
+	            <i class="fa-solid fa-house menu-action-leading-icon"></i>
+	            <div class='display'>Home</div>
+	            <div class='flexible'></div>
+	          </div>
+	        </a>
 	      </div>
 	      <div class='menu-actions <%= type === "browse" ? "dev-menu-actions" : "" %>'>
         <% if (type === 'browse') { %>
@@ -8143,9 +8165,6 @@ body.dark .pinokio-custom-terminal-header {
       </a>
     </div>
     <div class='mobile-sheet-actions' aria-label="Workspace actions">
-      <a class='btn mobile-sheet-action' href="/home" aria-label="Home" title="Home">
-        <i class="fa-solid fa-house"></i>
-      </a>
       <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#refresh-page" data-mobile-close-menu="true" aria-label="Refresh" title="Refresh">
         <i class="fa-solid fa-rotate-right"></i>
       </button>
@@ -8185,6 +8204,13 @@ body.dark .pinokio-custom-terminal-header {
         </div>
       </button>
       <% } %>
+      <a class='btn header-item mobile-drawer-home' href="/home" aria-label="Home">
+        <div class='tab'>
+          <i class="fa-solid fa-house menu-action-leading-icon"></i>
+          <div class='display'>Home</div>
+          <div class='flexible'></div>
+        </div>
+      </a>
     </div>
   </div>
 </div>
