@@ -18,3 +18,14 @@ test('main sidebar renders local network peers before phone access', async () =>
   assert.ok(localNetworkIndex < peerListIndex)
   assert.ok(peerListIndex < phoneIndex)
 })
+
+test('main sidebar gates phone QR behind local access setup', async () => {
+  const source = await fs.readFile(sidebarFile, 'utf8')
+
+  assert.match(source, /peer_access_router_installed/)
+  assert.match(source, /sidebarPhoneAccessNeedsSetup/)
+  assert.match(source, /Set up local access/)
+  assert.match(source, /\/setup\/network\?callback=/)
+  assert.match(source, /Scan with a device on the same local network/)
+  assert.match(source, /This link is not public and will not work outside this network/)
+})

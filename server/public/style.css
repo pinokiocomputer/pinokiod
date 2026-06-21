@@ -1683,6 +1683,15 @@ body.dark .main-sidebar-peer-dialog-surface {
   letter-spacing: 0;
   overflow-wrap: anywhere;
 }
+.main-sidebar-peer-local-note {
+  width: 100%;
+  color: var(--pinokio-sidebar-action-muted);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: center;
+  letter-spacing: 0;
+}
 .main-sidebar-peer-url-row {
   width: 100%;
   display: grid;
@@ -1709,6 +1718,64 @@ body.dark .main-sidebar-peer-dialog-surface {
 .main-sidebar-peer-url:hover,
 .main-sidebar-peer-url:focus-visible {
   color: var(--pinokio-sidebar-tab-active-color);
+  outline: none;
+}
+.main-sidebar-peer-setup {
+  display: grid;
+  gap: 12px;
+}
+.main-sidebar-peer-setup-copy {
+  margin: 0;
+  color: var(--pinokio-sidebar-tab-active-color);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+.main-sidebar-peer-setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.main-sidebar-peer-setup-primary,
+.main-sidebar-peer-setup-secondary {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.main-sidebar-peer-setup-primary {
+  border: 1px solid var(--pinokio-sidebar-tab-active-color);
+  background: var(--pinokio-sidebar-tab-active-color);
+  color: var(--pinokio-sidebar-tabbar-bg);
+}
+.main-sidebar-peer-setup-primary:hover,
+.main-sidebar-peer-setup-primary:focus-visible {
+  border-color: var(--pinokio-sidebar-icon-active);
+  background: var(--pinokio-sidebar-icon-active);
+  color: var(--pinokio-sidebar-tabbar-bg);
+  outline: none;
+}
+.main-sidebar-peer-setup-secondary {
+  appearance: none;
+  border: 1px solid var(--pinokio-sidebar-tabbar-border);
+  background: var(--pinokio-sidebar-control-bg);
+  color: var(--pinokio-sidebar-tab-active-color);
+}
+.main-sidebar-peer-setup-secondary:hover,
+.main-sidebar-peer-setup-secondary:focus-visible {
+  background: var(--pinokio-sidebar-tab-hover);
+  color: var(--pinokio-sidebar-icon-active);
   outline: none;
 }
 @media only screen and (min-width: 601px) {

@@ -4914,10 +4914,16 @@ class Server {
   }
   async composePeerAccessPayload() {
     let peer_access_points = []
+    let peer_access_router_installed = false
     try {
       peer_access_points = await this.buildPeerAccessPoints()
     } catch (error) {
       peer_access_points = []
+    }
+    try {
+      peer_access_router_installed = await this.kernel.network_installed()
+    } catch (error) {
+      peer_access_router_installed = false
     }
     let peer_url = `http://${this.kernel.peer.host}:${DEFAULT_PORT}`
     let peer_qr = null
@@ -4929,7 +4935,7 @@ class Server {
         peer_qr = await QRCode.toDataURL(peer_url)
       } catch (_) {}
     }
-    return { peer_access_points, peer_url, peer_qr }
+    return { peer_access_points, peer_url, peer_qr, peer_access_router_installed }
   }
 
   async ensureLogsRootDirectory() {

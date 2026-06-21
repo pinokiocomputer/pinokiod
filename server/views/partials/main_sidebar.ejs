@@ -15,6 +15,7 @@
         scope_label: point.scope_label ? String(point.scope_label) : "",
       };
     });
+  const sidebarPeerAccessRouterInstalled = typeof peer_access_router_installed === "boolean" ? peer_access_router_installed : true;
   if (
     sidebarPeerAccessPoints.length === 0 &&
     typeof peer_qr !== "undefined" && peer_qr &&
@@ -27,6 +28,7 @@
     });
   }
   const sidebarShowPhoneAccess = sidebarShowPeerAccess && sidebarPeerAccessPoints.length > 0;
+  const sidebarPhoneAccessNeedsSetup = sidebarShowPhoneAccess && !sidebarPeerAccessRouterInstalled;
   const brands = { win32: "windows", darwin: "apple", linux: "Linux" };
 %>
 <button type="button" class="main-sidebar-mobile-toggle" data-main-sidebar-toggle aria-label="Open navigation" aria-expanded="false">
@@ -94,14 +96,14 @@
           <i class="fa-solid fa-mobile-screen-button"></i>
         </div>
         <div class="main-sidebar-peer-dialog-heading">
-          <div class="main-sidebar-peer-dialog-title" id="main-sidebar-peer-dialog-title">Open on phone</div>
-          <div class="main-sidebar-peer-dialog-subtitle">Pinokio on this network</div>
+          <div class="main-sidebar-peer-dialog-title" id="main-sidebar-peer-dialog-title"><%= sidebarPhoneAccessNeedsSetup ? 'Set up local access' : 'Open from another device' %></div>
+          <div class="main-sidebar-peer-dialog-subtitle"><%= sidebarPhoneAccessNeedsSetup ? 'Same network only' : 'Same Wi-Fi/LAN only' %></div>
         </div>
         <button type="button" class="main-sidebar-peer-dialog-close" data-peer-access-close aria-label="Close phone popup">
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </div>
-      <% if (sidebarPeerAccessPoints.length > 1) { %>
+      <% if (!sidebarPhoneAccessNeedsSetup && sidebarPeerAccessPoints.length > 1) { %>
         <div class="main-sidebar-peer-dialog-tabs" role="tablist" aria-label="Phone connection options">
           <% sidebarPeerAccessPoints.forEach((point, index) => { %>
             <% const tabLabel = point.scope_label || `Option ${index + 1}`; %>
@@ -110,22 +112,39 @@
         </div>
       <% } %>
       <div class="main-sidebar-peer-dialog-body">
-        <% sidebarPeerAccessPoints.forEach((point, index) => { %>
-          <div class="main-sidebar-peer-dialog-panel <%= index === 0 ? 'is-active' : '' %>" id="main-sidebar-peer-panel-<%= index %>" data-peer-access-panel data-peer-access-index="<%= index %>" role="tabpanel" <%= index === 0 ? '' : 'hidden' %>>
-            <a class="main-sidebar-peer-qr-link" href="<%= point.url %>" target="_blank" rel="noreferrer">
-              <img class="main-sidebar-peer-qr-image" src="<%= point.qr %>" alt="QR code for <%= point.url %>"/>
-            </a>
-            <div class="main-sidebar-peer-caption">
-              Scan to open<% if (point.scope_label) { %> (<%= point.scope_label %>)<% } %>
-            </div>
-            <div class="main-sidebar-peer-url-row">
-              <a class="main-sidebar-peer-url" href="<%= point.url %>" target="_blank" rel="noreferrer"><%= point.url %></a>
-              <button type="button" class="main-sidebar-peer-copy" data-peer-access-copy data-peer-access-url="<%= point.url %>" aria-label="Copy phone URL" title="Copy URL">
-                <i class="fa-regular fa-copy" aria-hidden="true"></i>
+        <% if (sidebarPhoneAccessNeedsSetup) { %>
+          <div class="main-sidebar-peer-setup">
+            <p class="main-sidebar-peer-setup-copy">To open Pinokio from another device on this network, set up local access first.</p>
+            <div class="main-sidebar-peer-setup-actions">
+              <a class="main-sidebar-peer-setup-primary" href="/setup/network" data-peer-access-setup>
+                Set up local access
+              </a>
+              <button type="button" class="main-sidebar-peer-setup-secondary" data-peer-access-close>
+                Cancel
               </button>
             </div>
           </div>
-        <% }) %>
+        <% } else { %>
+          <% sidebarPeerAccessPoints.forEach((point, index) => { %>
+            <div class="main-sidebar-peer-dialog-panel <%= index === 0 ? 'is-active' : '' %>" id="main-sidebar-peer-panel-<%= index %>" data-peer-access-panel data-peer-access-index="<%= index %>" role="tabpanel" <%= index === 0 ? '' : 'hidden' %>>
+              <a class="main-sidebar-peer-qr-link" href="<%= point.url %>" target="_blank" rel="noreferrer">
+                <img class="main-sidebar-peer-qr-image" src="<%= point.qr %>" alt="QR code for <%= point.url %>"/>
+              </a>
+              <div class="main-sidebar-peer-caption">
+                Scan with a device on the same local network
+              </div>
+              <div class="main-sidebar-peer-local-note">
+                This link is not public and will not work outside this network.
+              </div>
+              <div class="main-sidebar-peer-url-row">
+                <a class="main-sidebar-peer-url" href="<%= point.url %>" target="_blank" rel="noreferrer"><%= point.url %></a>
+                <button type="button" class="main-sidebar-peer-copy" data-peer-access-copy data-peer-access-url="<%= point.url %>" aria-label="Copy phone URL" title="Copy URL">
+                  <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+          <% }) %>
+        <% } %>
       </div>
     </section>
   </div>
@@ -196,6 +215,7 @@
       const peerAccessTabs = peerAccessModal.querySelectorAll("[data-peer-access-tab]");
       const peerAccessPanels = peerAccessModal.querySelectorAll("[data-peer-access-panel]");
       const peerAccessCopyButtons = peerAccessModal.querySelectorAll("[data-peer-access-copy]");
+      const peerAccessSetupLinks = peerAccessModal.querySelectorAll("[data-peer-access-setup]");
       const peerAccessFocusTarget = peerAccessModal.querySelector(".main-sidebar-peer-dialog-close");
 
       const setPeerAccessOpen = (open) => {
@@ -255,6 +275,14 @@
 
       peerAccessTabs.forEach((tab) => {
         tab.addEventListener("click", () => setPeerAccessPanel(tab.dataset.peerAccessIndex || "0"));
+      });
+
+      peerAccessSetupLinks.forEach((link) => {
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          const currentPath = `${window.location.pathname}${window.location.search}`;
+          window.location.href = `/setup/network?callback=${encodeURIComponent(currentPath || "/")}`;
+        });
       });
 
       peerAccessCopyButtons.forEach((button) => {

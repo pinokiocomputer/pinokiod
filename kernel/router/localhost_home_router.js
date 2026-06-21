@@ -20,6 +20,13 @@ class LocalhostHomeRouter {
             ]
           }
         },
+        "pki": {
+          "certificate_authorities": {
+            "local": {
+              "install_trust": false
+            }
+          }
+        },
 
         "http": {
           "servers": {

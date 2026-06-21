@@ -5,6 +5,12 @@ const semver = require('semver')
 const kill = require('kill-sync')
 const Util = require('../util')
 
+const ADMIN_READY_TIMEOUT_MS = 30000
+const ADMIN_START_TIMEOUT_MS = 5000
+const ADMIN_POLL_INTERVAL_MS = 250
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
 class Caddy {
   description = "Installs Caddy for automatic local HTTPS and network sharing. You may be asked to approve certificate setup."
   cmd() {
@@ -104,17 +110,7 @@ class Caddy {
           }
         })
       })
-      let admin_running = false
-      const admin_wait_started = Date.now()
-      while ((Date.now() - admin_wait_started) < 5000) {
-        admin_running = await this.running()
-        if (admin_running) {
-          break
-        }
-        await new Promise((resolve) => {
-          setTimeout(resolve, 250)
-        })
-      }
+      const admin_running = await this.waitForAdmin(ADMIN_START_TIMEOUT_MS)
       if (!admin_running) {
         console.log("caddy admin unavailable after startup")
         if (startup_output.length > 0) {
@@ -131,6 +127,16 @@ class Caddy {
       console.log("announced to peers")
 //      this.kernel.refresh(true)
     }
+  }
+  async waitForAdmin(timeout = ADMIN_READY_TIMEOUT_MS, interval = ADMIN_POLL_INTERVAL_MS) {
+    const started = Date.now()
+    while ((Date.now() - started) < timeout) {
+      if (await this.running()) {
+        return true
+      }
+      await sleep(interval)
+    }
+    return false
   }
   async install(req, ondata, kernel, id) {
 //    let fullpath = path.resolve(kernel.homedir, "ENVIRONMENT")
@@ -161,15 +167,13 @@ class Caddy {
     })
 
     // wait until running
-    await new Promise((resolve, reject) => {
-      ondata({ raw: "waiting until caddy server is up...\r\n" })
-      setInterval(async () => {
-        let running = await this.running()
-        if (running) {
-          resolve()
-        }
-      }, 2000)
-    })
+    ondata({ raw: "waiting until caddy server is up...\r\n" })
+    const running = await this.waitForAdmin()
+    if (!running) {
+      const message = "caddy admin did not become available. Certificate trust may be waiting for system approval."
+      ondata({ raw: `${message}\r\n` })
+      throw new Error(message)
+    }
     ondata({ raw: "caddy is running!\r\n" })
 
     if (this.kernel.platform === "win32") {
