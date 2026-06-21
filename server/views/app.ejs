@@ -6573,9 +6573,9 @@ header.navheader h1 {
 	    background: rgba(15, 23, 42, 0.28);
 	    cursor: pointer;
 	  }
-	  body.mobile-menu-open .appcanvas > aside {
-	    display: flex;
-	    position: fixed;
+		  body.mobile-menu-open .appcanvas > aside {
+		    display: flex;
+		    position: fixed;
 	    top: 0;
 	    left: 0;
 	    bottom: var(--mobile-bottom-bar-height);
@@ -6590,9 +6590,18 @@ header.navheader h1 {
 	    border-left: 0;
 	    box-shadow: 24px 0 48px rgba(15, 23, 42, 0.12);
 	    transform: translateX(0);
-	    transition: transform 180ms ease;
-	    z-index: 10000020;
-	  }
+		    transition: transform 180ms ease;
+		    z-index: 10000020;
+		  }
+  body.mobile-menu-open .appcanvas > aside,
+  body.mobile-menu-open .mobile-menu-fallback {
+    --app-mobile-drawer-tab-hover: rgba(15, 23, 42, 0.028);
+    --app-mobile-drawer-tab-active-bg: rgba(15, 23, 42, 0.038);
+    --app-mobile-drawer-tab-active-color: #111827;
+    --app-mobile-drawer-tab-muted: rgba(31, 41, 55, 0.72);
+    --app-mobile-drawer-icon-muted: rgba(31, 41, 55, 0.58);
+    --app-mobile-drawer-icon-active: rgba(17, 24, 39, 0.84);
+  }
 	  body:not(.mobile-menu-open) .appcanvas > aside {
 	    display: flex;
 	    position: fixed;
@@ -6624,11 +6633,20 @@ header.navheader h1 {
   body.mobile-menu-open .appcanvas.sidebar-collapsed > aside .menu-container {
     width: 100%;
   }
-	  body.dark.mobile-menu-open .appcanvas > aside {
-	    background: var(--pinokio-sidebar-tabbar-bg);
-	    border-right-color: var(--pinokio-sidebar-separator);
-	    box-shadow: 24px 0 52px rgba(0, 0, 0, 0.38);
-	  }
+		  body.dark.mobile-menu-open .appcanvas > aside {
+		    background: var(--pinokio-sidebar-tabbar-bg);
+		    border-right-color: var(--pinokio-sidebar-separator);
+		    box-shadow: 24px 0 52px rgba(0, 0, 0, 0.38);
+		  }
+  body.dark.mobile-menu-open .appcanvas > aside,
+  body.dark.mobile-menu-open .mobile-menu-fallback {
+    --app-mobile-drawer-tab-hover: rgba(255, 255, 255, 0.035);
+    --app-mobile-drawer-tab-active-bg: rgba(255, 255, 255, 0.048);
+    --app-mobile-drawer-tab-active-color: rgba(248, 250, 252, 0.91);
+    --app-mobile-drawer-tab-muted: rgba(229, 231, 235, 0.64);
+    --app-mobile-drawer-icon-muted: rgba(229, 231, 235, 0.54);
+    --app-mobile-drawer-icon-active: rgba(248, 250, 252, 0.82);
+  }
 	  body.mobile-menu-open .appcanvas > aside .menu-container {
 	    width: 100%;
 	    flex-direction: column;
@@ -6687,7 +6705,7 @@ header.navheader h1 {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
+    gap: 1px;
     width: 100%;
   }
 	  body.mobile-menu-open .appcanvas > aside .mobile-sheet-actions {
@@ -6760,123 +6778,169 @@ header.navheader h1 {
     overflow-y: hidden;
     padding-bottom: 2px;
   }
-	  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2),
-	  body.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2) {
-	    max-width: none;
-	    min-width: 0;
-	    width: 100%;
-	    padding: 0 10px;
-	    border-radius: var(--sidebar-tab-radius);
-	    border: 0;
-	    background: transparent;
-	    color: var(--pinokio-sidebar-tab-color);
-	    box-shadow: none;
-	    box-sizing: border-box;
-	    min-height: 38px;
-	  }
-	  body.dark.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2),
-	  body.dark.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2) {
-	    background: transparent;
-	    border-color: transparent;
-	    color: var(--pinokio-sidebar-tab-color);
-	    box-shadow: none;
-	  }
-	  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2):hover,
-	  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2):focus-visible,
-	  body.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2):hover,
-	  body.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2):focus-visible {
-	    background: var(--pinokio-sidebar-tab-hover-bg);
-	    color: var(--pinokio-sidebar-tab-hover-color);
-	  }
-	  body.mobile-menu-open .appcanvas > aside .menu-scroller .tab,
-	  body.mobile-menu-open .appcanvas > aside .menu-actions .tab {
-	    gap: 12px;
-	    font-size: 12px;
-	    line-height: 1.25;
-	    font-weight: 500;
-	  }
-	  body.mobile-menu-open .appcanvas > aside .menu-scroller .display,
-	  body.mobile-menu-open .appcanvas > aside .menu-actions .display {
-	    font-size: 12px;
-	    line-height: 1.25;
-	    font-weight: 500;
-	  }
-	  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn.selected .tab,
-	  body.mobile-menu-open .appcanvas > aside .menu-actions .btn.selected .tab,
-	  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn.selected .display,
-	  body.mobile-menu-open .appcanvas > aside .menu-actions .btn.selected .display {
-	    font-weight: 600 !important;
-	  }
-	  body.mobile-menu-open .appcanvas > aside .menu-scroller .tab i,
-	  body.mobile-menu-open .appcanvas > aside .menu-actions .tab i {
-	    font-size: 14px;
-	  }
-	  body.mobile-menu-open .appcanvas > aside .menu-actions {
-	    display: none;
-	  }
-	  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions,
-	  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions {
-	    display: flex;
-	    flex-direction: column;
-	    align-items: stretch;
-	    gap: 6px;
-	    width: 100%;
-	    margin-top: 8px;
-	    padding-top: 8px;
-	    border-top: 1px solid var(--pinokio-sidebar-separator);
-	  }
-	  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .header-item,
-	  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .header-item {
-	    display: flex;
-	    max-width: none;
-	    min-width: 0;
-	    width: 100%;
-	    min-height: 38px;
-	    padding: 0 10px;
-	    border-radius: var(--sidebar-tab-radius);
-	    border: 0;
-	    background: transparent;
-	    color: var(--pinokio-sidebar-tab-color);
-	    box-shadow: none;
-	    box-sizing: border-box;
-	    text-align: left;
-	    text-decoration: none;
-	  }
-	  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .header-item:hover,
-	  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .header-item:focus-visible,
-	  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .header-item:hover,
-	  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .header-item:focus-visible {
-	    background: var(--pinokio-sidebar-tab-hover-bg);
-	    color: var(--pinokio-sidebar-tab-hover-color);
-	  }
-	  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .header-item.selected,
-	  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .header-item.selected {
-	    background: var(--pinokio-sidebar-tab-active-bg);
-	    color: var(--pinokio-sidebar-tab-active-color);
-	  }
-	  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .tab,
-	  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .tab {
-	    display: flex;
-	    align-items: center;
-	    gap: 12px;
-	    width: 100%;
-	    min-width: 0;
-	    padding: 0;
-	  }
-	  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .display,
-	  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .display {
-	    min-width: 0;
-	    overflow: hidden;
-	    text-overflow: ellipsis;
-	    white-space: nowrap;
-	    font-size: 12px;
-	    line-height: 1.25;
-	    font-weight: 500;
-	  }
-	  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .header-item.selected .display,
-	  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .header-item.selected .display {
-	    font-weight: 600 !important;
-	  }
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2),
+  body.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2) {
+    max-width: none;
+    min-width: 0;
+    width: 100%;
+    min-height: 25px;
+    padding: 3px 5px;
+    border-radius: 6px;
+    border: 0;
+    background: transparent;
+    color: var(--app-mobile-drawer-tab-muted);
+    box-shadow: none;
+    box-sizing: border-box;
+  }
+  body.dark.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2),
+  body.dark.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2) {
+    background: transparent;
+    border-color: transparent;
+    color: var(--app-mobile-drawer-tab-muted);
+    box-shadow: none;
+  }
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2):hover,
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2):focus-visible,
+  body.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2):hover,
+  body.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2):focus-visible {
+    background: var(--app-mobile-drawer-tab-hover);
+    color: var(--app-mobile-drawer-tab-active-color);
+  }
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn.selected:not(.btn2),
+  body.mobile-menu-open .appcanvas > aside .menu-actions .btn.selected:not(.btn2) {
+    background: var(--app-mobile-drawer-tab-active-bg) !important;
+    color: var(--app-mobile-drawer-tab-active-color);
+  }
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .tab,
+  body.mobile-menu-open .appcanvas > aside .menu-actions .tab {
+    gap: 6px;
+    font-size: 12px;
+    line-height: 1.25;
+    font-weight: 500;
+  }
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .display,
+  body.mobile-menu-open .appcanvas > aside .menu-actions .display {
+    font-size: 12px;
+    line-height: 1.25;
+    font-weight: 500;
+  }
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn.selected .tab,
+  body.mobile-menu-open .appcanvas > aside .menu-actions .btn.selected .tab,
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn.selected .display,
+  body.mobile-menu-open .appcanvas > aside .menu-actions .btn.selected .display {
+    font-weight: 600 !important;
+  }
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .tab i,
+  body.mobile-menu-open .appcanvas > aside .menu-actions .tab i {
+    color: var(--app-mobile-drawer-icon-muted) !important;
+    font-size: 12px !important;
+    opacity: 1;
+  }
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2):hover .tab i,
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2):focus-visible .tab i,
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn.selected:not(.btn2) .tab i,
+  body.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2):hover .tab i,
+  body.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2):focus-visible .tab i,
+  body.mobile-menu-open .appcanvas > aside .menu-actions .btn.selected:not(.btn2) .tab i {
+    color: var(--app-mobile-drawer-icon-active) !important;
+  }
+  body.mobile-menu-open .appcanvas > aside .menu-actions {
+    display: none;
+  }
+  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1px;
+    width: 100%;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--pinokio-sidebar-separator);
+  }
+  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .header-item,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .header-item {
+    display: flex;
+    max-width: none;
+    min-width: 0;
+    width: 100%;
+    min-height: 25px;
+    padding: 3px 5px;
+    border-radius: 6px;
+    border: 0;
+    background: transparent;
+    color: var(--app-mobile-drawer-tab-muted);
+    box-shadow: none;
+    box-sizing: border-box;
+    text-align: left;
+    text-decoration: none;
+  }
+  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .header-item:hover,
+  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .header-item:focus-visible,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .header-item:hover,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .header-item:focus-visible {
+    background: var(--app-mobile-drawer-tab-hover);
+    color: var(--app-mobile-drawer-tab-active-color);
+  }
+  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .header-item.selected,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .header-item.selected {
+    background: var(--app-mobile-drawer-tab-active-bg);
+    color: var(--app-mobile-drawer-tab-active-color);
+  }
+  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .tab,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+  }
+  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .menu-action-leading-icon,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .menu-action-leading-icon {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    margin-right: 0;
+    padding: 0;
+    color: var(--app-mobile-drawer-icon-muted) !important;
+    opacity: 1;
+  }
+  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions i.menu-action-leading-icon,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions i.menu-action-leading-icon {
+    font-size: 12px !important;
+  }
+  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .header-item:hover .menu-action-leading-icon,
+  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .header-item:focus-visible .menu-action-leading-icon,
+  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .header-item.selected .menu-action-leading-icon,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .header-item:hover .menu-action-leading-icon,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .header-item:focus-visible .menu-action-leading-icon,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .header-item.selected .menu-action-leading-icon {
+    color: var(--app-mobile-drawer-icon-active) !important;
+  }
+  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .ask-ai-brand-icon.menu-action-leading-icon,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .ask-ai-brand-icon.menu-action-leading-icon {
+    -webkit-mask: url('/pinokio-mark.svg') center / 14px 14px no-repeat;
+    mask: url('/pinokio-mark.svg') center / 14px 14px no-repeat;
+  }
+  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .display,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .display {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    line-height: 1.25;
+    font-weight: 500;
+  }
+  body.mobile-menu-open .appcanvas > aside .mobile-drawer-actions .header-item.selected .display,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-drawer-actions .header-item.selected .display {
+    font-weight: 600 !important;
+  }
 	  .mobile-menu-fallback {
 	    display: none;
 	  }
