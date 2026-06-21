@@ -215,6 +215,36 @@ body.dark .home-app-line .menu-btns > .btn:focus-visible {
   background: rgba(255, 255, 255, 0.07) !important;
   color: rgba(248, 250, 252, 0.9) !important;
 }
+.home-autolaunch-status {
+  min-height: 22px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 7px;
+  border: 1px solid rgba(180, 83, 9, 0.18);
+  border-radius: 6px;
+  background: rgba(180, 83, 9, 0.07);
+  color: rgba(120, 53, 15, 0.9);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+.home-autolaunch-status i {
+  color: inherit !important;
+  font-size: 11px;
+}
+body.dark .home-autolaunch-status {
+  border-color: rgba(214, 164, 81, 0.22);
+  background: rgba(214, 164, 81, 0.1);
+  color: rgba(252, 211, 146, 0.92);
+}
+.home-app-line.autolaunch-starting .title i {
+  color: #b45309;
+}
+body.dark .home-app-line.autolaunch-starting .title i {
+  color: #d6a451;
+}
 .context-menu {
   position: absolute;
   right: auto;
@@ -917,6 +947,14 @@ body.dark .home-actions-count {
   background: var(--pinokio-chrome-accent-bg-dark);
   color: var(--pinokio-chrome-accent-fg-dark);
 }
+.home-actions-status--starting {
+  background: rgba(180, 83, 9, 0.08);
+  color: rgba(120, 53, 15, 0.92);
+}
+body.dark .home-actions-status--starting {
+  background: rgba(214, 164, 81, 0.12);
+  color: rgba(252, 211, 146, 0.95);
+}
 .home-actions-close {
   width: 30px;
   height: 30px;
@@ -1373,7 +1411,7 @@ body.dark aside .current.selected {
   <% if (running.length > 0) { %>
     <div class='running-apps'>
       <% running.forEach((item, index) => { %>
-        <div data-href="<%=item.browser_url%>" data-target="<%=item.target || '_self'%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" data-starred="<%=item.starred ? "1" : "0"%>" data-launch-count-total="<%=item.launch_count_total || 0%>" data-last-launch-at="<%=item.last_launch_at || ''%>" class='line align-top home-app-line' role='link' tabindex='0'>
+        <div data-href="<%=item.browser_url%>" data-target="<%=item.target || '_self'%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" data-starred="<%=item.starred ? "1" : "0"%>" data-launch-count-total="<%=item.launch_count_total || 0%>" data-last-launch-at="<%=item.last_launch_at || ''%>" data-autolaunch-starting="<%=item.autolaunch_starting ? "1" : "0"%>" data-autolaunch-app="<%=item.uri%>" data-autolaunch-script="<%=item.autolaunch_script || ''%>" class='line align-top home-app-line <%=item.autolaunch_starting ? "autolaunch-starting" : ""%>' role='link' tabindex='0'>
           <h3>
             <div class='item-icon'>
               <% if (item.icon) { %>
@@ -1407,6 +1445,12 @@ body.dark aside .current.selected {
                 <button class='btn open-menu open-actions-modal' type='button' data-dialog-id="home-actions-running-<%=index%>" aria-haspopup="dialog" title="Actions" aria-label="Actions">
                   <i class="fa-solid fa-ellipsis" aria-hidden="true"></i><span> menu</span>
                 </button>
+                <% if (item.autolaunch_starting) { %>
+                  <span class='home-autolaunch-status' title='Autolaunch is starting this app'>
+                    <i class='fa-solid fa-circle-notch fa-spin' aria-hidden='true'></i>
+                    <span>Starting automatically</span>
+                  </span>
+                <% } %>
                 <% const runningTerminalOnlineCount = Number(item.terminal_online_count || 0) %>
                 <% const runningTerminalLabel = runningTerminalOnlineCount > 0 ? `${runningTerminalOnlineCount} terminal${runningTerminalOnlineCount === 1 ? "" : "s"} online` : "Terminals" %>
                 <% if (runningTerminalOnlineCount > 0) { %>
@@ -1964,18 +2008,206 @@ if (homeSortSelect) {
 // if launch_complete is false => not finished launching. wait until it's complete, and then refresh
 // autolaunch display update
 <% if (!launch_complete) { %>
-//  let interval = setInterval(async () => {
-//    let res = await fetch("/pinokio/info").then((res) => {
-//      return res.json()
-//    })
-//    if (res.launch_complete) {
-//      console.log("launched")
-//      clearInterval(interval)
-//      location.href = location.href
-//    } else {
-//      console.log("not yet launched")
-//    }
-//  }, 1000)
+const startHomeAutolaunchPolling = () => {
+  const getStartingLines = () => Array.from(document.querySelectorAll('[data-autolaunch-starting="1"]'))
+  if (getStartingLines().length === 0) {
+    return
+  }
+  let attempts = 0
+  let interval = null
+  const stopPolling = () => {
+    if (interval) {
+      clearInterval(interval)
+      interval = null
+    }
+  }
+  const scriptIdentity = (script) => {
+    if (!script) {
+      return ""
+    }
+    return script.home_path || script.id || script.path || script.script_path || ""
+  }
+  const createStopButton = (script) => {
+    const label = (script && (script.script_path || script.path)) || "script"
+    const button = document.createElement("button")
+    button.type = "button"
+    button.className = "btn shutdown"
+    button.title = `Stop ${label}`
+    button.setAttribute("aria-label", `Stop ${label}`)
+    if (script && script.home_path) {
+      button.setAttribute("data-src", script.home_path)
+    } else if (script && script.id) {
+      button.setAttribute("data-id", script.id)
+    }
+
+    const stopIcon = document.createElement("i")
+    stopIcon.className = "fa-solid fa-stop"
+    stopIcon.setAttribute("aria-hidden", "true")
+    button.appendChild(stopIcon)
+
+    const text = document.createElement("span")
+    text.textContent = `Stop ${label}`
+    button.appendChild(text)
+
+    const spinner = document.createElement("i")
+    spinner.className = "fa-solid fa-spin fa-circle-notch"
+    spinner.setAttribute("aria-hidden", "true")
+    button.appendChild(spinner)
+    return button
+  }
+  const updateHomeActionStatus = (line, label, starting = false) => {
+    const menuButton = line.querySelector(".open-actions-modal")
+    const dialogId = menuButton ? menuButton.getAttribute("data-dialog-id") : ""
+    const dialog = dialogId ? document.getElementById(dialogId) : null
+    if (!dialog) {
+      return
+    }
+    let status = dialog.querySelector(".home-actions-status")
+    if (!label) {
+      if (status) {
+        status.remove()
+      }
+      dialog.querySelectorAll("[data-disable]").forEach((control) => control.removeAttribute("data-disable"))
+      return
+    }
+    if (!status) {
+      status = document.createElement("span")
+      status.className = "home-actions-status"
+      const titleRow = dialog.querySelector(".home-actions-title-row")
+      if (titleRow) {
+        titleRow.appendChild(status)
+      }
+    }
+    status.textContent = label
+    status.classList.toggle("home-actions-status--starting", starting)
+  }
+  const clearStartingVisuals = (line) => {
+    line.setAttribute("data-autolaunch-starting", "0")
+    line.classList.remove("autolaunch-starting")
+    const titleIcon = line.querySelector(".title > i")
+    if (titleIcon) {
+      titleIcon.className = "fa-solid fa-circle"
+      titleIcon.removeAttribute("title")
+    }
+    const status = line.querySelector(".home-autolaunch-status")
+    if (status) {
+      status.remove()
+    }
+  }
+  const markAutolaunchRunning = (line, scripts) => {
+    clearStartingVisuals(line)
+    updateHomeActionStatus(line, "Running")
+    const menuButtons = line.querySelector(".menu-btns")
+    if (!menuButtons || !Array.isArray(scripts)) {
+      return
+    }
+    const existing = new Set(Array.from(menuButtons.querySelectorAll(".shutdown")).map((button) => {
+      return button.getAttribute("data-src") || button.getAttribute("data-id") || ""
+    }))
+    for (const script of scripts) {
+      const identity = scriptIdentity(script)
+      if (!identity || existing.has(identity)) {
+        continue
+      }
+      menuButtons.appendChild(createStopButton(script))
+      existing.add(identity)
+    }
+  }
+  const getOrCreateNotRunningSection = () => {
+    let section = document.querySelector(".not-running-apps")
+    if (section) {
+      return section
+    }
+    section = document.createElement("div")
+    section.className = "not-running-apps"
+    const runningSection = document.querySelector(".running-apps")
+    if (runningSection) {
+      runningSection.insertAdjacentElement("afterend", section)
+    } else {
+      const placeholder = document.querySelector(".placeholder")
+      if (placeholder) {
+        placeholder.insertAdjacentElement("beforebegin", section)
+      }
+    }
+    return section
+  }
+  const markAutolaunchIdle = (line) => {
+    clearStartingVisuals(line)
+    updateHomeActionStatus(line, "")
+    const notRunningSection = getOrCreateNotRunningSection()
+    if (notRunningSection) {
+      notRunningSection.appendChild(line)
+    }
+  }
+  const applyHomeStatus = (state) => {
+    const lines = getStartingLines()
+    if (lines.length === 0) {
+      stopPolling()
+      return
+    }
+    const runningApps = new Set(Array.isArray(state.running_apps) ? state.running_apps : [])
+    const scriptsByApp = new Map()
+    for (const script of Array.isArray(state.running_scripts) ? state.running_scripts : []) {
+      if (!script || !script.app) {
+        continue
+      }
+      if (!scriptsByApp.has(script.app)) {
+        scriptsByApp.set(script.app, [])
+      }
+      scriptsByApp.get(script.app).push(script)
+    }
+    for (const line of lines) {
+      const app = line.getAttribute("data-autolaunch-app")
+      if (runningApps.has(app)) {
+        markAutolaunchRunning(line, scriptsByApp.get(app) || [])
+      } else if (state.launch_complete) {
+        markAutolaunchIdle(line)
+      }
+    }
+    if (getStartingLines().length === 0) {
+      stopPolling()
+      reorderHomeSectionsByPreference()
+    }
+  }
+  const poll = async () => {
+    const lines = getStartingLines()
+    if (lines.length === 0) {
+      if (interval) {
+        clearInterval(interval)
+      }
+      return
+    }
+    attempts += 1
+    try {
+      const response = await fetch("/pinokio/home_status", { cache: "no-store" })
+      if (!response.ok) {
+        if (attempts >= 240) {
+          stopPolling()
+        }
+        return
+      }
+      const state = await response.json()
+      applyHomeStatus(state)
+    } catch (error) {
+      if (attempts >= 240) {
+        stopPolling()
+      }
+    }
+  }
+  interval = setInterval(poll, 1250)
+  setTimeout(poll, 250)
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      poll()
+    }
+  })
+  window.addEventListener("beforeunload", () => {
+    if (interval) {
+      clearInterval(interval)
+    }
+  })
+}
+startHomeAutolaunchPolling()
 <% } %>
 document.addEventListener("keydown", (e) => {
   e = e || window.event;

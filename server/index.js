@@ -759,6 +759,8 @@ class Server {
         shortcuts: x.shortcuts,
         index: x.index,
         running_scripts: x.running_scripts,
+        autolaunch_starting: x.autolaunch_starting ? true : false,
+        autolaunch_script: typeof x.autolaunch_script === "string" ? x.autolaunch_script : "",
         //icon: (x.isDirectory() ? "fa-solid fa-folder" : "fa-regular fa-file"),
         name,
         uri,
@@ -3818,9 +3820,26 @@ class Server {
             index++
           }
           if (!items[i].running) {
-            items[i].index = index
-            index++;
-            notRunning.push(items[i])
+            let autolaunchInfo = null
+            if (!this.kernel.launch_complete) {
+              try {
+                autolaunchInfo = await this.getAutolaunchEnvInfo({ id: items[i].name })
+              } catch (error) {
+                console.warn("[home] failed to read autolaunch state", items[i].name, error && error.message ? error.message : error)
+              }
+            }
+            if (autolaunchInfo && autolaunchInfo.enabled) {
+              items[i].running = true
+              items[i].autolaunch_starting = true
+              items[i].autolaunch_script = autolaunchInfo.value
+              items[i].index = index
+              running.push(items[i])
+              index++
+            } else {
+              items[i].index = index
+              index++;
+              notRunning.push(items[i])
+            }
           }
         }
       }
@@ -15973,6 +15992,41 @@ class Server {
       delete info.shell_env
       delete info.memory
       res.json(info)
+    }))
+    this.app.get("/pinokio/home_status", ex((req, res) => {
+      const runningMap = this.kernel && this.kernel.api && this.kernel.api.running
+        ? this.kernel.api.running
+        : {}
+      const apiRoot = this.kernel.path("api")
+      const runningApps = new Set()
+      const runningScripts = []
+      for (const key of Object.keys(runningMap)) {
+        if (typeof key !== "string" || !path.isAbsolute(key) || !this.is_subpath(apiRoot, key)) {
+          continue
+        }
+        const relativePath = path.relative(apiRoot, key)
+        if (!relativePath || relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+          continue
+        }
+        const app = relativePath.split(path.sep)[0]
+        if (!app) {
+          continue
+        }
+        runningApps.add(app)
+        runningScripts.push({
+          id: key,
+          app,
+          path: relativePath,
+          home_path: path.relative(this.kernel.homedir, key),
+          script_path: path.relative(path.resolve(apiRoot, app), key)
+        })
+      }
+      res.json({
+        launch_complete: this.kernel.launch_complete,
+        running_apps: Array.from(runningApps),
+        running_scripts: runningScripts,
+        startup: this.getStartupStatus()
+      })
     }))
     this.app.get("/pinokio/home", ex((req, res) => {
       res.json({
