@@ -415,7 +415,6 @@ class Shells {
         .replaceAll(/\r\n/g, "\n")
         .replaceAll(/\r/g, "\n")
     }
-
     // if error doesn't exist, add default "error:" event
     if (!params.on) {
       params.on = []
@@ -435,6 +434,56 @@ class Shells {
       break: false
     }]
     params.on = params.on.concat(defaultHandlers)
+
+    const collectBreakErrors = (text) => {
+      const errors = new Set()
+      if (!text || !params.on || !Array.isArray(params.on)) {
+        return errors
+      }
+      let line = text.replaceAll(/[\r\n]/g, "")
+      // 1. find all break event handlers
+      let breakPoints = params.on.filter((x) => {
+        return x.event && x.hasOwnProperty("break")
+      })
+
+      // 2. first find the `break: false` handlers and replace the patterns with blank => so they won't be matched in the next step
+      //let line = response.replaceAll(/[\r\n]/g, "")
+      for(let handler of breakPoints) {
+        if (handler.event) {
+          let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
+          if (!/g/.test(matches[2])) {
+            matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
+          }
+          let re = new RegExp(matches[1], matches[2])
+
+          // only the "break: false" ones => these need to be ignored
+          if (!handler.break) {
+            line = line.replaceAll(re, "")
+          }
+        }
+      }
+      // 3. Now with all the `break: false` (ignored patterns) gone, look for the `break: true` patterns
+      for(let handler of breakPoints) {
+        if (handler.event) {
+          let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
+          if (!/g/.test(matches[2])) {
+            matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
+          }
+          let re = new RegExp(matches[1], matches[2])
+
+          // only the "break: true" ones
+          if (handler.break) {
+            let match;
+            // Keep executing the regex on the text until no more matches are found
+            while ((match = re.exec(line)) !== null) {
+              errors.add(match[0])
+              // errors.add(match.slice(1));
+            }
+          }
+        }
+      }
+      return errors
+    }
 
     if (!isParentRequestActive()) {
       return ""
@@ -519,8 +568,10 @@ class Shells {
                     const lastMatch = rendered_event[rendered_event.length - 1]
                     handlerLastMatchEnd.set(i, liveEventBufferStart + lastMatch.index + lastMatch[0].length)
                     const triggerAction = typeof handler.trigger === "string" ? handler.trigger.trim() : ""
+                    const isBreakHandler = handler.break === true
+                    const liveErrors = isBreakHandler ? collectBreakErrors(liveEventBuffer) : null
                     const shouldCaptureEvent =
-                      handler.break !== false
+                      (handler.break !== false && (!isBreakHandler || liveErrors.size > 0))
                       || handler.done
                       || handler.kill
                       || !!triggerAction
@@ -539,6 +590,11 @@ class Shells {
                     }
                     if (handler.kill) {
                       sh.kill()
+                      liveEventHandlersClosed = true
+                      break
+                    }
+                    if (isBreakHandler && liveErrors.size > 0) {
+                      sh.continue(liveEventBuffer)
                       liveEventHandlersClosed = true
                       break
                     }
@@ -589,54 +645,7 @@ class Shells {
       - TEMPLATE: parse the template 
     */
 
-    let errors = new Set()
-    if (response) {
-      if (params.on && Array.isArray(params.on)) {
-
-        let line = response.replaceAll(/[\r\n]/g, "")
-        // 1. find all break event handlers
-        let breakPoints = params.on.filter((x) => {
-          return x.event && x.hasOwnProperty("break")
-        })
-
-        // 2. first find the `break: false` handlers and replace the patterns with blank => so they won't be matched in the next step
-        //let line = response.replaceAll(/[\r\n]/g, "")
-        for(let handler of breakPoints) {
-          if (handler.event) {
-            let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
-            if (!/g/.test(matches[2])) {
-              matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
-            }
-            let re = new RegExp(matches[1], matches[2])
-
-            // only the "break: false" ones => these need to be ignored
-            if (!handler.break) {
-              line = line.replaceAll(re, "")
-            }
-          }
-        }
-        // 3. Now with all the `break: false` (ignored patterns) gone, look for the `break: true` patterns
-        for(let handler of breakPoints) {
-          if (handler.event) {
-            let matches = /^\/(.+)\/([dgimsuy]*)$/gs.exec(handler.event)
-            if (!/g/.test(matches[2])) {
-              matches[2] += "g"   // if g option is not included, include it (need it for matchAll)
-            }
-            let re = new RegExp(matches[1], matches[2])
-
-            // only the "break: true" ones
-            if (handler.break) {
-              let match;
-              // Keep executing the regex on the text until no more matches are found
-              while ((match = re.exec(line)) !== null) {
-                errors.add(match[0])
-                // errors.add(match.slice(1));
-              }
-            }
-          }
-        }
-      }
-    }
+    let errors = collectBreakErrors(response)
 
 
     if (ondata) {
