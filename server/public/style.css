@@ -4360,9 +4360,35 @@ aside .qr {
     transform: translateX(0);
   }
 
+  body.main-sidebar-page .main-sidebar-nav,
+  body.main-sidebar-page .main-sidebar-section {
+    gap: 4px;
+  }
+
+  body.main-sidebar-page .main-sidebar-section + .main-sidebar-section {
+    margin-top: 10px;
+  }
+
   body.main-sidebar-page .main-sidebar .tab,
   body.main-sidebar-page .main-sidebar .tab.submenu {
+    min-height: 36px;
+    column-gap: 10px !important;
+    padding: 6px 9px !important;
     font-size: 12px;
+  }
+
+  body.main-sidebar-page .main-sidebar .tab.submenu {
+    padding-left: 18px !important;
+  }
+
+  body.main-sidebar-page .main-sidebar .tab i,
+  body.main-sidebar-page .main-sidebar .tab .main-sidebar-action-icon {
+    font-size: 14px;
+  }
+
+  body.main-sidebar-page .main-sidebar-section-title {
+    min-height: 22px;
+    padding: 6px 9px 4px;
   }
 
   body.main-sidebar-page .main-sidebar .tab .caption {

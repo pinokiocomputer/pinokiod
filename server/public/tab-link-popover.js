@@ -11,8 +11,12 @@
   let tabLinkRouterHttpsActive = null
   let tabLinkPeerInfoPromise = null
   let tabLinkPeerInfoExpiry = 0
+  let tabLinkPopoverMode = "anchored"
+  let tabLinkReturnFocusEl = null
   const TAB_LINK_TRIGGER_CLASS = "tab-link-popover-trigger"
   const TAB_LINK_TRIGGER_HOST_CLASS = "tab-link-popover-host"
+  const TAB_LINK_POPOVER_SURFACE_CLASS = "tab-link-popover-surface"
+  const TAB_LINK_POPOVER_TITLE_ID = `${TAB_LINK_POPOVER_ID}-title`
 
   const shouldAttachTabLinkTrigger = (link) => {
     if (!link || !link.classList || !link.classList.contains("frame-link")) {
@@ -126,11 +130,105 @@
     return { available: false, enabled: true }
   }
 
+  const getTabLinkPopoverSurface = (popover) => {
+    if (!popover || typeof popover.querySelector !== "function") {
+      return null
+    }
+    return popover.querySelector(`.${TAB_LINK_POPOVER_SURFACE_CLASS}`)
+  }
+
+  const getTabLinkFocusables = (root) => {
+    if (!root || typeof root.querySelectorAll !== "function") {
+      return []
+    }
+    return Array.from(root.querySelectorAll([
+      'a[href]',
+      'button:not([disabled])',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])'
+    ].join(','))).filter((element) => {
+      if (!(element instanceof HTMLElement)) {
+        return false
+      }
+      if (element.hidden || element.getAttribute("aria-hidden") === "true") {
+        return false
+      }
+      const rect = element.getBoundingClientRect()
+      return rect.width > 0 || rect.height > 0
+    })
+  }
+
+  const resetTabLinkPopoverContent = (popover, mode) => {
+    if (!popover) {
+      return null
+    }
+    tabLinkPopoverMode = mode === "modal" ? "modal" : "anchored"
+    popover.classList.toggle("tab-link-popover--modal", tabLinkPopoverMode === "modal")
+    popover.classList.toggle("tab-link-popover--anchored", tabLinkPopoverMode !== "modal")
+    popover.setAttribute("data-mode", tabLinkPopoverMode)
+    popover.removeAttribute("aria-labelledby")
+    popover.removeAttribute("aria-modal")
+    popover.removeAttribute("role")
+    const surface = getTabLinkPopoverSurface(popover)
+    if (surface) {
+      surface.innerHTML = ""
+      surface.removeAttribute("aria-labelledby")
+      surface.removeAttribute("aria-modal")
+      surface.removeAttribute("role")
+      surface.removeAttribute("tabindex")
+      if (tabLinkPopoverMode === "modal") {
+        surface.setAttribute("role", "dialog")
+        surface.setAttribute("aria-modal", "true")
+        surface.setAttribute("aria-labelledby", TAB_LINK_POPOVER_TITLE_ID)
+        surface.setAttribute("tabindex", "-1")
+      }
+    }
+    return surface
+  }
+
+  const createTabLinkPopoverHeader = (title = "Tab actions") => {
+    const header = document.createElement("div")
+    header.className = "tab-link-popover-header"
+
+    const heading = document.createElement("div")
+    heading.className = "tab-link-popover-title"
+    heading.id = TAB_LINK_POPOVER_TITLE_ID
+
+    const icon = document.createElement("span")
+    icon.className = "tab-link-popover-title-icon"
+    icon.innerHTML = '<i class="fa-solid fa-ellipsis" aria-hidden="true"></i>'
+
+    const text = document.createElement("span")
+    text.textContent = title
+    heading.append(icon, text)
+
+    const close = document.createElement("button")
+    close.type = "button"
+    close.className = "tab-link-popover-close"
+    close.setAttribute("data-tab-link-popover-close", "")
+    close.setAttribute("aria-label", "Close tab actions")
+    close.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>'
+
+    header.append(heading, close)
+    return header
+  }
+
   const ensureTabLinkPopoverEl = () => {
     if (!tabLinkPopoverEl) {
       tabLinkPopoverEl = document.createElement("div")
       tabLinkPopoverEl.id = TAB_LINK_POPOVER_ID
-      tabLinkPopoverEl.className = "tab-link-popover"
+      tabLinkPopoverEl.className = "tab-link-popover tab-link-popover--anchored"
+      const backdrop = document.createElement("button")
+      backdrop.type = "button"
+      backdrop.className = "tab-link-popover-backdrop"
+      backdrop.setAttribute("data-tab-link-popover-close", "")
+      backdrop.setAttribute("aria-label", "Close tab actions")
+      backdrop.tabIndex = -1
+      const surface = document.createElement("div")
+      surface.className = TAB_LINK_POPOVER_SURFACE_CLASS
+      tabLinkPopoverEl.append(backdrop, surface)
       tabLinkPopoverEl.addEventListener("mouseenter", () => {
         if (tabLinkHideTimer) {
           clearTimeout(tabLinkHideTimer)
@@ -143,6 +241,13 @@
         }
       })
       tabLinkPopoverEl.addEventListener("click", (event) => {
+        const closeControl = event.target.closest("[data-tab-link-popover-close]")
+        if (closeControl && tabLinkPopoverEl.contains(closeControl)) {
+          event.preventDefault()
+          event.stopPropagation()
+          hideTabLinkPopover({ immediate: true })
+          return
+        }
         const item = event.target.closest(".tab-link-popover-item")
         if (!item) {
           return
@@ -1348,14 +1453,52 @@
     if (!popover || !link) {
       return
     }
+    const surface = getTabLinkPopoverSurface(popover)
+    if (tabLinkPopoverMode === "modal") {
+      popover.style.minWidth = ""
+      popover.style.left = ""
+      popover.style.top = ""
+      popover.style.maxHeight = ""
+      popover.style.overflowY = ""
+      if (surface) {
+        surface.style.maxHeight = ""
+        surface.style.overflowY = ""
+      }
+      popover.style.display = ""
+      popover.style.visibility = ""
+      popover.classList.add("visible")
+      if (document.body) {
+        document.body.classList.add("tab-link-popover-open")
+      }
+      window.requestAnimationFrame(() => {
+        if (!popover.classList.contains("visible")) {
+          return
+        }
+        const close = popover.querySelector(".tab-link-popover-close")
+        if (close && typeof close.focus === "function") {
+          close.focus()
+        } else if (surface && typeof surface.focus === "function") {
+          surface.focus()
+        }
+      })
+      return
+    }
+
+    if (document.body) {
+      document.body.classList.remove("tab-link-popover-open")
+    }
     const rect = link.getBoundingClientRect()
     const minWidth = Math.max(rect.width, 260)
     popover.style.minWidth = `${Math.round(minWidth)}px`
-    popover.style.display = "flex"
+    popover.style.display = ""
     popover.classList.add("visible")
     popover.style.visibility = "hidden"
     popover.style.maxHeight = ""
     popover.style.overflowY = ""
+    if (surface) {
+      surface.style.maxHeight = ""
+      surface.style.overflowY = ""
+    }
     const popoverWidth = popover.offsetWidth
     let popoverHeight = popover.offsetHeight
     const viewportPadding = 12
@@ -1380,8 +1523,13 @@
 
       const availableHeight = Math.max(0, window.innerHeight - viewportPadding * 2)
       if (availableHeight > 0 && popoverHeight > availableHeight) {
-        popover.style.maxHeight = `${Math.round(availableHeight)}px`
-        popover.style.overflowY = "auto"
+        if (surface) {
+          surface.style.maxHeight = `${Math.round(availableHeight)}px`
+          surface.style.overflowY = "auto"
+        } else {
+          popover.style.maxHeight = `${Math.round(availableHeight)}px`
+          popover.style.overflowY = "auto"
+        }
         popoverHeight = Math.min(availableHeight, popover.offsetHeight)
       }
 
@@ -1404,8 +1552,13 @@
 
       const availableBelow = Math.max(0, window.innerHeight - viewportPadding - top)
       if (availableBelow > 0 && popoverHeight > availableBelow) {
-        popover.style.maxHeight = `${Math.round(availableBelow)}px`
-        popover.style.overflowY = "auto"
+        if (surface) {
+          surface.style.maxHeight = `${Math.round(availableBelow)}px`
+          surface.style.overflowY = "auto"
+        } else {
+          popover.style.maxHeight = `${Math.round(availableBelow)}px`
+          popover.style.overflowY = "auto"
+        }
         popoverHeight = Math.min(availableBelow, popover.offsetHeight)
       }
     }
@@ -1417,14 +1570,27 @@
 
   const hideTabLinkPopover = ({ immediate = false } = {}) => {
     const applyHide = () => {
+      const returnFocusEl = tabLinkPopoverMode === "modal" ? tabLinkReturnFocusEl : null
       if (tabLinkPopoverEl) {
         tabLinkPopoverEl.classList.remove("visible")
         tabLinkPopoverEl.style.display = "none"
+      }
+      if (document.body) {
+        document.body.classList.remove("tab-link-popover-open")
       }
       tabLinkActiveLink = null
       tabLinkPendingLink = null
       tabLinkHideTimer = null
       tabLinkCloseOnMouseLeave = false
+      tabLinkPopoverMode = "anchored"
+      tabLinkReturnFocusEl = null
+      if (returnFocusEl && typeof returnFocusEl.focus === "function" && document.contains(returnFocusEl)) {
+        window.requestAnimationFrame(() => {
+          try {
+            returnFocusEl.focus()
+          } catch (_) {}
+        })
+      }
     }
 
     if (tabLinkHideTimer) {
@@ -1454,6 +1620,10 @@
     const restrictToBase = options && options.restrictToBase === true
     const forceCanonicalQr = options && options.forceCanonicalQr === true
     tabLinkCloseOnMouseLeave = options && options.closeOnMouseLeave === true
+    const presentationMode = tabLinkCloseOnMouseLeave ? "anchored" : "modal"
+    tabLinkReturnFocusEl = presentationMode === "modal"
+      ? ((link && link.querySelector && link.querySelector(`.${TAB_LINK_TRIGGER_CLASS}`)) || link)
+      : null
     let sameOrigin = false
     let canonicalBase = canonicalizeUrl(effectiveHref)
     if (canonicalBase && isHttpUrl(canonicalBase)) {
@@ -1515,10 +1685,11 @@
     // Show lightweight loading popover immediately while mapping fetch runs
     try {
       const pop = ensureTabLinkPopoverEl()
-      pop.innerHTML = ''
-      const header = document.createElement('div')
-      header.className = 'tab-link-popover-header'
-      header.innerHTML = `<i class="fa-solid fa-ellipsis"></i><span>Tab actions</span>`
+      const surface = resetTabLinkPopoverContent(pop, presentationMode)
+      if (!surface) {
+        throw new Error("Missing tab link popover surface")
+      }
+      const header = createTabLinkPopoverHeader("Tab actions")
       const item = document.createElement('div')
       item.className = 'tab-link-popover-item tab-link-popover-item--action'
       const icon = document.createElement('span')
@@ -1534,7 +1705,7 @@
       value.textContent = 'Preparing actions'
       copy.append(label, value)
       item.append(icon, copy)
-      pop.append(header, item)
+      surface.append(header, item)
       positionTabLinkPopover(pop, link)
     } catch (_) {}
 
@@ -1708,12 +1879,14 @@
     }
 
     const popover = ensureTabLinkPopoverEl()
-    popover.innerHTML = ""
+    const popoverSurface = resetTabLinkPopoverContent(popover, presentationMode)
+    if (!popoverSurface) {
+      hideTabLinkPopover({ immediate: true })
+      return
+    }
 
-    const header = document.createElement("div")
-    header.className = "tab-link-popover-header"
-    header.innerHTML = `<i class="fa-solid fa-ellipsis"></i><span>Tab actions</span>`
-    popover.appendChild(header)
+    const header = createTabLinkPopoverHeader("Tab actions")
+    popoverSurface.appendChild(header)
 
     actionItems.forEach((actionItem) => {
       const item = document.createElement("button")
@@ -1745,20 +1918,20 @@
       }
       copy.append(labelSpan, valueSpan)
       item.append(icon, copy)
-      popover.appendChild(item)
+      popoverSurface.appendChild(item)
     })
 
     if (actionItems.length > 0 && routeEntries.length > 0) {
       const divider = document.createElement("div")
       divider.className = "tab-link-popover-divider"
-      popover.appendChild(divider)
+      popoverSurface.appendChild(divider)
     }
 
     if (routeEntries.length > 0) {
       const section = document.createElement("div")
       section.className = "tab-link-popover-section"
       section.textContent = "Browser routes"
-      popover.appendChild(section)
+      popoverSurface.appendChild(section)
     }
 
     routeEntries.forEach((entry) => {
@@ -1790,7 +1963,7 @@
         item.className = "tab-link-popover-item"
         item.append(labelSpan, valueSpan)
       }
-      popover.appendChild(item)
+      popoverSurface.appendChild(item)
     })
 
     const hasHttpsEntry = Array.isArray(entries) && entries.some((entry) => entry && entry.type === "https")
@@ -1812,7 +1985,7 @@
       footerValue.textContent = "Click to activate"
 
       footerButton.append(footerLabel, footerValue)
-      popover.appendChild(footerButton)
+      popoverSurface.appendChild(footerButton)
     }
 
     if (actionItems.length === 0 && routeEntries.length === 0 && !(tabLinkRouterHttpsActive === false && !hasHttpsEntry)) {
@@ -1922,8 +2095,43 @@
     hideTabLinkPopover({ immediate: true })
   }
 
+  const handleGlobalKeydown = (event) => {
+    if (!tabLinkPopoverEl || !tabLinkPopoverEl.classList.contains("visible")) {
+      return
+    }
+    if (event.key === "Escape") {
+      event.preventDefault()
+      hideTabLinkPopover({ immediate: true })
+      return
+    }
+    if (event.key !== "Tab" || tabLinkPopoverMode !== "modal") {
+      return
+    }
+    const surface = getTabLinkPopoverSurface(tabLinkPopoverEl)
+    const focusables = getTabLinkFocusables(surface)
+    if (focusables.length === 0) {
+      event.preventDefault()
+      if (surface && typeof surface.focus === "function") {
+        surface.focus()
+      }
+      return
+    }
+    const first = focusables[0]
+    const last = focusables[focusables.length - 1]
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
+
   window.addEventListener("scroll", (event) => {
     if (!tabLinkPopoverEl || !tabLinkPopoverEl.classList.contains("visible")) {
+      return
+    }
+    if (tabLinkPopoverMode === "modal") {
       return
     }
     if (event && event.target && tabLinkPopoverEl.contains(event.target)) {
@@ -1939,6 +2147,7 @@
   })
 
   document.addEventListener("mousedown", handleGlobalPointer, true)
+  document.addEventListener("keydown", handleGlobalKeydown, true)
   try {
     document.addEventListener("touchstart", handleGlobalPointer, { passive: true, capture: true })
   } catch (_) {
