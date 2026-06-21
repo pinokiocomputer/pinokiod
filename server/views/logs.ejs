@@ -127,19 +127,21 @@
               </section>
             </div>
           </aside>
-          <footer class="logs-community-footer" aria-label="Ask Community">
-            <div class="logs-community-copy">
-              <div class="logs-community-heading"><i class="fa-solid fa-comments" aria-hidden="true"></i><span>Ask Community</span></div>
-              <div class="logs-community-subtitle">Opens a draft question on pinokio.co with this report attached.</div>
-            </div>
-            <div class="logs-community-title-field">
-              <label class="logs-community-title-label" for="logs-draft-title">Title</label>
-              <input class="logs-community-title-input" id="logs-draft-title" type="text" maxlength="120" autocomplete="off" spellcheck="true" placeholder="Issue title" disabled>
-              <span class="logs-community-title-note" id="logs-draft-title-note" aria-live="polite"></span>
-            </div>
-            <button type="button" class="logs-primary-button logs-community-submit" id="logs-create-draft" disabled><i class="fa-solid fa-paper-plane"></i><span>Ask Community</span></button>
-          </footer>
         </div>
+        <footer class="logs-community-footer" aria-label="Ask Community">
+          <div class="logs-community-copy">
+            <div class="logs-community-heading"><i class="fa-solid fa-comments" aria-hidden="true"></i><span>Ask Community</span></div>
+            <div class="logs-community-subtitle">Opens a draft question on pinokio.co with this report attached.</div>
+          </div>
+          <div class="logs-community-title-field">
+            <label class="logs-community-title-control" for="logs-draft-title">
+              <span class="logs-community-title-prefix">Title</span>
+              <input class="logs-community-title-input" id="logs-draft-title" type="text" maxlength="120" autocomplete="off" spellcheck="true" placeholder="Issue title" disabled>
+            </label>
+            <span class="logs-community-title-note" id="logs-draft-title-note" aria-live="polite"></span>
+          </div>
+          <button type="button" class="logs-primary-button logs-community-submit" id="logs-create-draft" disabled><i class="fa-solid fa-paper-plane"></i><span>Ask Community</span></button>
+        </footer>
       </section>
 
       <section class="logs-raw-view" id="logs-raw-panel" data-logs-panel="raw" role="tabpanel">

@@ -1321,12 +1321,26 @@
       authorizeUrl.searchParams.set('wait', '1')
       this.setCreateDraftBusy(true)
       this.setStatus('Opening Community authorization…')
-      const popup = window.open(authorizeUrl.toString(), 'pinokio-draft-import', 'width=720,height=760')
+      const screenInfo = window.screen || {}
+      const width = Math.max(720, Math.floor(screenInfo.availWidth || window.outerWidth || 1200))
+      const height = Math.max(640, Math.floor(screenInfo.availHeight || window.outerHeight || 820))
+      const left = Number.isFinite(screenInfo.availLeft) ? screenInfo.availLeft : 0
+      const top = Number.isFinite(screenInfo.availTop) ? screenInfo.availTop : 0
+      const popupFeatures = `popup=yes,width=${width},height=${height},left=${left},top=${top}`
+      const popup = window.open(authorizeUrl.toString(), 'pinokio-draft-import', popupFeatures)
       if (!popup) {
         this.setCreateDraftBusy(false)
         this.setStatus('Community authorization window was blocked.', true)
         return
       }
+      try {
+        if (typeof popup.moveTo === 'function') {
+          popup.moveTo(left, top)
+        }
+        if (typeof popup.resizeTo === 'function') {
+          popup.resizeTo(width, height)
+        }
+      } catch (_) {}
       const registryOrigin = this.registryOrigin(this.registryBase)
       const registryMessageOrigins = this.registryMessageOrigins()
       let popupOrigin = registryOrigin

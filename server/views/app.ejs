@@ -7819,10 +7819,10 @@ body.dark .pinokio-custom-terminal-header {
 	        </div>
 	      </div>
 	      <div class='mobile-drawer-actions' aria-label="App actions">
-	        <button type='button' class='btn header-item mobile-nav-logs' data-mobile-proxy="#logs-toggle" data-mobile-panel="logs" data-mobile-close-menu="true" aria-pressed="false" aria-label="Logs">
+	        <button type='button' class='btn header-item mobile-nav-logs' data-mobile-proxy="#logs-toggle" data-mobile-panel="logs" data-mobile-close-menu="true" aria-pressed="false" aria-label="Report Issue">
 	          <div class='tab'>
-	            <i class="fa-solid fa-laptop-code menu-action-leading-icon"></i>
-	            <div class='display'>Logs</div>
+	            <i class="fa-solid fa-circle-exclamation menu-action-leading-icon"></i>
+	            <div class='display'>Report Issue</div>
 	            <div class='flexible'></div>
 	          </div>
 	        </button>
@@ -7856,10 +7856,10 @@ body.dark .pinokio-custom-terminal-header {
         <% if (type === 'browse') { %>
           <%- include('./partials/fs_status') %>
         <% } %>
-        <button type='button' id='logs-toggle' class="btn header-item" data-tippy-content="logs" aria-expanded="false" aria-controls="app-logs-drawer">
+        <button type='button' id='logs-toggle' class="btn header-item" data-tippy-content="Report issue with logs" aria-expanded="false" aria-controls="app-logs-drawer">
           <div class='tab'>
-            <i class="fa-solid fa-laptop-code menu-action-leading-icon"></i>
-            <div class='display'>Logs</div>
+            <i class="fa-solid fa-circle-exclamation menu-action-leading-icon"></i>
+            <div class='display'>Report Issue</div>
             <div class='flexible'></div>
             <span class='logs-new-badge hidden' id='logs-new-badge'>New</span>
           </div>
@@ -10661,7 +10661,7 @@ const rerenderMenuSection = (container, html) => {
 	    }
 	    if (mobileLogsButton) {
 	      mobileLogsButton.classList.toggle("has-new", show)
-	      mobileLogsButton.setAttribute("aria-label", show ? "Logs, new issue" : "Logs")
+	      mobileLogsButton.setAttribute("aria-label", show ? "Report Issue, new report available" : "Report Issue")
 	    }
 	    try {
 	      if (show) {
