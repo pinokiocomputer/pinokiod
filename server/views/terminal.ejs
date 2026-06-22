@@ -1491,6 +1491,83 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (activeProcessWait && (activeProcessWait.title || activeProcessWait.description || activeProcessWait.message) && window.PinokioWaitFooterStatus) {
     window.PinokioWaitFooterStatus.show(activeProcessWait)
   }
+  const resolveCurrentApiScript = () => {
+    let parsed
+    try {
+      parsed = new URL(window.location.href)
+    } catch (_) {
+      return null
+    }
+    const prefix = "/api/"
+    if (!parsed.pathname.startsWith(prefix)) {
+      return null
+    }
+    const parts = parsed.pathname.slice(prefix.length).split("/").filter(Boolean).map((part) => {
+      try {
+        return decodeURIComponent(part)
+      } catch (_) {
+        return part
+      }
+    })
+    if (parts.length < 2) {
+      return null
+    }
+    const appId = parts[0]
+    const script = parts.slice(1).join("/")
+    if (!appId || !script) {
+      return null
+    }
+    return {
+      appId,
+      script,
+      homePath: `api/${appId}/${script}`
+    }
+  }
+  const fetchJsonNoStore = async (url) => {
+    try {
+      const response = await fetch(url, {
+        cache: "no-store",
+        headers: {
+          "Accept": "application/json"
+        }
+      })
+      if (!response.ok) {
+        return null
+      }
+      return response.json().catch(() => null)
+    } catch (_) {
+      return null
+    }
+  }
+  const findRunningScriptEntry = (status, scriptInfo) => {
+    const runningScripts = status && Array.isArray(status.running_scripts) ? status.running_scripts : []
+    return runningScripts.find((entry) => {
+      if (!entry || typeof entry !== "object") {
+        return false
+      }
+      if (entry.home_path === scriptInfo.homePath) {
+        return true
+      }
+      return entry.app === scriptInfo.appId && entry.script_path === scriptInfo.script
+    }) || null
+  }
+  const hasLiveShellForScript = (shells, runningEntry) => {
+    if (!runningEntry || !runningEntry.id || !Array.isArray(shells)) {
+      return false
+    }
+    const scriptId = String(runningEntry.id)
+    return shells.some((shell) => {
+      if (!shell || shell.done === true) {
+        return false
+      }
+      const group = typeof shell.group === "string" ? shell.group : ""
+      const id = typeof shell.id === "string" ? shell.id : ""
+      return group === scriptId || id === scriptId || id.startsWith(`${scriptId}?`)
+    })
+  }
+  const normalizeLogText = (value) => {
+    return String(value || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/\n/g, "\r\n")
+  }
   const shouldBypassAiConsent = () => {
     const normalize = (value) => (typeof value === "string" ? value.replace(/\\/g, "/") : "")
     const uri = normalize(scriptUri || "")
@@ -1532,6 +1609,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       this.baseScriptId = baseScriptId
       this.currentId = baseScriptId
+      this.latestLogFallbackActive = false
       this.pendingInput = []
       this.inputBuffer = ""
       this.inputTracker = window.TerminalInputTracker ? new window.TerminalInputTracker({
@@ -1635,6 +1713,39 @@ document.addEventListener("DOMContentLoaded", async () => {
       const runId = this.currentId || this.baseScriptId
       if (runId) {
         params.id = runId
+      }
+      if (this.latestLogFallbackActive) {
+        let settled = false
+        const settleFallbackStop = (packet) => {
+          if (settled) {
+            return
+          }
+          settled = true
+          this.latestLogFallbackActive = false
+          if (packet) {
+            refreshParent(packet)
+          }
+          pluginTerminalDiscoveryRefresher.clear()
+          document.querySelector("#status-window").innerHTML = "<b>Ready</b>"
+          document.querySelector("#progress-window").classList.add("hidden")
+          document.querySelector("#progress-bar").style.width = "0%"
+          runControls.set("idle")
+          this.resizeSync.reset()
+          this.socket.close()
+        }
+        this.socket.run({
+          method: "kernel.api.stop",
+          params
+        }, (packet) => {
+          if (packet && (packet.type === "disconnect" || packet.type === "event" || packet.type === "result" || packet.type === "error")) {
+            settleFallbackStop(packet)
+          }
+        }).then(() => {
+          settleFallbackStop()
+        }).catch(() => {
+          settleFallbackStop()
+        })
+        return
       }
       this.socket.run({
         method: "kernel.api.stop",
@@ -2242,8 +2353,57 @@ document.addEventListener("DOMContentLoaded", async () => {
 //          pageBottom.scrollIntoView()
         })
     }
-    async run (mode) {
+    async showLatestLogFallback() {
+      try {
+        const scriptInfo = resolveCurrentApiScript()
+        if (!scriptInfo) {
+          return false
+        }
+        const status = await fetchJsonNoStore("/pinokio/home_status")
+        const runningEntry = findRunningScriptEntry(status, scriptInfo)
+        if (!runningEntry) {
+          return false
+        }
+        const shells = await fetchJsonNoStore("/info/shells")
+        if (hasLiveShellForScript(shells, runningEntry)) {
+          return false
+        }
+        const logUrl = `/apps/logs/${encodeURIComponent(scriptInfo.appId)}?script=${encodeURIComponent(scriptInfo.script)}&tail=400`
+        const logData = await fetchJsonNoStore(logUrl)
+        const text = logData && typeof logData.text === "string" ? logData.text : ""
+        if (!text.trim()) {
+          return false
+        }
+        this.currentId = runningEntry.id || this.baseScriptId || null
+        <% if (theme === "dark") { %>
+        await this.createTerm(xtermTheme.FrontEndDelight)
+        <% } else { %>
+        await this.createTerm(xtermTheme.Tomorrow)
+        <% } %>
+        const fileLabel = logData.file || `logs/api/${scriptInfo.script}/latest`
+        this.write(`Latest log: ${fileLabel}\r\nNo live terminal session is available for this running script.\r\n\r\n`)
+        this.write(normalizeLogText(text))
+        this.write("\r\n")
+        document.querySelector("#status-window").innerHTML = "<b>Latest log</b><div class='flexible content'>No live terminal session</div>"
+        document.querySelector("#progress-window").classList.add("hidden")
+        document.querySelector("#progress-bar").style.width = "0%"
+        this.latestLogFallbackActive = true
+        runControls.set("running")
+        return true
+      } catch (_) {
+        this.latestLogFallbackActive = false
+        return false
+      }
+    }
+    async run (mode, options = {}) {
       this.mode = (mode ? mode : "run")
+      if (options && options.allowLatestLogFallback) {
+        const showedFallback = await this.showLatestLogFallback()
+        if (showedFallback) {
+          return true
+        }
+      }
+      this.latestLogFallbackActive = false
       const allowed = aiConsentRequired ? await consentManager.ensureAllowed() : true
       if (!allowed) {
         pluginTerminalDiscoveryRefresher.clear()
@@ -3086,7 +3246,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     <% } else { %>
       <% if (run) { %>
         // run (query params run=true)
-        await rpc.run()
+        await rpc.run(undefined, { allowLatestLogFallback: true })
       <% } else { %>
         await rpc.run("listen")
       <% } %>
