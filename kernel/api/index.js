@@ -424,6 +424,9 @@ class Api {
     }
     this.running[id] = true
     this.done[id] = done
+    if (this.kernel && typeof this.kernel.markAppLaunchStarted === "function") {
+      this.kernel.markAppLaunchStarted(request.path)
+    }
   }
   isActionCandidate(action) {
     return (Array.isArray(action) && action.length > 0) || typeof action === "function"
@@ -508,6 +511,10 @@ class Api {
       running: (...args) => {
         let fullpath = path.resolve(cwd, ...args)
         return this.running[fullpath]
+      },
+      ready: (...args) => {
+        let fullpath = path.resolve(cwd, ...args)
+        return this.kernel.isScriptReady(fullpath)
       },
       name,
       self: script,
@@ -614,6 +621,9 @@ class Api {
     } else {
       delete this.running[requestPath]
       delete this.kernel.memory.local[requestPath]
+    }
+    if (this.kernel && typeof this.kernel.markAppLaunchStopped === "function") {
+      this.kernel.markAppLaunchStopped(requestPath)
     }
     this.ondata({
       id: req.params.id || requestPath,
@@ -1083,6 +1093,10 @@ class Api {
         let fullpath = path.resolve(cwd, ...args)
         return this.running[fullpath]
       },
+      ready: (...args) => {
+        let fullpath = path.resolve(cwd, ...args)
+        return this.kernel.isScriptReady(fullpath)
+      },
       name,
       self: script,
       port,
@@ -1235,6 +1249,9 @@ class Api {
 
         this.kernel.memory.rpc[id].current = rpc.current
         this.kernel.memory.rpc[id].total = rpc.total
+        if (this.kernel && typeof this.kernel.markAppLaunchProgress === "function") {
+          this.kernel.markAppLaunchProgress(request.path, rpc.current, rpc.total)
+        }
 
 //        this.kernel.memory.rpc[request.path] = rpc
 //        this.kernel.memory.args[request.path] = args
@@ -1631,6 +1648,9 @@ class Api {
             this.queue(response.request, response.rawrpc, response.input, response.step, response.total, cwd, args)
           } else {
             let id = response.request.id || response.request.path
+            if (this.kernel && typeof this.kernel.markAppLaunchReady === "function") {
+              this.kernel.markAppLaunchReady(response.request.path)
+            }
             if (response.request.caller) {
               if (this.done[response.request.path]) {
                 this.done[response.request.path]({
@@ -1644,6 +1664,9 @@ class Api {
           }
         } else {
           let id = request.id || request.path
+          if (this.kernel && typeof this.kernel.markAppLaunchReady === "function") {
+            this.kernel.markAppLaunchReady(request.path)
+          }
           if (this.done[request.path]) {
             this.done[request.path]({
               global: (this.kernel.memory.global[id] || {}),
@@ -1655,6 +1678,9 @@ class Api {
 //        this.kernel.refresh(true)
       } catch (e) {
         this.clearResolvedAction(request)
+        if (this.kernel && typeof this.kernel.markAppLaunchFailed === "function") {
+          this.kernel.markAppLaunchFailed(request.path, e)
+        }
         ondata({ raw: e.toString() })
       }
     }, concurrency)
@@ -1865,6 +1891,9 @@ class Api {
             } catch (e) {
               this.clearResolvedAction(request)
               delete this.running[this.requestId(request)]
+              if (this.kernel && typeof this.kernel.markAppLaunchFailed === "function") {
+                this.kernel.markAppLaunchFailed(request.path, e)
+              }
               this.ondata({
                 id: request.id || request.path,
                 type: "error",
@@ -1876,6 +1905,9 @@ class Api {
             if (!Array.isArray(steps) || steps.length === 0) {
               this.clearResolvedAction(request)
               delete this.running[this.requestId(request)]
+              if (this.kernel && typeof this.kernel.markAppLaunchFailed === "function") {
+                this.kernel.markAppLaunchFailed(request.path, new Error(`missing or invalid attribute: ${actionKey}`))
+              }
               this.ondata({
                 id: request.id || request.path,
                 type: "error",

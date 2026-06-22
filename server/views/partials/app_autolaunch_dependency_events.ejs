@@ -1,0 +1,42 @@
+  dependenciesEl.addEventListener("input", (event) => {
+    const search = event.target && event.target.matches("[data-app-autolaunch-dependency-search]")
+      ? event.target
+      : null
+    if (!search) return
+    filterDependencyPicker(search.closest("[data-app-autolaunch-dependency-picker]"))
+  })
+  dependenciesEl.addEventListener("click", (event) => {
+    const togglePicker = event.target && event.target.closest("[data-app-autolaunch-toggle-dependency-picker]")
+    if (togglePicker) {
+      event.preventDefault()
+      dependencyPickerOpen = !dependencyPickerOpen
+      renderDependencies()
+      if (dependencyPickerOpen) {
+        window.setTimeout(() => {
+          const search = dependenciesEl.querySelector("[data-app-autolaunch-dependency-search]")
+          if (search) search.focus()
+        }, 0)
+      }
+      return
+    }
+    const add = event.target && event.target.closest("[data-app-autolaunch-add-dependency]")
+    if (add) {
+      event.preventDefault()
+      const dependency = add.getAttribute("data-app-autolaunch-add-dependency")
+      const dependencies = Array.isArray(state.autolaunch_depends) ? state.autolaunch_depends.slice() : []
+      if (dependency && !dependencies.includes(dependency)) {
+        dependencies.push(dependency)
+        dependencyPickerOpen = false
+        saveDependencies(dependencies)
+      }
+      return
+    }
+    const remove = event.target && event.target.closest("[data-app-autolaunch-remove-dependency]")
+    if (remove) {
+      event.preventDefault()
+      const dependency = remove.getAttribute("data-app-autolaunch-remove-dependency")
+      const dependencies = Array.isArray(state.autolaunch_depends) ? state.autolaunch_depends : []
+      saveDependencies(dependencies.filter((id) => id !== dependency))
+      return
+    }
+  })

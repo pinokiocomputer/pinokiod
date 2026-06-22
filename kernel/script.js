@@ -39,6 +39,22 @@ class Script {
       return false
     }
   }
+  // script.ready('https://github.com/cocktailpeanutlabs/comfyui.git/start.json')
+  // script.ready('~/api/comfyui.git/start.json')
+  // script.ready(cwd, 'start.json')
+  ready(...chunks) {
+    let id
+    try {
+      id = this.resolve(...chunks)
+    } catch (e) {
+      return false
+    }
+    if (id) {
+      return this.kernel.isScriptReady(id)
+    } else {
+      return false
+    }
+  }
   // script.local('https://github.com/cocktailpeanutlabs/comfyui.git/start.json')
   // script.local('~/api/comfyui.git/start.json')
   // script.local(cwd, 'start.json')

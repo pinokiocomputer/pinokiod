@@ -1,0 +1,255 @@
+.app-autolaunch-dependencies {
+  display: grid;
+  gap: 8px;
+}
+.app-autolaunch-dependency-stack {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 7px;
+  background: rgba(248, 250, 252, 0.78);
+  overflow: hidden;
+}
+body.dark .app-autolaunch-dependency-stack {
+  border-color: rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.72);
+}
+.app-autolaunch-dependency-selected {
+  display: grid;
+}
+.app-autolaunch-dependency-row {
+  min-height: 42px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  color: rgba(15, 23, 42, 0.9);
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+}
+.app-autolaunch-dependency-row:last-child {
+  border-bottom: 0;
+}
+body.dark .app-autolaunch-dependency-row {
+  border-bottom-color: rgba(148, 163, 184, 0.16);
+  color: rgba(226, 232, 240, 0.92);
+}
+.app-autolaunch-dependency-row img {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.app-autolaunch-dependency-row-empty {
+  min-height: 36px;
+  color: rgba(100, 116, 139, 0.96);
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  padding: 0 8px;
+}
+body.dark .app-autolaunch-dependency-row-empty {
+  color: rgba(203, 213, 225, 0.86);
+}
+.app-autolaunch-dependency-remove {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(100, 116, 139, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.app-autolaunch-dependency-remove:hover {
+  background: rgba(148, 163, 184, 0.16);
+  color: rgba(15, 23, 42, 0.9);
+}
+body.dark .app-autolaunch-dependency-remove:hover {
+  color: rgba(226, 232, 240, 0.92);
+}
+.app-autolaunch-dependency-picker {
+  display: grid;
+  gap: 0;
+}
+.app-autolaunch-dependency-trigger {
+  width: 100%;
+  min-height: 36px;
+  border: 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 0;
+  background: transparent;
+  color: rgba(15, 23, 42, 0.9);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.app-autolaunch-dependency-trigger span {
+  flex: 1;
+  min-width: 0;
+}
+.app-autolaunch-dependency-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+body.dark .app-autolaunch-dependency-trigger {
+  border-top-color: rgba(148, 163, 184, 0.16);
+  background: transparent;
+  color: rgba(226, 232, 240, 0.92);
+}
+.app-autolaunch-dependency-menu {
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  background: transparent;
+  overflow: hidden;
+}
+body.dark .app-autolaunch-dependency-menu {
+  border-top-color: rgba(148, 163, 184, 0.16);
+  background: transparent;
+}
+.app-autolaunch-dependency-filter {
+  min-height: 32px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  color: rgba(100, 116, 139, 0.95);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+}
+body.dark .app-autolaunch-dependency-filter {
+  border-bottom-color: rgba(148, 163, 184, 0.16);
+  color: rgba(203, 213, 225, 0.86);
+}
+.app-autolaunch-dependency-filter input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: rgba(15, 23, 42, 0.9);
+  font: inherit;
+  font-size: 12px;
+}
+body.dark .app-autolaunch-dependency-filter input {
+  color: rgba(226, 232, 240, 0.92);
+}
+.app-autolaunch-dependency-options {
+  max-height: 238px;
+  overflow: auto;
+}
+.app-autolaunch-dependency-option {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 0;
+  background: transparent;
+  color: rgba(15, 23, 42, 0.9);
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 7px 8px;
+  text-align: left;
+  cursor: pointer;
+}
+.app-autolaunch-dependency-option:last-child {
+  border-bottom: 0;
+}
+.app-autolaunch-dependency-option:hover,
+.app-autolaunch-dependency-option:focus-visible {
+  background: rgba(37, 99, 235, 0.08);
+  outline: none;
+}
+.app-autolaunch-dependency-option[hidden] {
+  display: none;
+}
+body.dark .app-autolaunch-dependency-option {
+  border-bottom-color: rgba(148, 163, 184, 0.16);
+  color: rgba(226, 232, 240, 0.92);
+}
+body.dark .app-autolaunch-dependency-option:hover,
+body.dark .app-autolaunch-dependency-option:focus-visible {
+  background: rgba(37, 99, 235, 0.18);
+}
+.app-autolaunch-dependency-option img {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.app-autolaunch-dependency-option-meta {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.app-autolaunch-dependency-option-title {
+  font-size: 12px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-autolaunch-dependency-option-path {
+  color: rgba(100, 116, 139, 0.95);
+  direction: rtl;
+  font-size: 10px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  unicode-bidi: plaintext;
+  white-space: nowrap;
+}
+body.dark .app-autolaunch-dependency-option-path {
+  color: rgba(203, 213, 225, 0.8);
+}
+.app-autolaunch-dependency-picker-empty {
+  color: rgba(100, 116, 139, 0.95);
+  font-size: 11px;
+  padding: 9px 8px;
+}
+body.dark .app-autolaunch-dependency-picker-empty {
+  color: rgba(203, 213, 225, 0.86);
+}
+.app-autolaunch-dependency-warning {
+  border: 1px solid rgba(180, 83, 9, 0.22);
+  border-radius: 6px;
+  background: rgba(180, 83, 9, 0.08);
+  color: rgba(100, 116, 139, 0.96);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 8px;
+  font-size: 11px;
+}
+body.dark .app-autolaunch-dependency-warning {
+  color: rgba(203, 213, 225, 0.9);
+}
+.app-autolaunch-dependency-warning span {
+  flex: 1;
+  min-width: 0;
+}
+.app-autolaunch-dependency-configure {
+  border: 1px solid rgba(180, 83, 9, 0.24);
+  border-radius: 6px;
+  background: rgba(180, 83, 9, 0.1);
+  color: rgba(120, 53, 15, 0.95);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 0 7px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+body.dark .app-autolaunch-dependency-configure {
+  color: rgba(252, 211, 146, 0.94);
+}

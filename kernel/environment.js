@@ -6,6 +6,43 @@ const ManagedSkills = require('./managed_skills')
 const TEMP_ENV_KEYS = ["TMP", "TEMP", "TMPDIR", "PIP_TMPDIR"]
 const CACHE_ENV_KEYS = ["UV_CACHE_DIR", "PIP_CACHE_DIR"]
 const CACHE_PREFLIGHT_KEYS = TEMP_ENV_KEYS.concat(CACHE_ENV_KEYS)
+const SCRIPT_AUTOLAUNCH_DEPENDS_KEY = "PINOKIO_SCRIPT_AUTOLAUNCH_DEPENDS"
+
+const parseAutolaunchList = (value) => {
+  if (typeof value !== "string") {
+    return []
+  }
+  const seen = new Set()
+  const values = []
+  for (const part of value.split(",")) {
+    const raw = part.trim()
+    if (!raw) {
+      continue
+    }
+    let id = raw
+    try {
+      id = decodeURIComponent(raw)
+    } catch (_) {}
+    id = String(id || "").trim()
+    if (!id || seen.has(id)) {
+      continue
+    }
+    seen.add(id)
+    values.push(id)
+  }
+  return values
+}
+
+const formatAutolaunchList = (ids) => {
+  if (!Array.isArray(ids)) {
+    return ""
+  }
+  return ids
+    .map((id) => String(id || "").trim())
+    .filter(Boolean)
+    .map((id) => encodeURIComponent(id))
+    .join(",")
+}
 
 const formatCachePreflightError = (error) => {
   if (!error) {
@@ -276,6 +313,19 @@ const ENVS = async () => {
       "# PINOKIO_SCRIPT_AUTOLAUNCH",
       "# the relative file path for auto launching any script",
       "# the specified script will automatically run when pinokio first launches",
+      "#",
+      "##########################################################################",
+    ]
+  }, {
+    type: ["app"],
+    key: SCRIPT_AUTOLAUNCH_DEPENDS_KEY,
+    val: "",
+    comment: [
+      "##########################################################################",
+      "#",
+      "# PINOKIO_SCRIPT_AUTOLAUNCH_DEPENDS",
+      "# comma-separated local app folder IDs this autolaunch waits for",
+      "# dependencies do not automatically enable autolaunch for those apps",
       "#",
       "##########################################################################",
     ]
@@ -946,4 +996,4 @@ const init = async (options, kernel) => {
     env_path: current
   }
 }
-module.exports = { ENV, get, get2, init_folders, ensurePinokioCacheDirs, requirements, init, get_root  }
+module.exports = { ENV, get, get2, init_folders, ensurePinokioCacheDirs, requirements, init, get_root, SCRIPT_AUTOLAUNCH_DEPENDS_KEY, parseAutolaunchList, formatAutolaunchList  }

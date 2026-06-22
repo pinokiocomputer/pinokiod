@@ -1,0 +1,132 @@
+const dependencyAppsFor = (app) => {
+  if (!app) return [];
+  return autolaunchApps
+    .filter((candidate) => candidate && candidate.id && candidate.id !== app.id)
+    .slice()
+    .sort(compareApps);
+};
+
+const dependencyById = (appId) => autolaunchApps.find((candidate) => candidate && candidate.id === appId) || null;
+
+const dependencyFolderPath = (app) => formatAppFolderPath(app);
+
+const dependencyFullPath = (app) => String((app && (app.workspace_path || app.launcher_path || app.id)) || "");
+
+const renderDependencyOption = (candidate) => {
+  const title = candidate.title || candidate.name || candidate.id;
+  const folderPath = dependencyFolderPath(candidate);
+  const fullFolderPath = dependencyFullPath(candidate);
+  const searchText = `${title} ${candidate.id || ""} ${folderPath} ${fullFolderPath}`.toLowerCase();
+  return `
+    <button type="button" class="autolaunch-dependency-option" data-add-dependency="${escapeHtml(candidate.id)}" data-search-text="${escapeHtml(searchText)}" title="${escapeHtml(fullFolderPath)}" ${savingDependencies ? "disabled" : ""}>
+      <img src="${escapeHtml(candidate.icon || "/pinokio-black.png")}" alt="" onerror="this.onerror=null; this.src='/pinokio-black.png'">
+      <span class="autolaunch-dependency-option-meta">
+        <span class="autolaunch-dependency-option-title">${escapeHtml(title)}</span>
+        <span class="autolaunch-dependency-option-path">${escapeHtml(folderPath)}</span>
+      </span>
+    </button>
+  `;
+};
+
+const renderSelectedDependency = (appId) => {
+  const candidate = dependencyById(appId);
+  const title = candidate ? (candidate.title || candidate.name || candidate.id) : appId;
+  const folderPath = candidate ? dependencyFolderPath(candidate) : appId;
+  const fullFolderPath = candidate ? dependencyFullPath(candidate) : appId;
+  return `
+    <div class="autolaunch-dependency-row" title="${escapeHtml(fullFolderPath)}">
+      <img src="${escapeHtml((candidate && candidate.icon) || "/pinokio-black.png")}" alt="" onerror="this.onerror=null; this.src='/pinokio-black.png'">
+      <span class="autolaunch-dependency-option-meta">
+        <span class="autolaunch-dependency-option-title">${escapeHtml(title)}</span>
+        <span class="autolaunch-dependency-option-path">${escapeHtml(folderPath)}</span>
+      </span>
+      <button type="button" class="autolaunch-dependency-remove" data-remove-dependency="${escapeHtml(appId)}" aria-label="Remove ${escapeHtml(title)}" ${savingDependencies ? "disabled" : ""}>
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </div>
+  `;
+};
+
+const renderDependencySection = (app) => {
+  if (!app || !app.autolaunch_enabled) {
+    return "";
+  }
+  const dependencies = Array.isArray(app.autolaunch_depends) ? app.autolaunch_depends : [];
+  const dependencySet = new Set(dependencies);
+  const dependencyApps = dependencyAppsFor(app);
+  const selectedRows = dependencies.length > 0
+    ? dependencies.map(renderSelectedDependency).join("")
+    : '<div class="autolaunch-dependency-row-empty">No dependencies.</div>';
+  const availableDependencies = dependencyApps.filter((candidate) => !dependencySet.has(candidate.id));
+  const picker = availableDependencies.length > 0
+    ? `
+      <div class="autolaunch-dependency-picker" data-dependency-picker>
+        <button type="button" class="autolaunch-dependency-trigger" data-toggle-dependency-picker aria-expanded="${dependencyPickerOpen ? "true" : "false"}" ${savingDependencies ? "disabled" : ""}>
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+          <span>Add dependency...</span>
+          <i class="fa-solid fa-chevron-${dependencyPickerOpen ? "up" : "down"}" aria-hidden="true"></i>
+        </button>
+        ${dependencyPickerOpen ? `
+          <div class="autolaunch-dependency-menu">
+            <label class="autolaunch-dependency-filter">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input type="search" placeholder="Search apps" data-dependency-search autocomplete="off" ${savingDependencies ? "disabled" : ""}>
+            </label>
+            <div class="autolaunch-dependency-options">
+              ${availableDependencies.map(renderDependencyOption).join("")}
+              <div class="autolaunch-dependency-picker-empty" data-dependency-empty hidden>No apps match that search.</div>
+            </div>
+          </div>
+        ` : ""}
+      </div>
+    `
+    : `
+      <button type="button" class="autolaunch-dependency-trigger" disabled>
+        <i class="fa-solid fa-check" aria-hidden="true"></i>
+        <span>No more apps to add</span>
+      </button>
+    `;
+  const warnings = dependencies
+    .map((id) => autolaunchApps.find((candidate) => candidate.id === id))
+    .filter((candidate) => candidate && !candidate.autolaunch_enabled)
+    .map((candidate) => `
+      <div class="autolaunch-dependency-warning">
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        <span>${escapeHtml(candidate.title || candidate.id)} is not set to start automatically. Configure its startup script or this app will only wait if it is already running.</span>
+        <button type="button" class="task-button" data-configure-dependency="${escapeHtml(candidate.id)}" ${savingDependencies ? "disabled" : ""}>
+          <i class="fa-solid fa-gear"></i>
+          Configure startup...
+        </button>
+      </div>
+    `).join("");
+  return `
+    <div class="autolaunch-section">
+      <div class="autolaunch-section-header">
+        <h3 class="autolaunch-section-title">Wait for</h3>
+      </div>
+      <div class="autolaunch-dependency-list">
+        <div class="autolaunch-dependency-stack">
+          <div class="autolaunch-dependency-selected">${selectedRows}</div>
+          ${picker}
+        </div>
+        ${warnings}
+      </div>
+    </div>
+  `;
+};
+
+const filterDependencyPicker = (picker) => {
+  if (!picker) return;
+  const input = picker.querySelector("[data-dependency-search]");
+  const query = input ? input.value.trim().toLowerCase() : "";
+  let visibleCount = 0;
+  picker.querySelectorAll("[data-add-dependency]").forEach((option) => {
+    const haystack = option.getAttribute("data-search-text") || "";
+    const visible = !query || haystack.includes(query);
+    option.hidden = !visible;
+    if (visible) visibleCount += 1;
+  });
+  const empty = picker.querySelector("[data-dependency-empty]");
+  if (empty) empty.hidden = visibleCount !== 0;
+};
+

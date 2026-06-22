@@ -28,6 +28,7 @@ const system = require('systeminformation')
 const serveIndex = require('./serveIndex')
 const registerFileRoutes = require('./routes/files')
 const registerAppRoutes = require('./routes/apps')
+const ServerAutolaunch = require('./autolaunch')
 const Git = require("../kernel/git")
 const TerminalApi = require('../kernel/api/terminal')
 const PluginSources = require("../kernel/plugin_sources")
@@ -228,6 +229,7 @@ class Server {
     })
     this.desktopEventRouter = createDesktopEventRouter({ kernel: this.kernel })
     this.injectRouter = createInjectRouter({ kernel: this.kernel })
+    this.autolaunch = new ServerAutolaunch(this)
 
     // sometimes the C:\Windows\System32 is not in PATH, need to add
     let platform = os.platform()
@@ -760,6 +762,9 @@ class Server {
         index: x.index,
         running_scripts: x.running_scripts,
         autolaunch_starting: x.autolaunch_starting ? true : false,
+        autolaunch_waiting: x.autolaunch_waiting ? true : false,
+        autolaunch_blocked: x.autolaunch_blocked ? true : false,
+        autolaunch_status_label: typeof x.autolaunch_status_label === "string" ? x.autolaunch_status_label : "",
         autolaunch_script: typeof x.autolaunch_script === "string" ? x.autolaunch_script : "",
         //icon: (x.isDirectory() ? "fa-solid fa-folder" : "fa-regular fa-file"),
         name,
@@ -1172,296 +1177,6 @@ class Server {
       list: this.getPeers(),
     }
   }
-  normalizeAutolaunchAppId(value) {
-    if (typeof value !== "string") {
-      return ""
-    }
-    const id = value.trim()
-    if (!id || id === "." || id === ".." || id.includes("\0") || /[\\/]/.test(id)) {
-      return ""
-    }
-    return id
-  }
-  normalizeAutolaunchScriptPath(value) {
-    if (typeof value !== "string") {
-      return ""
-    }
-    let script = value.trim().replace(/\\/g, "/")
-    if (!script || script.includes("\0")) {
-      return ""
-    }
-    script = script.split("#")[0].split("?")[0].trim()
-    if (!script || /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(script) || script.startsWith("//")) {
-      return ""
-    }
-    if (script.startsWith("/")) {
-      return ""
-    }
-    const normalized = path.posix.normalize(script).replace(/^\.\/+/, "")
-    if (!normalized || normalized === "." || normalized === ".." || normalized.startsWith("../") || path.posix.isAbsolute(normalized)) {
-      return ""
-    }
-    return normalized
-  }
-  isAutolaunchScriptFilename(filename) {
-    const ext = path.extname(filename || "").toLowerCase()
-    if (![".js", ".json", ".mjs", ".cjs"].includes(ext)) {
-      return false
-    }
-    const base = path.basename(filename || "").toLowerCase()
-    return !["package.json", "pinokio.js", "pinokio.json", "pinokio_meta.json"].includes(base)
-  }
-  stripAutolaunchLabel(value) {
-    if (typeof value !== "string") {
-      return ""
-    }
-    return value
-      .replace(/<[^>]*>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-  }
-  async getAutolaunchAppById(appId) {
-    const id = this.normalizeAutolaunchAppId(appId)
-    if (!id) {
-      return null
-    }
-    const apps = await this.kernel.api.listApps()
-    return apps.find((app) => app && app.id === id) || null
-  }
-  async getAutolaunchEnvInfo(app) {
-    const appRoot = path.resolve(this.kernel.api.userdir, app.id)
-    const gotRoot = await Environment.get_root({ path: appRoot }, this.kernel)
-    const envRoot = gotRoot && gotRoot.root ? gotRoot.root : appRoot
-    const envPath = path.resolve(envRoot, "ENVIRONMENT")
-    const env = await Util.parse_env(envPath)
-    const value = typeof env.PINOKIO_SCRIPT_AUTOLAUNCH === "string"
-      ? env.PINOKIO_SCRIPT_AUTOLAUNCH.trim()
-      : ""
-    const exists = await this.exists(envPath)
-    return {
-      appRoot,
-      envRoot,
-      envPath,
-      envRelpath: gotRoot && gotRoot.relpath ? gotRoot.relpath : "",
-      exists,
-      value,
-      enabled: value.length > 0
-    }
-  }
-  async buildAutolaunchAppState(app) {
-    const envInfo = await this.getAutolaunchEnvInfo(app)
-    return {
-      id: app.id,
-      name: app.name,
-      title: app.title || app.name || app.id,
-      description: app.description || "",
-      icon: app.icon || "/pinokio-black.png",
-      workspace_path: app.workspace_path,
-      launcher_path: app.launcher_path,
-      launcher_root: app.launcher_root || "",
-      env_path: envInfo.envPath,
-      autolaunch: envInfo.value,
-      autolaunch_enabled: envInfo.enabled
-    }
-  }
-  async buildAutolaunchAppsState() {
-    const apps = await this.kernel.api.listApps()
-    const states = []
-    for (const app of apps) {
-      states.push(await this.buildAutolaunchAppState(app))
-    }
-    return states
-  }
-  async resolveAutolaunchScript(appRoot, script) {
-    const normalized = this.normalizeAutolaunchScriptPath(script)
-    if (!normalized || !this.isAutolaunchScriptFilename(normalized)) {
-      return null
-    }
-    const scriptPath = path.resolve(appRoot, normalized)
-    if (!this.is_subpath(appRoot, scriptPath)) {
-      return null
-    }
-    let stat
-    try {
-      stat = await fs.promises.stat(scriptPath)
-    } catch (_) {
-      return null
-    }
-    if (!stat || !stat.isFile()) {
-      return null
-    }
-    return {
-      script: normalized,
-      path: scriptPath
-    }
-  }
-  flattenAutolaunchMenu(menu, trail = []) {
-    const items = []
-    if (!Array.isArray(menu)) {
-      return items
-    }
-    for (const menuitem of menu) {
-      if (!menuitem || typeof menuitem !== "object") {
-        continue
-      }
-      const label = this.stripAutolaunchLabel(menuitem.text || menuitem.name || menuitem.html || "")
-      const nextTrail = label ? trail.concat(label) : trail
-      if (Array.isArray(menuitem.menu)) {
-        items.push(...this.flattenAutolaunchMenu(menuitem.menu, nextTrail))
-      } else {
-        items.push({ item: menuitem, group: trail.join(" / ") })
-      }
-    }
-    return items
-  }
-  async addAutolaunchCandidate(candidates, seen, candidate, appRoot) {
-    const resolved = await this.resolveAutolaunchScript(appRoot, candidate.script)
-    if (!resolved || seen.has(resolved.script)) {
-      return null
-    }
-    seen.add(resolved.script)
-    const label = this.stripAutolaunchLabel(candidate.label || "") || resolved.script
-    const menuDefault = !!candidate.menu_default
-    const item = {
-      script: resolved.script,
-      label,
-      group: candidate.group || "",
-      icon: candidate.icon || "",
-      source: candidate.source || "local",
-      menu_default: menuDefault,
-      has_params: !!candidate.has_params
-    }
-    candidates.push(item)
-    return item
-  }
-  async collectAutolaunchScriptFiles(root, appRoot) {
-    const results = []
-    const ignoredDirs = new Set([
-      ".git",
-      ".venv",
-      "__pycache__",
-      "app",
-      "cache",
-      "data",
-      "env",
-      "logs",
-      "models",
-      "node_modules",
-      "output",
-      "outputs",
-      "venv"
-    ])
-    const maxResults = 500
-    const walk = async (dir, depth) => {
-      if (depth > 4 || results.length >= maxResults) {
-        return
-      }
-      let entries
-      try {
-        entries = await fs.promises.readdir(dir, { withFileTypes: true })
-      } catch (_) {
-        return
-      }
-      for (const entry of entries) {
-        if (!entry || !entry.name || entry.name.includes("\0")) {
-          continue
-        }
-        const fullPath = path.resolve(dir, entry.name)
-        if (entry.isDirectory()) {
-          if (!ignoredDirs.has(entry.name)) {
-            await walk(fullPath, depth + 1)
-          }
-          continue
-        }
-        if (!entry.isFile() || !this.isAutolaunchScriptFilename(entry.name)) {
-          continue
-        }
-        if (!this.is_subpath(appRoot, fullPath)) {
-          continue
-        }
-        const rel = path.relative(appRoot, fullPath).split(path.sep).join("/")
-        results.push(rel)
-      }
-    }
-    await walk(root, 0)
-    results.sort((a, b) => a.localeCompare(b))
-    return results
-  }
-  async buildAutolaunchCandidates(app) {
-    const envInfo = await this.getAutolaunchEnvInfo(app)
-    const appRoot = envInfo.appRoot
-    const launcher = await this.kernel.api.launcher(app.id)
-    const launcherRoot = launcher && launcher.launcher_root
-      ? path.resolve(appRoot, launcher.launcher_root)
-      : appRoot
-    const menuCandidates = []
-    const otherCandidates = []
-    const seen = new Set()
-
-    try {
-      let config = await this.kernel.api.meta(app.id)
-      config = await this.processMenu(app.id, safeStructuredClone(config || {}))
-      const flat = this.flattenAutolaunchMenu(config && config.menu ? config.menu : [])
-      for (const entry of flat) {
-        const menuitem = entry.item
-        if (!menuitem || typeof menuitem.href !== "string") {
-          continue
-        }
-        let href = menuitem.href.trim()
-        const apiPrefix = `/api/${app.id}/`
-        if (href.startsWith(apiPrefix)) {
-          href = href.slice(apiPrefix.length)
-        } else if (href.startsWith("/")) {
-          continue
-        }
-        const localScript = this.normalizeAutolaunchScriptPath(href)
-        if (!localScript) {
-          continue
-        }
-        const scriptPath = path.resolve(launcherRoot, localScript)
-        if (!this.is_subpath(appRoot, scriptPath)) {
-          continue
-        }
-        const script = path.relative(appRoot, scriptPath).split(path.sep).join("/")
-        await this.addAutolaunchCandidate(menuCandidates, seen, {
-          script,
-          label: menuitem.text || menuitem.name || script,
-          group: entry.group,
-          icon: typeof menuitem.icon === "string" ? menuitem.icon : "",
-          source: "menu",
-          menu_default: !!menuitem.default,
-          has_params: !!(menuitem.params && typeof menuitem.params === "object")
-        }, appRoot)
-      }
-    } catch (error) {
-      console.warn("[autolaunch] failed to resolve menu candidates", app.id, error && error.message ? error.message : error)
-    }
-
-    if (envInfo.value) {
-      await this.addAutolaunchCandidate(menuCandidates, seen, {
-        script: envInfo.value,
-        label: envInfo.value,
-        source: "current"
-      }, appRoot)
-    }
-
-    const localScripts = await this.collectAutolaunchScriptFiles(launcherRoot, appRoot)
-    for (const script of localScripts) {
-      await this.addAutolaunchCandidate(otherCandidates, seen, {
-        script,
-        label: script,
-        source: "local"
-      }, appRoot)
-    }
-
-    return {
-      app: await this.buildAutolaunchAppState(app),
-      launcher_root: path.relative(appRoot, launcherRoot).split(path.sep).join("/"),
-      menu: menuCandidates,
-      other: otherCandidates,
-      current: envInfo.value
-    }
-  }
   async renderInvalidContentPage(req, res, invalid, options = {}) {
     const type = invalid && typeof invalid.type === "string" ? invalid.type : "app"
     const sidebarSelected = options.sidebarSelected || (type === "plugin" ? "plugins" : type === "task" ? "tasks" : "home")
@@ -1720,7 +1435,7 @@ class Server {
     let autolaunchAppState = null
     try {
       const appRoot = this.kernel.path("api", name)
-      autolaunchAppState = await this.buildAutolaunchAppState({
+      autolaunchAppState = await this.autolaunch.buildAppState({
         id: name,
         name,
         title: config && config.title ? config.title : name,
@@ -3795,7 +3510,14 @@ class Server {
                 if (this.is_subpath(api_path, key)) {
                   // scripts inside api folder
                   if (this.is_subpath(p, key)) {
-                    items[i].running_scripts.push({ path: path.relative(this.kernel.homedir, key), name: path.relative(p, key) })
+                    const progress = this.kernel && typeof this.kernel.getScriptProgress === "function"
+                      ? this.kernel.getScriptProgress(key)
+                      : null
+                    items[i].running_scripts.push({
+                      path: path.relative(this.kernel.homedir, key),
+                      name: path.relative(p, key),
+                      ...(progress || {})
+                    })
                   }
                 } else {
                   // other global scripts
@@ -3812,6 +3534,14 @@ class Server {
             }
           }
           items[i].terminal_online_count = userTerminalShellMatches.length + pluginTerminalRunCount
+          if (items[i].running && !this.kernel.launch_complete) {
+            const status = this.kernel.autolaunch_status && this.kernel.autolaunch_status.apps
+              ? this.kernel.autolaunch_status.apps[items[i].name]
+              : null
+            if (status && !["ready", "blocked", "failed", "timeout"].includes(status.state || "")) {
+              await this.autolaunch.applyHomeStartingState(items[i], items[i].index)
+            }
+          }
           if (!items[i].running && shellMatches && shellMatches.length > 0) {
             running.push(items[i])
             items[i].running = true
@@ -3820,19 +3550,7 @@ class Server {
             index++
           }
           if (!items[i].running) {
-            let autolaunchInfo = null
-            if (!this.kernel.launch_complete) {
-              try {
-                autolaunchInfo = await this.getAutolaunchEnvInfo({ id: items[i].name })
-              } catch (error) {
-                console.warn("[home] failed to read autolaunch state", items[i].name, error && error.message ? error.message : error)
-              }
-            }
-            if (autolaunchInfo && autolaunchInfo.enabled) {
-              items[i].running = true
-              items[i].autolaunch_starting = true
-              items[i].autolaunch_script = autolaunchInfo.value
-              items[i].index = index
+            if (await this.autolaunch.applyHomeStartingState(items[i], index)) {
               running.push(items[i])
               index++
             } else {
@@ -6632,90 +6350,7 @@ class Server {
       }
     })
     */
-    this.app.get("/autolaunch/candidates", ex(async (req, res) => {
-      const app = await this.getAutolaunchAppById(req.query.app)
-      if (!app) {
-        res.status(404).json({ ok: false, error: "App not found." })
-        return
-      }
-      const state = await this.buildAutolaunchCandidates(app)
-      res.json({ ok: true, ...state })
-    }))
-    this.app.post("/autolaunch", ex(async (req, res) => {
-      const app = await this.getAutolaunchAppById(req.body && req.body.app)
-      if (!app) {
-        res.status(404).json({ ok: false, error: "App not found." })
-        return
-      }
-      const requestedScript = typeof req.body.script === "string" ? req.body.script.trim() : ""
-      if (!requestedScript) {
-        const envInfo = await this.getAutolaunchEnvInfo(app)
-        if (envInfo.exists) {
-          await Util.update_env(envInfo.envPath, {
-            PINOKIO_SCRIPT_AUTOLAUNCH: ""
-          })
-        }
-        res.json({
-          ok: true,
-          app: await this.buildAutolaunchAppState(app)
-        })
-        return
-      }
-
-      const envInfo = await this.getAutolaunchEnvInfo(app)
-      const resolved = await this.resolveAutolaunchScript(envInfo.appRoot, requestedScript)
-      if (!resolved) {
-        res.status(400).json({
-          ok: false,
-          error: "Select an existing local script inside the app."
-        })
-        return
-      }
-      const initialized = await Environment.init({ name: app.id }, this.kernel)
-      await Util.update_env(initialized.env_path, {
-        PINOKIO_SCRIPT_AUTOLAUNCH: resolved.script
-      })
-      res.json({
-        ok: true,
-        app: await this.buildAutolaunchAppState(app)
-      })
-    }))
-    this.app.post("/autolaunch/disable-all", ex(async (req, res) => {
-      const apps = await this.kernel.api.listApps()
-      let disabled = 0
-      for (const app of apps) {
-        const envInfo = await this.getAutolaunchEnvInfo(app)
-        if (envInfo.exists && envInfo.value) {
-          await Util.update_env(envInfo.envPath, {
-            PINOKIO_SCRIPT_AUTOLAUNCH: ""
-          })
-          disabled++
-        }
-      }
-      res.json({
-        ok: true,
-        disabled,
-        apps: await this.buildAutolaunchAppsState()
-      })
-    }))
-    this.app.get("/autolaunch", ex(async (req, res) => {
-      const peerAccess = await this.composePeerAccessPayload()
-      const list = this.getPeers()
-      const apps = await this.buildAutolaunchAppsState()
-      const appsJson = JSON.stringify(apps).replace(/</g, "\\u003c")
-      res.render("autolaunch", {
-        current_host: this.kernel.peer.host,
-        ...peerAccess,
-        apps,
-        appsJson,
-        enabledCount: apps.filter((app) => app.autolaunch_enabled).length,
-        portal: this.portal,
-        logo: this.logo,
-        theme: this.theme,
-        agent: req.agent,
-        list,
-      })
-    }))
+    this.autolaunch.registerRoutes()
     this.app.get("/tools", ex(async (req, res) => {
       const peerAccess = await this.composePeerAccessPayload()
       let list = this.getPeers()
@@ -16018,13 +15653,15 @@ class Server {
           app,
           path: relativePath,
           home_path: path.relative(this.kernel.homedir, key),
-          script_path: path.relative(path.resolve(apiRoot, app), key)
+          script_path: path.relative(path.resolve(apiRoot, app), key),
+          ...((this.kernel && typeof this.kernel.getScriptProgress === "function" && this.kernel.getScriptProgress(key)) || {})
         })
       }
       res.json({
         launch_complete: this.kernel.launch_complete,
         running_apps: Array.from(runningApps),
         running_scripts: runningScripts,
+        autolaunch: this.kernel.autolaunch_status || { apps: {} },
         startup: this.getStartupStatus()
       })
     }))

@@ -1,0 +1,264 @@
+  const dependencyOptions = () => {
+    return candidateState && Array.isArray(candidateState.dependency_apps)
+      ? candidateState.dependency_apps
+      : []
+  }
+  const dependencyById = (dependencyId) => {
+    return dependencyOptions().find((candidate) => candidate && candidate.id === dependencyId) || null
+  }
+  const dependencyFolderPath = (app) => {
+    const raw = String((app && (app.workspace_path || app.launcher_path || app.id)) || "").replace(/\\/g, "/")
+    if (!raw) return ""
+    const pinokioApiMatch = raw.match(/\/pinokio\/api\/(.+)$/i)
+    if (pinokioApiMatch && pinokioApiMatch[1]) {
+      return `~/pinokio/api/${pinokioApiMatch[1]}`
+    }
+    return raw.replace(/^\/Users\/[^/]+/, "~")
+  }
+  const dependencyFullPath = (app) => String((app && (app.workspace_path || app.launcher_path || app.id)) || "")
+  const dependencyConfigureHref = (dependencyId) => `/autolaunch?app=${encodeURIComponent(dependencyId || "")}`
+  const renderDependencyOption = (candidate) => {
+    const title = candidate.title || candidate.name || candidate.id
+    const folderPath = dependencyFolderPath(candidate)
+    const fullFolderPath = dependencyFullPath(candidate)
+    const searchText = `${title} ${candidate.id || ""} ${folderPath} ${fullFolderPath}`.toLowerCase()
+    return `
+      <button type="button" class="app-autolaunch-dependency-option" data-app-autolaunch-add-dependency="${escapeHtml(candidate.id)}" data-search-text="${escapeHtml(searchText)}" title="${escapeHtml(fullFolderPath)}">
+        <img src="${escapeHtml(candidate.icon || "/pinokio-black.png")}" alt="" onerror="this.onerror=null; this.src='/pinokio-black.png'">
+        <span class="app-autolaunch-dependency-option-meta">
+          <span class="app-autolaunch-dependency-option-title">${escapeHtml(title)}</span>
+          <span class="app-autolaunch-dependency-option-path">${escapeHtml(folderPath)}</span>
+        </span>
+      </button>
+    `
+  }
+  const renderSelectedDependency = (dependencyId) => {
+    const candidate = dependencyById(dependencyId)
+    const title = candidate ? (candidate.title || candidate.name || candidate.id) : dependencyId
+    const folderPath = candidate ? dependencyFolderPath(candidate) : dependencyId
+    const fullFolderPath = candidate ? dependencyFullPath(candidate) : dependencyId
+    return `
+      <div class="app-autolaunch-dependency-row" title="${escapeHtml(fullFolderPath)}">
+        <img src="${escapeHtml((candidate && candidate.icon) || "/pinokio-black.png")}" alt="" onerror="this.onerror=null; this.src='/pinokio-black.png'">
+        <span class="app-autolaunch-dependency-option-meta">
+          <span class="app-autolaunch-dependency-option-title">${escapeHtml(title)}</span>
+          <span class="app-autolaunch-dependency-option-path">${escapeHtml(folderPath)}</span>
+        </span>
+        <button type="button" class="app-autolaunch-dependency-remove" data-app-autolaunch-remove-dependency="${escapeHtml(dependencyId)}" aria-label="Remove ${escapeHtml(title)}">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+    `
+  }
+  const chooseInitialScript = (data) => {
+    const candidates = data ? [].concat(data.menu || [], data.other || []) : []
+    if (data && data.current) return data.current
+    const defaultCandidate = candidates.find((candidate) => candidate && candidate.menu_default)
+    if (defaultCandidate) return defaultCandidate.script
+    return candidates.length > 0 ? candidates[0].script : ""
+  }
+  const setFeedback = (message, isError = false) => {
+    feedbackEl.textContent = message || ""
+    feedbackEl.classList.toggle("error", !!isError)
+  }
+  const setBusy = (busy) => {
+    saving = !!busy
+    switchButton.disabled = saving || savingDependencies || loadingCandidates
+    button.toggleAttribute("aria-busy", saving || savingDependencies)
+    scriptsEl.querySelectorAll("input").forEach((input) => {
+      input.disabled = saving
+    })
+    dependenciesEl.querySelectorAll("button, input").forEach((control) => {
+      control.disabled = saving || savingDependencies
+    })
+  }
+  const renderStatus = () => {
+    const enabled = !!(state && state.autolaunch_enabled)
+    status.textContent = enabled ? "ON" : "OFF"
+    button.dataset.enabled = enabled ? "true" : "false"
+    button.setAttribute("aria-label", `Auto launch ${enabled ? "On" : "Off"}`)
+    switchButton.setAttribute("aria-checked", enabled ? "true" : "false")
+    switchButton.title = `Auto launch is ${enabled ? "on" : "off"}`
+    switchLabel.textContent = enabled ? "ON" : "OFF"
+    root.classList.toggle("enabled", enabled)
+  }
+  const setOpen = (open) => {
+    root.classList.toggle("open", !!open)
+    button.setAttribute("aria-expanded", open ? "true" : "false")
+    modal.classList.toggle("hidden", !open)
+    if (open) {
+      if (!candidateState && !loadingCandidates) {
+        loadCandidates()
+      }
+      window.setTimeout(() => {
+        if (!modal.classList.contains("hidden")) {
+          switchButton.focus()
+        }
+      }, 0)
+    } else {
+      dependencyPickerOpen = false
+      renderDependencies()
+      button.focus()
+    }
+  }
+  const renderScripts = () => {
+    if (loadingCandidates) {
+      scriptsEl.innerHTML = '<div class="app-autolaunch-empty">Loading scripts...</div>'
+      setBusy(false)
+      return
+    }
+    if (candidateError) {
+      scriptsEl.innerHTML = `<div class="app-autolaunch-empty">${escapeHtml(candidateError)}</div>`
+      setBusy(false)
+      return
+    }
+    if (!candidateState) {
+      scriptsEl.innerHTML = '<div class="app-autolaunch-empty">Open to load scripts.</div>'
+      setBusy(false)
+      return
+    }
+    const candidates = allCandidates().slice()
+    const current = candidateState.current || state.autolaunch || ""
+    if (current && !candidates.some((candidate) => candidate && candidate.script === current)) {
+      candidates.unshift({
+        script: current,
+        label: "Current",
+        source: "current",
+        current: true
+      })
+    }
+    if (!selectedScript) {
+      selectedScript = chooseInitialScript(candidateState)
+    }
+    if (candidates.length === 0) {
+      scriptsEl.innerHTML = '<div class="app-autolaunch-empty">No local scripts were found for this app.</div>'
+      setBusy(false)
+      return
+    }
+    scriptsEl.innerHTML = candidates.map((candidate) => {
+      const script = candidate && candidate.script ? candidate.script : ""
+      if (!script) return ""
+      const label = candidate.label || script
+      const checked = script === selectedScript ? "checked" : ""
+      const selected = script === selectedScript ? " selected" : ""
+      const tags = [
+        candidate.current ? '<span class="app-autolaunch-tag">Current</span>' : "",
+        candidate.menu_default ? '<span class="app-autolaunch-tag">Default</span>' : "",
+        candidate.has_params ? '<span class="app-autolaunch-tag">Params ignored</span>' : ""
+      ].filter(Boolean).join("")
+      const pathLine = label === script
+        ? ""
+        : `<div class="app-autolaunch-script-path" title="${escapeHtml(script)}">${escapeHtml(script)}</div>`
+      return `
+        <label class="app-autolaunch-script-option${selected}">
+          <input type="radio" name="app-autolaunch-script" value="${escapeHtml(script)}" ${checked}>
+          <div>
+            <div class="app-autolaunch-script-title"><span>${escapeHtml(label)}</span>${tags}</div>
+            ${pathLine}
+          </div>
+        </label>
+      `
+    }).join("")
+    setBusy(false)
+  }
+  const syncState = (updated) => {
+    if (updated) {
+      state = Object.assign({}, state, updated)
+      if (!state.autolaunch_enabled) {
+        dependencyPickerOpen = false
+      }
+      if (candidateState) {
+        candidateState.app = Object.assign({}, candidateState.app || {}, updated)
+        candidateState.current = updated.autolaunch || ""
+      }
+      if (updated.autolaunch) {
+        selectedScript = updated.autolaunch
+      }
+    }
+    renderStatus()
+  }
+  const renderDependencies = () => {
+    if (!state.autolaunch_enabled) {
+      dependencyPickerOpen = false
+      dependenciesEl.innerHTML = '<div class="app-autolaunch-empty">Enable autolaunch to wait for another app.</div>'
+      return
+    }
+    if (loadingCandidates) {
+      dependenciesEl.innerHTML = '<div class="app-autolaunch-empty">Loading dependencies...</div>'
+      return
+    }
+    if (!candidateState) {
+      dependenciesEl.innerHTML = '<div class="app-autolaunch-empty">Open to load dependencies.</div>'
+      return
+    }
+    const dependencies = Array.isArray(state.autolaunch_depends) ? state.autolaunch_depends : []
+    const dependencySet = new Set(dependencies)
+    const selectedRows = dependencies.length > 0
+      ? dependencies.map(renderSelectedDependency).join("")
+      : '<div class="app-autolaunch-dependency-row-empty">No dependencies.</div>'
+    const availableDependencies = dependencyOptions()
+      .filter((candidate) => candidate && candidate.id && !dependencySet.has(candidate.id))
+    const picker = availableDependencies.length > 0
+      ? `
+        <div class="app-autolaunch-dependency-picker" data-app-autolaunch-dependency-picker>
+          <button type="button" class="app-autolaunch-dependency-trigger" data-app-autolaunch-toggle-dependency-picker aria-expanded="${dependencyPickerOpen ? "true" : "false"}">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            <span>Add dependency...</span>
+            <i class="fa-solid fa-chevron-${dependencyPickerOpen ? "up" : "down"}" aria-hidden="true"></i>
+          </button>
+          ${dependencyPickerOpen ? `
+            <div class="app-autolaunch-dependency-menu">
+              <label class="app-autolaunch-dependency-filter">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <input type="search" placeholder="Search apps" data-app-autolaunch-dependency-search autocomplete="off">
+              </label>
+              <div class="app-autolaunch-dependency-options">
+                ${availableDependencies.map(renderDependencyOption).join("")}
+                <div class="app-autolaunch-dependency-picker-empty" data-app-autolaunch-dependency-empty hidden>No apps match that search.</div>
+              </div>
+            </div>
+          ` : ""}
+        </div>
+      `
+      : `
+        <button type="button" class="app-autolaunch-dependency-trigger" disabled>
+          <i class="fa-solid fa-check" aria-hidden="true"></i>
+          <span>No more apps to add</span>
+        </button>
+      `
+    const warnings = dependencies
+      .map((id) => dependencyOptions().find((candidate) => candidate.id === id))
+      .filter((candidate) => candidate && !candidate.autolaunch_enabled)
+      .map((candidate) => `
+        <div class="app-autolaunch-dependency-warning">
+          <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+          <span>${escapeHtml(candidate.title || candidate.id)} is not set to start automatically. Configure its startup script or this app will only wait if it is already running.</span>
+          <a class="app-autolaunch-dependency-configure" href="${escapeHtml(dependencyConfigureHref(candidate.id))}">
+            <i class="fa-solid fa-gear" aria-hidden="true"></i>
+            Configure startup...
+          </a>
+        </div>
+      `).join("")
+    dependenciesEl.innerHTML = `
+      <div class="app-autolaunch-dependency-stack">
+        <div class="app-autolaunch-dependency-selected">${selectedRows}</div>
+        ${picker}
+      </div>
+      ${warnings}
+    `
+    setBusy(false)
+  }
+  const filterDependencyPicker = (picker) => {
+    if (!picker) return
+    const input = picker.querySelector("[data-app-autolaunch-dependency-search]")
+    const query = input ? input.value.trim().toLowerCase() : ""
+    let visibleCount = 0
+    picker.querySelectorAll("[data-app-autolaunch-add-dependency]").forEach((option) => {
+      const haystack = option.getAttribute("data-search-text") || ""
+      const visible = !query || haystack.includes(query)
+      option.hidden = !visible
+      if (visible) visibleCount += 1
+    })
+    const empty = picker.querySelector("[data-app-autolaunch-dependency-empty]")
+    if (empty) empty.hidden = visibleCount !== 0
+  }

@@ -140,6 +140,12 @@ body.autolaunch-page .autolaunch-app-row {
   cursor: pointer;
   transition: background 140ms ease, box-shadow 140ms ease;
 }
+body.autolaunch-page .autolaunch-app-row:focus {
+  outline: none;
+}
+body.autolaunch-page .autolaunch-app-row:focus-visible {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--task-accent) 48%, transparent);
+}
 body.autolaunch-page .autolaunch-app-row:last-child {
   border-bottom: 0;
 }
@@ -391,26 +397,7 @@ body.autolaunch-page .autolaunch-tag {
   font-weight: 650;
   line-height: 1;
 }
-body.autolaunch-page .autolaunch-manual {
-  padding: 16px;
-  border-top: 1px solid var(--task-border);
-}
-body.autolaunch-page .autolaunch-manual-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-body.autolaunch-page .autolaunch-manual input {
-  flex: 1 1 auto;
-  min-height: 32px;
-  padding: 0 10px;
-  border: 1px solid var(--task-border-strong);
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--task-panel) 98%, white);
-}
-body.dark.autolaunch-page .autolaunch-manual input {
-  background: color-mix(in srgb, var(--task-panel) 95%, black);
-}
+<%- include('partials/autolaunch_dependency_styles') %>
 body.autolaunch-page .autolaunch-feedback {
   min-height: 16px;
   margin-top: 7px;
@@ -528,6 +515,8 @@ let selectedAppId = "";
 let selectedScript = "";
 let candidateState = null;
 let savingAutolaunch = false;
+let savingDependencies = false;
+let dependencyPickerOpen = false;
 
 const appListEl = document.querySelector("[data-app-list]");
 const searchEl = document.querySelector("[data-app-search]");
@@ -586,9 +575,21 @@ const syncAppState = (updatedApp) => {
 };
 
 const setDetailBusy = (busy) => {
-  detailEl.querySelectorAll("[data-autolaunch-switch], [data-apply-manual]").forEach((control) => {
+  detailEl.querySelectorAll("[data-autolaunch-switch], [data-apply-manual], [data-toggle-dependency-picker], [data-add-dependency], [data-remove-dependency], [data-configure-dependency], [data-dependency-search]").forEach((control) => {
     control.disabled = !!busy;
   });
+};
+
+const updateSelectedAppUrl = (appId) => {
+  try {
+    const url = new URL(window.location.href);
+    if (appId) {
+      url.searchParams.set("app", appId);
+    } else {
+      url.searchParams.delete("app");
+    }
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  } catch (_) {}
 };
 
 const renderAppList = () => {
@@ -611,11 +612,11 @@ const renderAppList = () => {
     const scriptLine = app.autolaunch_enabled && app.autolaunch
       ? `<div class="autolaunch-app-script">Runs ${escapeHtml(app.autolaunch)}</div>`
       : "";
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `autolaunch-app-row${app.id === selectedAppId ? " selected" : ""}`;
-    button.dataset.appId = app.id;
-    button.innerHTML = `
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = `autolaunch-app-row${app.id === selectedAppId ? " selected" : ""}`;
+    row.dataset.appId = app.id;
+    row.innerHTML = `
       <img src="${escapeHtml(app.icon || "/pinokio-black.png")}" alt="" onerror="this.onerror=null; this.src='/pinokio-black.png'">
       <div class="autolaunch-app-meta">
         <div class="autolaunch-app-name">${escapeHtml(app.title || app.id)}</div>
@@ -624,8 +625,8 @@ const renderAppList = () => {
       </div>
       <span class="autolaunch-pill ${app.autolaunch_enabled ? "on" : ""}">${app.autolaunch_enabled ? "ON" : "OFF"}</span>
     `;
-    button.addEventListener("click", () => selectApp(app.id));
-    appListEl.appendChild(button);
+    row.addEventListener("click", () => selectApp(app.id));
+    appListEl.appendChild(row);
   });
 };
 
@@ -704,6 +705,7 @@ const chooseInitialScript = (data) => {
   return all.length > 0 ? all[0].script : (data.current || "");
 };
 
+<%- include('partials/autolaunch_dependency_helpers') %>
 const bindDetailControls = () => {
   detailEl.querySelectorAll("input[name='autolaunch-script']").forEach((input) => {
     input.addEventListener("change", () => {
@@ -743,6 +745,55 @@ const bindDetailControls = () => {
   }
   const applyManual = detailEl.querySelector("[data-apply-manual]");
   if (applyManual) applyManual.addEventListener("click", saveSelectedScript);
+  const toggleDependencyPicker = detailEl.querySelector("[data-toggle-dependency-picker]");
+  if (toggleDependencyPicker) {
+    toggleDependencyPicker.addEventListener("click", () => {
+      dependencyPickerOpen = !dependencyPickerOpen;
+      renderCandidates();
+      if (dependencyPickerOpen) {
+        window.setTimeout(() => {
+          const search = detailEl.querySelector("[data-dependency-search]");
+          if (search) search.focus();
+        }, 0);
+      }
+    });
+  }
+  const dependencySearch = detailEl.querySelector("[data-dependency-search]");
+  if (dependencySearch) {
+    dependencySearch.addEventListener("input", () => {
+      filterDependencyPicker(detailEl.querySelector("[data-dependency-picker]"));
+    });
+  }
+  detailEl.querySelectorAll("[data-add-dependency]").forEach((control) => {
+    control.addEventListener("click", () => {
+      const app = currentApp();
+      const dependency = control.getAttribute("data-add-dependency");
+      if (!app || !dependency) return;
+      const dependencies = Array.isArray(app.autolaunch_depends) ? app.autolaunch_depends.slice() : [];
+      if (!dependencies.includes(dependency)) {
+        dependencies.push(dependency);
+        dependencyPickerOpen = false;
+        saveDependencies(dependencies);
+      }
+    });
+  });
+  detailEl.querySelectorAll("[data-remove-dependency]").forEach((control) => {
+    control.addEventListener("click", () => {
+      const app = currentApp();
+      if (!app) return;
+      const dependency = control.getAttribute("data-remove-dependency");
+      const dependencies = Array.isArray(app.autolaunch_depends) ? app.autolaunch_depends : [];
+      saveDependencies(dependencies.filter((id) => id !== dependency));
+    });
+  });
+  detailEl.querySelectorAll("[data-configure-dependency]").forEach((control) => {
+    control.addEventListener("click", () => {
+      const dependency = control.getAttribute("data-configure-dependency");
+      if (dependency) {
+        selectApp(dependency);
+      }
+    });
+  });
 };
 
 const renderCandidates = () => {
@@ -759,6 +810,7 @@ const renderCandidates = () => {
       <div class="autolaunch-current">${escapeHtml(currentValue || "OFF")}</div>
       <div class="autolaunch-feedback" data-feedback></div>
     </div>
+    ${renderDependencySection(app)}
     ${hasCandidates ? "" : '<div class="autolaunch-section"><div class="autolaunch-empty">No local scripts were found for this app.</div></div>'}
     ${renderScriptSection("Menu scripts", "From pinokio.js", candidateState.menu || [])}
     ${renderScriptSection("Other local scripts", "Advanced", candidateState.other || [])}
@@ -823,12 +875,17 @@ const loadCandidates = async (appId) => {
   }
 };
 
-const selectApp = (appId) => {
+const selectApp = (appId, updateUrl = true) => {
   selectedAppId = appId;
+  dependencyPickerOpen = false;
+  if (updateUrl) {
+    updateSelectedAppUrl(appId);
+  }
   renderAppList();
   loadCandidates(appId);
 };
 
+<%- include('partials/autolaunch_dependency_save') %>
 const saveScript = async (script) => {
   const app = currentApp();
   if (!app || savingAutolaunch) return;
@@ -852,6 +909,9 @@ const saveScript = async (script) => {
       throw new Error(data.error || "Failed to save autolaunch.");
     }
     syncAppState(data.app);
+    if (data.app && !data.app.autolaunch_enabled) {
+      dependencyPickerOpen = false;
+    }
     if (candidateState) {
       candidateState.current = data.app.autolaunch || "";
     }
@@ -907,9 +967,16 @@ disableAllButton.addEventListener("click", disableAll);
 
 updateStats();
 renderAppList();
-const firstApp = orderedApps()[0];
+let initialApp = null;
+try {
+  const requestedAppId = new URLSearchParams(window.location.search).get("app");
+  if (requestedAppId) {
+    initialApp = autolaunchApps.find((app) => app && app.id === requestedAppId) || null;
+  }
+} catch (_) {}
+const firstApp = initialApp || orderedApps()[0];
 if (firstApp) {
-  selectApp(firstApp.id);
+  selectApp(firstApp.id, false);
 }
 </script>
 </body>

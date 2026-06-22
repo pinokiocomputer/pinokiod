@@ -1,0 +1,212 @@
+body.autolaunch-page .autolaunch-dependency-list {
+  display: grid;
+  gap: 8px;
+}
+body.autolaunch-page .autolaunch-dependency-stack {
+  border: 1px solid var(--task-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--task-panel) 98%, var(--task-soft));
+  overflow: hidden;
+}
+body.autolaunch-page .autolaunch-dependency-selected {
+  display: grid;
+}
+body.autolaunch-page .autolaunch-dependency-row {
+  border-bottom: 1px solid var(--task-border);
+  color: var(--task-text);
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 8px 10px;
+}
+body.autolaunch-page .autolaunch-dependency-row:last-child {
+  border-bottom: 0;
+}
+body.autolaunch-page .autolaunch-dependency-row img {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  object-fit: cover;
+}
+body.autolaunch-page .autolaunch-dependency-row-empty {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  color: var(--task-muted);
+  font-size: 12px;
+  padding: 0 10px;
+}
+body.autolaunch-page .autolaunch-dependency-remove {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--task-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+body.autolaunch-page .autolaunch-dependency-remove:hover {
+  background: color-mix(in srgb, var(--task-border) 70%, transparent);
+  color: var(--task-text);
+}
+body.autolaunch-page .autolaunch-dependency-picker {
+  display: grid;
+  gap: 0;
+}
+body.autolaunch-page .autolaunch-dependency-trigger {
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  border-top: 1px solid var(--task-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--task-text);
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+body.autolaunch-page .autolaunch-dependency-trigger:hover {
+  background: color-mix(in srgb, var(--task-soft) 70%, var(--task-panel));
+}
+body.autolaunch-page .autolaunch-dependency-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+body.autolaunch-page .autolaunch-dependency-trigger span {
+  flex: 1;
+  min-width: 0;
+}
+body.autolaunch-page .autolaunch-dependency-menu {
+  border-top: 1px solid var(--task-border);
+  background: transparent;
+  overflow: hidden;
+}
+body.autolaunch-page .autolaunch-dependency-filter {
+  min-height: 34px;
+  border-bottom: 1px solid var(--task-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  color: var(--task-muted);
+}
+body.autolaunch-page .autolaunch-dependency-filter input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--task-text);
+  font: inherit;
+  font-size: 12px;
+}
+body.autolaunch-page .autolaunch-dependency-options {
+  max-height: 320px;
+  overflow: auto;
+}
+body.autolaunch-page .autolaunch-dependency-option {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--task-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--task-text);
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+}
+body.autolaunch-page .autolaunch-dependency-option:last-child {
+  border-bottom: 0;
+}
+body.autolaunch-page .autolaunch-dependency-option:hover,
+body.autolaunch-page .autolaunch-dependency-option:focus-visible {
+  background: color-mix(in srgb, var(--task-accent) 8%, transparent);
+  outline: none;
+}
+body.autolaunch-page .autolaunch-dependency-option[hidden] {
+  display: none;
+}
+body.autolaunch-page .autolaunch-dependency-option img {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+body.autolaunch-page .autolaunch-dependency-option-meta {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+body.autolaunch-page .autolaunch-dependency-option-title {
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.autolaunch-page .autolaunch-dependency-option-path {
+  color: var(--task-muted);
+  direction: rtl;
+  font-size: 11px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  unicode-bidi: plaintext;
+  white-space: nowrap;
+}
+body.autolaunch-page .autolaunch-dependency-picker-empty {
+  color: var(--task-muted);
+  font-size: 11px;
+  padding: 10px;
+}
+body.autolaunch-page .autolaunch-dependency-warning {
+  border: 1px solid color-mix(in srgb, #b45309 24%, var(--task-border));
+  border-radius: 7px;
+  background: color-mix(in srgb, #b45309 7%, var(--task-panel));
+  color: var(--task-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 9px;
+  font-size: 11px;
+}
+body.autolaunch-page .autolaunch-dependency-warning span {
+  min-width: 0;
+  flex: 1;
+}
+body.autolaunch-page .autolaunch-manual {
+  padding: 16px;
+  border-top: 1px solid var(--task-border);
+}
+body.autolaunch-page .autolaunch-manual-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+body.autolaunch-page .autolaunch-manual input {
+  flex: 1 1 auto;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--task-border-strong);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--task-panel) 98%, white);
+}
+body.dark.autolaunch-page .autolaunch-manual input {
+  background: color-mix(in srgb, var(--task-panel) 95%, black);
+}

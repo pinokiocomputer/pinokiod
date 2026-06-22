@@ -240,10 +240,16 @@ body.dark .home-autolaunch-status {
   color: rgba(252, 211, 146, 0.92);
 }
 .home-app-line.autolaunch-starting .title i {
-  color: #b45309;
+  color: #b45309 !important;
 }
 body.dark .home-app-line.autolaunch-starting .title i {
-  color: #d6a451;
+  color: #d6a451 !important;
+}
+.home-app-line.autolaunch-blocked .title i {
+  color: #dc2626 !important;
+}
+body.dark .home-app-line.autolaunch-blocked .title i {
+  color: #f87171 !important;
 }
 .context-menu {
   position: absolute;
@@ -932,6 +938,7 @@ body.dark .home-actions-path {
   display: inline-flex;
   align-items: center;
   flex: 0 0 auto;
+  max-width: min(260px, 45vw);
   height: 20px;
   padding: 0 7px;
   border-radius: 999px;
@@ -940,6 +947,9 @@ body.dark .home-actions-path {
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 body.dark .home-actions-status,
 body.dark .home-run-menu-status,
@@ -1411,7 +1421,7 @@ body.dark aside .current.selected {
   <% if (running.length > 0) { %>
     <div class='running-apps'>
       <% running.forEach((item, index) => { %>
-        <div data-href="<%=item.browser_url%>" data-target="<%=item.target || '_self'%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" data-starred="<%=item.starred ? "1" : "0"%>" data-launch-count-total="<%=item.launch_count_total || 0%>" data-last-launch-at="<%=item.last_launch_at || ''%>" data-autolaunch-starting="<%=item.autolaunch_starting ? "1" : "0"%>" data-autolaunch-app="<%=item.uri%>" data-autolaunch-script="<%=item.autolaunch_script || ''%>" class='line align-top home-app-line <%=item.autolaunch_starting ? "autolaunch-starting" : ""%>' role='link' tabindex='0'>
+        <div data-href="<%=item.browser_url%>" data-target="<%=item.target || '_self'%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" data-starred="<%=item.starred ? "1" : "0"%>" data-launch-count-total="<%=item.launch_count_total || 0%>" data-last-launch-at="<%=item.last_launch_at || ''%>" data-autolaunch-starting="<%=item.autolaunch_starting ? "1" : "0"%>" data-autolaunch-app="<%=item.uri%>" data-autolaunch-script="<%=item.autolaunch_script || ''%>" class='line align-top home-app-line <%=item.autolaunch_starting ? "autolaunch-starting" : ""%> <%=item.autolaunch_waiting ? "autolaunch-waiting" : ""%> <%=item.autolaunch_blocked ? "autolaunch-blocked" : ""%>' role='link' tabindex='0'>
           <h3>
             <div class='item-icon'>
               <% if (item.icon) { %>
@@ -1445,10 +1455,12 @@ body.dark aside .current.selected {
                 <button class='btn open-menu open-actions-modal' type='button' data-dialog-id="home-actions-running-<%=index%>" aria-haspopup="dialog" title="Actions" aria-label="Actions">
                   <i class="fa-solid fa-ellipsis" aria-hidden="true"></i><span> menu</span>
                 </button>
-                <% if (item.autolaunch_starting) { %>
-                  <span class='home-autolaunch-status' title='Autolaunch is starting this app'>
-                    <i class='fa-solid fa-circle-notch fa-spin' aria-hidden='true'></i>
-                    <span>Starting automatically</span>
+                <% const autolaunchRunningScript = !!(item.autolaunch_starting && item.autolaunch_script && item.running_scripts && item.running_scripts.some((s) => { const scriptName = s && (s.name || s.script_path || s.path || ""); return scriptName === item.autolaunch_script || String(scriptName).endsWith(`/${item.autolaunch_script}`) })) %>
+                <% if (item.autolaunch_starting && !autolaunchRunningScript) { %>
+                  <% const autolaunchStatusLabel = item.autolaunch_status_label || "Starting automatically" %>
+                  <span class='home-autolaunch-status' title='<%= autolaunchStatusLabel %>'>
+                    <i class='fa-solid <%= item.autolaunch_blocked ? "fa-triangle-exclamation" : "fa-circle-notch fa-spin" %>' aria-hidden='true'></i>
+                    <span><%= autolaunchStatusLabel %></span>
                   </span>
                 <% } %>
                 <% const runningTerminalOnlineCount = Number(item.terminal_online_count || 0) %>
@@ -1463,16 +1475,21 @@ body.dark aside .current.selected {
                 <% if (item.running_scripts) { %>
                   <% item.running_scripts.forEach((s) => { %>
                   <% const runningScriptName = s.name || "script" %>
+                  <% const isStartingAutolaunchScript = !!(item.autolaunch_starting && !item.autolaunch_waiting && !item.autolaunch_blocked && item.autolaunch_script && (runningScriptName === item.autolaunch_script || String(runningScriptName).endsWith(`/${item.autolaunch_script}`))) %>
+                  <% const stepCurrent = Number(isStartingAutolaunchScript && (s.step_current || item.autolaunch_step_current)) %>
+                  <% const stepTotal = Number(isStartingAutolaunchScript && (s.step_total || item.autolaunch_step_total)) %>
+                  <% const stepLabel = Number.isFinite(stepCurrent) && Number.isFinite(stepTotal) && stepCurrent > 0 && stepTotal > 1 ? ` (${stepCurrent}/${stepTotal})` : "" %>
+                  <% const runningScriptButtonLabel = isStartingAutolaunchScript ? `Starting ${runningScriptName}${stepLabel}` : `Stop ${runningScriptName}` %>
                   <% if (s.id) { %>
                       <button class='btn shutdown' type='button' data-id="<%=s.id%>" data-type="<%=s.type ? s.type : ''%>" title="Stop <%=runningScriptName%>" aria-label="Stop <%=runningScriptName%>">
                         <i class="fa-solid fa-stop" aria-hidden="true"></i>
-                        <span>Stop <%=runningScriptName%></span>
+                        <span><%= runningScriptButtonLabel %></span>
                         <i class='fa-solid fa-spin fa-circle-notch' aria-hidden='true'></i>
                       </button>
                     <% } else { %>
                       <button class='btn shutdown' type='button' data-src="<%=s.path%>" title="Stop <%=runningScriptName%>" aria-label="Stop <%=runningScriptName%>">
                         <i class="fa-solid fa-stop" aria-hidden="true"></i>
-                        <span>Stop <%=runningScriptName%></span>
+                        <span><%= runningScriptButtonLabel %></span>
                         <i class='fa-solid fa-spin fa-circle-notch' aria-hidden='true'></i>
                       </button>
                     <% } %>
@@ -2027,7 +2044,22 @@ const startHomeAutolaunchPolling = () => {
     }
     return script.home_path || script.id || script.path || script.script_path || ""
   }
-  const createStopButton = (script) => {
+  const scriptName = (script) => {
+    return (script && (script.script_path || script.name || script.path)) || "script"
+  }
+  const scriptStepLabel = (source) => {
+    const stepCurrent = Number(source && source.step_current)
+    const stepTotal = Number(source && source.step_total)
+    if (!Number.isFinite(stepCurrent) || !Number.isFinite(stepTotal) || stepCurrent <= 0 || stepTotal <= 1) {
+      return ""
+    }
+    return ` (${stepCurrent}/${stepTotal})`
+  }
+  const scriptMatches = (script, expected) => {
+    const name = scriptName(script)
+    return !!expected && (name === expected || String(name).endsWith(`/${expected}`))
+  }
+  const createStopButton = (script, displayLabel = "") => {
     const label = (script && (script.script_path || script.path)) || "script"
     const button = document.createElement("button")
     button.type = "button"
@@ -2046,7 +2078,7 @@ const startHomeAutolaunchPolling = () => {
     button.appendChild(stopIcon)
 
     const text = document.createElement("span")
-    text.textContent = `Stop ${label}`
+    text.textContent = displayLabel || `Stop ${label}`
     button.appendChild(text)
 
     const spinner = document.createElement("i")
@@ -2054,6 +2086,39 @@ const startHomeAutolaunchPolling = () => {
     spinner.setAttribute("aria-hidden", "true")
     button.appendChild(spinner)
     return button
+  }
+  const updateStopButton = (button, script, displayLabel = "") => {
+    const label = (script && (script.script_path || script.path)) || "script"
+    button.title = `Stop ${label}`
+    button.setAttribute("aria-label", `Stop ${label}`)
+    const text = button.querySelector("span")
+    if (text) {
+      text.textContent = displayLabel || `Stop ${label}`
+    }
+  }
+  const syncStopButtons = (line, scripts, displayLabelForScript = null) => {
+    const menuButtons = line.querySelector(".menu-btns")
+    if (!menuButtons || !Array.isArray(scripts)) {
+      return
+    }
+    const existing = new Map(Array.from(menuButtons.querySelectorAll(".shutdown")).map((button) => {
+      return [button.getAttribute("data-src") || button.getAttribute("data-id") || "", button]
+    }))
+    for (const script of scripts) {
+      const identity = scriptIdentity(script)
+      if (!identity) {
+        continue
+      }
+      const displayLabel = typeof displayLabelForScript === "function"
+        ? displayLabelForScript(script)
+        : displayLabelForScript
+      const button = existing.get(identity)
+      if (button) {
+        updateStopButton(button, script, displayLabel || "")
+      } else {
+        menuButtons.appendChild(createStopButton(script, displayLabel || ""))
+      }
+    }
   }
   const updateHomeActionStatus = (line, label, starting = false) => {
     const menuButton = line.querySelector(".open-actions-modal")
@@ -2079,11 +2144,14 @@ const startHomeAutolaunchPolling = () => {
       }
     }
     status.textContent = label
+    status.title = label
     status.classList.toggle("home-actions-status--starting", starting)
   }
   const clearStartingVisuals = (line) => {
     line.setAttribute("data-autolaunch-starting", "0")
     line.classList.remove("autolaunch-starting")
+    line.classList.remove("autolaunch-waiting")
+    line.classList.remove("autolaunch-blocked")
     const titleIcon = line.querySelector(".title > i")
     if (titleIcon) {
       titleIcon.className = "fa-solid fa-circle"
@@ -2097,21 +2165,7 @@ const startHomeAutolaunchPolling = () => {
   const markAutolaunchRunning = (line, scripts) => {
     clearStartingVisuals(line)
     updateHomeActionStatus(line, "Running")
-    const menuButtons = line.querySelector(".menu-btns")
-    if (!menuButtons || !Array.isArray(scripts)) {
-      return
-    }
-    const existing = new Set(Array.from(menuButtons.querySelectorAll(".shutdown")).map((button) => {
-      return button.getAttribute("data-src") || button.getAttribute("data-id") || ""
-    }))
-    for (const script of scripts) {
-      const identity = scriptIdentity(script)
-      if (!identity || existing.has(identity)) {
-        continue
-      }
-      menuButtons.appendChild(createStopButton(script))
-      existing.add(identity)
-    }
+    syncStopButtons(line, scripts)
   }
   const getOrCreateNotRunningSection = () => {
     let section = document.querySelector(".not-running-apps")
@@ -2139,6 +2193,65 @@ const startHomeAutolaunchPolling = () => {
       notRunningSection.appendChild(line)
     }
   }
+  const autolaunchDependencyLabel = (autolaunch, dependencyId) => {
+    const apps = autolaunch && autolaunch.apps ? autolaunch.apps : {}
+    const status = apps[dependencyId]
+    return status && status.title ? status.title : dependencyId
+  }
+  const updateAutolaunchWaitingVisuals = (line, status, autolaunch, runningScripts = []) => {
+    if (!status) return
+    let label = "Starting automatically"
+    let iconClass = "fa-solid fa-circle-notch fa-spin"
+    let showStatusChip = true
+    const waitingFor = Array.isArray(status.waiting_for) ? status.waiting_for : []
+    if (waitingFor.length > 0 && !["ready", "blocked", "failed", "timeout"].includes(status.state || "")) {
+      label = `Waiting for ${waitingFor.map((id) => autolaunchDependencyLabel(autolaunch, id)).join(", ")}`
+      updateHomeActionStatus(line, label, true)
+      line.classList.add("autolaunch-waiting")
+      line.classList.remove("autolaunch-blocked")
+    } else if (["blocked", "failed", "timeout"].includes(status.state)) {
+      label = status.error || "Autolaunch blocked"
+      iconClass = "fa-solid fa-triangle-exclamation"
+      updateHomeActionStatus(line, label, true)
+      line.classList.add("autolaunch-blocked")
+      line.classList.remove("autolaunch-waiting")
+    } else {
+      const expectedScript = status.script || line.getAttribute("data-autolaunch-script") || ""
+      const matchingScript = Array.isArray(runningScripts)
+        ? runningScripts.find((script) => scriptMatches(script, expectedScript))
+        : null
+      const statusHasProgress = status && Number.isFinite(Number(status.step_current)) && Number.isFinite(Number(status.step_total))
+      const progressSource = statusHasProgress ? status : matchingScript
+      label = expectedScript ? `Starting ${expectedScript}${scriptStepLabel(progressSource)}` : "Starting automatically"
+      updateHomeActionStatus(line, label, true)
+      line.classList.remove("autolaunch-waiting")
+      line.classList.remove("autolaunch-blocked")
+      if (matchingScript) {
+        syncStopButtons(line, runningScripts, (script) => {
+          return scriptMatches(script, expectedScript) ? label : ""
+        })
+        showStatusChip = false
+      }
+    }
+    const chip = line.querySelector(".home-autolaunch-status")
+    if (!showStatusChip) {
+      if (chip) {
+        chip.remove()
+      }
+      return
+    }
+    if (chip) {
+      chip.title = label
+      const icon = chip.querySelector("i")
+      if (icon) {
+        icon.className = iconClass
+      }
+      const text = chip.querySelector("span")
+      if (text) {
+        text.textContent = label
+      }
+    }
+  }
   const applyHomeStatus = (state) => {
     const lines = getStartingLines()
     if (lines.length === 0) {
@@ -2156,12 +2269,20 @@ const startHomeAutolaunchPolling = () => {
       }
       scriptsByApp.get(script.app).push(script)
     }
+    const autolaunch = state.autolaunch || {}
+    const apps = autolaunch.apps || {}
     for (const line of lines) {
       const app = line.getAttribute("data-autolaunch-app")
-      if (runningApps.has(app)) {
-        markAutolaunchRunning(line, scriptsByApp.get(app) || [])
+      const autolaunchState = apps[app]
+      const runningScripts = scriptsByApp.get(app) || []
+      if (autolaunchState && !["ready", "blocked", "failed", "timeout"].includes(autolaunchState.state || "") && !state.launch_complete) {
+        updateAutolaunchWaitingVisuals(line, autolaunchState, autolaunch, runningScripts)
+      } else if (runningApps.has(app)) {
+        markAutolaunchRunning(line, runningScripts)
       } else if (state.launch_complete) {
         markAutolaunchIdle(line)
+      } else {
+        updateAutolaunchWaitingVisuals(line, autolaunchState, autolaunch, runningScripts)
       }
     }
     if (getStartingLines().length === 0) {
@@ -2194,8 +2315,8 @@ const startHomeAutolaunchPolling = () => {
       }
     }
   }
-  interval = setInterval(poll, 1250)
-  setTimeout(poll, 250)
+  interval = setInterval(poll, 500)
+  setTimeout(poll, 100)
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
       poll()

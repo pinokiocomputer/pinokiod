@@ -12,7 +12,8 @@
         <div class='home-actions-title-row'>
           <h2 id='<%= id %>-title'><%= item.name %></h2>
           <% if (item.autolaunch_starting) { %>
-            <span class='home-actions-status home-actions-status--starting'>Starting</span>
+            <% const homeActionsAutolaunchLabel = item.autolaunch_status_label || (item.autolaunch_blocked ? "Blocked" : item.autolaunch_waiting ? "Waiting" : "Starting") %>
+            <span class='home-actions-status home-actions-status--starting' title='<%= homeActionsAutolaunchLabel %>'><%= homeActionsAutolaunchLabel %></span>
           <% } else if (item.running) { %>
             <span class='home-actions-status'>Running</span>
           <% } %>

@@ -3951,6 +3951,7 @@ body.dark .app-autolaunch-tag {
   background: rgba(148, 163, 184, 0.18);
   color: rgba(203, 213, 225, 0.9);
 }
+<%- include('partials/app_autolaunch_dependency_styles') %>
 .app-autolaunch-footer {
   display: flex;
   align-items: center;
@@ -7900,6 +7901,12 @@ body.dark .pinokio-custom-terminal-header {
                   <div class="app-autolaunch-section-label">Script</div>
                   <div class="app-autolaunch-script-list" data-app-autolaunch-scripts>
                     <div class="app-autolaunch-empty">Loading scripts...</div>
+                  </div>
+                </div>
+                <div class="app-autolaunch-modal-section">
+                  <div class="app-autolaunch-section-label">Wait for</div>
+                  <div class="app-autolaunch-dependencies" data-app-autolaunch-dependencies>
+                    <div class="app-autolaunch-empty">Loading dependencies...</div>
                   </div>
                 </div>
                 <div class="app-autolaunch-footer">
@@ -18493,8 +18500,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const switchLabel = root.querySelector("[data-app-autolaunch-switch-label]")
   const closeButton = root.querySelector("[data-app-autolaunch-close]")
   const scriptsEl = root.querySelector("[data-app-autolaunch-scripts]")
+  const dependenciesEl = root.querySelector("[data-app-autolaunch-dependencies]")
   const feedbackEl = root.querySelector("[data-app-autolaunch-feedback]")
-  if (!appId || !button || !status || !modal || !switchButton || !switchLabel || !closeButton || !scriptsEl || !feedbackEl) return
+  if (!appId || !button || !status || !modal || !switchButton || !switchLabel || !closeButton || !scriptsEl || !dependenciesEl || !feedbackEl) return
 
   let state = Object.assign({}, initialState)
   let candidateState = null
@@ -18502,6 +18510,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let selectedScript = state.autolaunch || ""
   let loadingCandidates = false
   let saving = false
+  let savingDependencies = false
+  let dependencyPickerOpen = false
 
   const escapeHtml = (value) => {
     if (value === null || value === undefined) return ""
@@ -18520,125 +18530,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!candidateState) return []
     return [].concat(candidateState.menu || [], candidateState.other || [])
   }
-  const chooseInitialScript = (data) => {
-    const candidates = data ? [].concat(data.menu || [], data.other || []) : []
-    if (data && data.current) return data.current
-    const defaultCandidate = candidates.find((candidate) => candidate && candidate.menu_default)
-    if (defaultCandidate) return defaultCandidate.script
-    return candidates.length > 0 ? candidates[0].script : ""
-  }
-  const setFeedback = (message, isError = false) => {
-    feedbackEl.textContent = message || ""
-    feedbackEl.classList.toggle("error", !!isError)
-  }
-  const setBusy = (busy) => {
-    saving = !!busy
-    switchButton.disabled = saving || loadingCandidates
-    button.toggleAttribute("aria-busy", saving)
-    scriptsEl.querySelectorAll("input").forEach((input) => {
-      input.disabled = saving
-    })
-  }
-  const renderStatus = () => {
-    const enabled = !!(state && state.autolaunch_enabled)
-    status.textContent = enabled ? "ON" : "OFF"
-    button.dataset.enabled = enabled ? "true" : "false"
-    button.setAttribute("aria-label", `Auto launch ${enabled ? "On" : "Off"}`)
-    switchButton.setAttribute("aria-checked", enabled ? "true" : "false")
-    switchButton.title = `Auto launch is ${enabled ? "on" : "off"}`
-    switchLabel.textContent = enabled ? "ON" : "OFF"
-    root.classList.toggle("enabled", enabled)
-  }
-  const setOpen = (open) => {
-    root.classList.toggle("open", !!open)
-    button.setAttribute("aria-expanded", open ? "true" : "false")
-    modal.classList.toggle("hidden", !open)
-    if (open) {
-      if (!candidateState && !loadingCandidates) {
-        loadCandidates()
-      }
-      window.setTimeout(() => {
-        if (!modal.classList.contains("hidden")) {
-          switchButton.focus()
-        }
-      }, 0)
-    } else {
-      button.focus()
-    }
-  }
-  const renderScripts = () => {
-    if (loadingCandidates) {
-      scriptsEl.innerHTML = '<div class="app-autolaunch-empty">Loading scripts...</div>'
-      setBusy(false)
-      return
-    }
-    if (candidateError) {
-      scriptsEl.innerHTML = `<div class="app-autolaunch-empty">${escapeHtml(candidateError)}</div>`
-      setBusy(false)
-      return
-    }
-    if (!candidateState) {
-      scriptsEl.innerHTML = '<div class="app-autolaunch-empty">Open to load scripts.</div>'
-      setBusy(false)
-      return
-    }
-    const candidates = allCandidates().slice()
-    const current = candidateState.current || state.autolaunch || ""
-    if (current && !candidates.some((candidate) => candidate && candidate.script === current)) {
-      candidates.unshift({
-        script: current,
-        label: "Current",
-        source: "current",
-        current: true
-      })
-    }
-    if (!selectedScript) {
-      selectedScript = chooseInitialScript(candidateState)
-    }
-    if (candidates.length === 0) {
-      scriptsEl.innerHTML = '<div class="app-autolaunch-empty">No local scripts were found for this app.</div>'
-      setBusy(false)
-      return
-    }
-    scriptsEl.innerHTML = candidates.map((candidate) => {
-      const script = candidate && candidate.script ? candidate.script : ""
-      if (!script) return ""
-      const label = candidate.label || script
-      const checked = script === selectedScript ? "checked" : ""
-      const selected = script === selectedScript ? " selected" : ""
-      const tags = [
-        candidate.current ? '<span class="app-autolaunch-tag">Current</span>' : "",
-        candidate.menu_default ? '<span class="app-autolaunch-tag">Default</span>' : "",
-        candidate.has_params ? '<span class="app-autolaunch-tag">Params ignored</span>' : ""
-      ].filter(Boolean).join("")
-      const pathLine = label === script
-        ? ""
-        : `<div class="app-autolaunch-script-path" title="${escapeHtml(script)}">${escapeHtml(script)}</div>`
-      return `
-        <label class="app-autolaunch-script-option${selected}">
-          <input type="radio" name="app-autolaunch-script" value="${escapeHtml(script)}" ${checked}>
-          <div>
-            <div class="app-autolaunch-script-title"><span>${escapeHtml(label)}</span>${tags}</div>
-            ${pathLine}
-          </div>
-        </label>
-      `
-    }).join("")
-    setBusy(false)
-  }
-  const syncState = (updated) => {
-    if (updated) {
-      state = Object.assign({}, state, updated)
-      if (candidateState) {
-        candidateState.app = Object.assign({}, candidateState.app || {}, updated)
-        candidateState.current = updated.autolaunch || ""
-      }
-      if (updated.autolaunch) {
-        selectedScript = updated.autolaunch
-      }
-    }
-    renderStatus()
-  }
+  <%- include('partials/app_autolaunch_modal_helpers') %>
   const loadCandidates = async () => {
     loadingCandidates = true
     candidateError = ""
@@ -18661,8 +18553,10 @@ document.addEventListener("DOMContentLoaded", () => {
     } finally {
       loadingCandidates = false
       renderScripts()
+      renderDependencies()
     }
   }
+  <%- include('partials/app_autolaunch_dependency_save') %>
   const saveScript = async (script) => {
     if (saving) return
     setBusy(true)
@@ -18683,6 +18577,7 @@ document.addEventListener("DOMContentLoaded", () => {
       syncState(data.app)
       setFeedback(data.app && data.app.autolaunch_enabled ? "Saved." : "Disabled.")
       renderScripts()
+      renderDependencies()
     } catch (error) {
       setFeedback(error && error.message ? error.message : "Failed to save autolaunch.", true)
       renderStatus()
@@ -18710,6 +18605,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   renderStatus()
   renderScripts()
+  renderDependencies()
 
   button.addEventListener("click", (event) => {
     event.preventDefault()
@@ -18742,6 +18638,7 @@ document.addEventListener("DOMContentLoaded", () => {
       saveScript(selectedScript)
     }
   })
+  <%- include('partials/app_autolaunch_dependency_events') %>
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !modal.classList.contains("hidden")) {
       setOpen(false)

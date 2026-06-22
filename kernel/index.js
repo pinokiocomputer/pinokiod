@@ -40,6 +40,8 @@ const Git = require('./git')
 const Connect = require('./connect')
 const Favicon = require('./favicon')
 const AppLauncher = require('./app_launcher')
+const ReadyState = require('./ready')
+const Autolaunch = require('./autolaunch')
 const { DownloaderHelper } = require('node-downloader-helper');
 const { ProxyAgent } = require('proxy-agent');
 const fakeUa = require('fake-useragent');
@@ -92,6 +94,10 @@ class Kernel {
     this.torch_backend = "cpu"
     this.vram = 0
     this.ram = 0
+    this.readyState = new ReadyState(this)
+    this.app_ready_status = this.readyState.status
+    this.autolaunch = new Autolaunch(this)
+    this.autolaunch_status = this.autolaunch.status
     this.sysReady = new Promise((resolve) => {
       this._resolveSysReady = resolve
     })
@@ -109,6 +115,65 @@ class Kernel {
       })
     })
     return response
+  }
+  normalizeAppId(value) {
+    return this.readyState.normalizeAppId(value)
+  }
+  getAppIdForLaunchPath(launchPath) {
+    return this.readyState.getAppIdForLaunchPath(launchPath)
+  }
+  getAppRelativeLaunchScript(appId, launchPath) {
+    return this.readyState.getAppRelativeLaunchScript(appId, launchPath)
+  }
+  resolveReadyScriptPath(uri, cwd) {
+    return this.readyState.resolveScriptPath(uri, cwd)
+  }
+  isScriptReady(scriptPath) {
+    return this.readyState.isScriptReady(scriptPath)
+  }
+  getScriptProgress(scriptPath) {
+    return this.readyState.getScriptProgress(scriptPath)
+  }
+  ready(requestOrUri) {
+    return this.readyState.ready(requestOrUri)
+  }
+  markAppLaunchStarted(launchPath) {
+    return this.readyState.markStarted(launchPath)
+  }
+  markAppLaunchProgress(launchPath, current, total) {
+    const progress = this.readyState.markProgress(launchPath, current, total)
+    if (progress && this.autolaunch && typeof this.autolaunch.updateProgress === "function") {
+      const appId = this.readyState.getAppIdForLaunchPath(launchPath)
+      this.autolaunch.updateProgress(appId, progress)
+    }
+    return progress
+  }
+  markAppLaunchReady(launchPath) {
+    return this.readyState.markReady(launchPath)
+  }
+  markAppLaunchFailed(launchPath, error) {
+    return this.readyState.markFailed(launchPath, error)
+  }
+  markAppLaunchStopped(launchPath) {
+    return this.readyState.markStopped(launchPath)
+  }
+  isAppReady(appId) {
+    return this.readyState.isAppReady(appId)
+  }
+  syncAutolaunchReadyState(appId, launchPath) {
+    return this.autolaunch.syncReadyState(appId, launchPath)
+  }
+  findAutolaunchDependencyCycles(candidates) {
+    return this.autolaunch.findDependencyCycles(candidates)
+  }
+  collectAutolaunchCandidates() {
+    return this.autolaunch.collectCandidates()
+  }
+  launchAutolaunchCandidate(candidate) {
+    return this.autolaunch.launchCandidate(candidate)
+  }
+  runAutolaunchScheduler() {
+    return this.autolaunch.runScheduler()
   }
   async dns(request) {
     let config
@@ -1151,42 +1216,15 @@ class Kernel {
 
               // get env
               if (!this.launch_complete) {
-                let interval = setInterval(async () => {
-                  try {
-                    if (this.i) {
-                      for (let api of this.i.api) {
-                        let env_path = path.resolve(this.api.userdir, api.path)
-                        let e = await Environment.get(env_path, this)
-                        if (e.PINOKIO_SCRIPT_AUTOLAUNCH && e.PINOKIO_SCRIPT_AUTOLAUNCH.trim().length > 0) {
-                          let autolaunch_path = path.resolve(env_path, e.PINOKIO_SCRIPT_AUTOLAUNCH)
-                          let exists = await this.exists(autolaunch_path)
-                          if (exists) {
-                            this.api.process({
-                              uri: autolaunch_path,
-                              input: {}
-            //                client: req.client,
-            //                caller: req.parent.path,
-                            }, (r) => {
-                              console.log({ autolaunch_path, r })
-//                              resolve(r.input)
-                            }).catch((err) => {
-                              console.warn('[Kernel.init] autolaunch process failed:', err && err.message ? err.message : err)
-                            })
-                          } else {
-                            console.log("SCRIPT DOES NOT EXIST. Ignoring.", autolaunch_path)
-                          }
-                        }
-                      }
-                      clearInterval(interval)
-                      setTimeout(() => {
-                        this.launch_complete = true
-                        console.log("SETTING launch complete", this.launch_complete)
-                      }, 2000)
-                    }
-                  } catch (err) {
-                    console.warn('[Kernel.init] autolaunch loop failed:', err && err.message ? err.message : err)
+                this.runAutolaunchScheduler().catch((err) => {
+                  console.warn('[Kernel.init] autolaunch scheduler failed:', err && err.message ? err.message : err)
+                  this.autolaunch_status = {
+                    running: false,
+                    error: err && err.message ? err.message : String(err || "Autolaunch failed"),
+                    apps: {}
                   }
-                }, 1000)
+                  this.launch_complete = true
+                })
               }
             }
           }).catch((err) => {

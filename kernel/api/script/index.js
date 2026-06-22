@@ -160,6 +160,16 @@ class Script {
       ondata({ raw: `\r\nStopped ${uri}\r\n` })
     }
   }
+  async ready(req, ondata, kernel) {
+    const params = req && req.params
+    let uri = this.currentPath(req)
+    if (typeof params === "string") {
+      uri = params
+    } else if (params && typeof params === "object") {
+      uri = params.uri || params.path || params.script || uri
+    }
+    return kernel.isScriptReady(kernel.resolveReadyScriptPath(uri, req && req.cwd))
+  }
   async run(req, ondata, kernel) {
     /*
       {
