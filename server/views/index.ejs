@@ -2204,7 +2204,7 @@ const startHomeAutolaunchPolling = () => {
     let iconClass = "fa-solid fa-circle-notch fa-spin"
     let showStatusChip = true
     const waitingFor = Array.isArray(status.waiting_for) ? status.waiting_for : []
-    if (waitingFor.length > 0 && !["ready", "blocked", "failed", "timeout"].includes(status.state || "")) {
+    if (waitingFor.length > 0 && !["ready", "stopped", "blocked", "failed", "timeout"].includes(status.state || "")) {
       label = `Waiting for ${waitingFor.map((id) => autolaunchDependencyLabel(autolaunch, id)).join(", ")}`
       updateHomeActionStatus(line, label, true)
       line.classList.add("autolaunch-waiting")
@@ -2275,7 +2275,9 @@ const startHomeAutolaunchPolling = () => {
       const app = line.getAttribute("data-autolaunch-app")
       const autolaunchState = apps[app]
       const runningScripts = scriptsByApp.get(app) || []
-      if (autolaunchState && !["ready", "blocked", "failed", "timeout"].includes(autolaunchState.state || "") && !state.launch_complete) {
+      if (autolaunchState && autolaunchState.state === "stopped") {
+        markAutolaunchIdle(line)
+      } else if (autolaunchState && !["ready", "blocked", "failed", "timeout"].includes(autolaunchState.state || "") && !state.launch_complete) {
         updateAutolaunchWaitingVisuals(line, autolaunchState, autolaunch, runningScripts)
       } else if (runningApps.has(app)) {
         markAutolaunchRunning(line, runningScripts)

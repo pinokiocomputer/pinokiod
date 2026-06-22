@@ -155,7 +155,12 @@ class Kernel {
     return this.readyState.markFailed(launchPath, error)
   }
   markAppLaunchStopped(launchPath) {
-    return this.readyState.markStopped(launchPath)
+    const status = this.readyState.markStopped(launchPath)
+    if (this.autolaunch && typeof this.autolaunch.markStopped === "function") {
+      const appId = this.readyState.getAppIdForLaunchPath(launchPath)
+      this.autolaunch.markStopped(appId)
+    }
+    return status
   }
   isAppReady(appId) {
     return this.readyState.isAppReady(appId)

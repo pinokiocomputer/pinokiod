@@ -415,6 +415,9 @@ class ServerAutolaunch {
     if (!autolaunchInfo || !autolaunchInfo.enabled) {
       return false
     }
+    if (autolaunchStatus && ["ready", "stopped"].includes(autolaunchStatus.state)) {
+      return false
+    }
     const launchPath = path.resolve(autolaunchInfo.appRoot, autolaunchInfo.value)
     const progress = autolaunchStatus && Number.isInteger(Number(autolaunchStatus.step_current)) && Number.isInteger(Number(autolaunchStatus.step_total))
       ? {

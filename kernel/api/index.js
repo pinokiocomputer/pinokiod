@@ -1664,9 +1664,6 @@ class Api {
           }
         } else {
           let id = request.id || request.path
-          if (this.kernel && typeof this.kernel.markAppLaunchReady === "function") {
-            this.kernel.markAppLaunchReady(request.path)
-          }
           if (this.done[request.path]) {
             this.done[request.path]({
               global: (this.kernel.memory.global[id] || {}),

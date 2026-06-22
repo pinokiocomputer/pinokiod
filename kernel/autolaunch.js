@@ -29,6 +29,24 @@ class Autolaunch {
       ...progress
     }
   }
+  markStopped(appId) {
+    const id = this.kernel.normalizeAppId(appId)
+    if (!id) {
+      return
+    }
+    const status = this.status && this.status.apps
+      ? this.status.apps[id]
+      : null
+    if (!status) {
+      return
+    }
+    this.status.apps[id] = {
+      ...status,
+      state: "stopped",
+      stopped_at: Date.now(),
+      waiting_for: []
+    }
+  }
   syncReadyState(appId, launchPath) {
     const dependencyId = this.kernel.normalizeAppId(appId)
     const ready = launchPath ? this.kernel.isScriptReady(launchPath) : this.kernel.isAppReady(dependencyId)

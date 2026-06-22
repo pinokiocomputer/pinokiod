@@ -3538,7 +3538,7 @@ class Server {
             const status = this.kernel.autolaunch_status && this.kernel.autolaunch_status.apps
               ? this.kernel.autolaunch_status.apps[items[i].name]
               : null
-            if (status && !["ready", "blocked", "failed", "timeout"].includes(status.state || "")) {
+            if (status && !["ready", "stopped", "blocked", "failed", "timeout"].includes(status.state || "")) {
               await this.autolaunch.applyHomeStartingState(items[i], items[i].index)
             }
           }
