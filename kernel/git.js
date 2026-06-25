@@ -228,16 +228,6 @@ class Git {
       return fs.promises.copyFile(src, dest)
     }))
 
-    // best-effort: clear any stale index.lock files across all known repos at startup
-    try {
-      const apiRoot = this.kernel.path("api")
-      const repos = await this.repos(apiRoot)
-      for (const repo of repos) {
-        if (repo && repo.dir) {
-          await this.clearStaleLock(repo.dir)
-        }
-      }
-    } catch (_) {}
   }
   checkpointsDir() {
     return path.resolve(this.kernel.homedir, "checkpoints")
@@ -1326,6 +1316,7 @@ class Git {
       const gitParentPath = path.dirname(gitPath)
       const gitParentRelPath = path.relative(this.kernel.path("api"), gitParentPath)
       let dir = path.dirname(gitPath)
+      await this.clearStaleLock(dir)
       let display_name
       let main
       if (gitRelPathSansGit === ".") {
@@ -1457,15 +1448,6 @@ class Git {
   async findRepoRootForPath(targetPath) {
     if (!targetPath || typeof targetPath !== "string") return null
     const absoluteTarget = path.resolve(targetPath)
-    const cachedRoots = Array.from(this.dirs)
-      .map((dir) => path.resolve(dir))
-      .sort((a, b) => b.length - a.length)
-    for (const root of cachedRoots) {
-      if (absoluteTarget === root || absoluteTarget.startsWith(`${root}${path.sep}`)) {
-        return root
-      }
-    }
-
     let probe = await this.findExistingAncestor(absoluteTarget)
     if (!probe) return null
     try {
@@ -1487,6 +1469,14 @@ class Git {
     if (probe && await this.hasGitMetadata(probe)) {
       this.dirs.add(probe)
       return probe
+    }
+    const cachedRoots = Array.from(this.dirs)
+      .map((dir) => path.resolve(dir))
+      .sort((a, b) => b.length - a.length)
+    for (const root of cachedRoots) {
+      if (absoluteTarget === root || absoluteTarget.startsWith(`${root}${path.sep}`)) {
+        return root
+      }
     }
     return null
   }

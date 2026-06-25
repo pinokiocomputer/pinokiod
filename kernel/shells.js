@@ -235,7 +235,15 @@ class Shells {
         if (segments.length > 0) {
           workspaceName = segments[0]
           workspaceRoot = this.kernel.path("api", workspaceName)
-          beforeDirs = new Set(this.kernel.git.dirs)
+          beforeDirs = new Set()
+          try {
+            const beforeRepos = await this.kernel.git.repos(workspaceRoot)
+            for (const repo of beforeRepos) {
+              if (repo && repo.gitParentPath) {
+                beforeDirs.add(repo.gitParentPath)
+              }
+            }
+          } catch (_) {}
         }
       }
     }

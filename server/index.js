@@ -193,28 +193,9 @@ class Server {
       /(^|\/)\.pytest_cache\//,
       /(^|\/)\.git\//
     ]
-    this.apiGitRefreshTimer = null
     this.workspaceStatus = new WorkspaceStatusManager({
       enableWatchers: process.env.PINOKIO_DISABLE_WATCH === '1' ? false : true,
       fallbackIntervalMs: 60000,
-      onEvent: (workspaceName, events) => {
-        if (!this.kernel.homedir) return
-        if (!events || events.length === 0) return
-        const apiRoot = this.kernel.path('api')
-        const topLevel = events.some(({ path: evtPath, type }) => {
-          if (!evtPath) return false
-          const rel = path.relative(apiRoot, evtPath)
-          if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return false
-          const parts = rel.split(path.sep)
-          return parts.length === 1 && (type === 'create' || type === 'delete')
-        })
-        if (topLevel) {
-          if (this.apiGitRefreshTimer) clearTimeout(this.apiGitRefreshTimer)
-          this.apiGitRefreshTimer = setTimeout(() => {
-            this.kernel.git.repos(apiRoot).catch(() => {})
-          }, 1000)
-        }
-      },
     })
     this.appRegistry = new AppRegistryService({ kernel: this.kernel })
     this.appPreferences = new AppPreferencesService({ kernel: this.kernel })
@@ -396,6 +377,73 @@ class Server {
     } catch (err) {
       console.error('Failed to emit fatal notification:', err)
     }
+  }
+  async refreshTopLevelAppInventory() {
+    try {
+      if (this.kernel && this.kernel.api && typeof this.kernel.api.linkGit === "function") {
+        await this.kernel.api.linkGit()
+      }
+    } catch (error) {
+      console.warn("App inventory refresh error:", error && error.message ? error.message : error)
+    }
+  }
+  async findApiRepoByGitUrl(gitUrl) {
+    if (!gitUrl || typeof gitUrl !== "string") return null
+    const candidates = [gitUrl]
+    if (gitUrl.endsWith(".git")) {
+      candidates.push(gitUrl.slice(0, -4))
+    } else {
+      candidates.push(`${gitUrl}.git`)
+    }
+    const mapping = this.kernel && this.kernel.git ? this.kernel.git.mapping : null
+    const removeStaleMapping = (candidate) => {
+      if (!mapping) return
+      delete mapping[candidate]
+      if (candidate.endsWith(".git")) {
+        delete mapping[candidate.slice(0, -4)]
+      } else {
+        delete mapping[`${candidate}.git`]
+      }
+    }
+    const isUsableRepoPath = async (repoPath) => {
+      if (!repoPath || typeof repoPath !== "string") return false
+      if (this.kernel.git && typeof this.kernel.git.hasGitMetadata === "function") {
+        return this.kernel.git.hasGitMetadata(repoPath)
+      }
+      try {
+        const stat = await fs.promises.stat(repoPath)
+        return stat.isDirectory()
+      } catch (_) {
+        return false
+      }
+    }
+
+    for (const candidate of candidates) {
+      const found = this.kernel.git.find(candidate)
+      if (found && await isUsableRepoPath(found.path)) return found
+      if (found) removeStaleMapping(candidate)
+    }
+
+    if (this.kernel.api && this.kernel.api.gitPath) {
+      for (const candidate of candidates) {
+        const repoPath = this.kernel.api.gitPath[candidate]
+        if (repoPath && await isUsableRepoPath(repoPath)) {
+          const found = { path: repoPath }
+          try {
+            found.head = await this.kernel.git.getHead(repoPath)
+          } catch (_) {}
+          this.kernel.git.mapping[candidate] = found
+          return found
+        }
+      }
+    }
+
+    await this.kernel.git.repos(this.kernel.path("api"))
+    for (const candidate of candidates) {
+      const found = this.kernel.git.find(candidate)
+      if (found) return found
+    }
+    return null
   }
   stop() {
     if (this.resourceUsage && typeof this.resourceUsage.stop === 'function') {
@@ -6096,7 +6144,6 @@ class Server {
         let str = await Environment.ENV("system", this.kernel.homedir, this.kernel)
         await fs.promises.writeFile(path.resolve(this.kernel.homedir, "ENVIRONMENT"), str)
       }
-      this.workspaceStatus.ensureWatcher('api', this.kernel.path('api')).catch(() => {})
     }
 
 
@@ -6956,6 +7003,7 @@ class Server {
           res.json({ ok: false, error: err && err.message ? err.message : 'Clone failed' })
           return
         }
+        await this.refreshTopLevelAppInventory()
         res.json({ ok: true, redirect: `/p/${encodeURIComponent(folder)}` })
         return
       }
@@ -6984,6 +7032,7 @@ class Server {
       if (this.kernel.git && this.kernel.git.activeSnapshot) {
         this.kernel.git.activeSnapshot[folder] = { id: snapshot.id, remoteKey }
       }
+      await this.refreshTopLevelAppInventory()
       res.json({ ok: true, redirect: `/p/${encodeURIComponent(folder)}` })
     }))
     this.app.post("/checkpoints/delete", ex(async (req, res) => {
@@ -10655,6 +10704,9 @@ class Server {
             tool: selectedTool,
             uploadToken: ""
           })
+          if (payload && payload.ok) {
+            await this.refreshTopLevelAppInventory()
+          }
           res.redirect(payload.url)
         } catch (error) {
           await renderTaskLaunchPage(req, res, task, {
@@ -10943,6 +10995,7 @@ class Server {
         return
       }
 
+      await this.refreshTopLevelAppInventory()
       res.json({
         ok: true,
         folder: folderName,
@@ -11258,6 +11311,7 @@ class Server {
         })
 
         if (intent === "create_app") {
+          await this.refreshTopLevelAppInventory()
           res.json({
             ok: true,
             url: `/initialize/${encodeURIComponent(requestedFolderName)}`
@@ -11307,6 +11361,10 @@ class Server {
           name: typeof body.name === "string" ? body.name : "",
           id: typeof body.id === "string" ? body.id : ""
         })
+        const intent = typeof body.intent === "string" ? body.intent.trim().toLowerCase() : ""
+        if (intent === "create_app") {
+          await this.refreshTopLevelAppInventory()
+        }
         res.json({
           ok: true,
           ...finalized
@@ -11328,6 +11386,9 @@ class Server {
           tool: body.tool,
           uploadToken: body.uploadToken
         })
+        if (payload && payload.ok) {
+          await this.refreshTopLevelAppInventory()
+        }
         res.json(payload)
       } catch (error) {
         const status = Number.isInteger(error && error.status) ? error.status : 500
@@ -14340,16 +14401,10 @@ class Server {
     }))
     this.app.get("/gitdiff/:ref/*", ex(async (req, res) => {
       let fullpath = this.kernel.path("api", req.params[0])
-      let dir
-      let dirs = Array.from(this.kernel.git.dirs)
-      dirs.sort((x, y) => {
-        return y.length - x.length
-      })
-      for(let d of dirs) {
-        if (fullpath.startsWith(d)) {
-          dir = d
-          break
-        }
+      let dir = await this.kernel.git.findRepoRootForPath(fullpath)
+      if (!dir) {
+        res.status(404).json({ error: "Repository not found" })
+        return
       }
       let filepath = path.relative(dir, fullpath)
       let binary = false;
@@ -15412,7 +15467,7 @@ class Server {
     }))
     this.app.get("/info/api", ex(async (req,res) => {
       // api related info
-      let repo = this.kernel.git.find(req.query.git)
+      let repo = await this.findApiRepoByGitUrl(req.query.git)
       if (repo) {
         let repos = await this.kernel.git.repos(repo.path)
         repos = repos.filter((r) => {
@@ -15602,6 +15657,7 @@ class Server {
               resolve()
             }, 2000)
           })
+          await this.refreshTopLevelAppInventory()
           res.json({ success: true })
         }
       } catch(err) {
@@ -15886,6 +15942,7 @@ class Server {
         */
 
         let formData = req.body
+        let appInventoryChanged = false
         for(let key in req.files) {
           let file = req.files[key]
           formData[file.fieldname] = file.buffer
@@ -15900,6 +15957,7 @@ class Server {
               let new_path = this.kernel.path("api", formData.new_path)
 
               await fs.promises.cp(old_path, new_path, { recursive: true })
+              appInventoryChanged = true
 
               // 2. edit meta in the new_path
               await this.kernel.api.updateMeta(formData, formData.new_path)
@@ -15912,6 +15970,7 @@ class Server {
               let old_path = this.kernel.path("api", formData.old_path)
               let new_path = this.kernel.path("api", formData.new_path)
               await fs.promises.rename(old_path, new_path)
+              appInventoryChanged = true
             }
 
             // 2. edit meta in the new_path
@@ -15928,14 +15987,19 @@ class Server {
             let old_path = this.kernel.path("api", formData.old_path)
             let new_path = this.kernel.path("api", formData.new_path)
             await fs.promises.cp(old_path, new_path, { recursive: true })
+            appInventoryChanged = true
           } else if (formData.move) {
             // 2. move only
             let old_path = this.kernel.path("api", formData.old_path)
             let new_path = this.kernel.path("api", formData.new_path)
             await fs.promises.rename(old_path, new_path)
+            appInventoryChanged = true
           } else {
             // nothing
           }
+        }
+        if (appInventoryChanged) {
+          await this.refreshTopLevelAppInventory()
         }
         res.json({
           success: true,
@@ -16166,6 +16230,7 @@ class Server {
                 path: this.kernel.api.userdir
               }, (stream) => {
               })
+              await this.refreshTopLevelAppInventory()
               res.json({
                 result: "success"
               })
