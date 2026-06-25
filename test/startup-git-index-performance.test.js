@@ -90,6 +90,11 @@ async function createFixtureHome() {
     content: 'top clean\n',
     message: 'top baseline',
   })
+  fs.writeFileSync(path.join(workspace, '.gitignore'), 'tracked-hidden.txt\n')
+  fs.writeFileSync(path.join(workspace, 'tracked-hidden.txt'), 'hidden clean\n')
+  git(['add', '.gitignore'], workspace)
+  git(['add', '-f', 'tracked-hidden.txt'], workspace)
+  git(['commit', '-m', 'hidden baseline'], workspace)
   initRepo(nested, {
     remote: 'https://example.com/pinokio-perf-fixture-nested.git',
     file: 'nested.txt',
@@ -109,6 +114,7 @@ function createMetrics(home) {
     workspaceReposCalls: 0,
     rootWatcherCalls: 0,
     workspaceWatcherCalls: 0,
+    gitIgnorePreScanCalls: 0,
     fs: {
       readdir: 0,
       readFile: 0,
@@ -160,6 +166,7 @@ function installInstrumentation(home) {
   const originalIndex = Git.prototype.index
   const originalRepos = Git.prototype.repos
   const originalEnsureWatcher = WorkspaceStatusManager.prototype.ensureWatcher
+  const originalEnsureGitIgnoreEngine = WorkspaceStatusManager.prototype.ensureGitIgnoreEngine
 
   Git.prototype.index = async function instrumentedGitIndex(...args) {
     metrics.inc('gitIndexCalls')
@@ -183,6 +190,10 @@ function installInstrumentation(home) {
       metrics.inc('workspaceWatcherCalls')
     }
     return originalEnsureWatcher.call(this, workspaceName, workspaceRoot, ...args)
+  }
+  WorkspaceStatusManager.prototype.ensureGitIgnoreEngine = async function instrumentedEnsureGitIgnoreEngine(...args) {
+    metrics.inc('gitIgnorePreScanCalls')
+    return originalEnsureGitIgnoreEngine.apply(this, args)
   }
 
   return metrics
@@ -330,13 +341,35 @@ if (!serverMode) test('/info/gitstatus stays selected-workspace scoped and avoid
     await sleep(5000)
     await fetchJson(baseUrl, '/__startup-git-index-test/reset', { method: 'POST', body: {} })
     await fsp.writeFile(path.join(workspace, 'tracked.txt'), 'top clean\ntop dirty\n')
-    const status = await fetchJson(baseUrl, `/info/gitstatus/${workspaceName}?force=1`)
+    await fsp.writeFile(path.join(workspace, 'tracked-hidden.txt'), 'hidden clean\nhidden dirty\n')
+    const status = await fetchJson(baseUrl, `/info/gitstatus/${workspaceName}`)
     assert.equal(status.totalChanges, 1)
+    assert.equal(status.repos.length, 2)
+    assert.equal(
+      status.repos.some((repo) => Array.isArray(repo.changes) && repo.changes.some((change) => change.file === 'tracked-hidden.txt')),
+      false,
+      'tracked paths hidden by .gitignore should not appear in /info/gitstatus'
+    )
     const { metrics } = await fetchJson(baseUrl, '/__startup-git-index-test/metrics')
+    assert.equal(metrics.gitIgnorePreScanCalls, 0, '/info/gitstatus must not call recursive ensureGitIgnoreEngine()')
     assert.equal(metrics.apiRootReposCalls, 0, '/info/gitstatus must not call kernel.git.repos(apiRoot)')
     assert.ok(metrics.workspaceReposCalls >= 1, '/info/gitstatus should scan the selected workspace')
     assert.ok(metrics.fs.readdir < 10000, `/info/gitstatus should stay below whole-tree scale; readdir=${metrics.fs.readdir}`)
   }, { disableWatch: true })
+})
+
+if (!serverMode) test('/info/gitstatus first watched request avoids recursive gitignore pre-scan', async () => {
+  await withPerfServer(async ({ baseUrl, workspaceName, workspace }) => {
+    await sleep(5000)
+    await fetchJson(baseUrl, '/__startup-git-index-test/reset', { method: 'POST', body: {} })
+    await fsp.writeFile(path.join(workspace, 'tracked.txt'), 'top clean\ntop dirty\n')
+    await fsp.writeFile(path.join(workspace, 'tracked-hidden.txt'), 'hidden clean\nhidden dirty\n')
+    const status = await fetchJson(baseUrl, `/info/gitstatus/${workspaceName}`)
+    assert.equal(status.totalChanges, 1)
+    const { metrics } = await fetchJson(baseUrl, '/__startup-git-index-test/metrics')
+    assert.equal(metrics.gitIgnorePreScanCalls, 0, 'first watched /info/gitstatus request must not call recursive ensureGitIgnoreEngine()')
+    assert.ok(metrics.workspaceWatcherCalls >= 1, '/info/gitstatus should still initialize the selected workspace watcher')
+  })
 })
 
 if (serverMode) {

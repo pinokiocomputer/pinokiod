@@ -11,6 +11,7 @@ class WorkspaceStatusManager {
     this.watchers = new Map()
     this.onEvent = typeof options.onEvent === 'function' ? options.onEvent : null
     this.gitIgnoreEngines = new Map()
+    this.gitIgnoreScanSkipDirs = new Set(['.git', 'node_modules', 'venv', '.venv'])
     this.defaultIgnores = options.ignores && Array.isArray(options.ignores) ? options.ignores : [
       '**/.git/**',
       '**/node_modules/**',
@@ -50,7 +51,7 @@ class WorkspaceStatusManager {
       }
       for (const entry of entries) {
         if (entry.isDirectory()) {
-          if (entry.name === '.git' || entry.name === 'node_modules' || entry.name === 'venv' || entry.name === '.venv') {
+          if (this.gitIgnoreScanSkipDirs.has(entry.name)) {
             continue
           }
           await walk(path.join(dir, entry.name))
@@ -73,32 +74,117 @@ class WorkspaceStatusManager {
       } catch (_) {
         continue
       }
-      const relDir = path.relative(workspaceRoot, path.dirname(gitignorePath))
-      const prefix = relDir && relDir !== '.' ? relDir.split(path.sep).join('/') + '/' : ''
-      const lines = content.split(/\r?\n/)
-      for (let line of lines) {
-        if (!line) continue
-        line = line.trim()
-        if (!line || line.startsWith('#')) continue
-        let negated = false
-        if (line.startsWith('!')) {
-          negated = true
-          line = line.slice(1)
-        }
-        if (!line) continue
-        line = line.replace(/^\/+/, '')
-        if (!line) continue
-        const pattern = prefix + line
-        if (!pattern) continue
-        if (negated) {
-          ig.add('!' + pattern)
-        } else {
-          ig.add(pattern)
-        }
-      }
+      this.addGitIgnoreContent(ig, workspaceRoot, gitignorePath, content)
     }
 
     this.gitIgnoreEngines.set(workspaceName, ig)
+  }
+
+  normalizeGitIgnorePath(value) {
+    return String(value || '').replace(/\\/g, '/').replace(/\/+/g, '/')
+  }
+
+  addGitIgnoreContent(engine, workspaceRoot, gitignorePath, content) {
+    const relDir = path.relative(workspaceRoot, path.dirname(gitignorePath))
+    const prefix = relDir && relDir !== '.' ? this.normalizeGitIgnorePath(relDir) + '/' : ''
+    const lines = String(content || '').split(/\r?\n/)
+    for (let line of lines) {
+      if (!line) continue
+      line = line.trim()
+      if (!line || line.startsWith('#')) continue
+      let negated = false
+      if (line.startsWith('!')) {
+        negated = true
+        line = line.slice(1)
+      }
+      if (!line) continue
+      line = line.replace(/^\/+/, '')
+      if (!line) continue
+      const pattern = prefix + line
+      if (!pattern) continue
+      engine.add((negated ? '!' : '') + pattern)
+    }
+  }
+
+  createPathScopedGitIgnoreContext(workspaceRoot) {
+    return {
+      workspaceRoot,
+      contentCache: new Map(),
+      engineCache: new Map(),
+    }
+  }
+
+  async readPathScopedGitIgnore(context, gitignorePath) {
+    if (context.contentCache.has(gitignorePath)) {
+      return context.contentCache.get(gitignorePath)
+    }
+    try {
+      const content = await fs.promises.readFile(gitignorePath, 'utf8')
+      context.contentCache.set(gitignorePath, content)
+      return content
+    } catch (_) {
+      context.contentCache.set(gitignorePath, null)
+      return null
+    }
+  }
+
+  pathScopedGitIgnoreDirs(workspaceRelativePath) {
+    const normalized = this.normalizeGitIgnorePath(workspaceRelativePath)
+    const parts = normalized.split('/').filter(Boolean)
+    const dirs = []
+    for (let depth = 0; depth < parts.length; depth++) {
+      dirs.push(depth === 0 ? '' : parts.slice(0, depth).join('/'))
+      if (this.gitIgnoreScanSkipDirs.has(parts[depth])) {
+        break
+      }
+    }
+    return dirs
+  }
+
+  async pathScopedGitIgnoreEngine(context, workspaceRelativePath) {
+    if (!context || !context.workspaceRoot) {
+      return null
+    }
+    const dirs = this.pathScopedGitIgnoreDirs(workspaceRelativePath)
+    const cacheKey = dirs.join('\0')
+    if (context.engineCache.has(cacheKey)) {
+      return context.engineCache.get(cacheKey)
+    }
+    const engine = ignore()
+    for (const relDir of dirs) {
+      const gitignorePath = path.join(context.workspaceRoot, relDir, '.gitignore')
+      const content = await this.readPathScopedGitIgnore(context, gitignorePath)
+      if (content) {
+        this.addGitIgnoreContent(engine, context.workspaceRoot, gitignorePath, content)
+      }
+    }
+    context.engineCache.set(cacheKey, engine)
+    return engine
+  }
+
+  async isPathScopedGitIgnored(context, workspaceRelativePath) {
+    const normalized = this.normalizeGitIgnorePath(workspaceRelativePath)
+    if (!normalized) {
+      return false
+    }
+    const engine = await this.pathScopedGitIgnoreEngine(context, normalized)
+    return !!(engine && engine.ignores(normalized))
+  }
+
+  async filterPathScopedGitIgnored(contextOrWorkspaceRoot, records) {
+    const context = typeof contextOrWorkspaceRoot === 'string'
+      ? this.createPathScopedGitIgnoreContext(contextOrWorkspaceRoot)
+      : contextOrWorkspaceRoot
+    const ignored = new Set()
+    for (const record of records || []) {
+      if (!record || !record.key || !record.workspaceRelative) {
+        continue
+      }
+      if (await this.isPathScopedGitIgnored(context, record.workspaceRelative)) {
+        ignored.add(record.key)
+      }
+    }
+    return ignored
   }
 
   markDirty(workspaceName) {
@@ -119,7 +205,6 @@ class WorkspaceStatusManager {
       return
     }
     try {
-      await this.ensureGitIgnoreEngine(workspaceName, workspaceRoot)
       const subscription = await ParcelWatcher.subscribe(
         workspaceRoot,
         (error, events) => {
@@ -130,29 +215,10 @@ class WorkspaceStatusManager {
           if (!events || events.length === 0) {
             return
           }
-          let relevantEvents = events
-          const engine = this.gitIgnoreEngines.get(workspaceName)
-          if (engine && workspaceRoot) {
-            const root = workspaceRoot
-            relevantEvents = events.filter((evt) => {
-              if (!evt || !evt.path) {
-                return true
-              }
-              let rel = path.relative(root, evt.path)
-              if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) {
-                return true
-              }
-              const normalized = rel.split(path.sep).join('/')
-              return !engine.ignores(normalized)
-            })
-          }
-          if (relevantEvents.length === 0) {
-            return
-          }
           this.markDirty(workspaceName)
           if (this.onEvent) {
             try {
-              this.onEvent(workspaceName, relevantEvents)
+              this.onEvent(workspaceName, events)
             } catch (err) {
               console.warn('workspace watcher callback error', workspaceName, err && err.message ? err.message : err)
             }

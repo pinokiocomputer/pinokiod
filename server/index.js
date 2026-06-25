@@ -1785,7 +1785,7 @@ class Server {
     let check = !!relative && !relative.startsWith('..') && !path.isAbsolute(relative);
     return check
   }
-  async getRepoHeadStatus(repoRelPath) {
+  async getRepoHeadStatus(repoRelPath, options = {}) {
     const repoParam = repoRelPath || ""
     const dir = repoParam ? this.kernel.path("api", repoParam) : this.kernel.path("api")
 
@@ -1798,19 +1798,21 @@ class Server {
       return { changes: [], git_commit_url: null }
     }
 
-      let gitIgnoreEngine = null
       let workspaceName = null
+      let workspaceRoot = null
       let workspaceRelBase = ''
+      let gitIgnoreContext = null
       try {
         if (this.workspaceStatus && this.kernel && typeof this.kernel.path === 'function') {
           if (repoParam && repoParam.length > 0) {
             const parts = repoParam.split('/')
             workspaceName = parts[0]
-            const workspaceRoot = this.kernel.path("api", workspaceName)
-            await this.workspaceStatus.ensureGitIgnoreEngine(workspaceName, workspaceRoot)
-            gitIgnoreEngine = this.workspaceStatus.gitIgnoreEngines && this.workspaceStatus.gitIgnoreEngines.get
-              ? this.workspaceStatus.gitIgnoreEngines.get(workspaceName) || null
-              : null
+            workspaceRoot = this.kernel.path("api", workspaceName)
+            gitIgnoreContext = options && options.gitIgnoreContext
+              ? options.gitIgnoreContext
+              : (typeof this.workspaceStatus.createPathScopedGitIgnoreContext === 'function'
+                  ? this.workspaceStatus.createPathScopedGitIgnoreContext(workspaceRoot)
+                  : null)
             if (parts.length > 1) {
               workspaceRelBase = parts.slice(1).join('/')
             }
@@ -1887,15 +1889,15 @@ class Server {
         if (!filepath) {
           continue
         }
-        if (gitIgnoreEngine && workspaceName) {
-          const workspaceRelative = workspaceRelBase ? `${workspaceRelBase}/${filepath}` : filepath
-          const normalizedWorkspaceRel = normalizePath(workspaceRelative)
-          if (gitIgnoreEngine.ignores(normalizedWorkspaceRel)) {
-            continue
-          }
-        }
         if (!shouldIncludePath(filepath)) {
           continue
+        }
+        if (gitIgnoreContext && workspaceName && this.workspaceStatus && typeof this.workspaceStatus.isPathScopedGitIgnored === 'function') {
+          const workspaceRelative = workspaceRelBase ? `${workspaceRelBase}/${filepath}` : filepath
+          const normalizedWorkspaceRel = normalizePath(workspaceRelative)
+          if (await this.workspaceStatus.isPathScopedGitIgnored(gitIgnoreContext, normalizedWorkspaceRel)) {
+            continue
+          }
         }
         const normalizedFile = normalizePath(filepath)
         const absolutePath = path.join(dir, filepath)
@@ -2545,12 +2547,15 @@ class Server {
   async computeWorkspaceGitStatus(workspaceName) {
     const workspacePath = this.kernel.path("api", workspaceName)
     const repos = await this.kernel.git.repos(workspacePath)
+    const gitIgnoreContext = this.workspaceStatus && typeof this.workspaceStatus.createPathScopedGitIgnoreContext === 'function'
+      ? this.workspaceStatus.createPathScopedGitIgnoreContext(workspacePath)
+      : null
 
     const statuses = []
     for (const repo of repos) {
       const repoParam = repo.gitParentRelPath || workspaceName
       try {
-        const { changes, git_commit_url, git_history_url, git_fork_url, git_push_url } = await this.getRepoHeadStatus(repoParam)
+        const { changes, git_commit_url, git_history_url, git_fork_url, git_push_url } = await this.getRepoHeadStatus(repoParam, { gitIgnoreContext })
         const historyUrl = git_history_url || (repoParam ? `/info/git/HEAD/${repoParam}` : `/info/git/HEAD/${workspaceName}`)
         statuses.push({
           name: repo.name,
