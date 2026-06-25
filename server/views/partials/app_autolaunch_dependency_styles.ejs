@@ -294,3 +294,64 @@ body.dark .app-autolaunch-dependency-script-app {
 .app-autolaunch-dependency-script-body {
   padding: 12px 14px 14px;
 }
+.app-autolaunch-dependency-script-actions {
+  position: sticky;
+  bottom: 0;
+  padding: 12px 14px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.98);
+}
+body.dark .app-autolaunch-dependency-script-actions {
+  border-top-color: rgba(255, 255, 255, 0.08);
+  background: rgba(15, 17, 21, 0.98);
+}
+.app-autolaunch-primary {
+  appearance: none;
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid rgba(37, 99, 235, 0.72);
+  border-radius: 7px;
+  background: #2563eb;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.app-autolaunch-primary:hover {
+  border-color: rgba(29, 78, 216, 0.9);
+  background: #1d4ed8;
+}
+.app-autolaunch-primary:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.36);
+  outline-offset: 2px;
+}
+.app-autolaunch-primary:disabled {
+  border-color: rgba(148, 163, 184, 0.28);
+  background: rgba(148, 163, 184, 0.18);
+  color: rgba(100, 116, 139, 0.8);
+  cursor: not-allowed;
+}
+body.dark .app-autolaunch-primary:disabled {
+  color: rgba(203, 213, 225, 0.62);
+  background: rgba(148, 163, 184, 0.12);
+}
+.app-autolaunch-primary-script {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.2);
+  font-weight: 800;
+}
+.app-autolaunch-primary:disabled .app-autolaunch-primary-script {
+  background: transparent;
+}

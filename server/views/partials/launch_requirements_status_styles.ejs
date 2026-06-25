@@ -87,6 +87,39 @@ body.dark .launch-requirements-row {
   font-size: 11px;
   white-space: nowrap;
 }
+.launch-requirements-choose-script {
+  appearance: none;
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(30, 41, 59, 0.92);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 24px;
+  margin-left: 2px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.launch-requirements-choose-script i {
+  color: rgba(71, 85, 105, 0.9);
+  font-size: 10px;
+}
+.launch-requirements-choose-script:hover {
+  border-color: rgba(100, 116, 139, 0.5);
+  background: rgba(248, 250, 252, 0.96);
+  color: rgba(15, 23, 42, 0.96);
+}
+.launch-requirements-choose-script:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.34);
+  outline-offset: 2px;
+}
 .launch-requirements-state.is-active i {
   color: #2563eb;
 }
@@ -95,6 +128,19 @@ body.dark .launch-requirements-row {
 }
 body.dark .launch-requirements-state {
   color: rgba(203, 213, 225, 0.82);
+}
+body.dark .launch-requirements-choose-script {
+  border-color: rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.7);
+  color: rgba(226, 232, 240, 0.92);
+}
+body.dark .launch-requirements-choose-script i {
+  color: rgba(203, 213, 225, 0.82);
+}
+body.dark .launch-requirements-choose-script:hover {
+  border-color: rgba(148, 163, 184, 0.36);
+  background: rgba(30, 41, 59, 0.78);
+  color: rgba(248, 250, 252, 0.96);
 }
 .launch-requirements-actions {
   display: flex;

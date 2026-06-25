@@ -66,14 +66,13 @@
     const folderPath = dependency ? dependencyFolderPath(dependency) : dependencyId
     const fullFolderPath = dependency ? dependencyFullPath(dependency) : dependencyId
     const icon = (dependency && dependency.icon) || "/pinokio-black.png"
+    const selectedDependencyScript = dependencyScriptSelections[dependencyId] || (dependency && dependency.autolaunch ? dependency.autolaunch : "")
     let body = ""
     if (!pickerState || pickerState.loading) {
       body = '<div class="app-autolaunch-empty">Loading script choices...</div>'
     } else if (pickerState.error) {
       body = `<div class="app-autolaunch-empty">${escapeHtml(pickerState.error)}</div>`
     } else {
-      const current = dependency && dependency.autolaunch ? dependency.autolaunch : ""
-      const selectedDependencyScript = dependencyScriptSelections[dependencyId] || current
       const candidates = [].concat(pickerState.menu || [], pickerState.other || [])
       if (candidates.length === 0) {
         body = '<div class="app-autolaunch-empty">No local scripts were found for this app.</div>'
@@ -122,8 +121,10 @@
             ${body}
           </div>
           <div class="app-autolaunch-dependency-script-actions">
-            <button type="button" class="app-autolaunch-primary" data-app-autolaunch-confirm-dependency-script data-app-autolaunch-dependency-script-app="${escapeHtml(dependencyId)}" ${dependencyScriptSelections[dependencyId] || (dependency && dependency.autolaunch) ? "" : "disabled"}>
-              Add requirement${dependencyScriptSelections[dependencyId] || (dependency && dependency.autolaunch) ? ` with ${escapeHtml(dependencyScriptSelections[dependencyId] || dependency.autolaunch)}` : ""}
+            <button type="button" class="app-autolaunch-primary" data-app-autolaunch-confirm-dependency-script data-app-autolaunch-dependency-script-app="${escapeHtml(dependencyId)}" ${selectedDependencyScript ? "" : "disabled"}>
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>
+              <span class="app-autolaunch-primary-text">Add requirement</span>
+              ${selectedDependencyScript ? `<span class="app-autolaunch-primary-script">${escapeHtml(selectedDependencyScript)}</span>` : ""}
             </button>
           </div>
         </div>

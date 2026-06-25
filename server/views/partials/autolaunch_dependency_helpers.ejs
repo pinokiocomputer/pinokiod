@@ -66,14 +66,13 @@ const renderDependencyScriptModal = () => {
   const folderPath = dependency ? dependencyFolderPath(dependency) : appId;
   const fullFolderPath = dependency ? dependencyFullPath(dependency) : appId;
   const appIcon = (dependency && dependency.icon) || "/pinokio-black.png";
+  const selectedDependencyScript = dependencyScriptSelections[appId] || (dependency && dependency.autolaunch ? dependency.autolaunch : "");
   let body = "";
   if (!state || state.loading) {
     body = '<div class="autolaunch-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading script choices...</div>';
   } else if (state.error) {
     body = `<div class="autolaunch-empty">${escapeHtml(state.error)}</div>`;
   } else {
-    const current = dependency && dependency.autolaunch ? dependency.autolaunch : "";
-    const selectedDependencyScript = dependencyScriptSelections[appId] || current;
     const candidates = [].concat(state.menu || [], state.other || []);
     if (candidates.length === 0) {
       body = '<div class="autolaunch-empty">No local scripts were found for this app.</div>';
@@ -123,7 +122,9 @@ const renderDependencyScriptModal = () => {
         </div>
         <div class="autolaunch-dependency-script-actions">
           <button type="button" class="autolaunch-primary" data-confirm-dependency-script data-dependency-script-app="${escapeHtml(appId)}" ${selectedDependencyScript ? "" : "disabled"}>
-            Add requirement${selectedDependencyScript ? ` with ${escapeHtml(selectedDependencyScript)}` : ""}
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            <span class="autolaunch-primary-text">Add requirement</span>
+            ${selectedDependencyScript ? `<span class="autolaunch-primary-script">${escapeHtml(selectedDependencyScript)}</span>` : ""}
           </button>
         </div>
       </div>
