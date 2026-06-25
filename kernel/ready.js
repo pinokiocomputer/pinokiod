@@ -111,6 +111,42 @@ class ReadyState {
       step_total: total
     }
   }
+  stripProgress(record = {}) {
+    const next = { ...record }
+    delete next.step_current
+    delete next.step_total
+    return next
+  }
+  clearScriptProgress(launchPath) {
+    if (!launchPath || typeof launchPath !== "string") {
+      return
+    }
+    const resolved = path.resolve(launchPath)
+    const rpc = this.kernel.memory && this.kernel.memory.rpc
+      ? this.kernel.memory.rpc[resolved]
+      : null
+    if (rpc && typeof rpc === "object") {
+      delete rpc.current
+      delete rpc.total
+    }
+  }
+  writeScriptProgress(launchPath, current, total) {
+    if (!launchPath || typeof launchPath !== "string") {
+      return
+    }
+    if (!this.kernel.memory) {
+      this.kernel.memory = {}
+    }
+    if (!this.kernel.memory.rpc) {
+      this.kernel.memory.rpc = {}
+    }
+    const resolved = path.resolve(launchPath)
+    this.kernel.memory.rpc[resolved] = {
+      ...(this.kernel.memory.rpc[resolved] || {}),
+      current,
+      total
+    }
+  }
   updateLaunchStatus(launchPath, state, details) {
     const appId = this.getAppIdForLaunchPath(launchPath)
     if (!appId) {
@@ -119,16 +155,18 @@ class ReadyState {
     const script = this.getAppRelativeLaunchScript(appId, launchPath)
     const current = this.status.apps[appId] || { id: appId, scripts: {} }
     const scripts = { ...(current.scripts || {}) }
+    const hasProgress = Object.prototype.hasOwnProperty.call(details || {}, "step_current")
+      || Object.prototype.hasOwnProperty.call(details || {}, "step_total")
     if (script) {
       scripts[script] = {
-        ...(scripts[script] || { script }),
+        ...(hasProgress ? (scripts[script] || { script }) : this.stripProgress(scripts[script] || { script })),
         script,
         state,
         ...details
       }
     }
     this.status.apps[appId] = {
-      ...current,
+      ...(hasProgress ? current : this.stripProgress(current)),
       id: appId,
       state,
       script: script || current.script,
@@ -137,6 +175,7 @@ class ReadyState {
     }
   }
   markStarted(launchPath) {
+    this.clearScriptProgress(launchPath)
     this.updateLaunchStatus(launchPath, "starting", {
       started_at: Date.now()
     })
@@ -151,21 +190,25 @@ class ReadyState {
       step_current: Math.max(1, stepCurrent + 1),
       step_total: stepTotal
     }
+    this.writeScriptProgress(launchPath, stepCurrent, stepTotal)
     this.updateLaunchStatus(launchPath, "starting", progress)
     return progress
   }
   markReady(launchPath) {
+    this.clearScriptProgress(launchPath)
     this.updateLaunchStatus(launchPath, "ready", {
       ready_at: Date.now()
     })
   }
   markFailed(launchPath, error) {
+    this.clearScriptProgress(launchPath)
     this.updateLaunchStatus(launchPath, "failed", {
       error: error && error.message ? error.message : String(error || "Launch failed"),
       failed_at: Date.now()
     })
   }
   markStopped(launchPath) {
+    this.clearScriptProgress(launchPath)
     this.updateLaunchStatus(launchPath, "stopped", {
       stopped_at: Date.now()
     })

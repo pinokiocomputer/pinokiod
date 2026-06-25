@@ -1,0 +1,25 @@
+const createLaunchSettingsDependencyScriptLoader = ({
+  getCache,
+  render
+}) => async (appId) => {
+  const cache = typeof getCache === "function" ? getCache() : null
+  if (!appId || !cache || cache[appId]) return
+  cache[appId] = { loading: true }
+  if (typeof render === "function") render()
+  try {
+    const response = await fetch(`/autolaunch/candidates?app=${encodeURIComponent(appId)}`, {
+      headers: { "Accept": "application/json" }
+    })
+    const data = await response.json()
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Failed to load script choices.")
+    }
+    cache[appId] = data
+  } catch (error) {
+    cache[appId] = {
+      error: error && error.message ? error.message : "Failed to load script choices."
+    }
+  } finally {
+    if (typeof render === "function") render()
+  }
+}

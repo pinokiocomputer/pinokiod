@@ -33,12 +33,20 @@ const renderSelectedDependency = (appId) => {
   const title = candidate ? (candidate.title || candidate.name || candidate.id) : appId;
   const folderPath = candidate ? dependencyFolderPath(candidate) : appId;
   const fullFolderPath = candidate ? dependencyFullPath(candidate) : appId;
+  const script = candidate && candidate.autolaunch ? candidate.autolaunch : "";
+  const scriptLine = script
+    ? `<span class="autolaunch-dependency-option-path">${escapeHtml(script)}</span>`
+    : `<button type="button" class="autolaunch-dependency-configure" data-configure-dependency="${escapeHtml(appId)}" ${savingDependencies ? "disabled" : ""}>
+        <i class="fa-solid fa-gear" aria-hidden="true"></i>
+        Missing launch script
+      </button>`;
   return `
     <div class="autolaunch-dependency-row" title="${escapeHtml(fullFolderPath)}">
       <img src="${escapeHtml((candidate && candidate.icon) || "/pinokio-black.png")}" alt="" onerror="this.onerror=null; this.src='/pinokio-black.png'">
       <span class="autolaunch-dependency-option-meta">
         <span class="autolaunch-dependency-option-title">${escapeHtml(title)}</span>
         <span class="autolaunch-dependency-option-path">${escapeHtml(folderPath)}</span>
+        ${scriptLine}
       </span>
       <button type="button" class="autolaunch-dependency-remove" data-remove-dependency="${escapeHtml(appId)}" aria-label="Remove ${escapeHtml(title)}" ${savingDependencies ? "disabled" : ""}>
         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
@@ -47,15 +55,92 @@ const renderSelectedDependency = (appId) => {
   `;
 };
 
+const renderDependencyScriptModal = () => {
+  const appId = dependencyScriptPickerOpen;
+  if (!appId) {
+    return "";
+  }
+  const state = dependencyScriptCandidates[appId];
+  const dependency = dependencyById(appId);
+  const title = dependency ? (dependency.title || dependency.name || dependency.id) : appId;
+  const folderPath = dependency ? dependencyFolderPath(dependency) : appId;
+  const fullFolderPath = dependency ? dependencyFullPath(dependency) : appId;
+  const appIcon = (dependency && dependency.icon) || "/pinokio-black.png";
+  let body = "";
+  if (!state || state.loading) {
+    body = '<div class="autolaunch-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading script choices...</div>';
+  } else if (state.error) {
+    body = `<div class="autolaunch-empty">${escapeHtml(state.error)}</div>`;
+  } else {
+    const current = dependency && dependency.autolaunch ? dependency.autolaunch : "";
+    const selectedDependencyScript = dependencyScriptSelections[appId] || current;
+    const candidates = [].concat(state.menu || [], state.other || []);
+    if (candidates.length === 0) {
+      body = '<div class="autolaunch-empty">No local scripts were found for this app.</div>';
+    } else {
+      body = `
+        <div class="autolaunch-script-list">
+          ${candidates.map((candidate) => {
+            const checked = candidate.script === selectedDependencyScript ? "checked" : "";
+            const selected = candidate.script === selectedDependencyScript ? " selected" : "";
+            const icon = candidate.icon || "fa-regular fa-file-code";
+            return `
+              <label class="autolaunch-script-option${selected}">
+                <input type="radio" name="dependency-script-${escapeHtml(appId)}" data-dependency-script-choice data-dependency-script-app="${escapeHtml(appId)}" value="${escapeHtml(candidate.script)}" ${checked} ${savingDependencyScript ? "disabled" : ""}>
+                <i class="${escapeHtml(icon)}"></i>
+                <div>
+                  <div class="autolaunch-script-title"><span>${escapeHtml(candidate.label || candidate.script)}</span></div>
+                  <div class="autolaunch-script-path">${escapeHtml(candidate.script)}</div>
+                </div>
+              </label>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+  }
+  return `
+    <div class="autolaunch-dependency-script-modal" role="dialog" aria-modal="true" aria-label="Select launch script for ${escapeHtml(title)}">
+      <div class="autolaunch-dependency-script-panel">
+        <div class="autolaunch-dependency-script-head">
+          <div>
+            <h3 class="autolaunch-section-title">Select launch script</h3>
+            <div class="autolaunch-section-note">This app must have a launch script before it can be required.</div>
+          </div>
+          <button type="button" class="autolaunch-icon-button" data-close-dependency-script-modal aria-label="Close script selection" ${savingDependencyScript ? "disabled" : ""}>
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="autolaunch-dependency-script-app" title="${escapeHtml(fullFolderPath)}">
+          <img src="${escapeHtml(appIcon)}" alt="" onerror="this.onerror=null; this.src='/pinokio-black.png'">
+          <span class="autolaunch-dependency-option-meta">
+            <span class="autolaunch-dependency-option-title">${escapeHtml(title)}</span>
+            <span class="autolaunch-dependency-option-path">${escapeHtml(folderPath)}</span>
+          </span>
+        </div>
+        <div class="autolaunch-dependency-script-body">
+          ${body}
+        </div>
+        <div class="autolaunch-dependency-script-actions">
+          <button type="button" class="autolaunch-primary" data-confirm-dependency-script data-dependency-script-app="${escapeHtml(appId)}" ${selectedDependencyScript ? "" : "disabled"}>
+            Add requirement${selectedDependencyScript ? ` with ${escapeHtml(selectedDependencyScript)}` : ""}
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
 const renderDependencySection = (app) => {
-  if (!app || !app.autolaunch_enabled) {
+  if (!app) {
     return "";
   }
   const dependencies = Array.isArray(app.autolaunch_depends) ? app.autolaunch_depends : [];
   const dependencySet = new Set(dependencies);
+  const displayDependencies = dependencies.slice();
   const dependencyApps = dependencyAppsFor(app);
-  const selectedRows = dependencies.length > 0
-    ? dependencies.map(renderSelectedDependency).join("")
+  const selectedRows = displayDependencies.length > 0
+    ? displayDependencies.map(renderSelectedDependency).join("")
     : '<div class="autolaunch-dependency-row-empty">No dependencies.</div>';
   const availableDependencies = dependencyApps.filter((candidate) => !dependencySet.has(candidate.id));
   const picker = availableDependencies.length > 0
@@ -86,32 +171,19 @@ const renderDependencySection = (app) => {
         <span>No more apps to add</span>
       </button>
     `;
-  const warnings = dependencies
-    .map((id) => autolaunchApps.find((candidate) => candidate.id === id))
-    .filter((candidate) => candidate && !candidate.autolaunch_enabled)
-    .map((candidate) => `
-      <div class="autolaunch-dependency-warning">
-        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-        <span>${escapeHtml(candidate.title || candidate.id)} is not set to start automatically. Configure its startup script or this app will only wait if it is already running.</span>
-        <button type="button" class="task-button" data-configure-dependency="${escapeHtml(candidate.id)}" ${savingDependencies ? "disabled" : ""}>
-          <i class="fa-solid fa-gear"></i>
-          Configure startup...
-        </button>
-      </div>
-    `).join("");
   return `
     <div class="autolaunch-section">
       <div class="autolaunch-section-header">
-        <h3 class="autolaunch-section-title">Wait for</h3>
+        <h3 class="autolaunch-section-title">Requires</h3>
       </div>
       <div class="autolaunch-dependency-list">
         <div class="autolaunch-dependency-stack">
           <div class="autolaunch-dependency-selected">${selectedRows}</div>
           ${picker}
         </div>
-        ${warnings}
       </div>
     </div>
+    ${renderDependencyScriptModal()}
   `;
 };
 
@@ -129,4 +201,3 @@ const filterDependencyPicker = (picker) => {
   const empty = picker.querySelector("[data-dependency-empty]");
   if (empty) empty.hidden = visibleCount !== 0;
 };
-

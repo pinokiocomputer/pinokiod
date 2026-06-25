@@ -603,6 +603,7 @@ body.dark .browserview-network-status {
   color: rgba(248, 250, 252, 0.9);
   background: var(--app-page-canvas-bg, #1b1c1d);
 }
+<%- include('./partials/launch_requirements_status_styles') %>
 .browserview-network-status-inner {
   display: flex;
   flex-direction: column;
@@ -3685,6 +3686,11 @@ body.dark .disk-usage {
   text-overflow: ellipsis;
   color: var(--pinokio-sidebar-tab-muted);
 }
+.app-autolaunch-label > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .app-autolaunch-label i {
   width: 16px;
   flex: 0 0 16px;
@@ -3702,6 +3708,7 @@ body.dark .disk-usage {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 .app-autolaunch-row[data-enabled="true"] .app-autolaunch-status {
   color: rgba(22, 101, 52, 0.95);
@@ -3792,6 +3799,21 @@ body.dark .app-autolaunch-empty {
   align-items: center;
   gap: 8px;
   flex: 0 0 auto;
+}
+.app-autolaunch-switch-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.app-autolaunch-switch-caption {
+  color: rgba(100, 116, 139, 0.95);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+body.dark .app-autolaunch-switch-caption {
+  color: rgba(148, 163, 184, 0.95);
 }
 .app-autolaunch-close {
   display: inline-flex;
@@ -3914,9 +3936,41 @@ body.dark .app-autolaunch-section-label {
 .app-autolaunch-script-option > div {
   min-width: 0;
 }
+.app-autolaunch-clear-script {
+  min-height: 32px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(100, 116, 139, 0.95);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 9px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.app-autolaunch-clear-script:hover {
+  background: rgba(148, 163, 184, 0.16);
+  color: rgba(15, 23, 42, 0.9);
+}
+.app-autolaunch-clear-script:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
 body.dark .app-autolaunch-script-option {
   border-color: rgba(148, 163, 184, 0.16);
   background: rgba(15, 23, 42, 0.72);
+}
+body.dark .app-autolaunch-clear-script {
+  border-color: rgba(148, 163, 184, 0.16);
+  color: rgba(203, 213, 225, 0.9);
+}
+body.dark .app-autolaunch-clear-script:hover {
+  background: rgba(148, 163, 184, 0.16);
+  color: rgba(226, 232, 240, 0.92);
 }
 body.dark .app-autolaunch-script-option:hover,
 body.dark .app-autolaunch-script-option.selected {
@@ -7885,13 +7939,16 @@ body.dark .pinokio-custom-terminal-header {
                 <div class="app-autolaunch-modal-head">
                   <div>
                     <div class="app-autolaunch-title">Autolaunch</div>
-                    <div class="app-autolaunch-note">Run this app when Pinokio starts.</div>
+                    <div class="app-autolaunch-note">Choose launch script, startup behavior, and requirements.</div>
                   </div>
                   <div class="app-autolaunch-modal-actions">
-                    <button type="button" class="app-autolaunch-switch" role="switch" aria-checked="<%= autolaunch_app.autolaunch_enabled ? 'true' : 'false' %>" data-app-autolaunch-switch aria-label="Autolaunch" title="Autolaunch is <%= autolaunch_app.autolaunch_enabled ? 'on' : 'off' %>">
-                      <span class="app-autolaunch-switch-label" data-app-autolaunch-switch-label><%= autolaunch_app.autolaunch_enabled ? 'ON' : 'OFF' %></span>
-                      <span class="app-autolaunch-switch-thumb" aria-hidden="true"></span>
-                    </button>
+                    <div class="app-autolaunch-switch-group">
+                      <span class="app-autolaunch-switch-caption">Start with Pinokio</span>
+                      <button type="button" class="app-autolaunch-switch" role="switch" aria-checked="<%= autolaunch_app.autolaunch_enabled ? 'true' : 'false' %>" data-app-autolaunch-switch aria-label="Start with Pinokio" title="Start with Pinokio is <%= autolaunch_app.autolaunch_enabled ? 'on' : 'off' %>">
+                        <span class="app-autolaunch-switch-label" data-app-autolaunch-switch-label><%= autolaunch_app.autolaunch_enabled ? 'ON' : 'OFF' %></span>
+                        <span class="app-autolaunch-switch-thumb" aria-hidden="true"></span>
+                      </button>
+                    </div>
                     <button type="button" class="app-autolaunch-close" data-app-autolaunch-close aria-label="Close">
                       <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                     </button>
@@ -7904,7 +7961,7 @@ body.dark .pinokio-custom-terminal-header {
                   </div>
                 </div>
                 <div class="app-autolaunch-modal-section">
-                  <div class="app-autolaunch-section-label">Wait for</div>
+                  <div class="app-autolaunch-section-label">Requires</div>
                   <div class="app-autolaunch-dependencies" data-app-autolaunch-dependencies>
                     <div class="app-autolaunch-empty">Loading dependencies...</div>
                   </div>
@@ -7990,6 +8047,7 @@ body.dark .pinokio-custom-terminal-header {
           <iframe class='selected' src="<%=editor_tab%>" allow="fullscreen *;" allowfullscreen></iframe>
         <% } %>
         <div id="browserview-network-status" class="browserview-network-status" hidden aria-live="polite"></div>
+        <div id="launch-requirements-status" class="launch-requirements-status" data-launch-requirements-status hidden aria-live="polite"></div>
         <%- include('./partials/browser_popout_surface') %>
       </main>
       <% if (type === 'run') { %>
@@ -8302,6 +8360,7 @@ body.dark .pinokio-custom-terminal-header {
   let pendingSelectionRetry = null
   let pendingHomeSelectionRetry = null
   let initialWorkspaceDiskUsageRequested = false
+  const openWithoutLaunching = <%- JSON.stringify(type === "run" && !autoselect) %>
   const scheduleSelectionRetry = (delay = 100) => {
     if (pendingSelectionRetry !== null) {
       return
@@ -10011,7 +10070,9 @@ const rerenderMenuSection = (container, html) => {
         return ""
       }
     })()
-    let persistedSelectionRaw = selectionKey && storage ? storage.getItem(selectionKey) : null
+    const triggeredByUser = Boolean(eventParam || explicitTarget)
+    const automaticSelectionDisabled = openWithoutLaunching && !triggeredByUser
+    let persistedSelectionRaw = automaticSelectionDisabled ? null : (selectionKey && storage ? storage.getItem(selectionKey) : null)
     const devRouteActive = /\/dev(?:$|\/)/.test(currentPath || "")
     let persistedSelectionPayload = null
     if (persistedSelectionRaw) {
@@ -10036,9 +10097,8 @@ const rerenderMenuSection = (container, html) => {
       persistedSelectionRaw = null
     }
     const originalHasPersistedSelection = Boolean(persistedSelectionPayload)
-    const triggeredByUser = Boolean(eventParam || explicitTarget)
-    const followCurrentDefault = forceDefaultSelection && !triggeredByUser
-    const skipPersistedSelection = followCurrentDefault || (ignorePersistedSelection && Boolean(document.querySelector('[data-default]')))
+    const followCurrentDefault = !automaticSelectionDisabled && forceDefaultSelection && !triggeredByUser
+    const skipPersistedSelection = automaticSelectionDisabled || followCurrentDefault || (ignorePersistedSelection && Boolean(document.querySelector('[data-default]')))
     let hasPersistedSelection = skipPersistedSelection ? false : originalHasPersistedSelection
     if (skipPersistedSelection) {
       persistedSelectionRaw = null
@@ -10060,7 +10120,7 @@ const rerenderMenuSection = (container, html) => {
       target = eventParam.target?.closest(".frame-link") || null
     }
 
-    if (!target && global_selector) {
+    if (!target && !automaticSelectionDisabled && global_selector) {
       const candidate = document.querySelector(global_selector)
       if (candidate) {
         target = candidate
@@ -10072,11 +10132,11 @@ const rerenderMenuSection = (container, html) => {
       }
     }
 
-    if (!target && !skipPersistedSelection) {
+    if (!target && !automaticSelectionDisabled && !skipPersistedSelection) {
       preselected = document.querySelector('#devtab.frame-link.selected') || document.querySelector('.frame-link.selected')
     }
 
-    if (!target && persistedSelectionPayload) {
+    if (!target && !automaticSelectionDisabled && persistedSelectionPayload) {
       target = restorePersistedFrameLink(persistedSelectionPayload)
       if (!target && originalHasPersistedSelection) {
         scheduleSelectionRetry()
@@ -10084,7 +10144,7 @@ const rerenderMenuSection = (container, html) => {
       }
     }
 
-    if (!target && !skipPersistedSelection) {
+    if (!target && !automaticSelectionDisabled && !skipPersistedSelection) {
       const urlKey = selectionUrlStorageKey()
       const storedUrl = urlKey && storage ? storage.getItem(urlKey) : null
       if (storedUrl) {
@@ -10092,7 +10152,7 @@ const rerenderMenuSection = (container, html) => {
       }
     }
 
-    if (!target && followCurrentDefault) {
+    if (!target && !automaticSelectionDisabled && followCurrentDefault) {
       const defaultSelection = getDefaultSelection()
       if (defaultSelection) {
         target = defaultSelection
@@ -10100,11 +10160,11 @@ const rerenderMenuSection = (container, html) => {
     }
 
     const devTab = document.querySelector('#devtab.frame-link')
-    if (!target && preselected && preselected !== devTab) {
+    if (!target && !automaticSelectionDisabled && preselected && preselected !== devTab) {
       target = preselected
     }
 
-    if (!triggeredByUser && !resolvedByGlobalSelector && !target && devRouteActive && devTab) {
+    if (!automaticSelectionDisabled && !triggeredByUser && !resolvedByGlobalSelector && !target && devRouteActive && devTab) {
       const defaultCandidate = getDefaultSelection()
       if (pluginLaunchActive && defaultCandidate) {
         target = defaultCandidate
@@ -10113,7 +10173,7 @@ const rerenderMenuSection = (container, html) => {
       }
     }
 
-    if (!target && preselected) {
+    if (!target && !automaticSelectionDisabled && preselected) {
       target = preselected
     }
 
@@ -10148,7 +10208,7 @@ const rerenderMenuSection = (container, html) => {
       }
     <% } %>
 
-    if (!target && preselected) {
+    if (!target && !automaticSelectionDisabled && preselected) {
       target = preselected
     }
 
@@ -10285,7 +10345,6 @@ const rerenderMenuSection = (container, html) => {
       eventParam.preventDefault()
       eventParam.stopPropagation()
     }
-
     // save target.href
     <% if (type !== "run") { %>
       let _url = new URL(target.href)
@@ -10379,7 +10438,7 @@ const rerenderMenuSection = (container, html) => {
 		      writeFrameInjectDescriptors(targetFrame, targetInjectDescriptors)
 	      publishBrowserviewInjectTargets([], { sync: true })
 	      targetFrame.classList.remove("hidden")
-	      let mode = target.getAttribute("data-mode")
+      let mode = target.getAttribute("data-mode")
       if (mode === "refresh") {
         if (targetFrame.src !== target.href) {
           targetFrame.src = target.href
@@ -18487,6 +18546,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 })()
 
+<%- include('partials/launch_requirements_status_client') %>
+
 ;(function() {
   const root = document.querySelector("[data-app-autolaunch]")
   const initialState = <%- JSON.stringify((typeof autolaunch_app !== "undefined" && autolaunch_app) ? autolaunch_app : null).replace(/</g, "\\u003c") %>
@@ -18511,7 +18572,12 @@ document.addEventListener("DOMContentLoaded", () => {
   let loadingCandidates = false
   let saving = false
   let savingDependencies = false
+  let savingDependencyScript = false
   let dependencyPickerOpen = false
+  let dependencyScriptPickerOpen = ""
+  let pendingDependencyId = ""
+  let dependencyScriptCandidates = {}
+  let dependencyScriptSelections = {}
 
   const escapeHtml = (value) => {
     if (value === null || value === undefined) return ""
@@ -18531,6 +18597,17 @@ document.addEventListener("DOMContentLoaded", () => {
     return [].concat(candidateState.menu || [], candidateState.other || [])
   }
   <%- include('partials/app_autolaunch_modal_helpers') %>
+	  const hasLaunchRequirementConfig = () => {
+	    return !!(
+	      state.autolaunch &&
+	      Array.isArray(state.autolaunch_depends) &&
+	      state.autolaunch_depends.length > 0
+	    )
+	  }
+  const notifyLaunchRequirementsConfigured = () => {
+    if (!hasLaunchRequirementConfig()) return
+    window.dispatchEvent(new CustomEvent("pinokio:launch-requirements-configured"))
+  }
   const loadCandidates = async () => {
     loadingCandidates = true
     candidateError = ""
@@ -18546,7 +18623,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       candidateState = data
       syncState(data.app)
-      selectedScript = chooseInitialScript(data)
+      selectedScript = configuredScript(data)
       setFeedback("")
     } catch (error) {
       candidateError = error && error.message ? error.message : "Failed to load scripts."
@@ -18557,7 +18634,73 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
   <%- include('partials/app_autolaunch_dependency_save') %>
-  const saveScript = async (script) => {
+  const updateDependencyCandidateState = (updatedApp) => {
+    if (!updatedApp || !updatedApp.id || !candidateState || !Array.isArray(candidateState.dependency_apps)) return
+    candidateState.dependency_apps = candidateState.dependency_apps.map((app) => app.id === updatedApp.id ? updatedApp : app)
+  }
+  <%- include('partials/launch_settings_dependency_script_loader_factory') %>
+  const loadDependencyScriptCandidates = createLaunchSettingsDependencyScriptLoader({
+    getCache: () => dependencyScriptCandidates,
+    render: renderDependencies
+  })
+  const saveDependencyScript = async (dependencyId, script) => {
+    const dependency = dependencyById(dependencyId)
+    if (!dependency || !script || savingDependencyScript) return
+    savingDependencyScript = true
+    setBusy(true)
+    setFeedback("Saving requirement script...")
+    try {
+      const response = await fetch("/autolaunch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          app: dependencyId,
+          script,
+          enabled: !!dependency.autolaunch_enabled
+        })
+      })
+      const data = await response.json()
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Failed to save launch script.")
+      }
+      updateDependencyCandidateState(data.app)
+      if (pendingDependencyId === dependencyId) {
+	        const dependencies = Array.isArray(state.autolaunch_depends) ? state.autolaunch_depends.slice() : []
+	        if (!dependencies.includes(dependencyId)) {
+	          const savedDependency = await saveDependencies(dependencies.concat(dependencyId), "Requirement saved.")
+	          if (savedDependency) {
+	            notifyLaunchRequirementsConfigured()
+	            pendingDependencyId = ""
+	            delete dependencyScriptSelections[dependencyId]
+	            dependencyScriptPickerOpen = ""
+	            renderDependencies()
+	          }
+	        } else {
+	          pendingDependencyId = ""
+	          delete dependencyScriptSelections[dependencyId]
+	          dependencyScriptPickerOpen = ""
+	          renderDependencies()
+	          notifyLaunchRequirementsConfigured()
+	          setFeedback("Requirement saved.")
+	        }
+	      } else {
+	        dependencyScriptPickerOpen = ""
+	        delete dependencyScriptSelections[dependencyId]
+	        renderDependencies()
+	        setFeedback("Requirement script saved.")
+	      }
+    } catch (error) {
+      setFeedback(error && error.message ? error.message : "Failed to save launch script.", true)
+      renderDependencies()
+    } finally {
+      savingDependencyScript = false
+      setBusy(false)
+    }
+  }
+  const saveScript = async (script, enabled = !!state.autolaunch_enabled) => {
     if (saving) return
     setBusy(true)
     setFeedback(script ? "Saving..." : "Disabling...")
@@ -18568,18 +18711,52 @@ document.addEventListener("DOMContentLoaded", () => {
           "Content-Type": "application/json",
           "Accept": "application/json"
         },
-        body: JSON.stringify({ app: appId, script: script || "" })
+        body: JSON.stringify({ app: appId, script: script || "", enabled: !!enabled })
       })
       const data = await response.json()
       if (!response.ok || !data.ok) {
-        throw new Error(data.error || "Failed to save autolaunch.")
+        throw new Error(data.error || "Failed to save Autolaunch settings.")
       }
       syncState(data.app)
-      setFeedback(data.app && data.app.autolaunch_enabled ? "Saved." : "Disabled.")
+      notifyLaunchRequirementsConfigured()
+      setFeedback(data.app && data.app.autolaunch_enabled ? "Saved." : (script ? "Launch script saved." : "Disabled."))
       renderScripts()
       renderDependencies()
     } catch (error) {
-      setFeedback(error && error.message ? error.message : "Failed to save autolaunch.", true)
+      setFeedback(error && error.message ? error.message : "Failed to save Autolaunch settings.", true)
+      renderStatus()
+    } finally {
+      setBusy(false)
+    }
+  }
+  const clearScript = async () => {
+    if (saving) return
+    if (Array.isArray(state.autolaunch_depends) && state.autolaunch_depends.length > 0) {
+      setFeedback("Remove requirements before clearing this app's launch script.", true)
+      return
+    }
+    setBusy(true)
+    setFeedback("Clearing launch script...")
+    try {
+      const response = await fetch("/autolaunch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ app: appId, clear_script: true })
+      })
+      const data = await response.json()
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Failed to clear launch script.")
+      }
+      syncState(data.app)
+      notifyLaunchRequirementsConfigured()
+      setFeedback("Launch script cleared.")
+      renderScripts()
+      renderDependencies()
+    } catch (error) {
+      setFeedback(error && error.message ? error.message : "Failed to clear launch script.", true)
       renderStatus()
     } finally {
       setBusy(false)
@@ -18588,19 +18765,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggleAutolaunch = async () => {
     if (saving || loadingCandidates) return
     if (state.autolaunch_enabled) {
-      await saveScript("")
+      const script = selectedScript || state.autolaunch || ""
+      await saveScript(script, false)
       return
     }
     if (!candidateState) {
       await loadCandidates()
     }
-    const script = selectedScript || chooseInitialScript(candidateState)
+    const script = selectedScript || ""
     if (!script) {
-      setFeedback("Choose a script first.", true)
+      setFeedback("Choose a launch script first.", true)
       return
     }
     selectedScript = script
-    await saveScript(script)
+    await saveScript(script, true)
   }
 
   renderStatus()
@@ -18634,12 +18812,41 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!input) return
     selectedScript = input.value
     renderScripts()
-    if (state.autolaunch_enabled && selectedScript !== state.autolaunch) {
-      saveScript(selectedScript)
+    if (selectedScript !== state.autolaunch) {
+      saveScript(selectedScript, !!state.autolaunch_enabled)
     }
   })
-  <%- include('partials/app_autolaunch_dependency_events') %>
-  document.addEventListener("keydown", (event) => {
+  scriptsEl.addEventListener("click", (event) => {
+    const clear = event.target && event.target.closest("[data-app-autolaunch-clear-script]")
+    if (!clear) return
+    event.preventDefault()
+    clearScript()
+	  })
+	  <%- include('partials/app_autolaunch_dependency_events') %>
+	  window.addEventListener("pinokio:launch-requirements-choose-script", async (event) => {
+	    const dependency = event && event.detail ? event.detail.app : ""
+	    if (!dependency) return
+	    event.preventDefault()
+	    if (!candidateState && !loadingCandidates) {
+	      await loadCandidates()
+	    }
+	    setOpen(true)
+	    pendingDependencyId = ""
+	    dependencyScriptPickerOpen = dependency
+	    const dependencyApp = dependencyById(dependency)
+	    dependencyScriptSelections[dependency] = dependencyApp && dependencyApp.autolaunch ? dependencyApp.autolaunch : ""
+	    renderDependencies()
+	    loadDependencyScriptCandidates(dependency)
+	  })
+	  ;(async () => {
+	    const params = new URLSearchParams(window.location.search || "")
+	    if (params.get("autolaunch") !== "1") return
+	    setOpen(true)
+	    if (!candidateState && !loadingCandidates) {
+	      await loadCandidates()
+	    }
+	  })()
+	  document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !modal.classList.contains("hidden")) {
       setOpen(false)
     }

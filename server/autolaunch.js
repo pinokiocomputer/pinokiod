@@ -149,10 +149,10 @@ class ServerAutolaunch {
     const envRoot = gotRoot && gotRoot.root ? gotRoot.root : appRoot
     const envPath = path.resolve(envRoot, "ENVIRONMENT")
     const env = await Util.parse_env(envPath)
-    const value = typeof env.PINOKIO_SCRIPT_AUTOLAUNCH === "string"
-      ? env.PINOKIO_SCRIPT_AUTOLAUNCH.trim()
-      : ""
-    const dependencies = this.parseDependencyValue(env[Environment.SCRIPT_AUTOLAUNCH_DEPENDS_KEY])
+    const value = Environment.getScriptAutolaunch(env)
+    const launch = value
+    const dependencies = Environment.getScriptRequirements(env)
+    const enabled = Environment.getScriptAutolaunchEnabled(env)
     const exists = await this.server.exists(envPath)
     return {
       appRoot,
@@ -161,8 +161,9 @@ class ServerAutolaunch {
       envRelpath: gotRoot && gotRoot.relpath ? gotRoot.relpath : "",
       exists,
       value,
+      launch,
       dependencies,
-      enabled: value.length > 0
+      enabled
     }
   }
   async buildAppState(app) {
@@ -177,7 +178,8 @@ class ServerAutolaunch {
       launcher_path: app.launcher_path,
       launcher_root: app.launcher_root || "",
       env_path: envInfo.envPath,
-      autolaunch: envInfo.value,
+      autolaunch: envInfo.launch,
+      autolaunch_startup: envInfo.enabled ? envInfo.launch : "",
       autolaunch_depends: envInfo.dependencies,
       autolaunch_enabled: envInfo.enabled
     }
@@ -193,6 +195,56 @@ class ServerAutolaunch {
   async buildAppsState() {
     const states = await this.buildAppsStateRaw()
     return this.sortAppStates(states)
+  }
+  async buildHomeStartupDisplayGraph() {
+    if (this.kernel.launch_complete) {
+      return new Map()
+    }
+    const states = await this.buildAppsStateRaw()
+    const byId = new Map()
+    for (const state of states) {
+      if (state && state.id) {
+        byId.set(state.id, state)
+      }
+    }
+    const graph = new Map()
+    const visited = new Set()
+    const isCancelled = (appId) => {
+      return !!(this.kernel.launchRequirements &&
+        typeof this.kernel.launchRequirements.isCancelled === "function" &&
+        this.kernel.launchRequirements.isCancelled(appId))
+    }
+    const addApp = (appId, startupRoot = false) => {
+      const id = this.normalizeAppId(appId)
+      if (!id || visited.has(id) || isCancelled(id)) {
+        return
+      }
+      const state = byId.get(id)
+      if (!state || !state.autolaunch) {
+        return
+      }
+      visited.add(id)
+      const dependencies = Array.isArray(state.autolaunch_depends)
+        ? state.autolaunch_depends.map((dependencyId) => this.normalizeAppId(dependencyId)).filter(Boolean)
+        : []
+      graph.set(id, {
+        id,
+        title: state.title || state.name || id,
+        script: state.autolaunch,
+        dependencies,
+        waiting_for: dependencies,
+        startup_root: !!startupRoot
+      })
+      for (const dependencyId of dependencies) {
+        addApp(dependencyId, false)
+      }
+    }
+    for (const state of states) {
+      if (state && state.autolaunch_enabled && state.autolaunch) {
+        addApp(state.id, true)
+      }
+    }
+    return graph
   }
   async buildDependencyOptions(appId, states = null) {
     const appStates = Array.isArray(states) ? states : await this.buildAppsStateRaw()
@@ -373,10 +425,10 @@ class ServerAutolaunch {
       console.warn("[autolaunch] failed to resolve menu candidates", app.id, error && error.message ? error.message : error)
     }
 
-    if (envInfo.value) {
+    if (envInfo.launch) {
       await this.addCandidate(menuCandidates, seen, {
-        script: envInfo.value,
-        label: envInfo.value,
+        script: envInfo.launch,
+        label: envInfo.launch,
         source: "current"
       }, appRoot)
     }
@@ -396,29 +448,46 @@ class ServerAutolaunch {
       launcher_root: path.relative(appRoot, launcherRoot).split(path.sep).join("/"),
       menu: menuCandidates,
       other: otherCandidates,
-      current: envInfo.value
+      current: envInfo.launch
     }
   }
-  async applyHomeStartingState(item, index) {
+  async applyHomeStartingState(item, index, homeStartupDisplayGraph = null) {
     let autolaunchInfo = null
     let autolaunchStatus = null
-    if (!this.kernel.launch_complete) {
-      try {
-        autolaunchInfo = await this.getEnvInfo({ id: item.name })
-        autolaunchStatus = this.kernel.autolaunch_status && this.kernel.autolaunch_status.apps
-          ? this.kernel.autolaunch_status.apps[item.name]
-          : null
-      } catch (error) {
-        console.warn("[home] failed to read autolaunch state", item.name, error && error.message ? error.message : error)
+    let startupDisplayInfo = null
+    const appId = this.normalizeAppId(item && (item.uri || item.name))
+    if (!appId) {
+      return false
+    }
+    try {
+      autolaunchStatus = this.kernel.autolaunch_status && this.kernel.autolaunch_status.apps
+        ? this.kernel.autolaunch_status.apps[appId]
+        : null
+      if (!this.kernel.launch_complete || autolaunchStatus) {
+        autolaunchInfo = await this.getEnvInfo({ id: appId })
       }
+    } catch (error) {
+      console.warn("[home] failed to read autolaunch state", appId, error && error.message ? error.message : error)
     }
-    if (!autolaunchInfo || !autolaunchInfo.enabled) {
+    if (!autolaunchStatus && !this.kernel.launch_complete) {
+      const displayGraph = homeStartupDisplayGraph || await this.buildHomeStartupDisplayGraph()
+      startupDisplayInfo = displayGraph && typeof displayGraph.get === "function"
+        ? displayGraph.get(appId)
+        : null
+    }
+    const ready = autolaunchStatus && autolaunchStatus.state === "ready"
+    const hasActiveStatus = autolaunchStatus && !ready
+    const hasConfiguredStartup = !this.kernel.launch_complete && autolaunchInfo && autolaunchInfo.enabled
+    const hasStartupDisplayInfo = !this.kernel.launch_complete && !!startupDisplayInfo
+    if (ready || (!hasActiveStatus && !hasConfiguredStartup && !hasStartupDisplayInfo)) {
       return false
     }
-    if (autolaunchStatus && ["ready", "stopped"].includes(autolaunchStatus.state)) {
-      return false
-    }
-    const launchPath = path.resolve(autolaunchInfo.appRoot, autolaunchInfo.value)
+    const launchScript = (autolaunchStatus && autolaunchStatus.script) ||
+      (startupDisplayInfo && startupDisplayInfo.script) ||
+      (autolaunchInfo ? autolaunchInfo.value || autolaunchInfo.launch : "")
+    const launchPath = autolaunchStatus && autolaunchStatus.launch_path
+      ? autolaunchStatus.launch_path
+      : (launchScript && autolaunchInfo ? path.resolve(autolaunchInfo.appRoot, launchScript) : "")
     const progress = autolaunchStatus && Number.isInteger(Number(autolaunchStatus.step_current)) && Number.isInteger(Number(autolaunchStatus.step_total))
       ? {
           step_current: Number(autolaunchStatus.step_current),
@@ -429,7 +498,9 @@ class ServerAutolaunch {
       ? ` (${progress.step_current}/${progress.step_total})`
       : ""
     const statusWaitingFor = autolaunchStatus && Array.isArray(autolaunchStatus.waiting_for) ? autolaunchStatus.waiting_for : []
-    const configuredDependencies = Array.isArray(autolaunchInfo.dependencies) ? autolaunchInfo.dependencies : []
+    const configuredDependencies = startupDisplayInfo && Array.isArray(startupDisplayInfo.waiting_for)
+      ? startupDisplayInfo.waiting_for
+      : (autolaunchInfo && Array.isArray(autolaunchInfo.dependencies) ? autolaunchInfo.dependencies : [])
     const waitingFor = autolaunchStatus ? statusWaitingFor : configuredDependencies
     const waitingLabels = []
     for (const id of waitingFor) {
@@ -452,12 +523,12 @@ class ServerAutolaunch {
     const waitingLabel = waitingLabels.length > 0 ? `Waiting for ${waitingLabels.join(", ")}` : ""
     item.running = true
     item.autolaunch_starting = true
-    item.autolaunch_blocked = autolaunchStatus && ["blocked", "failed", "timeout"].includes(autolaunchStatus.state)
+    item.autolaunch_blocked = autolaunchStatus && autolaunchStatus.state === "blocked"
     item.autolaunch_waiting = !item.autolaunch_blocked && waitingFor.length > 0
     item.autolaunch_status_label = item.autolaunch_blocked
-      ? (autolaunchStatus.error || "Autolaunch blocked")
-      : (item.autolaunch_waiting && waitingLabel ? waitingLabel : `Starting ${autolaunchInfo.value}${progressLabel}`)
-    item.autolaunch_script = autolaunchInfo.value
+      ? (autolaunchStatus.blocked_reason || "Startup blocked")
+      : (item.autolaunch_waiting && waitingLabel ? waitingLabel : `Starting ${launchScript || "automatically"}${progressLabel}`)
+    item.autolaunch_script = launchScript
     if (progress) {
       item.autolaunch_step_current = progress.step_current
       item.autolaunch_step_total = progress.step_total
@@ -487,11 +558,55 @@ class ServerAutolaunch {
         return
       }
       const states = await this.buildAppsStateRaw()
-      const normalized = this.normalizeDependencies(requestedDependencies, states, app.id)
+      const installedIds = new Set(states.map((state) => state && state.id).filter(Boolean))
+      const seen = new Set()
+      const normalized = []
+      for (const rawId of requestedDependencies) {
+        const dependencyId = this.normalizeAppId(rawId)
+        if (!dependencyId) {
+          res.status(400).json({ ok: false, error: "Requirement app id is invalid." })
+          return
+        }
+        if (dependencyId === app.id) {
+          res.status(400).json({ ok: false, error: "An app cannot require itself." })
+          return
+        }
+        if (seen.has(dependencyId)) {
+          res.status(400).json({ ok: false, error: "Requirement app ids must be unique." })
+          return
+        }
+        if (!installedIds.has(dependencyId)) {
+          res.status(400).json({ ok: false, error: `Required app is not installed: ${dependencyId}` })
+          return
+        }
+        seen.add(dependencyId)
+        normalized.push(dependencyId)
+      }
+      if (normalized.length > 0) {
+        const envInfo = await this.getEnvInfo(app)
+        if (!envInfo.launch) {
+          res.status(400).json({ ok: false, error: "Choose this app's launch script before adding requirements." })
+          return
+        }
+        const stateById = new Map(states.map((state) => [state.id, state]))
+        const missing = normalized
+          .map((id) => stateById.get(id))
+          .find((state) => !state || !state.autolaunch)
+        if (missing) {
+          res.status(400).json({
+            ok: false,
+            error: `Choose ${missing.title || missing.name || missing.id}'s launch script before adding it as a requirement.`
+          })
+          return
+        }
+      }
       const initialized = await Environment.init({ name: app.id }, this.kernel)
       await Util.update_env(initialized.env_path, {
-        [Environment.SCRIPT_AUTOLAUNCH_DEPENDS_KEY]: Environment.formatAutolaunchList(normalized)
+        [Environment.SCRIPT_REQUIREMENTS_KEY]: Environment.formatAutolaunchList(normalized)
       })
+      if (this.kernel && typeof this.kernel.clearLaunchRequirementsStatus === "function") {
+        this.kernel.clearLaunchRequirementsStatus(app.id)
+      }
       res.json({
         ok: true,
         app: await this.buildAppState(app)
@@ -504,16 +619,44 @@ class ServerAutolaunch {
         return
       }
       const requestedScript = typeof req.body.script === "string" ? req.body.script.trim() : ""
-      if (!requestedScript) {
+      const clearScript = !!(req.body && req.body.clear_script === true)
+      const hasEnabled = req.body && typeof req.body.enabled === "boolean"
+      if (!clearScript && requestedScript && !hasEnabled) {
+        res.status(400).json({
+          ok: false,
+          error: "Startup enabled must be explicit when selecting a launch script."
+        })
+        return
+      }
+      const enabled = hasEnabled ? req.body.enabled : false
+      if (clearScript) {
         const envInfo = await this.getEnvInfo(app)
+        if (envInfo.dependencies && envInfo.dependencies.length > 0) {
+          res.status(400).json({
+            ok: false,
+            error: "Remove requirements before clearing this app's launch script."
+          })
+          return
+        }
         if (envInfo.exists) {
           await Util.update_env(envInfo.envPath, {
-            PINOKIO_SCRIPT_AUTOLAUNCH: ""
+            [Environment.SCRIPT_AUTOLAUNCH_KEY]: "",
+            [Environment.SCRIPT_AUTOLAUNCH_ENABLED_KEY]: ""
           })
+        }
+        if (this.kernel && typeof this.kernel.clearLaunchRequirementsStatus === "function") {
+          this.kernel.clearLaunchRequirementsStatus(app.id)
         }
         res.json({
           ok: true,
           app: await this.buildAppState(app)
+        })
+        return
+      }
+      if (!requestedScript) {
+        res.status(400).json({
+          ok: false,
+          error: "Use clear_script: true to clear this app's launch script."
         })
         return
       }
@@ -529,8 +672,12 @@ class ServerAutolaunch {
       }
       const initialized = await Environment.init({ name: app.id }, this.kernel)
       await Util.update_env(initialized.env_path, {
-        PINOKIO_SCRIPT_AUTOLAUNCH: resolved.script
+        [Environment.SCRIPT_AUTOLAUNCH_KEY]: resolved.script,
+        [Environment.SCRIPT_AUTOLAUNCH_ENABLED_KEY]: enabled ? "true" : "false"
       })
+      if (this.kernel && typeof this.kernel.clearLaunchRequirementsStatus === "function") {
+        this.kernel.clearLaunchRequirementsStatus(app.id)
+      }
       res.json({
         ok: true,
         app: await this.buildAppState(app)
@@ -541,9 +688,9 @@ class ServerAutolaunch {
       let disabled = 0
       for (const app of apps) {
         const envInfo = await this.getEnvInfo(app)
-        if (envInfo.exists && envInfo.value) {
+        if (envInfo.exists && envInfo.enabled) {
           await Util.update_env(envInfo.envPath, {
-            PINOKIO_SCRIPT_AUTOLAUNCH: ""
+            [Environment.SCRIPT_AUTOLAUNCH_ENABLED_KEY]: "false"
           })
           disabled++
         }

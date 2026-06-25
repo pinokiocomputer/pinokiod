@@ -42,6 +42,7 @@ const Favicon = require('./favicon')
 const AppLauncher = require('./app_launcher')
 const ReadyState = require('./ready')
 const Autolaunch = require('./autolaunch')
+const LaunchRequirements = require('./launch_requirements')
 const { DownloaderHelper } = require('node-downloader-helper');
 const { ProxyAgent } = require('proxy-agent');
 const fakeUa = require('fake-useragent');
@@ -96,8 +97,9 @@ class Kernel {
     this.ram = 0
     this.readyState = new ReadyState(this)
     this.app_ready_status = this.readyState.status
+    this.launchRequirements = new LaunchRequirements(this)
     this.autolaunch = new Autolaunch(this)
-    this.autolaunch_status = this.autolaunch.status
+    this.autolaunch_status = this.autolaunch.startupStatus()
     this.sysReady = new Promise((resolve) => {
       this._resolveSysReady = resolve
     })
@@ -137,48 +139,108 @@ class Kernel {
   ready(requestOrUri) {
     return this.readyState.ready(requestOrUri)
   }
+  hasLaunchRequirementRuntime(launchPath) {
+    return !!(
+      this.launchRequirements &&
+      typeof this.launchRequirements.hasRuntimeForLaunchPath === "function" &&
+      this.launchRequirements.hasRuntimeForLaunchPath(launchPath)
+    )
+  }
   markAppLaunchStarted(launchPath) {
-    return this.readyState.markStarted(launchPath)
+    const status = this.readyState.markStarted(launchPath)
+    const appId = this.readyState.getAppIdForLaunchPath(launchPath)
+    if (this.hasLaunchRequirementRuntime(launchPath) && this.launchRequirements && typeof this.launchRequirements.markStarted === "function") {
+      if (typeof this.launchRequirements.markStartupStarted === "function") {
+        this.launchRequirements.markStartupStarted(appId)
+      }
+      this.launchRequirements.markStarted(launchPath)
+    }
+    return status
   }
   markAppLaunchProgress(launchPath, current, total) {
     const progress = this.readyState.markProgress(launchPath, current, total)
-    if (progress && this.autolaunch && typeof this.autolaunch.updateProgress === "function") {
-      const appId = this.readyState.getAppIdForLaunchPath(launchPath)
-      this.autolaunch.updateProgress(appId, progress)
+    if (progress && this.hasLaunchRequirementRuntime(launchPath) && this.launchRequirements && typeof this.launchRequirements.markProgress === "function") {
+      this.launchRequirements.markProgress(launchPath, progress)
     }
     return progress
   }
   markAppLaunchReady(launchPath) {
-    return this.readyState.markReady(launchPath)
+    const status = this.readyState.markReady(launchPath)
+    const appId = this.readyState.getAppIdForLaunchPath(launchPath)
+    if (this.hasLaunchRequirementRuntime(launchPath) && this.launchRequirements && typeof this.launchRequirements.markDone === "function") {
+      if (typeof this.launchRequirements.markStartupReady === "function") {
+        this.launchRequirements.markStartupReady(appId)
+      }
+      this.launchRequirements.markDone(launchPath)
+    }
+    return status
   }
   markAppLaunchFailed(launchPath, error) {
     return this.readyState.markFailed(launchPath, error)
   }
-  markAppLaunchStopped(launchPath) {
+  markAppLaunchStopped(launchPath, options = {}) {
     const status = this.readyState.markStopped(launchPath)
-    if (this.autolaunch && typeof this.autolaunch.markStopped === "function") {
-      const appId = this.readyState.getAppIdForLaunchPath(launchPath)
-      this.autolaunch.markStopped(appId)
+    if (options && options.internal_completion) {
+      return status
+    }
+    const appId = this.readyState.getAppIdForLaunchPath(launchPath)
+    if (this.hasLaunchRequirementRuntime(launchPath) && this.launchRequirements && typeof this.launchRequirements.cancel === "function") {
+      if (typeof this.launchRequirements.markStartupStopped === "function") {
+        this.launchRequirements.markStartupStopped(appId)
+      }
+      const cancelled = this.launchRequirements.cancel(launchPath)
+      if (!cancelled && typeof this.launchRequirements.markDone === "function") {
+        this.launchRequirements.markDone(launchPath)
+      }
+      if (typeof this.launchRequirements.clearRelated === "function") {
+        this.launchRequirements.clearRelated(appId)
+      }
     }
     return status
+  }
+  beginLaunchOperation(launchPath, meta = {}) {
+    return this.launchRequirements && typeof this.launchRequirements.beginLaunchOperation === "function"
+      ? this.launchRequirements.beginLaunchOperation(launchPath, meta)
+      : null
+  }
+  endLaunchOperation(token) {
+    return this.launchRequirements && typeof this.launchRequirements.endLaunchOperation === "function"
+      ? this.launchRequirements.endLaunchOperation(token)
+      : false
   }
   isAppReady(appId) {
     return this.readyState.isAppReady(appId)
   }
-  syncAutolaunchReadyState(appId, launchPath) {
-    return this.autolaunch.syncReadyState(appId, launchPath)
-  }
-  findAutolaunchDependencyCycles(candidates) {
-    return this.autolaunch.findDependencyCycles(candidates)
-  }
   collectAutolaunchCandidates() {
     return this.autolaunch.collectCandidates()
   }
-  launchAutolaunchCandidate(candidate) {
-    return this.autolaunch.launchCandidate(candidate)
-  }
   runAutolaunchScheduler() {
     return this.autolaunch.runScheduler()
+  }
+  ensureLaunchRequirements(launchPath, options = {}) {
+    return this.launchRequirements.ensureForLaunchPath(launchPath, options)
+  }
+  async hasLaunchRequirementConfig(launchPath) {
+    if (!launchPath) {
+      return false
+    }
+    const appId = this.getAppIdForLaunchPath(launchPath)
+    if (!appId) {
+      return false
+    }
+    const env = await Environment.get(this.path("api", appId), this)
+    return !!(
+      (typeof env.PINOKIO_SCRIPT_AUTOLAUNCH === "string" && env.PINOKIO_SCRIPT_AUTOLAUNCH.trim()) &&
+      (typeof env.PINOKIO_SCRIPT_REQUIRES === "string" && env.PINOKIO_SCRIPT_REQUIRES.trim())
+    )
+  }
+  clearLaunchRequirementsStatus(appId) {
+    if (this.launchRequirements && typeof this.launchRequirements.clearRelated === "function") {
+      this.launchRequirements.clearRelated(appId)
+    }
+  }
+  getLaunchRequirementsStatus(appId) {
+    return this.launchRequirements.getStatus(appId)
   }
   async dns(request) {
     let config
@@ -1223,11 +1285,11 @@ class Kernel {
               if (!this.launch_complete) {
                 this.runAutolaunchScheduler().catch((err) => {
                   console.warn('[Kernel.init] autolaunch scheduler failed:', err && err.message ? err.message : err)
-                  this.autolaunch_status = {
+                  this.autolaunch.setStatus({
                     running: false,
                     error: err && err.message ? err.message : String(err || "Autolaunch failed"),
                     apps: {}
-                  }
+                  })
                   this.launch_complete = true
                 })
               }

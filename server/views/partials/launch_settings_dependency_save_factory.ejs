@@ -1,0 +1,45 @@
+const createLaunchSettingsDependencySaver = ({
+  getAppId,
+  isSaving,
+  setSaving,
+  setBusy,
+  setFeedback,
+  onSaved,
+  render
+}) => async (dependencies, successMessage = "Dependencies saved.") => {
+  const appId = typeof getAppId === "function" ? getAppId() : ""
+  if (!appId || (typeof isSaving === "function" && isSaving())) return
+  if (typeof setSaving === "function") setSaving(true)
+  if (typeof setBusy === "function") setBusy(true)
+  if (typeof setFeedback === "function") setFeedback("Saving dependencies...")
+  let feedbackMessage = successMessage
+  let feedbackError = false
+  let saved = false
+  try {
+    const response = await fetch("/autolaunch/dependencies", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        app: appId,
+        dependencies: Array.isArray(dependencies) ? dependencies : []
+      })
+    })
+    const data = await response.json()
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Failed to save dependencies.")
+    }
+    if (typeof onSaved === "function") onSaved(data.app)
+    saved = true
+  } catch (error) {
+    feedbackMessage = error && error.message ? error.message : "Failed to save dependencies."
+    feedbackError = true
+  } finally {
+    if (typeof setSaving === "function") setSaving(false)
+    if (typeof render === "function") render()
+    if (typeof setFeedback === "function") setFeedback(feedbackMessage, feedbackError)
+  }
+  return saved
+}

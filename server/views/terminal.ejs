@@ -62,6 +62,7 @@
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
 <style>
+<%- include('./partials/launch_requirements_status_styles') %>
 html {
   scroll-behavior: smooth;
   height: 100%;
@@ -1595,6 +1596,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     initialEnabled: initialProtectionEnabled,
     runControls
   })
+  const settleLaunchRequirementsControl = (packet) => {
+    refreshParent(packet || {})
+    pluginTerminalDiscoveryRefresher.clear()
+    document.querySelector("#status-window").innerHTML = "<b>Ready</b>"
+    document.querySelector("#progress-window").classList.add("hidden")
+    document.querySelector("#progress-bar").style.width = "0%"
+    runControls.set("idle")
+    if (rpc && rpc.resizeSync) {
+      rpc.resizeSync.reset()
+    }
+  }
+  window.addEventListener("pinokio:launch-requirements-control", (event) => {
+    settleLaunchRequirementsControl({
+      type: "launch.requirements.control",
+      data: event && event.detail ? event.detail : {}
+    })
+  })
+  window.addEventListener("message", (event) => {
+    const data = event && event.data ? event.data : null
+    if (!data || data.type !== "pinokio:launch-requirements-control") {
+      return
+    }
+    settleLaunchRequirementsControl({
+      type: "launch.requirements.control",
+      data: data.detail || {}
+    })
+  })
   consentManager.showChipIfRemembered()
   class RPC {
     constructor() {
@@ -2014,6 +2042,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
             */
             runControls.set("running")
+          } else if (packet.type === "launch.requirements.control") {
+            settleLaunchRequirementsControl(packet)
           } else if (packet.type === 'resize') {
             this.resizeSync.handleResizePacket(packet)
 //          } else if (packet.type === "key.set") {
@@ -3440,6 +3470,7 @@ const reloadMemory = async () => {
       </div>
     <% } else { %>
       <div class='terminal-container'>
+        <div id="launch-requirements-status" class="launch-requirements-status" data-launch-requirements-status hidden aria-live="polite"></div>
         <% if (memory.length > 0) { %>
           <div class='memory'>
             <div class='memory-header'>
@@ -3494,5 +3525,8 @@ const reloadMemory = async () => {
       </a>
     </div>
   </div>
+  <script>
+<%- include('partials/launch_requirements_status_client') %>
+  </script>
 </body>
 </html>

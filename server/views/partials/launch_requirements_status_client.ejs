@@ -1,0 +1,270 @@
+;(function() {
+  const root = document.querySelector("[data-launch-requirements-status]")
+  const appId = <%- JSON.stringify((typeof name !== "undefined" && name) ? name : "") %>
+  const appTitle = <%- JSON.stringify((typeof config !== "undefined" && config && config.title) || (typeof name !== "undefined" && name) || "app") %>
+  const initialEnabled = <%- JSON.stringify(!!(typeof launch_requirements_status_enabled !== "undefined" && launch_requirements_status_enabled)) %>
+  if (!root || !appId) return
+  const shouldDeferToParentLaunchRequirements = () => {
+    try {
+      if (window.self === window.top) return false
+      const parentDocument = window.parent && window.parent.document
+      return !!(parentDocument && parentDocument.querySelector("[data-launch-requirements-status]"))
+    } catch (_) {
+      return false
+    }
+  }
+  if (shouldDeferToParentLaunchRequirements()) return
+  let cancelling = false
+  const escapeHtml = (value) => {
+    if (value === null || value === undefined) return ""
+    return String(value).replace(/[&<>"']/g, (match) => {
+      switch (match) {
+        case "&": return "&amp;"
+        case "<": return "&lt;"
+        case ">": return "&gt;"
+        case "\"": return "&quot;"
+        case "'": return "&#39;"
+        default: return match
+      }
+    })
+  }
+  const stepLabel = (row) => {
+    const current = Number(row && row.step_current)
+    const total = Number(row && row.step_total)
+    return Number.isInteger(current) && Number.isInteger(total) && total > 1 ? ` (${current}/${total})` : ""
+  }
+  const titleForId = (id, titleById) => {
+    if (!id) return ""
+    return titleById[id] || id
+  }
+  const waitingForLabel = (row, titleById) => {
+    const waitingFor = row && Array.isArray(row.waiting_for) ? row.waiting_for : []
+    const names = waitingFor
+      .map((id) => titleForId(id, titleById))
+      .filter(Boolean)
+    return names.length > 0 ? `Waiting for ${names.join(", ")}` : "Waiting"
+  }
+  const stateLabel = (row, titleById) => {
+    const script = row && row.script ? row.script : "script"
+    if (row && row.state === "ready") return "Ready"
+    if (row && row.state === "blocked") return row.blocked_reason || "Needs setup"
+    if (row && row.state === "waiting") return waitingForLabel(row, titleById)
+    if (row && row.state === "pending") return "Pending"
+    return `Starting ${script}${stepLabel(row)}`
+  }
+  const isActiveRow = (row) => {
+    if (!row) return false
+    return row.state === "starting"
+  }
+  const isReadyRow = (row) => {
+    if (!row) return false
+    return row.state === "ready"
+  }
+  const stateClass = (row) => {
+    if (isActiveRow(row)) return " is-active"
+    if (isReadyRow(row)) return " is-ready"
+    return ""
+  }
+  const stateIcon = (row) => {
+    if (isActiveRow(row)) {
+      return '<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i>'
+    }
+    if (isReadyRow(row)) {
+      return '<i class="fa-solid fa-check" aria-hidden="true"></i>'
+    }
+    return ""
+  }
+  const render = (status) => {
+    if (!status) {
+      root.hidden = true
+      root.innerHTML = ""
+      return
+    }
+    const rawRequirements = Array.isArray(status.requirements) ? status.requirements : []
+    const requirements = rawRequirements
+    if (requirements.length === 0 && status.state !== "blocked") {
+      root.hidden = true
+      root.innerHTML = ""
+      return
+    }
+    const waiting = requirements.filter((row) => row && row.state !== "ready")
+    if (waiting.length === 0 && status.state !== "blocked") {
+      root.hidden = true
+      root.innerHTML = ""
+      return
+    }
+    const title = status.state === "blocked" ? "Launch needs setup" : "Preparing required apps"
+    const detail = status.state === "blocked" && status.blocked_reason
+      ? status.blocked_reason
+      : waiting.length > 0
+      ? `Waiting for ${waiting.map((row) => row.title || row.id).join(", ")}.`
+      : (status.blocked_reason || `${status.title || appTitle} will start after its requirements are ready.`)
+    const titleById = requirements.reduce((acc, row) => {
+      if (row && row.id) {
+        acc[row.id] = row.title || row.id
+      }
+      return acc
+    }, {})
+    const canCancel = true
+    root.innerHTML = `
+      <div class="launch-requirements-card">
+        <div class="launch-requirements-title">
+          <span>${escapeHtml(title)}</span>
+        </div>
+        <div class="launch-requirements-detail">${escapeHtml(detail)}</div>
+        ${requirements.length > 0 ? `
+          <div class="launch-requirements-list">
+          ${requirements.map((row) => `
+            <div class="launch-requirements-row">
+              <img src="${escapeHtml(row.icon || "/pinokio-black.png")}" alt="" onerror="this.onerror=null; this.src='/pinokio-black.png'">
+              <div class="launch-requirements-name">${escapeHtml(row.title || row.id)}</div>
+              <div class="launch-requirements-state${stateClass(row)}">
+                ${stateIcon(row)}
+                <span>${escapeHtml(stateLabel(row, titleById))}</span>
+                ${row && row.state === "blocked" ? `
+                  <button type="button" class="launch-requirements-choose-script" data-launch-requirements-choose-script="${escapeHtml(row.id || "")}">
+                    Choose script
+                  </button>
+                ` : ""}
+              </div>
+            </div>
+          `).join("")}
+          </div>
+        ` : ""}
+        ${canCancel ? `
+          <div class="launch-requirements-actions">
+            <button type="button" class="launch-requirements-stop" data-launch-requirements-stop ${cancelling ? "disabled" : ""}>
+              <i class="fa-solid ${cancelling ? "fa-circle-notch fa-spin" : "fa-stop"}" aria-hidden="true"></i>
+              <span>${cancelling ? "Stopping launch..." : "Stop launch"}</span>
+            </button>
+          </div>
+        ` : ""}
+      </div>
+    `
+    root.hidden = false
+  }
+  const notifyLaunchRequirementsControl = (detail = {}) => {
+    const payload = {
+      type: "pinokio:launch-requirements-control",
+      detail
+    }
+    try {
+      window.dispatchEvent(new CustomEvent(payload.type, { detail }))
+    } catch (_) {}
+    try {
+      for (let i = 0; i < window.frames.length; i++) {
+        window.frames[i].postMessage(payload, "*")
+      }
+    } catch (_) {}
+  }
+  const cancelLaunch = async () => {
+    if (cancelling) return
+    cancelling = true
+    const button = root.querySelector("[data-launch-requirements-stop]")
+    if (button) {
+      button.disabled = true
+      button.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i><span>Stopping launch...</span>'
+    }
+    try {
+      const response = await fetch(`/pinokio/launch-requirements/${encodeURIComponent(appId)}/cancel`, {
+        method: "POST",
+        headers: { "Accept": "application/json" },
+        cache: "no-store"
+      })
+      const data = await response.json()
+      if (!response.ok || !data || !data.ok) {
+        throw new Error(data && data.error ? data.error : "Failed to stop launch.")
+      }
+      notifyLaunchRequirementsControl({
+        action: "cancelled",
+        app_id: appId
+      })
+      cancelling = false
+      render(null)
+      try {
+        if (typeof refresh === "function") {
+          refresh(true, { nodelay: true })
+        }
+      } catch (_) {}
+    } catch (_) {
+      cancelling = false
+      fetchInitialStatus()
+    }
+  }
+  root.addEventListener("click", (event) => {
+    const chooseScript = event.target && event.target.closest("[data-launch-requirements-choose-script]")
+    if (chooseScript) {
+      event.preventDefault()
+      const dependencyApp = chooseScript.getAttribute("data-launch-requirements-choose-script") || ""
+      if (!dependencyApp) return
+      const chooseEvent = new CustomEvent("pinokio:launch-requirements-choose-script", {
+        cancelable: true,
+        detail: {
+          app: dependencyApp
+        }
+      })
+      window.dispatchEvent(chooseEvent)
+      if (!chooseEvent.defaultPrevented) {
+        window.location.href = `/v/${encodeURIComponent(dependencyApp)}?autolaunch=1`
+      }
+      return
+    }
+    const stop = event.target && event.target.closest("[data-launch-requirements-stop]")
+    if (!stop) return
+    event.preventDefault()
+    cancelLaunch()
+  })
+  const renderStatusPayload = (data) => {
+    const status = data && data.ok ? data.status : null
+    if (status) {
+      cancelling = false
+      render(status)
+      return
+    }
+    render(null)
+  }
+  const fetchInitialStatus = async () => {
+    try {
+      const response = await fetch(`/pinokio/launch-requirements/${encodeURIComponent(appId)}`, {
+        headers: { "Accept": "application/json" },
+        cache: "no-store"
+      })
+      const data = await response.json()
+      renderStatusPayload(response.ok && data ? data : null)
+    } catch (_) {
+      renderStatusPayload(null)
+    }
+  }
+  const startStatusClient = () => {
+    if (root.dataset.launchRequirementsClient === "started") return
+    root.dataset.launchRequirementsClient = "started"
+    fetchInitialStatus()
+    const channel = `kernel.launch_requirements:${appId}`
+    let socket = null
+    try {
+      socket = new Socket()
+      socket.run({
+        method: channel,
+        mode: "listen"
+      }, (packet) => {
+        if (!packet || packet.type !== "launch.requirements") {
+          return
+        }
+        renderStatusPayload({
+          ok: true,
+          status: packet.data ? packet.data.status : null
+        })
+      }).catch(() => {})
+      window.addEventListener("beforeunload", () => {
+        if (socket && typeof socket.close === "function") {
+          socket.close()
+        }
+      }, { once: true })
+    } catch (_) {}
+  }
+  if (initialEnabled) {
+    startStatusClient()
+  } else {
+    window.addEventListener("pinokio:launch-requirements-configured", startStatusClient, { once: true })
+  }
+})()

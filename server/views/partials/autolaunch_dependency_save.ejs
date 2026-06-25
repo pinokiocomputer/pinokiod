@@ -1,35 +1,13 @@
-const saveDependencies = async (dependencies) => {
-  const app = currentApp();
-  if (!app || savingDependencies) return;
-  savingDependencies = true;
-  setDetailBusy(true);
-  setFeedback("Saving dependencies...");
-  let feedbackMessage = "Dependencies saved.";
-  let feedbackError = false;
-  try {
-    const response = await fetch("/autolaunch/dependencies", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify({
-        app: app.id,
-        dependencies: Array.isArray(dependencies) ? dependencies : []
-      })
-    });
-    const data = await response.json();
-    if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Failed to save dependencies.");
-    }
-    syncAppState(data.app);
-  } catch (error) {
-    feedbackMessage = error && error.message ? error.message : "Failed to save dependencies.";
-    feedbackError = true;
-  } finally {
-    savingDependencies = false;
-    renderCandidates();
-    setFeedback(feedbackMessage, feedbackError);
-  }
-};
-
+<%- include('launch_settings_dependency_save_factory') %>
+const saveDependencies = createLaunchSettingsDependencySaver({
+  getAppId: () => {
+    const app = currentApp();
+    return app ? app.id : "";
+  },
+  isSaving: () => savingDependencies,
+  setSaving: (value) => { savingDependencies = value; },
+  setBusy: setDetailBusy,
+  setFeedback,
+  onSaved: syncAppState,
+  render: renderCandidates
+});

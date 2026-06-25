@@ -1484,13 +1484,17 @@ body.dark aside .current.selected {
                       <button class='btn shutdown' type='button' data-id="<%=s.id%>" data-type="<%=s.type ? s.type : ''%>" title="Stop <%=runningScriptName%>" aria-label="Stop <%=runningScriptName%>">
                         <i class="fa-solid fa-stop" aria-hidden="true"></i>
                         <span><%= runningScriptButtonLabel %></span>
-                        <i class='fa-solid fa-spin fa-circle-notch' aria-hidden='true'></i>
+                        <% if (isStartingAutolaunchScript) { %>
+                          <i class='home-stop-spinner fa-solid fa-spin fa-circle-notch' aria-hidden='true'></i>
+                        <% } %>
                       </button>
                     <% } else { %>
                       <button class='btn shutdown' type='button' data-src="<%=s.path%>" title="Stop <%=runningScriptName%>" aria-label="Stop <%=runningScriptName%>">
                         <i class="fa-solid fa-stop" aria-hidden="true"></i>
                         <span><%= runningScriptButtonLabel %></span>
-                        <i class='fa-solid fa-spin fa-circle-notch' aria-hidden='true'></i>
+                        <% if (isStartingAutolaunchScript) { %>
+                          <i class='home-stop-spinner fa-solid fa-spin fa-circle-notch' aria-hidden='true'></i>
+                        <% } %>
                       </button>
                     <% } %>
                   <% }) %>
@@ -1515,7 +1519,7 @@ body.dark aside .current.selected {
   <% if (notRunning.length > 0) { %>
     <div class='not-running-apps'>
       <% notRunning.forEach((item, index) => { %>
-        <div data-href="<%=item.browser_url%>" data-target="<%=item.target || '_self'%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" data-starred="<%=item.starred ? "1" : "0"%>" data-launch-count-total="<%=item.launch_count_total || 0%>" data-last-launch-at="<%=item.last_launch_at || ''%>" class='line align-top home-app-line' role='link' tabindex='0'>
+        <div data-href="<%=item.browser_url%>" data-target="<%=item.target || '_self'%>" data-description="<%=item.description%>" data-index="<%=item.index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-uri="<%=item.uri%>" data-icon="<%=item.icon%>" data-path="<%=item.path%>"  data-iconpath="<%=item.iconpath ? item.iconpath : ''%>" data-starred="<%=item.starred ? "1" : "0"%>" data-launch-count-total="<%=item.launch_count_total || 0%>" data-last-launch-at="<%=item.last_launch_at || ''%>" data-autolaunch-starting="<%=item.autolaunch_starting ? "1" : "0"%>" data-autolaunch-app="<%=item.uri%>" data-autolaunch-script="<%=item.autolaunch_script || ''%>" class='line align-top home-app-line <%=item.autolaunch_starting ? "autolaunch-starting" : ""%> <%=item.autolaunch_waiting ? "autolaunch-waiting" : ""%> <%=item.autolaunch_blocked ? "autolaunch-blocked" : ""%>' role='link' tabindex='0'>
           <h3>
             <div class='item-icon'>
               <% if (item.icon) { %>
@@ -2021,17 +2025,74 @@ if (homeSortSelect) {
   })
 }
 <% if (ishome) { %>
-// if launch_complete is true => already finished launching so no need to refresh
-// if launch_complete is false => not finished launching. wait until it's complete, and then refresh
-// autolaunch display update
-<% if (!launch_complete) { %>
+// Autolaunch display update. It is always installed on home because startup
+// status can appear after the initial HTML render.
+let refreshHomeStatusOnce = null
 const startHomeAutolaunchPolling = () => {
   const getStartingLines = () => Array.from(document.querySelectorAll('[data-autolaunch-starting="1"]'))
-  if (getStartingLines().length === 0) {
-    return
+  const hasVisibleStartupRows = () => getStartingLines().length > 0
+  const initialLaunchComplete = <%= launch_complete ? "true" : "false" %>
+  const getHomeAppLines = () => Array.from(document.querySelectorAll(".home-app-line[data-autolaunch-app]"))
+  const activeHomeAutolaunchApps = new Set()
+  const isPreparingAutolaunchState = (status) => {
+    return !!(status && status.state !== "ready")
+  }
+  const ownerIds = (status) => {
+    if (!status) {
+      return []
+    }
+    const ids = []
+    const add = (value) => {
+      const id = String(value || "").trim()
+      if (id && !ids.includes(id)) {
+        ids.push(id)
+      }
+    }
+    if (Array.isArray(status.owner_app_ids)) {
+      status.owner_app_ids.forEach(add)
+    }
+    add(status.owner_app_id)
+    return ids
+  }
+  const hasActiveOwner = (status, apps, runningApps) => {
+    const owners = ownerIds(status)
+    return owners.length === 0 || owners.some((ownerId) => !!apps[ownerId] || runningApps.has(ownerId))
+  }
+  const shouldDisplayAutolaunchStatus = (app, status, apps, runningApps) => {
+    if (!status) {
+      return false
+    }
+    if (runningApps.has(app)) {
+      return true
+    }
+    return isPreparingAutolaunchState(status) && hasActiveOwner(status, apps, runningApps)
+  }
+  const getAutolaunchLines = (state) => {
+    const lines = new Set(getStartingLines())
+    const apps = state && state.autolaunch && state.autolaunch.apps ? state.autolaunch.apps : {}
+    const runningApps = new Set(Array.isArray(state && state.running_apps) ? state.running_apps : [])
+    const trackedApps = new Set(Object.entries(apps)
+      .filter(([app, status]) => shouldDisplayAutolaunchStatus(app, status, apps, runningApps))
+      .map(([app]) => app))
+    for (const app of runningApps) {
+      trackedApps.add(app)
+    }
+    for (const app of activeHomeAutolaunchApps) {
+      trackedApps.add(app)
+    }
+    if (trackedApps.size > 0) {
+      for (const line of getHomeAppLines()) {
+        if (trackedApps.has(line.getAttribute("data-autolaunch-app"))) {
+          lines.add(line)
+        }
+      }
+    }
+    return Array.from(lines)
   }
   let attempts = 0
+  const maxPollAttempts = 240
   let interval = null
+  let hadStartingLines = getStartingLines().length > 0
   const stopPolling = () => {
     if (interval) {
       clearInterval(interval)
@@ -2059,6 +2120,19 @@ const startHomeAutolaunchPolling = () => {
     const name = scriptName(script)
     return !!expected && (name === expected || String(name).endsWith(`/${expected}`))
   }
+  const syncStopButtonSpinner = (button, show) => {
+    let spinner = button.querySelector(".home-stop-spinner")
+    if (show) {
+      if (!spinner) {
+        spinner = document.createElement("i")
+        spinner.className = "home-stop-spinner fa-solid fa-spin fa-circle-notch"
+        spinner.setAttribute("aria-hidden", "true")
+        button.appendChild(spinner)
+      }
+    } else if (spinner) {
+      spinner.remove()
+    }
+  }
   const createStopButton = (script, displayLabel = "") => {
     const label = (script && (script.script_path || script.path)) || "script"
     const button = document.createElement("button")
@@ -2081,10 +2155,7 @@ const startHomeAutolaunchPolling = () => {
     text.textContent = displayLabel || `Stop ${label}`
     button.appendChild(text)
 
-    const spinner = document.createElement("i")
-    spinner.className = "fa-solid fa-spin fa-circle-notch"
-    spinner.setAttribute("aria-hidden", "true")
-    button.appendChild(spinner)
+    syncStopButtonSpinner(button, !!displayLabel)
     return button
   }
   const updateStopButton = (button, script, displayLabel = "") => {
@@ -2095,6 +2166,7 @@ const startHomeAutolaunchPolling = () => {
     if (text) {
       text.textContent = displayLabel || `Stop ${label}`
     }
+    syncStopButtonSpinner(button, !!displayLabel)
   }
   const syncStopButtons = (line, scripts, displayLabelForScript = null) => {
     const menuButtons = line.querySelector(".menu-btns")
@@ -2104,11 +2176,13 @@ const startHomeAutolaunchPolling = () => {
     const existing = new Map(Array.from(menuButtons.querySelectorAll(".shutdown")).map((button) => {
       return [button.getAttribute("data-src") || button.getAttribute("data-id") || "", button]
     }))
+    const active = new Set()
     for (const script of scripts) {
       const identity = scriptIdentity(script)
       if (!identity) {
         continue
       }
+      active.add(identity)
       const displayLabel = typeof displayLabelForScript === "function"
         ? displayLabelForScript(script)
         : displayLabelForScript
@@ -2117,6 +2191,11 @@ const startHomeAutolaunchPolling = () => {
         updateStopButton(button, script, displayLabel || "")
       } else {
         menuButtons.appendChild(createStopButton(script, displayLabel || ""))
+      }
+    }
+    for (const [identity, button] of existing) {
+      if (!active.has(identity)) {
+        button.remove()
       }
     }
   }
@@ -2162,10 +2241,33 @@ const startHomeAutolaunchPolling = () => {
       status.remove()
     }
   }
+  const getOrCreateRunningSection = () => {
+    let section = document.querySelector(".running-apps")
+    if (section) {
+      return section
+    }
+    section = document.createElement("div")
+    section.className = "running-apps"
+    const notRunningSection = document.querySelector(".not-running-apps")
+    if (notRunningSection) {
+      notRunningSection.insertAdjacentElement("beforebegin", section)
+    } else {
+      const placeholder = document.querySelector(".placeholder")
+      if (placeholder) {
+        placeholder.insertAdjacentElement("beforebegin", section)
+      }
+    }
+    return section
+  }
   const markAutolaunchRunning = (line, scripts) => {
+    activeHomeAutolaunchApps.add(line.getAttribute("data-autolaunch-app"))
     clearStartingVisuals(line)
     updateHomeActionStatus(line, "Running")
     syncStopButtons(line, scripts)
+    const runningSection = getOrCreateRunningSection()
+    if (runningSection) {
+      runningSection.appendChild(line)
+    }
   }
   const getOrCreateNotRunningSection = () => {
     let section = document.querySelector(".not-running-apps")
@@ -2188,6 +2290,8 @@ const startHomeAutolaunchPolling = () => {
   const markAutolaunchIdle = (line) => {
     clearStartingVisuals(line)
     updateHomeActionStatus(line, "")
+    syncStopButtons(line, [])
+    activeHomeAutolaunchApps.delete(line.getAttribute("data-autolaunch-app"))
     const notRunningSection = getOrCreateNotRunningSection()
     if (notRunningSection) {
       notRunningSection.appendChild(line)
@@ -2200,17 +2304,24 @@ const startHomeAutolaunchPolling = () => {
   }
   const updateAutolaunchWaitingVisuals = (line, status, autolaunch, runningScripts = []) => {
     if (!status) return
+    hadStartingLines = true
+    activeHomeAutolaunchApps.add(line.getAttribute("data-autolaunch-app"))
     let label = "Starting automatically"
     let iconClass = "fa-solid fa-circle-notch fa-spin"
     let showStatusChip = true
+    line.setAttribute("data-autolaunch-starting", "1")
+    line.classList.add("autolaunch-starting")
+    if (status.script) {
+      line.setAttribute("data-autolaunch-script", status.script)
+    }
     const waitingFor = Array.isArray(status.waiting_for) ? status.waiting_for : []
-    if (waitingFor.length > 0 && !["ready", "stopped", "blocked", "failed", "timeout"].includes(status.state || "")) {
+    if (waitingFor.length > 0 && !["ready", "blocked"].includes(status.state || "")) {
       label = `Waiting for ${waitingFor.map((id) => autolaunchDependencyLabel(autolaunch, id)).join(", ")}`
       updateHomeActionStatus(line, label, true)
       line.classList.add("autolaunch-waiting")
       line.classList.remove("autolaunch-blocked")
-    } else if (["blocked", "failed", "timeout"].includes(status.state)) {
-      label = status.error || "Autolaunch blocked"
+    } else if (status.state === "blocked") {
+      label = status.blocked_reason || "Startup blocked"
       iconClass = "fa-solid fa-triangle-exclamation"
       updateHomeActionStatus(line, label, true)
       line.classList.add("autolaunch-blocked")
@@ -2233,12 +2344,22 @@ const startHomeAutolaunchPolling = () => {
         showStatusChip = false
       }
     }
-    const chip = line.querySelector(".home-autolaunch-status")
+    let chip = line.querySelector(".home-autolaunch-status")
     if (!showStatusChip) {
       if (chip) {
         chip.remove()
       }
       return
+    }
+    if (!chip) {
+      const menuButtons = line.querySelector(".menu-btns")
+      if (!menuButtons) {
+        return
+      }
+      chip = document.createElement("span")
+      chip.className = "home-autolaunch-status"
+      chip.innerHTML = '<i class="fa-solid" aria-hidden="true"></i><span></span>'
+      menuButtons.appendChild(chip)
     }
     if (chip) {
       chip.title = label
@@ -2253,9 +2374,8 @@ const startHomeAutolaunchPolling = () => {
     }
   }
   const applyHomeStatus = (state) => {
-    const lines = getStartingLines()
+    const lines = getAutolaunchLines(state)
     if (lines.length === 0) {
-      stopPolling()
       return
     }
     const runningApps = new Set(Array.isArray(state.running_apps) ? state.running_apps : [])
@@ -2275,9 +2395,9 @@ const startHomeAutolaunchPolling = () => {
       const app = line.getAttribute("data-autolaunch-app")
       const autolaunchState = apps[app]
       const runningScripts = scriptsByApp.get(app) || []
-      if (autolaunchState && autolaunchState.state === "stopped") {
+      if (autolaunchState && !shouldDisplayAutolaunchStatus(app, autolaunchState, apps, runningApps)) {
         markAutolaunchIdle(line)
-      } else if (autolaunchState && !["ready", "blocked", "failed", "timeout"].includes(autolaunchState.state || "") && !state.launch_complete) {
+      } else if (isPreparingAutolaunchState(autolaunchState)) {
         updateAutolaunchWaitingVisuals(line, autolaunchState, autolaunch, runningScripts)
       } else if (runningApps.has(app)) {
         markAutolaunchRunning(line, runningScripts)
@@ -2288,31 +2408,68 @@ const startHomeAutolaunchPolling = () => {
       }
     }
     if (getStartingLines().length === 0) {
-      stopPolling()
-      reorderHomeSectionsByPreference()
+      if (hadStartingLines) {
+        hadStartingLines = false
+        reorderHomeSectionsByPreference()
+      }
     }
   }
-  const poll = async () => {
-    const lines = getStartingLines()
-    if (lines.length === 0) {
-      if (interval) {
-        clearInterval(interval)
+  const requestHomeStatus = () => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open("GET", `/pinokio/home_status?t=${Date.now()}`, true)
+      xhr.setRequestHeader("Cache-Control", "no-cache")
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState !== 4) {
+          return
+        }
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            resolve(JSON.parse(xhr.responseText))
+          } catch (error) {
+            reject(error)
+          }
+        } else {
+          reject(new Error(`home_status ${xhr.status}`))
+        }
       }
-      return
+      xhr.onerror = () => reject(new Error("home_status request failed"))
+      xhr.send()
+    })
+  }
+  refreshHomeStatusOnce = (appId = "") => {
+    const trackedApp = String(appId || "").trim()
+    if (trackedApp) {
+      activeHomeAutolaunchApps.add(trackedApp)
     }
+    return requestHomeStatus().then((state) => {
+      applyHomeStatus(state)
+      return state
+    })
+  }
+  window.refreshHomeStatusOnce = refreshHomeStatusOnce
+  if (initialLaunchComplete && !hasVisibleStartupRows()) {
+    return
+  }
+  const shouldContinueHomeStatusPolling = (state) => {
+    if (attempts >= maxPollAttempts) {
+      return false
+    }
+    if (hasVisibleStartupRows()) {
+      return true
+    }
+    return !(state && state.launch_complete)
+  }
+  const poll = async () => {
     attempts += 1
     try {
-      const response = await fetch("/pinokio/home_status", { cache: "no-store" })
-      if (!response.ok) {
-        if (attempts >= 240) {
-          stopPolling()
-        }
-        return
+      const state = await refreshHomeStatusOnce()
+      if (!shouldContinueHomeStatusPolling(state)) {
+        stopPolling()
       }
-      const state = await response.json()
-      applyHomeStatus(state)
     } catch (error) {
-      if (attempts >= 240) {
+      console.warn("[home] autolaunch status update failed", error)
+      if (attempts >= maxPollAttempts) {
         stopPolling()
       }
     }
@@ -2325,13 +2482,10 @@ const startHomeAutolaunchPolling = () => {
     }
   })
   window.addEventListener("beforeunload", () => {
-    if (interval) {
-      clearInterval(interval)
-    }
+    stopPolling()
   })
 }
 startHomeAutolaunchPolling()
-<% } %>
 document.addEventListener("keydown", (e) => {
   e = e || window.event;
   if (e.key === "ArrowUp") {
@@ -2862,7 +3016,10 @@ document.addEventListener("click", async (e) => {
         if (packet.type === "result") {
           socket.close()
           target.querySelector("i.fa-stop").className = "fa-solid fa-check"
-          target.querySelector("i.fa-spin").classList.add("hidden")
+          const resultSpinIcon = target.querySelector("i.fa-spin")
+          if (resultSpinIcon) {
+            resultSpinIcon.classList.add("hidden")
+          }
           n.Noty({
             text: `stopped`,
             silent: true
@@ -2881,13 +3038,25 @@ document.addEventListener("click", async (e) => {
         if (packet.type === "result") {
           socket.close()
           target.querySelector("i.fa-stop").className = "fa-solid fa-check"
-          target.querySelector("i.fa-spin").classList.add("hidden")
+          const resultSpinIcon = target.querySelector("i.fa-spin")
+          if (resultSpinIcon) {
+            resultSpinIcon.classList.add("hidden")
+          }
           n.Noty({
             text: `stopped ${src}`,
             silent: true
           })
           setTimeout(() => {
-            location.href = location.href
+            if (typeof refreshHomeStatusOnce === "function") {
+              const stoppedLine = target.closest(".home-app-line")
+              const stoppedApp = stoppedLine ? stoppedLine.getAttribute("data-autolaunch-app") : ""
+              refreshHomeStatusOnce(stoppedApp).catch((error) => {
+                console.warn("[home] stop status refresh failed", error)
+                location.href = location.href
+              })
+            } else {
+              location.href = location.href
+            }
           }, 500)
         }
       })

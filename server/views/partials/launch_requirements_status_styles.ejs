@@ -1,0 +1,125 @@
+.launch-requirements-status {
+  position: absolute;
+  inset: 0;
+  z-index: 10001;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  padding: 24px;
+  pointer-events: none;
+  color: rgba(17, 24, 39, 0.92);
+}
+.launch-requirements-status[hidden] {
+  display: none !important;
+}
+.launch-requirements-card {
+  width: min(520px, calc(100vw - 64px));
+  box-sizing: border-box;
+  padding: 0;
+  text-align: center;
+  pointer-events: auto;
+}
+body.dark .launch-requirements-card {
+  color: rgba(248, 250, 252, 0.92);
+}
+.launch-requirements-title {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 750;
+}
+.launch-requirements-title i {
+  color: #2563eb;
+}
+.launch-requirements-detail {
+  color: rgba(100, 116, 139, 0.96);
+  font-size: 12px;
+  line-height: 1.35;
+  margin-bottom: 12px;
+}
+body.dark .launch-requirements-detail {
+  color: rgba(203, 213, 225, 0.86);
+}
+.launch-requirements-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  text-align: left;
+}
+.launch-requirements-row {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 6px 8px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  background: rgba(148, 163, 184, 0.08);
+}
+body.dark .launch-requirements-row {
+  border-color: rgba(148, 163, 184, 0.12);
+  background: rgba(148, 163, 184, 0.07);
+}
+.launch-requirements-row img {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.launch-requirements-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+}
+.launch-requirements-state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  color: rgba(100, 116, 139, 0.96);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.launch-requirements-state.is-active i {
+  color: #2563eb;
+}
+.launch-requirements-state.is-ready i {
+  color: #16a34a;
+}
+body.dark .launch-requirements-state {
+  color: rgba(203, 213, 225, 0.82);
+}
+.launch-requirements-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+.launch-requirements-stop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  color: inherit;
+  background: rgba(148, 163, 184, 0.1);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.launch-requirements-stop:hover {
+  background: rgba(148, 163, 184, 0.16);
+}
+.launch-requirements-stop:disabled {
+  cursor: default;
+  opacity: 0.65;
+}

@@ -1483,6 +1483,12 @@ class Server {
       config,
       protection_enabled: protectionPreference ? protectionPreference.protection_enabled !== false : false,
       autolaunch_app: autolaunchAppState,
+      launch_requirements_status_enabled: !!(
+        autolaunchAppState &&
+        autolaunchAppState.autolaunch &&
+        Array.isArray(autolaunchAppState.autolaunch_depends) &&
+        autolaunchAppState.autolaunch_depends.length > 0
+      ),
 //        sidebar_url: "/pinokio/sidebar/" + name,
       home: req.originalUrl,
       run_tab,
@@ -3037,6 +3043,7 @@ class Server {
           const result = {
             portal: this.portal,
             projectName: (pathComponents.length > 0 ? pathComponents[0] : ''),
+            name: (pathComponents.length > 0 ? pathComponents[0] : ''),
             protection_app_id: protectionAppId,
             protection_enabled: protectionPreference ? protectionPreference.protection_enabled !== false : false,
             active_process_wait: activeProcessWait ? {
@@ -3088,6 +3095,9 @@ class Server {
             taskSaveWorkspacesRoot: this.kernel.path("workspaces"),
             script_id: (req.base ? `${full_filepath}?cwd=${req.query.cwd}` : null),
             script_path: (req.base ? full_filepath : null),
+            launch_requirements_status_enabled: this.kernel && typeof this.kernel.hasLaunchRequirementConfig === "function"
+              ? await this.kernel.hasLaunchRequirementConfig(filepath)
+              : false,
           }
 
           res.render(template, result)
@@ -3313,6 +3323,9 @@ class Server {
 
 
         let index = 0
+        const homeStartupDisplayGraph = !this.kernel.launch_complete
+          ? await this.autolaunch.buildHomeStartupDisplayGraph()
+          : null
         for(let i=0; i<items.length; i++) {
           let item = items[i]
           let launcher = await this.kernel.api.launcher(item.name)
@@ -3538,8 +3551,8 @@ class Server {
             const status = this.kernel.autolaunch_status && this.kernel.autolaunch_status.apps
               ? this.kernel.autolaunch_status.apps[items[i].name]
               : null
-            if (status && !["ready", "stopped", "blocked", "failed", "timeout"].includes(status.state || "")) {
-              await this.autolaunch.applyHomeStartingState(items[i], items[i].index)
+            if (status && !["ready", "blocked"].includes(status.state || "")) {
+              await this.autolaunch.applyHomeStartingState(items[i], items[i].index, homeStartupDisplayGraph)
             }
           }
           if (!items[i].running && shellMatches && shellMatches.length > 0) {
@@ -3550,7 +3563,7 @@ class Server {
             index++
           }
           if (!items[i].running) {
-            if (await this.autolaunch.applyHomeStartingState(items[i], index)) {
+            if (await this.autolaunch.applyHomeStartingState(items[i], index, homeStartupDisplayGraph)) {
               running.push(items[i])
               index++
             } else {
@@ -6351,6 +6364,65 @@ class Server {
     })
     */
     this.autolaunch.registerRoutes()
+    this.app.get("/pinokio/launch-requirements/:app", ex(async (req, res) => {
+      const appId = this.kernel && typeof this.kernel.normalizeAppId === "function"
+        ? this.kernel.normalizeAppId(req.params.app)
+        : ""
+      const status = this.kernel && typeof this.kernel.getLaunchRequirementsStatus === "function"
+        ? this.kernel.getLaunchRequirementsStatus(appId || req.params.app)
+        : null
+      res.json({
+        ok: true,
+        status
+      })
+    }))
+    this.app.post("/pinokio/launch-requirements/:app/cancel", ex(async (req, res) => {
+      const appId = this.kernel && typeof this.kernel.normalizeAppId === "function"
+        ? this.kernel.normalizeAppId(req.params.app)
+        : ""
+      if (!appId) {
+        res.status(400).json({ ok: false, error: "Invalid app." })
+        return
+      }
+      const status = this.kernel && typeof this.kernel.getLaunchRequirementsStatus === "function"
+        ? this.kernel.getLaunchRequirementsStatus(appId)
+        : null
+      let script = status && typeof status.script === "string" ? status.script.trim() : ""
+      if (!script) {
+        const appRoot = this.kernel.path("api", appId)
+        const env = await Environment.get(appRoot, this.kernel).catch(() => ({}))
+        script = Environment.getScriptAutolaunch(env)
+      }
+      const launchPath = script ? path.resolve(this.kernel.path("api", appId), script) : ""
+      const cancelled = !!(launchPath && this.kernel.launchRequirements && typeof this.kernel.launchRequirements.cancel === "function" && this.kernel.launchRequirements.cancel(launchPath, { force: true }))
+      const running = this.kernel && this.kernel.api && this.kernel.api.running ? this.kernel.api.running : {}
+      const runningKeys = launchPath
+        ? Object.keys(running).filter((key) => {
+            const value = String(key || "")
+            return value === launchPath || value.startsWith(`${launchPath}?`) || value.startsWith(`${launchPath}&`)
+          })
+        : []
+      for (const key of runningKeys) {
+        if (this.kernel && this.kernel.api && typeof this.kernel.api.stop === "function") {
+          await this.kernel.api.stop({ params: { id: key } })
+        }
+      }
+      if ((cancelled || runningKeys.length > 0) && this.kernel && this.kernel.api && typeof this.kernel.api.ondata === "function") {
+        this.kernel.api.ondata({
+          id: launchPath,
+          type: "launch.requirements.control",
+          data: {
+            action: "cancelled",
+            app_id: appId
+          }
+        })
+      }
+      res.json({
+        ok: true,
+        cancelled,
+        stopped: runningKeys.length > 0
+      })
+    }))
     this.app.get("/tools", ex(async (req, res) => {
       const peerAccess = await this.composePeerAccessPayload()
       let list = this.getPeers()

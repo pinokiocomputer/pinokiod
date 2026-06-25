@@ -216,24 +216,6 @@ body.dark .app-autolaunch-dependency-option-path {
 body.dark .app-autolaunch-dependency-picker-empty {
   color: rgba(203, 213, 225, 0.86);
 }
-.app-autolaunch-dependency-warning {
-  border: 1px solid rgba(180, 83, 9, 0.22);
-  border-radius: 6px;
-  background: rgba(180, 83, 9, 0.08);
-  color: rgba(100, 116, 139, 0.96);
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 8px;
-  font-size: 11px;
-}
-body.dark .app-autolaunch-dependency-warning {
-  color: rgba(203, 213, 225, 0.9);
-}
-.app-autolaunch-dependency-warning span {
-  flex: 1;
-  min-width: 0;
-}
 .app-autolaunch-dependency-configure {
   border: 1px solid rgba(180, 83, 9, 0.24);
   border-radius: 6px;
@@ -252,4 +234,63 @@ body.dark .app-autolaunch-dependency-warning {
 }
 body.dark .app-autolaunch-dependency-configure {
   color: rgba(252, 211, 146, 0.94);
+}
+.app-autolaunch-dependency-script-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000003;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(2, 6, 23, 0.55);
+  box-sizing: border-box;
+}
+.app-autolaunch-dependency-script-panel {
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(560px, calc(100vh - 48px));
+  overflow: auto;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.99);
+  color: rgba(15, 23, 42, 0.92);
+  box-shadow: 0 20px 58px rgba(15, 23, 42, 0.28);
+  box-sizing: border-box;
+}
+body.dark .app-autolaunch-dependency-script-panel {
+  border-color: rgba(148, 163, 184, 0.26);
+  background: rgba(15, 17, 21, 0.99);
+  color: rgba(248, 250, 252, 0.92);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.62);
+}
+.app-autolaunch-dependency-script-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+body.dark .app-autolaunch-dependency-script-head {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.app-autolaunch-dependency-script-app {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+body.dark .app-autolaunch-dependency-script-app {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.app-autolaunch-dependency-script-app img {
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  object-fit: cover;
+}
+.app-autolaunch-dependency-script-body {
+  padding: 12px 14px 14px;
 }

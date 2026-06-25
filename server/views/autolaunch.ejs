@@ -288,6 +288,18 @@ body.autolaunch-page .autolaunch-switch-label {
   min-width: 18px;
   text-align: left;
 }
+body.autolaunch-page .autolaunch-startup-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: end;
+}
+body.autolaunch-page .autolaunch-startup-label {
+  color: var(--task-muted);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
 body.autolaunch-page .autolaunch-detail {
   min-height: 480px;
 }
@@ -388,6 +400,39 @@ body.autolaunch-page .autolaunch-script-title span:first-child {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+body.autolaunch-page .autolaunch-current-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+body.autolaunch-page .autolaunch-current-row .autolaunch-current {
+  flex: 1;
+  min-width: 0;
+}
+body.autolaunch-page .autolaunch-clear-script {
+  flex: 0 0 auto;
+  min-height: 28px;
+  border: 1px solid var(--task-border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--task-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+body.autolaunch-page .autolaunch-clear-script:hover {
+  background: color-mix(in srgb, var(--task-border) 55%, transparent);
+  color: var(--task-text);
+}
+body.autolaunch-page .autolaunch-clear-script:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
 body.autolaunch-page .autolaunch-tag {
   border-radius: 999px;
   padding: 2px 6px 3px;
@@ -466,15 +511,15 @@ body.autolaunch-page .autolaunch-loading i {
     <section class="task-shell autolaunch-shell">
       <header class="task-shell-header">
         <div class="task-shell-header-main">
-          <h1 class="task-title">Startup scripts</h1>
-          <p class="task-description">Choose which installed app script runs when Pinokio starts.</p>
+          <h1 class="task-title">Autolaunch</h1>
+          <p class="task-description">Choose app launch scripts, startup behavior, and requirements.</p>
         </div>
         <div class="task-header-actions autolaunch-summary">
-          <span class="autolaunch-summary-item"><strong data-enabled-count><%= enabledCount %></strong> enabled</span>
+          <span class="autolaunch-summary-item"><strong data-enabled-count><%= enabledCount %></strong> startup enabled</span>
           <span class="autolaunch-summary-item"><strong data-app-count><%= apps.length %></strong> apps</span>
           <button type="button" class="task-button danger" data-disable-all <%= enabledCount ? '' : 'disabled' %>>
             <i class="fa-solid fa-power-off"></i>
-            Disable all
+            Disable startup
           </button>
         </div>
       </header>
@@ -484,7 +529,7 @@ body.autolaunch-page .autolaunch-loading i {
           <div class="task-section-head">
             <div>
               <h2 class="task-section-title">Installed apps</h2>
-              <p class="task-section-subcopy">Apps with autolaunch enabled appear first. Changes take effect the next time Pinokio starts.</p>
+              <p class="task-section-subcopy">Apps with startup enabled appear first. Requirements are used for startup and manual launches.</p>
             </div>
           </div>
           <div class="autolaunch-toolbar">
@@ -499,7 +544,7 @@ body.autolaunch-page .autolaunch-loading i {
             </aside>
 
             <section class="autolaunch-detail" data-detail>
-              <div class="autolaunch-empty">Select an app to configure its startup script.</div>
+              <div class="autolaunch-empty">Select an app to configure Autolaunch.</div>
             </section>
           </div>
         </section>
@@ -516,7 +561,12 @@ let selectedScript = "";
 let candidateState = null;
 let savingAutolaunch = false;
 let savingDependencies = false;
+let savingDependencyScript = false;
 let dependencyPickerOpen = false;
+let dependencyScriptPickerOpen = "";
+let pendingDependencyId = "";
+let dependencyScriptCandidates = {};
+let dependencyScriptSelections = {};
 
 const appListEl = document.querySelector("[data-app-list]");
 const searchEl = document.querySelector("[data-app-search]");
@@ -575,8 +625,9 @@ const syncAppState = (updatedApp) => {
 };
 
 const setDetailBusy = (busy) => {
-  detailEl.querySelectorAll("[data-autolaunch-switch], [data-apply-manual], [data-toggle-dependency-picker], [data-add-dependency], [data-remove-dependency], [data-configure-dependency], [data-dependency-search]").forEach((control) => {
-    control.disabled = !!busy;
+  const blocked = !!busy || savingAutolaunch || savingDependencies || savingDependencyScript;
+  detailEl.querySelectorAll("[data-autolaunch-switch], [data-apply-manual], [data-clear-script], [data-toggle-dependency-picker], [data-add-dependency], [data-remove-dependency], [data-configure-dependency], [data-dependency-search], [data-dependency-script-choice], [data-close-dependency-script-modal]").forEach((control) => {
+    control.disabled = blocked;
   });
 };
 
@@ -609,8 +660,8 @@ const renderAppList = () => {
   visible.forEach((app) => {
     const folderPath = formatAppFolderPath(app);
     const fullFolderPath = app.workspace_path || app.launcher_path || folderPath;
-    const scriptLine = app.autolaunch_enabled && app.autolaunch
-      ? `<div class="autolaunch-app-script">Runs ${escapeHtml(app.autolaunch)}</div>`
+    const scriptLine = app.autolaunch
+      ? `<div class="autolaunch-app-script">Launches ${escapeHtml(app.autolaunch)}</div>`
       : "";
     const row = document.createElement("button");
     row.type = "button";
@@ -623,7 +674,7 @@ const renderAppList = () => {
         <div class="autolaunch-app-folder" title="${escapeHtml(fullFolderPath)}">${escapeHtml(folderPath)}</div>
         ${scriptLine}
       </div>
-      <span class="autolaunch-pill ${app.autolaunch_enabled ? "on" : ""}">${app.autolaunch_enabled ? "ON" : "OFF"}</span>
+      <span class="autolaunch-pill ${app.autolaunch_enabled ? "on" : ""}">${app.autolaunch_enabled ? "Startup ON" : "Startup OFF"}</span>
     `;
     row.addEventListener("click", () => selectApp(app.id));
     appListEl.appendChild(row);
@@ -640,10 +691,13 @@ const renderDetailShell = (app, bodyHtml) => {
         <h2 class="autolaunch-detail-title">${escapeHtml(app.title || app.id)}</h2>
         <div class="autolaunch-current">${escapeHtml(app.workspace_path || app.id)}</div>
       </div>
-      <button type="button" class="autolaunch-switch" role="switch" aria-checked="${checked}" data-autolaunch-switch ${savingAutolaunch ? "disabled" : ""}>
-        <span class="autolaunch-switch-track" aria-hidden="true"><span class="autolaunch-switch-thumb"></span></span>
-        <span class="autolaunch-switch-label">${label}</span>
-      </button>
+      <div class="autolaunch-startup-control">
+        <span class="autolaunch-startup-label">Start with Pinokio</span>
+        <button type="button" class="autolaunch-switch" role="switch" aria-checked="${checked}" aria-label="Start with Pinokio" data-autolaunch-switch ${savingAutolaunch ? "disabled" : ""}>
+          <span class="autolaunch-switch-track" aria-hidden="true"><span class="autolaunch-switch-thumb"></span></span>
+          <span class="autolaunch-switch-label">${label}</span>
+        </button>
+      </div>
     </div>
     ${bodyHtml}
   `;
@@ -693,17 +747,7 @@ const renderScriptSection = (title, note, candidates) => {
   `;
 };
 
-const chooseInitialScript = (data) => {
-  const all = [].concat(data.menu || [], data.other || []);
-  if (data.current) {
-    return data.current;
-  }
-  const defaultCandidate = all.find((candidate) => candidate.menu_default);
-  if (defaultCandidate) {
-    return defaultCandidate.script;
-  }
-  return all.length > 0 ? all[0].script : (data.current || "");
-};
+const configuredScript = (data) => data && data.current ? data.current : "";
 
 <%- include('partials/autolaunch_dependency_helpers') %>
 const bindDetailControls = () => {
@@ -714,11 +758,13 @@ const bindDetailControls = () => {
       if (manual) manual.value = selectedScript;
       renderCandidates();
       const app = currentApp();
-      if (app && app.autolaunch_enabled) {
-        saveScript(selectedScript);
+      if (app) {
+        saveScript(selectedScript, !!app.autolaunch_enabled);
       }
     });
   });
+  const clear = detailEl.querySelector("[data-clear-script]");
+  if (clear) clear.addEventListener("click", clearScript);
   const toggle = detailEl.querySelector("[data-autolaunch-switch]");
   if (toggle) toggle.addEventListener("click", toggleAutolaunch);
   const manual = detailEl.querySelector("[data-manual-script]");
@@ -769,12 +815,34 @@ const bindDetailControls = () => {
       const app = currentApp();
       const dependency = control.getAttribute("data-add-dependency");
       if (!app || !dependency) return;
+      if (!(selectedScript || app.autolaunch)) {
+        dependencyPickerOpen = false;
+        renderCandidates();
+        setFeedback("Choose this app's launch script before adding requirements.", true);
+        return;
+      }
       const dependencies = Array.isArray(app.autolaunch_depends) ? app.autolaunch_depends.slice() : [];
       if (!dependencies.includes(dependency)) {
-        dependencies.push(dependency);
         dependencyPickerOpen = false;
-        saveDependencies(dependencies);
+        pendingDependencyId = dependency;
+        dependencyScriptPickerOpen = dependency;
+        renderCandidates();
+        loadDependencyScriptCandidates(dependency);
+        setFeedback("");
       }
+    });
+  });
+  detailEl.querySelectorAll("[data-close-dependency-script-modal]").forEach((control) => {
+    control.addEventListener("click", () => {
+      if (pendingDependencyId === dependencyScriptPickerOpen) {
+        pendingDependencyId = "";
+      }
+      if (dependencyScriptPickerOpen) {
+        delete dependencyScriptSelections[dependencyScriptPickerOpen];
+      }
+      dependencyScriptPickerOpen = "";
+      renderCandidates();
+      setFeedback("");
     });
   });
   detailEl.querySelectorAll("[data-remove-dependency]").forEach((control) => {
@@ -783,14 +851,40 @@ const bindDetailControls = () => {
       if (!app) return;
       const dependency = control.getAttribute("data-remove-dependency");
       const dependencies = Array.isArray(app.autolaunch_depends) ? app.autolaunch_depends : [];
-      saveDependencies(dependencies.filter((id) => id !== dependency));
+      if (dependency) {
+        saveDependencies(dependencies.filter((id) => id !== dependency));
+      }
     });
   });
   detailEl.querySelectorAll("[data-configure-dependency]").forEach((control) => {
     control.addEventListener("click", () => {
       const dependency = control.getAttribute("data-configure-dependency");
       if (dependency) {
-        selectApp(dependency);
+        pendingDependencyId = "";
+        dependencyScriptPickerOpen = dependency;
+        renderCandidates();
+        if (dependencyScriptPickerOpen) {
+          loadDependencyScriptCandidates(dependency);
+        }
+      }
+    });
+  });
+  detailEl.querySelectorAll("[data-dependency-script-choice]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const dependency = input.getAttribute("data-dependency-script-app");
+      if (dependency && input.value) {
+        dependencyScriptSelections[dependency] = input.value;
+        renderCandidates();
+      }
+    });
+  });
+  detailEl.querySelectorAll("[data-confirm-dependency-script]").forEach((control) => {
+    control.addEventListener("click", () => {
+      const dependency = control.getAttribute("data-dependency-script-app");
+      const dependencyApp = dependency ? dependencyById(dependency) : null;
+      const script = dependency ? (dependencyScriptSelections[dependency] || (dependencyApp && dependencyApp.autolaunch) || "") : "";
+      if (dependency && script) {
+        saveDependencyScript(dependency, script);
       }
     });
   });
@@ -801,13 +895,28 @@ const renderCandidates = () => {
   if (!app || !candidateState) return;
   const hasCandidates = (candidateState.menu && candidateState.menu.length) || (candidateState.other && candidateState.other.length);
   const currentValue = candidateState.current || "";
+  const dependencies = Array.isArray(app.autolaunch_depends) ? app.autolaunch_depends : [];
+  const hasRequirements = dependencies.length > 0;
+  const requirementWarning = hasRequirements && !currentValue
+    ? '<div class="autolaunch-feedback error">Choose this app\'s launch script before these requirements can run.</div>'
+    : "";
+  const clearButton = currentValue
+    ? `<button type="button" class="autolaunch-clear-script" data-clear-script title="${hasRequirements ? "Remove requirements before clearing this app's launch script." : "Clear launch script"}" ${hasRequirements ? "disabled" : ""}>
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        <span>Clear</span>
+      </button>`
+    : "";
   renderDetailShell(app, `
     <div class="autolaunch-section">
       <div class="autolaunch-section-header">
         <h3 class="autolaunch-section-title">Current</h3>
-        <span class="autolaunch-section-note">Takes effect next time Pinokio starts</span>
+        <span class="autolaunch-section-note">Launch script</span>
       </div>
-      <div class="autolaunch-current">${escapeHtml(currentValue || "OFF")}</div>
+      <div class="autolaunch-current-row">
+        <div class="autolaunch-current">${escapeHtml(currentValue || "OFF")}</div>
+        ${clearButton}
+      </div>
+      ${requirementWarning}
       <div class="autolaunch-feedback" data-feedback></div>
     </div>
     ${renderDependencySection(app)}
@@ -835,17 +944,19 @@ const toggleAutolaunch = () => {
   const app = currentApp();
   if (!app || savingAutolaunch) return;
   if (app.autolaunch_enabled) {
-    saveScript("");
+    const manual = detailEl.querySelector("[data-manual-script]");
+    const script = manual && manual.value.trim() ? manual.value.trim() : (selectedScript || app.autolaunch || "");
+    saveScript(script, false);
     return;
   }
   const manual = detailEl.querySelector("[data-manual-script]");
-  const script = manual && manual.value.trim() ? manual.value.trim() : selectedScript;
+  const script = manual && manual.value.trim() ? manual.value.trim() : (selectedScript || "");
   if (!script) {
-    setFeedback("Choose a script first.", true);
+    setFeedback("Choose a launch script first.", true);
     return;
   }
   selectedScript = script;
-  saveScript(script);
+  saveScript(script, true);
 };
 
 const loadCandidates = async (appId) => {
@@ -864,7 +975,7 @@ const loadCandidates = async (appId) => {
     }
     candidateState = data;
     syncAppState(data.app);
-    selectedScript = chooseInitialScript(data);
+    selectedScript = configuredScript(data);
     renderCandidates();
   } catch (error) {
     renderDetailShell(app, `
@@ -878,6 +989,8 @@ const loadCandidates = async (appId) => {
 const selectApp = (appId, updateUrl = true) => {
   selectedAppId = appId;
   dependencyPickerOpen = false;
+  dependencyScriptPickerOpen = "";
+  pendingDependencyId = "";
   if (updateUrl) {
     updateSelectedAppUrl(appId);
   }
@@ -886,7 +999,75 @@ const selectApp = (appId, updateUrl = true) => {
 };
 
 <%- include('partials/autolaunch_dependency_save') %>
-const saveScript = async (script) => {
+const updateDependencyCandidateState = (updatedApp) => {
+  if (!updatedApp || !updatedApp.id || !candidateState || !Array.isArray(candidateState.dependency_apps)) return;
+  candidateState.dependency_apps = candidateState.dependency_apps.map((app) => app.id === updatedApp.id ? updatedApp : app);
+};
+
+<%- include('partials/launch_settings_dependency_script_loader_factory') %>
+const loadDependencyScriptCandidates = createLaunchSettingsDependencyScriptLoader({
+  getCache: () => dependencyScriptCandidates,
+  render: renderCandidates
+});
+
+const saveDependencyScript = async (appId, script) => {
+  const dependency = autolaunchApps.find((app) => app.id === appId);
+  if (!dependency || !script || savingDependencyScript) return;
+  savingDependencyScript = true;
+  setDetailBusy(true);
+  setFeedback("Saving requirement script...");
+  try {
+    const response = await fetch("/autolaunch", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        app: appId,
+        script,
+        enabled: !!dependency.autolaunch_enabled
+      })
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Failed to save launch script.");
+    }
+    syncAppState(data.app);
+    updateDependencyCandidateState(data.app);
+    if (pendingDependencyId === appId) {
+      const app = currentApp();
+      const dependencies = app && Array.isArray(app.autolaunch_depends) ? app.autolaunch_depends.slice() : [];
+      if (!dependencies.includes(appId)) {
+        const savedDependency = await saveDependencies(dependencies.concat(appId), "Requirement saved.");
+        if (savedDependency) {
+          pendingDependencyId = "";
+          delete dependencyScriptSelections[appId];
+          dependencyScriptPickerOpen = "";
+          renderCandidates();
+        }
+      } else {
+        pendingDependencyId = "";
+        delete dependencyScriptSelections[appId];
+        dependencyScriptPickerOpen = "";
+        renderCandidates();
+        setFeedback("Requirement saved.");
+      }
+    } else {
+      dependencyScriptPickerOpen = "";
+      delete dependencyScriptSelections[appId];
+      renderCandidates();
+      setFeedback("Requirement script saved.");
+    }
+  } catch (error) {
+    setFeedback(error && error.message ? error.message : "Failed to save launch script.", true);
+  } finally {
+    savingDependencyScript = false;
+    setDetailBusy(false);
+  }
+};
+
+const saveScript = async (script, enabled = !!(currentApp() && currentApp().autolaunch_enabled)) => {
   const app = currentApp();
   if (!app || savingAutolaunch) return;
   savingAutolaunch = true;
@@ -901,25 +1082,64 @@ const saveScript = async (script) => {
       },
       body: JSON.stringify({
         app: app.id,
-        script
+        script,
+        enabled: !!enabled
       })
     });
     const data = await response.json();
     if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Failed to save autolaunch.");
+      throw new Error(data.error || "Failed to save Autolaunch settings.");
     }
     syncAppState(data.app);
-    if (data.app && !data.app.autolaunch_enabled) {
-      dependencyPickerOpen = false;
-    }
     if (candidateState) {
       candidateState.current = data.app.autolaunch || "";
     }
     selectedScript = data.app.autolaunch || selectedScript;
     renderCandidates();
-    setFeedback(data.app.autolaunch_enabled ? "Saved." : "Disabled.");
+    setFeedback(data.app.autolaunch_enabled ? "Saved." : (script ? "Launch script saved." : "Disabled."));
   } catch (error) {
-    setFeedback(error && error.message ? error.message : "Failed to save autolaunch.", true);
+    setFeedback(error && error.message ? error.message : "Failed to save Autolaunch settings.", true);
+  } finally {
+    savingAutolaunch = false;
+    setDetailBusy(false);
+  }
+};
+
+const clearScript = async () => {
+  const app = currentApp();
+  if (!app || savingAutolaunch) return;
+  if (Array.isArray(app.autolaunch_depends) && app.autolaunch_depends.length > 0) {
+    setFeedback("Remove requirements before clearing this app's launch script.", true);
+    return;
+  }
+  savingAutolaunch = true;
+  setDetailBusy(true);
+  setFeedback("Clearing launch script...");
+  try {
+    const response = await fetch("/autolaunch", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        app: app.id,
+        clear_script: true
+      })
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Failed to clear launch script.");
+    }
+    syncAppState(data.app);
+    if (candidateState) {
+      candidateState.current = "";
+    }
+    selectedScript = "";
+    renderCandidates();
+    setFeedback("Launch script cleared.");
+  } catch (error) {
+    setFeedback(error && error.message ? error.message : "Failed to clear launch script.", true);
   } finally {
     savingAutolaunch = false;
     setDetailBusy(false);
@@ -933,11 +1153,12 @@ const saveSelectedScript = () => {
     setFeedback("Choose a script first.", true);
     return;
   }
-  saveScript(script);
+  const app = currentApp();
+  saveScript(script, !!(app && app.autolaunch_enabled));
 };
 
 const disableAll = async () => {
-  if (!window.confirm("Disable autolaunch for every installed app?")) {
+  if (!window.confirm("Turn off startup launch for every installed app?")) {
     return;
   }
   disableAllButton.disabled = true;
@@ -948,16 +1169,16 @@ const disableAll = async () => {
     });
     const data = await response.json();
     if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Failed to disable autolaunch.");
+      throw new Error(data.error || "Failed to disable startup launch.");
     }
-    autolaunchApps = data.apps || autolaunchApps.map((app) => ({ ...app, autolaunch: "", autolaunch_enabled: false }));
+    autolaunchApps = data.apps || autolaunchApps.map((app) => ({ ...app, autolaunch_enabled: false }));
     updateStats();
     renderAppList();
     if (selectedAppId) {
       loadCandidates(selectedAppId);
     }
   } catch (error) {
-    window.alert(error && error.message ? error.message : "Failed to disable autolaunch.");
+    window.alert(error && error.message ? error.message : "Failed to disable startup launch.");
     updateStats();
   }
 };

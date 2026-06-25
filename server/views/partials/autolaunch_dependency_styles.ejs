@@ -175,20 +175,99 @@ body.autolaunch-page .autolaunch-dependency-picker-empty {
   font-size: 11px;
   padding: 10px;
 }
-body.autolaunch-page .autolaunch-dependency-warning {
+body.autolaunch-page .autolaunch-dependency-configure {
+  width: fit-content;
   border: 1px solid color-mix(in srgb, #b45309 24%, var(--task-border));
+  border-radius: 6px;
+  background: color-mix(in srgb, #b45309 8%, var(--task-panel));
+  color: var(--task-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 0 7px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+body.autolaunch-page .autolaunch-dependency-configure:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+body.autolaunch-page .autolaunch-icon-button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--task-border-strong);
   border-radius: 7px;
-  background: color-mix(in srgb, #b45309 7%, var(--task-panel));
+  background: color-mix(in srgb, var(--task-panel) 94%, white);
   color: var(--task-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+body.dark.autolaunch-page .autolaunch-icon-button {
+  background: color-mix(in srgb, var(--task-panel) 92%, black);
+}
+body.autolaunch-page .autolaunch-icon-button:hover {
+  color: var(--task-text);
+  border-color: var(--task-border-strong);
+}
+body.autolaunch-page .autolaunch-icon-button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+body.autolaunch-page .autolaunch-dependency-script-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000003;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 9px;
-  font-size: 11px;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(2, 6, 23, 0.55);
+  box-sizing: border-box;
 }
-body.autolaunch-page .autolaunch-dependency-warning span {
-  min-width: 0;
-  flex: 1;
+body.autolaunch-page .autolaunch-dependency-script-panel {
+  width: min(520px, calc(100vw - 32px));
+  max-height: min(620px, calc(100vh - 48px));
+  overflow: auto;
+  border: 1px solid var(--task-border-strong);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--task-panel) 98%, white);
+  color: var(--task-text);
+  box-shadow: 0 24px 72px rgba(2, 6, 23, 0.42);
+  box-sizing: border-box;
+}
+body.dark.autolaunch-page .autolaunch-dependency-script-panel {
+  background: color-mix(in srgb, var(--task-panel) 96%, black);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.64);
+}
+body.autolaunch-page .autolaunch-dependency-script-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--task-border);
+}
+body.autolaunch-page .autolaunch-dependency-script-app {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--task-border);
+}
+body.autolaunch-page .autolaunch-dependency-script-app img {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+body.autolaunch-page .autolaunch-dependency-script-body {
+  padding: 14px 16px 16px;
 }
 body.autolaunch-page .autolaunch-manual {
   padding: 16px;

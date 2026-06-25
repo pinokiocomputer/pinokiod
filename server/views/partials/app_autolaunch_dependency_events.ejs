@@ -23,11 +23,66 @@
     if (add) {
       event.preventDefault()
       const dependency = add.getAttribute("data-app-autolaunch-add-dependency")
+      if (!(selectedScript || state.autolaunch)) {
+        dependencyPickerOpen = false
+        renderDependencies()
+        setFeedback("Choose this app's launch script before adding requirements.", true)
+        return
+      }
       const dependencies = Array.isArray(state.autolaunch_depends) ? state.autolaunch_depends.slice() : []
       if (dependency && !dependencies.includes(dependency)) {
-        dependencies.push(dependency)
         dependencyPickerOpen = false
-        saveDependencies(dependencies)
+        pendingDependencyId = dependency
+        dependencyScriptPickerOpen = dependency
+        renderDependencies()
+        loadDependencyScriptCandidates(dependency)
+        setFeedback("")
+      }
+      return
+    }
+    const closeScriptModal = event.target && event.target.closest("[data-app-autolaunch-close-dependency-script-modal]")
+    if (closeScriptModal) {
+      event.preventDefault()
+      if (pendingDependencyId === dependencyScriptPickerOpen) {
+        pendingDependencyId = ""
+      }
+      if (dependencyScriptPickerOpen) {
+        delete dependencyScriptSelections[dependencyScriptPickerOpen]
+      }
+      dependencyScriptPickerOpen = ""
+      renderDependencies()
+      setFeedback("")
+      return
+    }
+    const configure = event.target && event.target.closest("[data-app-autolaunch-configure-dependency]")
+    if (configure) {
+      event.preventDefault()
+      const dependency = configure.getAttribute("data-app-autolaunch-configure-dependency")
+      pendingDependencyId = ""
+      dependencyScriptPickerOpen = dependency
+      renderDependencies()
+      if (dependencyScriptPickerOpen) {
+        loadDependencyScriptCandidates(dependency)
+      }
+      return
+    }
+    const scriptChoice = event.target && event.target.closest("[data-app-autolaunch-dependency-script-choice]")
+    if (scriptChoice) {
+      const dependency = scriptChoice.getAttribute("data-app-autolaunch-dependency-script-app")
+      if (dependency && scriptChoice.value) {
+        dependencyScriptSelections[dependency] = scriptChoice.value
+        renderDependencies()
+      }
+      return
+    }
+    const confirmScript = event.target && event.target.closest("[data-app-autolaunch-confirm-dependency-script]")
+    if (confirmScript) {
+      event.preventDefault()
+      const dependency = confirmScript.getAttribute("data-app-autolaunch-dependency-script-app")
+      const dependencyApp = dependency ? dependencyById(dependency) : null
+      const script = dependency ? (dependencyScriptSelections[dependency] || (dependencyApp && dependencyApp.autolaunch) || "") : ""
+      if (dependency && script) {
+        saveDependencyScript(dependency, script)
       }
       return
     }
@@ -36,7 +91,9 @@
       event.preventDefault()
       const dependency = remove.getAttribute("data-app-autolaunch-remove-dependency")
       const dependencies = Array.isArray(state.autolaunch_depends) ? state.autolaunch_depends : []
-      saveDependencies(dependencies.filter((id) => id !== dependency))
+      if (dependency) {
+        saveDependencies(dependencies.filter((id) => id !== dependency))
+      }
       return
     }
   })

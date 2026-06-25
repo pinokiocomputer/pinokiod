@@ -561,7 +561,7 @@ class Api {
     }
     return steps
   }
-  async stop(req, ondata) {
+  async stop(req, ondata, options = {}) {
     // 1. set the "stop" flag for the uri, so the next execution in the queue for the uri will NOT queue another task
     // 2. stream a message closing the socket
 
@@ -593,10 +593,11 @@ class Api {
 
 
     // stop all shell processes connected to the uri
-    if (req.params.id) {
-      this.kernel.shell.kill({ group: req.params.id })
-    } else {
-      this.kernel.shell.kill({ group: requestPath })
+    const stopGroups = new Set()
+    if (req.params.id) stopGroups.add(req.params.id)
+    stopGroups.add(requestPath)
+    for (const group of stopGroups) {
+      this.kernel.shell.kill({ group })
     }
 
     // if any process is in a "wait" state, resume it
@@ -615,15 +616,17 @@ class Api {
       this.waiter[requestPath].reject()
       delete this.waiter[requestPath]
     }
-    if (req.params.id) {
-      delete this.running[req.params.id]
-      delete this.kernel.memory.local[req.params.id]
-    } else {
-      delete this.running[requestPath]
-      delete this.kernel.memory.local[requestPath]
+    const stoppedKeys = new Set()
+    if (req.params.id) stoppedKeys.add(req.params.id)
+    stoppedKeys.add(requestPath)
+    for (const key of stoppedKeys) {
+      delete this.running[key]
+      delete this.kernel.memory.local[key]
     }
     if (this.kernel && typeof this.kernel.markAppLaunchStopped === "function") {
-      this.kernel.markAppLaunchStopped(requestPath)
+      this.kernel.markAppLaunchStopped(requestPath, {
+        internal_completion: !!(options && options.internal_completion)
+      })
     }
     this.ondata({
       id: req.params.id || requestPath,
@@ -1331,13 +1334,13 @@ class Api {
                     params: {
                       id: request.id
                     }
-                  })
+                  }, null, { internal_completion: true })
                 } else {
                   await this.stop({
                     params: {
                       uri: request.path
                     }
-                  })
+                  }, null, { internal_completion: true })
                 }
               }
               return { request, input: null, step: rpc.next, total: totalSteps, args }
@@ -1562,13 +1565,13 @@ class Api {
                   params: {
                     id: request.id
                   }
-                })
+                }, null, { internal_completion: true })
               } else {
                 await this.stop({
                   params: {
                     uri: request.path
                   }
-                })
+                }, null, { internal_completion: true })
               }
               return { request, input: result, step: rpc.next, total: totalSteps, args }
             }
@@ -1861,8 +1864,72 @@ class Api {
 
           // 3. Check if the resolved endpoint has the requested action attribute and resolve it to steps.
           if (this.isActionCandidate(action)) {
+            const emitLaunchRequirementsControl = (result) => {
+              if (!result || !result.action || result.action === "continue") {
+                return
+              }
+              this.ondata({
+                id: request.id || request.path,
+                type: "launch.requirements.control",
+                data: result
+              })
+            }
+            let launchOperation = null
+            const releaseLaunchOperation = () => {
+              if (launchOperation && this.kernel && typeof this.kernel.endLaunchOperation === "function") {
+                this.kernel.endLaunchOperation(launchOperation)
+              }
+              launchOperation = null
+            }
+            const shouldCheckLaunchRequirements = !request.skip_requirements &&
+              this.kernel &&
+              typeof this.kernel.ensureLaunchRequirements === "function" &&
+              (typeof this.kernel.hasLaunchRequirementConfig === "function"
+                ? await this.kernel.hasLaunchRequirementConfig(request.path)
+                : true)
+            if (shouldCheckLaunchRequirements && request.path && this.kernel && typeof this.kernel.beginLaunchOperation === "function") {
+              launchOperation = this.kernel.beginLaunchOperation(request.path, { request })
+            }
+            if (shouldCheckLaunchRequirements) {
+              let requirementResult
+              try {
+                requirementResult = await this.kernel.ensureLaunchRequirements(request.path, {
+                  request,
+                  owner: launchOperation
+                })
+              } catch (e) {
+                releaseLaunchOperation()
+                if (e && (e.cancelled || e.blocked_reason)) {
+                  const control = {
+                    action: e.cancelled ? "cancelled" : "blocked",
+                    app_id: e.app_id || "",
+                    reason: e.blocked_reason || ""
+                  }
+                  emitLaunchRequirementsControl(control)
+                  return {
+                    request,
+                    launch_requirements: control
+                  }
+                }
+                this.ondata({
+                  id: request.id || request.path,
+                  type: "error",
+                  data: e && e.stack ? e.stack : String(e || "Launch requirements failed"),
+                })
+                return
+              }
+              if (requirementResult && requirementResult.action && requirementResult.action !== "continue") {
+                releaseLaunchOperation()
+                emitLaunchRequirementsControl(requirementResult)
+                return {
+                  request,
+                  launch_requirements: requirementResult
+                }
+              }
+            }
 
             this.setRunning(request, done)
+            releaseLaunchOperation()
 
             // set DNS
 

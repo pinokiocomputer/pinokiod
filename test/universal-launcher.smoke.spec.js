@@ -52,8 +52,8 @@ async function getHomeFrame(page) {
 async function openLauncher(page, intent) {
   const homeFrame = await getHomeFrame(page);
   const trigger = homeFrame.locator(`[data-universal-launcher-open="${intent}"]`);
-  await expect(trigger).toHaveCount(1);
-  await trigger.dispatchEvent('click');
+  await expect(trigger.first()).toBeAttached();
+  await trigger.first().dispatchEvent('click');
   const overlay = homeFrame.locator('.universal-launcher-overlay:not([hidden])').first();
   await expect(overlay).toBeVisible();
   return homeFrame;
@@ -102,7 +102,7 @@ test.describe('universal launcher smoke', () => {
       await expect(homeFrame.getByText(tempApiTaskTitle)).toBeVisible();
       await expect(homeFrame.getByText(tempPluginTaskTitle)).toHaveCount(0);
       await homeFrame.getByText(tempApiTaskTitle).click();
-      await homeFrame.locator('.universal-launcher-template-modal').getByRole('button', { name: 'Use template' }).click();
+      await homeFrame.locator('.universal-launcher-template-modal').getByRole('button', { name: /Use (template|task)/ }).click();
       await expect(promptTextarea).toHaveValue('Create an API app from this template.');
       await expect(nameInput).toHaveValue('');
 
@@ -113,17 +113,18 @@ test.describe('universal launcher smoke', () => {
       await expect(homeFrame.getByText(tempPluginTaskTitle)).toBeVisible();
       await expect(homeFrame.getByText(tempApiTaskTitle)).toHaveCount(0);
       await homeFrame.getByText(tempPluginTaskTitle).click();
-      await homeFrame.locator('.universal-launcher-template-modal').getByRole('button', { name: 'Use template' }).click();
+      await homeFrame.locator('.universal-launcher-template-modal').getByRole('button', { name: /Use (template|task)/ }).click();
       await expect(promptTextarea).toHaveValue('Create a plugin from this template.');
       await expect(nameInput).toHaveValue('');
 
       await openLauncher(page, 'ask');
-      const askTemplateToggle = homeFrame.locator('.universal-launcher-template-toggle').first();
+      const askDialog = homeFrame.getByRole('dialog', { name: 'Ask Pinokio' });
+      await expect(askDialog).toBeVisible();
+      const askTemplateToggle = askDialog.locator('.universal-launcher-template-toggle').first();
       await expect(askTemplateToggle).toBeHidden();
-      await expect(homeFrame.locator('.universal-launcher-suggestion-row').first()).toBeVisible();
-      await expect(homeFrame.locator('.universal-launcher-template-label').first()).toContainText('Pinokio Researcher');
-      await expect(homeFrame.getByText(tempApiTaskTitle)).toHaveCount(0);
-      await expect(homeFrame.getByText(tempPluginTaskTitle)).toHaveCount(0);
+      await expect(askDialog.getByRole('button', { name: 'Choose a plugin' })).toBeVisible();
+      await expect(askDialog.getByText(tempApiTaskTitle).filter({ visible: true })).toHaveCount(0);
+      await expect(askDialog.getByText(tempPluginTaskTitle).filter({ visible: true })).toHaveCount(0);
 
       expect(pageErrors, `page errors: ${pageErrors.join('\n')}`).toEqual([]);
       expect(

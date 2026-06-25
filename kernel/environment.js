@@ -6,7 +6,41 @@ const ManagedSkills = require('./managed_skills')
 const TEMP_ENV_KEYS = ["TMP", "TEMP", "TMPDIR", "PIP_TMPDIR"]
 const CACHE_ENV_KEYS = ["UV_CACHE_DIR", "PIP_CACHE_DIR"]
 const CACHE_PREFLIGHT_KEYS = TEMP_ENV_KEYS.concat(CACHE_ENV_KEYS)
-const SCRIPT_AUTOLAUNCH_DEPENDS_KEY = "PINOKIO_SCRIPT_AUTOLAUNCH_DEPENDS"
+const SCRIPT_AUTOLAUNCH_KEY = "PINOKIO_SCRIPT_AUTOLAUNCH"
+const SCRIPT_AUTOLAUNCH_ENABLED_KEY = "PINOKIO_SCRIPT_AUTOLAUNCH_ENABLED"
+const SCRIPT_REQUIREMENTS_KEY = "PINOKIO_SCRIPT_REQUIRES"
+
+const parseBooleanFlag = (value) => {
+  if (typeof value !== "string") {
+    return null
+  }
+  const normalized = value.trim().toLowerCase()
+  if (!normalized) {
+    return null
+  }
+  if (["1", "true", "yes", "on"].includes(normalized)) {
+    return true
+  }
+  if (["0", "false", "no", "off"].includes(normalized)) {
+    return false
+  }
+  return null
+}
+
+const getScriptAutolaunch = (env) => {
+  return typeof (env && env[SCRIPT_AUTOLAUNCH_KEY]) === "string"
+    ? env[SCRIPT_AUTOLAUNCH_KEY].trim()
+    : ""
+}
+
+const getScriptAutolaunchEnabled = (env) => {
+  const script = getScriptAutolaunch(env)
+  if (!script) {
+    return false
+  }
+  const explicit = parseBooleanFlag(env && env[SCRIPT_AUTOLAUNCH_ENABLED_KEY])
+  return explicit === null ? true : explicit
+}
 
 const parseAutolaunchList = (value) => {
   if (typeof value !== "string") {
@@ -42,6 +76,10 @@ const formatAutolaunchList = (ids) => {
     .filter(Boolean)
     .map((id) => encodeURIComponent(id))
     .join(",")
+}
+
+const getScriptRequirements = (env) => {
+  return parseAutolaunchList(env && env[SCRIPT_REQUIREMENTS_KEY])
 }
 
 const formatCachePreflightError = (error) => {
@@ -318,14 +356,14 @@ const ENVS = async () => {
     ]
   }, {
     type: ["app"],
-    key: SCRIPT_AUTOLAUNCH_DEPENDS_KEY,
+    key: SCRIPT_REQUIREMENTS_KEY,
     val: "",
     comment: [
       "##########################################################################",
       "#",
-      "# PINOKIO_SCRIPT_AUTOLAUNCH_DEPENDS",
-      "# comma-separated local app folder IDs this autolaunch waits for",
-      "# dependencies do not automatically enable autolaunch for those apps",
+      "# PINOKIO_SCRIPT_REQUIRES",
+      "# comma-separated local app folder IDs this app requires before launch",
+      "# requirements do not automatically enable run-at-startup for those apps",
       "#",
       "##########################################################################",
     ]
@@ -996,4 +1034,4 @@ const init = async (options, kernel) => {
     env_path: current
   }
 }
-module.exports = { ENV, get, get2, init_folders, ensurePinokioCacheDirs, requirements, init, get_root, SCRIPT_AUTOLAUNCH_DEPENDS_KEY, parseAutolaunchList, formatAutolaunchList  }
+module.exports = { ENV, get, get2, init_folders, ensurePinokioCacheDirs, requirements, init, get_root, SCRIPT_AUTOLAUNCH_KEY, SCRIPT_AUTOLAUNCH_ENABLED_KEY, SCRIPT_REQUIREMENTS_KEY, getScriptAutolaunch, getScriptAutolaunchEnabled, parseAutolaunchList, formatAutolaunchList, getScriptRequirements  }
