@@ -573,58 +573,6 @@ const allCoverage = [
   ...requiredIntegrationCoverage
 ]
 
-const requiredContractPhrases = [
-  "Non-Negotiable Baseline",
-  "This feature is strictly additive.",
-  "If an app has no launch-related environment configuration, Pinokio must behave as if this feature does not exist.",
-  "Minimal-Surface Rule",
-  "Every change to an existing file must have a direct reason tied to one of these responsibilities:",
-  "Configuration is input only.",
-  "The Launch Engine Owns Runtime Truth",
-  "UI And Status Are Output Only",
-  "Display status is not launch ownership.",
-  "Startup Uses The Same Launch Engine",
-  "Requirements Apply Only To The Configured Launch Script",
-  "The runtime requirement engine may run only when both of these are true for the target app:",
-  "Only an explicit clear-script action may clear `PINOKIO_SCRIPT_AUTOLAUNCH`.",
-  "The `/autolaunch` script-save API must receive an explicit boolean",
-  "The server must never infer startup enabled from the presence of a script value.",
-  "The confirmation must be a real command, not a side effect of clicking an already-selected radio option.",
-  "Setup-needed UI must be actionable.",
-  "Saving requirements must be atomic.",
-  "Ready Is A Positive Engine Signal",
-  "Already Starting Means A Real Active Launch",
-  "Direct Non-Launch Scripts Stay Existing Pinokio Behavior",
-  "Requirement Control Flow Must Not Be Terminal Events",
-  "Open Without Launching Does Not Launch",
-  "This includes all page-load selection paths.",
-  "Regression Classes That Must Stay Impossible",
-  "Startup/home display rows are display state only. They are used to render immediate startup visibility.",
-  "No code skips launching because startup/home status exists.",
-  "No code treats `startup_root` as active launch ownership.",
-  "Requirement status is ephemeral launch-attempt state.",
-  "Requirement runtime status must not use `failed` or `timeout`.",
-  "There is no automatic readiness timeout in this contract.",
-  "Blocked/setup-needed status is recomputed per launch attempt.",
-  "No requirement runtime state named `failed`.",
-  "No requirement runtime state named `timeout`."
-]
-
-const normalizeText = (value) => String(value).replace(/\s+/g, " ").trim()
-
-async function loadLocalContractText() {
-  try {
-    const spec = await fs.readFile(path.resolve(root, "spec/LAUNCH_REQUIREMENTS.md"), "utf8")
-    const checklist = await fs.readFile(path.resolve(root, "spec/LAUNCH_REQUIREMENTS_REPAIR_CHECKLIST.md"), "utf8")
-    return normalizeText(`${spec}\n${checklist}`)
-  } catch (error) {
-    if (error && error.code === "ENOENT") {
-      return null
-    }
-    throw error
-  }
-}
-
 async function loadTestNames() {
   const names = new Set()
   for (const file of TEST_FILES) {
@@ -656,21 +604,6 @@ test("launch requirements contract coverage has no unmapped enforced items", asy
     for (const testName of item.tests || []) {
       assert.ok(testNames.has(testName), `${item.id} references missing test: ${testName}`)
     }
-  }
-})
-
-test("local launch requirements docs include enforced contract phrases when present", async (t) => {
-  const contractText = await loadLocalContractText()
-  if (!contractText) {
-    t.skip("spec/ is intentionally local and ignored")
-    return
-  }
-
-  for (const phrase of requiredContractPhrases) {
-    assert.ok(
-      contractText.includes(normalizeText(phrase)),
-      `contract docs are missing required phrase: ${phrase}`
-    )
   }
 })
 

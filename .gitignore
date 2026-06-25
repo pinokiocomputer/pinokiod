@@ -7,5 +7,4 @@ log.txt
 __pycache__
 /tmp
 /output
-/spec
-/specs
+/spec/

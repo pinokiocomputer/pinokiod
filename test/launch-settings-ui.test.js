@@ -51,7 +51,6 @@ test("app page does not fabricate launch requirement status from saved config", 
   const appView = await fs.readFile(path.resolve(root, "server/views/app.ejs"), "utf8")
   const server = await fs.readFile(path.resolve(root, "server/index.js"), "utf8")
   const homeAutolaunch = await fs.readFile(path.resolve(root, "server/autolaunch.js"), "utf8")
-  const spec = await fs.readFile(path.resolve(root, "spec/LAUNCH_REQUIREMENTS.md"), "utf8")
 
   assert.doesNotMatch(appView, /provisionalStatus/)
   assert.doesNotMatch(appView, /initialRequirementRows/)
@@ -61,7 +60,6 @@ test("app page does not fabricate launch requirement status from saved config", 
   assert.match(homeAutolaunch, /const waitingFor = autolaunchStatus \? statusWaitingFor : configuredDependencies/)
   assert.doesNotMatch(appView, /data\.(running|ready|script_state|running_scripts)/)
   assert.doesNotMatch(server, /script_state/)
-  assert.match(spec, /Opening an app page without launching must not:[\s\S]*show `Preparing required apps`/)
 })
 
 test("launch settings visible labels use autolaunch wording", async () => {
@@ -155,14 +153,12 @@ test("embedded terminal launch requirement status defers to parent app overlay",
 test("app page launch requirement status shows spinners on active rows", async () => {
   const statusClient = await fs.readFile(path.resolve(root, "server/views/partials/launch_requirements_status_client.ejs"), "utf8")
   const styles = await fs.readFile(path.resolve(root, "server/views/partials/launch_requirements_status_styles.ejs"), "utf8")
-  const spec = await fs.readFile(path.resolve(root, "spec/LAUNCH_REQUIREMENTS.md"), "utf8")
 
   assert.match(statusClient, /const isActiveRow =/)
   assert.match(statusClient, /launch-requirements-state\$\{stateClass\(row\)\}/)
   assert.match(statusClient, /fa-circle-notch fa-spin/)
   assert.doesNotMatch(statusClient, /launch-requirements-title">\s*<i class="fa-solid fa-circle-notch fa-spin"/)
   assert.match(styles, /\.launch-requirements-state\.is-active i/)
-  assert.match(spec, /spinner for a row that is actually starting/)
 })
 
 test("app page launch requirement status explains waiting rows and marks ready rows", async () => {
@@ -178,7 +174,6 @@ test("app page launch requirement status explains waiting rows and marks ready r
 
 test("static guard: home autolaunch live status discovers rows after initial render", async () => {
   const homeView = await fs.readFile(path.resolve(root, "server/views/index.ejs"), "utf8")
-  const spec = await fs.readFile(path.resolve(root, "spec/LAUNCH_REQUIREMENTS.md"), "utf8")
 
   assert.match(homeView, /const getAutolaunchLines = \(state\) =>/)
   assert.match(homeView, /const requestHomeStatus = \(\) =>/)
@@ -207,12 +202,6 @@ test("static guard: home autolaunch live status discovers rows after initial ren
   assert.match(homeView, /notRunning\.forEach[\s\S]*data-autolaunch-app="<%=item\.uri%>"/)
   assert.match(homeView, /console\.warn\("\[home\] autolaunch status update failed", error\)/)
   assert.doesNotMatch(homeView, /catch \(error\) \{\s*\}/)
-  assert.match(spec, /Home status is display output only\. It must not affect launch scheduling\./)
-  assert.match(spec, /Home must update startup\/autolaunch rows without manual refresh\./)
-  assert.match(spec, /Home may poll only\s+while startup is not complete/)
-  assert.match(spec, /Home may return early without polling when startup is already complete/)
-  assert.match(spec, /fresh startup shows home startup\/autolaunch status immediately/)
-  assert.match(spec, /home updates without manual refresh/)
 })
 
 test("home running buttons only show spinner while startup label is active", async () => {
@@ -268,12 +257,9 @@ test("launch settings block adding requirements without owning launch script", a
 test("launch settings UI sends selected script with explicit startup enabled state", async () => {
   const appView = await fs.readFile(path.resolve(root, "server/views/app.ejs"), "utf8")
   const globalView = await fs.readFile(path.resolve(root, "server/views/autolaunch.ejs"), "utf8")
-  const spec = await fs.readFile(path.resolve(root, "spec/LAUNCH_REQUIREMENTS.md"), "utf8")
 
   assert.match(appView, /saveScript\(selectedScript, !!state\.autolaunch_enabled\)/)
   assert.match(globalView, /saveScript\(selectedScript, !!app\.autolaunch_enabled\)/)
-  assert.match(spec, /Only an explicit clear-script action may clear `PINOKIO_SCRIPT_AUTOLAUNCH`/)
-  assert.match(spec, /must receive an explicit boolean[\s\S]*`enabled`/)
 })
 
 test("launch settings dependency script loader is shared", async () => {
