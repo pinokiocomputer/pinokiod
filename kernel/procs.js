@@ -88,7 +88,7 @@ class Procs {
             continue
           }
 
-          //if (state !== 'LISTENING') continue;
+          if (state !== 'LISTENING') continue;
           const chunks = /(.+):([0-9]+)/.exec(localAddress)
           let host = chunks[1]
           let port = chunks[2]
