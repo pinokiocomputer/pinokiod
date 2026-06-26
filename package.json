@@ -1,12 +1,11 @@
 {
   "name": "pinokiod",
-  "version": "7.4.0",
+  "version": "7.5.1",
   "description": "",
   "main": "index.js",
   "scripts": {
     "download_readme": "wget -O kernel/proto/PINOKIO.md https://raw.githubusercontent.com/pinokiocomputer/home/refs/heads/main/docs/README.md",
-    "start": "node script/index",
-    "verify:ffmpeg": "node script/verify-ffmpeg.js"
+    "start": "node script/index"
   },
   "author": "",
   "license": "MIT",

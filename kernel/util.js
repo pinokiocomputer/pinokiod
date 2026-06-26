@@ -199,9 +199,9 @@ const filepicker = async(req, ondata, kernel) => {
     let picker_path = kernel.path("bin/py/picker.py")
     let python
     if (kernel.platform === "win32") {
-      python = kernel.path("bin/miniconda/python")
+      python = kernel.path("bin/miniforge/python")
     } else {
-      python = kernel.path("bin/miniconda/bin/python")
+      python = kernel.path("bin/miniforge/bin/python")
     }
     const proc = spawn(python, [picker_path])
 

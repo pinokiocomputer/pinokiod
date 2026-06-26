@@ -39,11 +39,11 @@ class Huggingface {
   }
   hfPath() {
     const candidates = this.kernel.platform === "win32" ? [
-      this.kernel.path("bin", "miniconda", "Scripts", "hf.exe"),
-      this.kernel.path("bin", "miniconda", "Scripts", "hf"),
-      this.kernel.path("bin", "miniconda", "bin", "hf"),
+      this.kernel.path("bin", "miniforge", "Scripts", "hf.exe"),
+      this.kernel.path("bin", "miniforge", "Scripts", "hf"),
+      this.kernel.path("bin", "miniforge", "bin", "hf"),
     ] : [
-      this.kernel.path("bin", "miniconda", "bin", "hf"),
+      this.kernel.path("bin", "miniforge", "bin", "hf"),
     ]
     for (const candidate of candidates) {
       if (fs.existsSync(candidate)) {

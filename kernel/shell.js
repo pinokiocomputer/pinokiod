@@ -21,6 +21,7 @@ const ShellParser = require('./shell_parser')
 const AnsiStreamTracker = require('./ansi_stream_tracker')
 const ShellStateSync = require('./shell_state_sync')
 const ShellRunTemplate = require('./api/shell_run_template')
+const { PYTHON_INSTALL_SPEC } = require('./bin/conda-pins')
 const home = os.homedir()
 
 function normalizeComparablePath(filePath, platform) {
@@ -959,7 +960,7 @@ class Shell {
   conda_hook () {
     if (this.platform === "win32") {
       if (/bash/i.test(this.shell)) {
-        const conda_sh = this.kernel.path("bin/miniconda/etc/profile.d/conda.sh")
+        const conda_sh = this.kernel.path("bin/miniforge/etc/profile.d/conda.sh")
         return `source ${this.quoteArgForShell(Util.p2u(conda_sh))}`
       } else {
         return "conda_hook"
@@ -986,7 +987,7 @@ class Shell {
     // 1. conda
     let conda_path
     let conda_name
-    let conda_python = "python=3.10"
+    let conda_python = PYTHON_INSTALL_SPEC
     let conda_args
     let conda_activate
 
@@ -1106,7 +1107,7 @@ class Shell {
 //          timeout,
         ]
       } else {
-        let envs_path = this.kernel.bin.path("miniconda/envs")
+        let envs_path = this.kernel.bin.path("miniforge/envs")
         let env_path = path.resolve(envs_path, conda_name)
         let env_exists = await this.exists(env_path)
         if (env_exists) {
@@ -1185,7 +1186,7 @@ class Shell {
             console.log(`Unsupported arch: os.arch()=${architecture}, process.arch=${armArchitecture}`)
           }
 
-          const activate_root = this.kernel.bin.path("miniconda/etc/conda/activate.d")
+          const activate_root = this.kernel.bin.path("miniforge/etc/conda/activate.d")
           const logDir = this.kernel.path("cache", "logs")
           await fs.promises.mkdir(logDir, { recursive: true }).catch(() => {})
           const logSuffix = this.id || Date.now()

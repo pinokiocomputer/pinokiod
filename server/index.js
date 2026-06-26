@@ -501,7 +501,7 @@ class Server {
     if (this.kernel.platform !== "win32") {
       return null
     }
-    const bashPath = this.kernel.path("bin/miniconda/Library/bin/bash.exe")
+    const bashPath = this.kernel.path("bin/miniforge/Library/bin/bash.exe")
     return await this.exists(bashPath) ? bashPath : null
   }
   running_dynamic (name, menu, selected_query) {
@@ -11730,7 +11730,7 @@ class Server {
         managedLaunchOverrides.conda = { skip: true }
       }
       if (isWindowsPlatform && (provider.key === "codex" || provider.key === "claude")) {
-        const gitBashPath = this.kernel.path("bin/miniconda/Library/bin/bash.exe")
+        const gitBashPath = this.kernel.path("bin/miniforge/Library/bin/bash.exe")
         const bashExists = await fs.promises.access(gitBashPath, fs.constants.F_OK).then(() => true).catch(() => false)
         if (bashExists) {
           if (provider.key === "claude") {

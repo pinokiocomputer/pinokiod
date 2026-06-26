@@ -8,7 +8,7 @@ module.exports = {
     id: "run",
     method: "shell.run",
     params: {
-      shell: "{{kernel.path('bin/miniconda/Library/bin/bash.exe')}}",
+      shell: "{{kernel.path('bin/miniforge/Library/bin/bash.exe')}}",
       conda: {
         skip: true
       },

@@ -5,7 +5,7 @@ const { glob } = require('glob')
 class Cuda {
   description = "Installs CUDA and cuDNN libraries for NVIDIA GPU workloads."
   async hasNvTargetHeader() {
-    const prefix = this.kernel.bin.path("miniconda")
+    const prefix = this.kernel.bin.path("miniforge")
     const patterns = [
       "Library/include/nv/target",
       "include/nv/target",
@@ -33,7 +33,7 @@ class Cuda {
     if (this.kernel.platform !== "win32") {
       return
     }
-    const script = this.kernel.bin.path("miniconda/etc/conda/activate.d/pinokio/~cuda-nvcc_activate.bat")
+    const script = this.kernel.bin.path("miniforge/etc/conda/activate.d/pinokio/~cuda-nvcc_activate.bat")
     let content
     try {
       content = await fs.promises.readFile(script, "utf8")
@@ -68,7 +68,7 @@ class Cuda {
     if (this.kernel.platform !== "win32") {
       return
     }
-    const folder = this.kernel.bin.path("miniconda/etc/conda/activate.d")
+    const folder = this.kernel.bin.path("miniforge/etc/conda/activate.d")
     const stash = path.resolve(folder, "pinokio")
     await fs.promises.mkdir(stash, { recursive: true }).catch(() => {})
     const scripts = [
@@ -149,10 +149,10 @@ class Cuda {
                 "vs2019_compiler_vars.bat",
                 "vs2022_compiler_vars.bat",
               ]
-              const folder = this.kernel.bin.path("miniconda/etc/conda/activate.d")
+              const folder = this.kernel.bin.path("miniforge/etc/conda/activate.d")
               let at_least_one_exists = false
               for(let item of deactivate_list) {
-                let exists = await this.kernel.exists("bin/miniconda/etc/conda/activate.d/" + item)
+                let exists = await this.kernel.exists("bin/miniforge/etc/conda/activate.d/" + item)
                 if (exists) {
                   // break if at least one exists
                   at_least_one_exists = true
@@ -190,11 +190,11 @@ class Cuda {
   env() {
     if (this.kernel.platform === 'win32') {
       return {
-        CUDA_HOME: this.kernel.bin.path("miniconda/Library")
+        CUDA_HOME: this.kernel.bin.path("miniforge/Library")
       }
     } else {
       return {
-        CUDA_HOME: this.kernel.bin.path("miniconda")
+        CUDA_HOME: this.kernel.bin.path("miniforge")
       }
     }
   }

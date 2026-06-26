@@ -23,8 +23,8 @@ const Cuda = require("./cuda")
 const Torch = require("./torch")
 const { buildCondaListFromMeta } = require('./conda-meta')
 const {
+  isExpectedPythonPinned,
   isExpectedSqlitePinned,
-  isWindowsPythonSslFixed,
 } = require('./conda-pins')
 const { glob } = require('glob')
 const fakeUa = require('fake-useragent');
@@ -360,9 +360,9 @@ class Bin {
     // if importlib_metadata || uvicorn || fastapi exist in the base environment, this.correct_conda = false
     let site_packages_path
     if (this.platform === "win32") {
-      site_packages_path = path.resolve(this.kernel.homedir, "bin/miniconda/Lib/site-packages")
+      site_packages_path = path.resolve(this.kernel.homedir, "bin/miniforge/Lib/site-packages")
     } else {
-      site_packages_path = path.resolve(this.kernel.homedir, "bin/miniconda/lib/python3.10/site-packages")
+      site_packages_path = path.resolve(this.kernel.homedir, "bin/miniforge/lib/python3.10/site-packages")
     }
 //    // check if any of 'uvicorn', 'importlib_metadata', 'fastapi' exists
 //    let module_paths = ["fastapi", "uvicorn", "importlib_metadata"].map((name) => {
@@ -384,7 +384,7 @@ class Bin {
     if (to_reset_exists) {
       this.correct_conda = false
     } else {
-      let res = await buildCondaListFromMeta(this.kernel.bin.path("miniconda"))
+      let res = await buildCondaListFromMeta(this.kernel.bin.path("miniforge"))
       let lines = res.response.split(/[\r\n]+/)
       for(let line of lines) {
         if (start) {
@@ -400,11 +400,8 @@ class Bin {
               conda_check.conda = true
             }
             if (name === "conda-libmamba-solver") {
-              //if (String(version) === "24.7.0") {
-              let channel = chunks[3]
               let coerced = semver.coerce(version)
               let mamba_requirement = ">=25.4.0"
-              //if (semver.satisfies(coerced, mamba_requirement) && channel === "conda-forge") {
               if (semver.satisfies(coerced, mamba_requirement)) {
                 conda_check.mamba = true
               }
@@ -417,7 +414,7 @@ class Bin {
               }
             }
             if (name === "python") {
-              conda_check.python = this.platform !== "win32" || isWindowsPythonSslFixed(version, build)
+              conda_check.python = isExpectedPythonPinned(this.platform, version, build)
             }
           }
         } else {
@@ -427,8 +424,7 @@ class Bin {
         }
       }
 
-      if (conda_check.conda && conda_check.mamba && conda_check.sqlite && (this.platform !== "win32" || conda_check.python)) {
-      //if (conda_check.conda && conda_check.mamba) {
+      if (conda_check.conda && conda_check.mamba && conda_check.sqlite && conda_check.python) {
         this.correct_conda = true
       }
     }
@@ -449,7 +445,7 @@ class Bin {
     // 1. conda
 
     // check conda location and see if it exists. only run if it exists
-    let conda_path = path.resolve(this.kernel.homedir, "bin", "miniconda")
+    let conda_path = path.resolve(this.kernel.homedir, "bin", "miniforge")
     let conda_exists = await this.exists(conda_path)
 
     let start
@@ -513,7 +509,7 @@ class Bin {
     }
 
 //    /// B. base path initialization
-//    let conda_meta_path = this.kernel.bin.path("miniconda", "conda-meta")
+//    let conda_meta_path = this.kernel.bin.path("miniforge", "conda-meta")
 //    const metaFiles = await glob("*.json", {
 //      cwd: conda_meta_path
 //    })

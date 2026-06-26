@@ -7,12 +7,12 @@ module.exports = {
     id: "run",
     method: "shell.run",
     params: {
-      shell: "{{kernel.path('bin/miniconda/Library/bin/bash.exe')}}",
+      shell: "{{kernel.path('bin/miniforge/Library/bin/bash.exe')}}",
       conda: {
         skip: true
       },
       env: {
-        CLAUDE_CODE_GIT_BASH_PATH: "{{kernel.path('bin/miniconda/Library/bin/bash.exe')}}"
+        CLAUDE_CODE_GIT_BASH_PATH: "{{kernel.path('bin/miniforge/Library/bin/bash.exe')}}"
       },
       message: {
         _: [

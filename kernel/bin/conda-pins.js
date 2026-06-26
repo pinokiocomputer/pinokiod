@@ -1,10 +1,11 @@
 const semver = require('semver')
 
-const CONDA_PIN_VERSION = "25.5.1"
+const CONDA_PIN_VERSION = "26.3.2"
 const DEFAULT_SQLITE_PIN_VERSION = "3.47.2"
 const WINDOWS_SQLITE_PIN_VERSION = "3.53.2"
-const WINDOWS_PYTHON_SSL_FIX_SPEC = "python=3.10.20=*_1_cpython"
-const WINDOWS_PYTHON_SSL_FIX_VERSION = "3.10.20"
+const PYTHON_PIN_VERSION = "3.10.20"
+const PYTHON_INSTALL_SPEC = `python=${PYTHON_PIN_VERSION}`
+const WINDOWS_PYTHON_SSL_FIX_SPEC = `${PYTHON_INSTALL_SPEC}=*_1_cpython`
 
 const sqlitePinVersion = (platform) => {
   return platform === "win32" ? WINDOWS_SQLITE_PIN_VERSION : DEFAULT_SQLITE_PIN_VERSION
@@ -28,15 +29,15 @@ const condaBuildNumber = (build) => {
   return buildNumber ? Number(buildNumber) : null
 }
 
-const isWindowsPythonSslFixed = (version, build) => {
+const isExpectedPythonPinned = (platform, version, build) => {
   const coerced = semver.coerce(version)
   if (!coerced) {
     return false
   }
-  if (!semver.satisfies(coerced, ">=3.10.20 <3.11.0")) {
+  if (!semver.eq(coerced, PYTHON_PIN_VERSION)) {
     return false
   }
-  if (semver.eq(coerced, WINDOWS_PYTHON_SSL_FIX_VERSION)) {
+  if (platform === "win32") {
     const buildNumber = condaBuildNumber(build)
     return typeof buildNumber === "number" && buildNumber >= 1
   }
@@ -45,9 +46,10 @@ const isWindowsPythonSslFixed = (version, build) => {
 
 module.exports = {
   CONDA_PIN_VERSION,
+  PYTHON_INSTALL_SPEC,
   WINDOWS_PYTHON_SSL_FIX_SPEC,
   isExpectedSqlitePinned,
-  isWindowsPythonSslFixed,
+  isExpectedPythonPinned,
   sqliteInstallSpec,
   sqlitePinnedSpec,
 }

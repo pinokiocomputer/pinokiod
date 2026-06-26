@@ -206,7 +206,7 @@ class Sysinfo {
 //    console.log(_res)
 //    console.log("############### DEBUGGING ENV FINISH")
 
-    let conda_path = path.resolve(this.kernel.homedir, "bin", "miniconda")
+    let conda_path = path.resolve(this.kernel.homedir, "bin", "miniforge")
     let conda_exists = await this.exists(conda_path)
 
     let res

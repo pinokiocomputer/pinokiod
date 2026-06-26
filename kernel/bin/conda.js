@@ -1,50 +1,36 @@
 const fs = require('fs')
 const path = require('path')
-const fetch = require('cross-fetch')
 const { glob } = require('glob')
 const semver = require('semver')
 const { buildCondaListFromMeta } = require('./conda-meta')
 const {
   CONDA_PIN_VERSION,
+  PYTHON_INSTALL_SPEC,
   WINDOWS_PYTHON_SSL_FIX_SPEC,
+  isExpectedPythonPinned,
   isExpectedSqlitePinned,
-  isWindowsPythonSslFixed,
   sqliteInstallSpec,
   sqlitePinnedSpec,
 } = require('./conda-pins')
+
+const MINIFORGE_RELEASE = "26.3.2-3"
+const MINIFORGE_BASE_URL = `https://github.com/conda-forge/miniforge/releases/download/${MINIFORGE_RELEASE}`
+const CONDA_ROOT_DIR = "miniforge"
+const LEGACY_CONDA_ROOT_DIR = "miniconda"
 
 class Conda {
   description = "Pinokio uses Conda to install various useful programs in an isolated manner."
   urls = {
     darwin: {
-      //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-MacOSX-x86_64.sh",
-      //arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-MacOSX-arm64.sh"
-      //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.5.0-0-MacOSX-x86_64.sh",
-      //arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.5.0-0-MacOSX-arm64.sh"
-
-      //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.11.1-0-MacOSX-x86_64.sh",
-      //arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.11.1-0-MacOSX-arm64.sh"
-
-      x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_25.1.1-2-MacOSX-x86_64.sh",
-      arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_25.1.1-2-MacOSX-arm64.sh"
+      x64: `${MINIFORGE_BASE_URL}/Miniforge3-MacOSX-x86_64.sh`,
+      arm64: `${MINIFORGE_BASE_URL}/Miniforge3-MacOSX-arm64.sh`
     },
     win32: {
-      //x64: "https://github.com/cocktailpeanut/miniconda/releases/download/v23.5.2/Miniconda3-py310_23.5.2-0-Windows-x86_64.exe",
-      //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.5.0-0-Windows-x86_64.exe"
-
-      //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.11.1-0-Windows-x86_64.exe"
-      x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_25.1.1-2-Windows-x86_64.exe",
+      x64: `${MINIFORGE_BASE_URL}/Miniforge3-Windows-x86_64.exe`,
     },
     linux: {
-      //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Linux-x86_64.sh",
-      //arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Linux-aarch64.sh"
-      //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.5.0-0-Linux-x86_64.sh",
-      //arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.5.0-0-Linux-aarch64.sh"
-
-      //x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.11.1-0-Linux-x86_64.sh",
-      //arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_24.11.1-0-Linux-aarch64.sh"
-      x64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_25.1.1-2-Linux-x86_64.sh",
-      arm64: "https://repo.anaconda.com/miniconda/Miniconda3-py310_25.1.1-2-Linux-aarch64.sh"
+      x64: `${MINIFORGE_BASE_URL}/Miniforge3-Linux-x86_64.sh`,
+      arm64: `${MINIFORGE_BASE_URL}/Miniforge3-Linux-aarch64.sh`
     }
   }
   installer = {
@@ -53,9 +39,9 @@ class Conda {
     linux: "installer.sh"
   }
   paths = {
-    darwin: [ "miniconda/etc/profile.d", "miniconda/bin", "miniconda/condabin", "miniconda/lib", "miniconda/Library/bin", "miniconda/pkgs", "miniconda" ],
-    win32: ["miniconda/etc/profile.d", "miniconda/bin", "miniconda/Scripts", "miniconda/condabin", "miniconda/lib", "miniconda/Library/bin", "miniconda/pkgs", "miniconda"],
-    linux: ["miniconda/etc/profile.d", "miniconda/bin", "miniconda/condabin", "miniconda/lib", "miniconda/Library/bin", "miniconda/pkgs", "miniconda"]
+    darwin: [ `${CONDA_ROOT_DIR}/etc/profile.d`, `${CONDA_ROOT_DIR}/bin`, `${CONDA_ROOT_DIR}/condabin`, `${CONDA_ROOT_DIR}/lib`, `${CONDA_ROOT_DIR}/Library/bin`, `${CONDA_ROOT_DIR}/pkgs`, CONDA_ROOT_DIR ],
+    win32: [`${CONDA_ROOT_DIR}/etc/profile.d`, `${CONDA_ROOT_DIR}/bin`, `${CONDA_ROOT_DIR}/Scripts`, `${CONDA_ROOT_DIR}/condabin`, `${CONDA_ROOT_DIR}/lib`, `${CONDA_ROOT_DIR}/Library/bin`, `${CONDA_ROOT_DIR}/pkgs`, CONDA_ROOT_DIR],
+    linux: [`${CONDA_ROOT_DIR}/etc/profile.d`, `${CONDA_ROOT_DIR}/bin`, `${CONDA_ROOT_DIR}/condabin`, `${CONDA_ROOT_DIR}/lib`, `${CONDA_ROOT_DIR}/Library/bin`, `${CONDA_ROOT_DIR}/pkgs`, CONDA_ROOT_DIR]
   }
   pinnedPackages() {
     return [
@@ -63,25 +49,27 @@ class Conda {
       sqlitePinnedSpec(this.kernel.platform),
     ].join("\n")
   }
+  async hasCondaMeta() {
+    return await this.kernel.exists(`bin/${CONDA_ROOT_DIR}/conda-meta`)
+  }
   env() {
     let base = {
-//      CONDA_ROOT: this.kernel.bin.path("miniconda"),
-      CONDA_PREFIX: this.kernel.bin.path("miniconda"),
-      CONDA_ENVS_PATH: this.kernel.bin.path("miniconda/envs"),
-      CONDA_PKGS_DIRS: this.kernel.bin.path("miniconda/pkgs"),
-      PYTHON: this.kernel.bin.path("miniconda/python"),
+      CONDA_PREFIX: this.kernel.bin.path(CONDA_ROOT_DIR),
+      CONDA_ENVS_PATH: this.kernel.bin.path(`${CONDA_ROOT_DIR}/envs`),
+      CONDA_PKGS_DIRS: this.kernel.bin.path(`${CONDA_ROOT_DIR}/pkgs`),
+      PYTHON: this.kernel.bin.path(`${CONDA_ROOT_DIR}/python`),
       PATH: this.paths[this.kernel.platform].map((p) => {
         return this.kernel.bin.path(p)
       })
     }
     if (this.kernel.platform === "win32") {
-      base.CONDA_BAT = this.kernel.bin.path("miniconda/condabin/conda.bat")
-      base.CONDA_EXE = this.kernel.bin.path("miniconda/Scripts/conda.exe")
-      base.CONDA_PYTHON_EXE = this.kernel.bin.path("miniconda/Scripts/python")
+      base.CONDA_BAT = this.kernel.bin.path(`${CONDA_ROOT_DIR}/condabin/conda.bat`)
+      base.CONDA_EXE = this.kernel.bin.path(`${CONDA_ROOT_DIR}/Scripts/conda.exe`)
+      base.CONDA_PYTHON_EXE = this.kernel.bin.path(`${CONDA_ROOT_DIR}/Scripts/python`)
     }
     if (this.kernel.platform === 'darwin') {
-      base.TCL_LIBRARY = this.kernel.bin.path("miniconda/lib/tcl8.6")
-      base.TK_LIBRARY = this.kernel.bin.path("miniconda/lib/tk8.6")
+      base.TCL_LIBRARY = this.kernel.bin.path(`${CONDA_ROOT_DIR}/lib/tcl8.6`)
+      base.TK_LIBRARY = this.kernel.bin.path(`${CONDA_ROOT_DIR}/lib/tk8.6`)
     }
     return base
   }
@@ -89,7 +77,10 @@ class Conda {
     if (this.kernel.platform !== "win32") {
       return
     }
-    const activateDir = this.kernel.bin.path("miniconda/etc/conda/activate.d")
+    if (!(await this.hasCondaMeta())) {
+      return
+    }
+    const activateDir = this.kernel.bin.path(`${CONDA_ROOT_DIR}/etc/conda/activate.d`)
     await fs.promises.mkdir(activateDir, { recursive: true }).catch(() => {})
     await fs.promises.writeFile(
       path.resolve(activateDir, "zz_pinokio_unset_ssl_cert_dir-win.bat"),
@@ -115,61 +106,31 @@ fi
     )
   }
   async init() {
-    // 
     if (this.kernel.homedir) {
-//      let exists = await this.kernel.exists("condarc")
         console.log("condarc init")
-//      if (!exists) {
         await fs.promises.writeFile(this.kernel.path('condarc'), `channels:
   - conda-forge
-  - defaults
 channel_priority: flexible
 create_default_packages:
-  - python=3.10
+  - ${PYTHON_INSTALL_SPEC}
 envs_dirs:
-  - ${this.kernel.bin.path("miniconda/envs")}
-plugins:
-  anaconda_telemetry: false
-  auto_accept_tos: true
+  - ${this.kernel.bin.path(`${CONDA_ROOT_DIR}/envs`)}
 pkgs_dirs:
-  - ${this.kernel.bin.path("miniconda/pkgs")}
+  - ${this.kernel.bin.path(`${CONDA_ROOT_DIR}/pkgs`)}
 remote_connect_timeout_secs: 20.0
 remote_read_timeout_secs: 300.0
 remote_max_retries: 6
 report_errors: false`)
-//repodata_threads: 4
-//fetch_threads: 5
-//report_errors: false`)
-//      }
-      let pinned_exists = await this.kernel.exists("bin/miniconda/conda-meta")
+      let pinned_exists = await this.hasCondaMeta()
       if (pinned_exists) {
-        //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda ==24.11.3`)
-        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), this.pinnedPackages())
-//        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "")
-//sqlite ==3.47.2`)
-//        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.9.0`)
-//        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.11.2
-//conda-libmamba-solver=24.11.1`)
-//        await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.7.1
-//conda-libmamba-solver=24.7.0`)
+        await fs.promises.writeFile(this.kernel.path(`bin/${CONDA_ROOT_DIR}/conda-meta/pinned`), this.pinnedPackages())
+        await this.ensureSslCertDirOverride()
+        await this.ensureCompatibilityAlias()
       }
-      await this.ensureSslCertDirOverride()
     }
   }
-//  async init() {
-//    let exists = await this.kernel.bin.exists("miniconda/condarc")
-//    console.log("condarc exists?", exists)
-//    if (!exists) {
-//      console.log("write to condarc")
-//      await fs.promises.writeFile(this.kernel.bin.path('miniconda/condarc'), `channels:
-//    - conda-forge
-//    - defaults
-//  create_default_packages:
-//    - python=3.10`)
-//    }
-//  }
   async check() {
-    let res = await buildCondaListFromMeta(this.kernel.bin.path("miniconda"))
+    let res = await buildCondaListFromMeta(this.kernel.bin.path(CONDA_ROOT_DIR))
 
     let lines = res.response.split(/[\r\n]+/)
     let conda_check = {}
@@ -189,20 +150,12 @@ report_errors: false`)
           conda_builds[name] = build
           if (name === "conda") {
             conda_check.conda = true
-//            //if (String(version) === "24.11.1") {
-//            if (String(version) === "24.11.3") {
-//              conda_check.conda = true
-//            }
           }
           // check conda-libmamba-solver is up to date
           // sometimes it just fails silently so need to check
           if (name === "conda-libmamba-solver") {
-            //if (String(version) === "24.7.0") {
-            let channel = chunks[3]
             let coerced = semver.coerce(version)
-            //let mamba_requirement = ">=24.11.1"
             let mamba_requirement = ">=25.4.0"
-            //if (semver.satisfies(coerced, mamba_requirement) && channel === "conda-forge") {
             if (semver.satisfies(coerced, mamba_requirement)) {
               conda_check.mamba = true
             }
@@ -225,7 +178,7 @@ report_errors: false`)
             //}
           }
           if (name === "python") {
-            conda_check.python = this.kernel.platform !== "win32" || isWindowsPythonSslFixed(version, build)
+            conda_check.python = isExpectedPythonPinned(this.kernel.platform, version, build)
           }
         }
       } else {
@@ -237,8 +190,7 @@ report_errors: false`)
     this.kernel.bin.installed.conda = conda
     this.kernel.bin.installed.conda_versions = conda_versions
     this.kernel.bin.installed.conda_builds = conda_builds
-    return conda_check.conda && conda_check.mamba && conda_check.sqlite && (this.kernel.platform !== "win32" || conda_check.python)
-    //return conda_check.conda && conda_check.mamba
+    return conda_check.conda && conda_check.mamba && conda_check.sqlite && conda_check.python
   }
   async install(req, ondata) {
     for(let i=0; i<5; i++) {
@@ -255,18 +207,29 @@ report_errors: false`)
   async _install(req, ondata) {
     const installer_url = this.urls[this.kernel.platform][this.kernel.arch]
     const installer = this.installer[this.kernel.platform]
-    const install_path = this.kernel.bin.path("miniconda")
-    let install_path_exists = await this.kernel.exists("bin/miniconda")
-    if (install_path_exists) {
-      console.log("Install path already exists. Removing...", install_path)
-      await fs.promises.rm(install_path, { recursive: true }).catch((e) => {
-      })
+    const install_path = this.kernel.bin.path(CONDA_ROOT_DIR)
+    const legacy_path = this.kernel.bin.path(LEGACY_CONDA_ROOT_DIR)
+    let install_path_exists = await this.kernel.exists(`bin/${CONDA_ROOT_DIR}`)
+    let legacy_path_exists = await this.kernel.exists(`bin/${LEGACY_CONDA_ROOT_DIR}`)
+    if (install_path_exists || legacy_path_exists) {
+      console.log("Install path already exists. Will replace after installer download...", install_path)
     } else {
       console.log("Install path does not exist. Installing...")
     }
 
     ondata({ raw: `downloading installer: ${installer_url}...\r\n` })
     await this.kernel.bin.download(installer_url, installer, ondata)
+
+    legacy_path_exists = await this.kernel.exists(`bin/${LEGACY_CONDA_ROOT_DIR}`)
+    if (legacy_path_exists) {
+      console.log("Removing legacy install path...", legacy_path)
+      await this.removeInstallPath(legacy_path)
+    }
+    install_path_exists = await this.kernel.exists(`bin/${CONDA_ROOT_DIR}`)
+    if (install_path_exists) {
+      console.log("Removing existing install path...", install_path)
+      await this.removeInstallPath(install_path)
+    }
 
     // 2. run the script
     ondata({ raw: `running installer: ${installer}...\r\n` })
@@ -284,35 +247,13 @@ report_errors: false`)
     })
 
     // set pinned
-    let pinned_exists = await this.kernel.exists("bin/miniconda/conda-meta")
+    let pinned_exists = await this.kernel.exists(`bin/${CONDA_ROOT_DIR}/conda-meta`)
     if (pinned_exists) {
-      //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.11.1`)
-      //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda ==24.11.3`)
-      await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), this.pinnedPackages())
-      //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "sqlite ==3.47.2")
-      //await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), "")
-//sqlite ==3.47.2`)
-//      await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.9.0`)
-//      await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.11.2
-//conda-libmamba-solver=24.11.1`)
-//      await fs.promises.writeFile(this.kernel.path('bin/miniconda/conda-meta/pinned'), `conda=24.7.1
-//conda-libmamba-solver=24.7.0`)
+      await fs.promises.writeFile(this.kernel.path(`bin/${CONDA_ROOT_DIR}/conda-meta/pinned`), this.pinnedPackages())
     }
-////    await this.activate()
-//    await fs.promises.writeFile(this.kernel.bin.path('miniconda/condarc'), `channels:
-//  - conda-forge
-//  - defaults
-//create_default_packages:
-//  - python=3.10`)
-
-
-    // 1. right after installing conda==24.11.1, run conda update --all
-    // 2. The pinned file says conda-libmamba-solver=24.11.1
-    // 3. so after conda update --all, it should be conda-libmamba-solver=24.11.1
 
     let mods = this.kernel.bin.mods.filter((m) => {
       return req.dependencies.includes(m.name)
-//      return ["zip", "uv", "node", "huggingface", "gxx", "git", "ffmpeg", "caddy"].includes(m.name)
     }).map((m) => {
       if (m.mod.cmd) {
         return m.mod.cmd()
@@ -323,113 +264,84 @@ report_errors: false`)
     console.log("Conda dependencies to install", { mods })
 
     let condaPackages = [
+      this.kernel.platform === "win32" ? `"${WINDOWS_PYTHON_SSL_FIX_SPEC}"` : `"${PYTHON_INSTALL_SPEC}"`,
       `"${sqliteInstallSpec(this.kernel.platform)}"`,
       `"conda-libmamba-solver>=25.4.0"`,
     ]
-    if (this.kernel.platform === "win32") {
-      condaPackages.unshift(`"${WINDOWS_PYTHON_SSL_FIX_SPEC}"`)
-    }
 
     let cmds = [
-      //"conda clean -y --index-cache",
       "conda clean -y --all",
-      `conda install -y -c conda-forge ${condaPackages.join(" ")} ${mods}`.trim(),
-
-//      `conda config --file ${this.kernel.path('condarc')} --set remote_connect_timeout_secs 20`,
-//      `conda config --file ${this.kernel.path('condarc')} --set remote_read_timeout_secs 300`,
-//      `conda config --file ${this.kernel.path('condarc')} --set remote_max_retries 6`,
-//      `conda config --file ${this.kernel.path('condarc')} --set repodata_threads 4`,
-//      `conda config --file ${this.kernel.path('condarc')} --set fetch_threads 5`,
-//      `conda config --file ${this.kernel.path('condarc')} --set report_errors false`,
-
-
-
-//      `conda config --file ${this.kernel.path('condarc')} --set auto_update_conda false`,
-//      "conda install -y -c conda-forge conda-libmamba-solver=24.11.1",
-//      "conda install libsqlite --force-reinstall -y",
-//      `conda config --file ${this.kernel.path('condarc')} --set auto_update_conda False`,
-      //"conda install -y conda=24.9.0 -vvv --strict-channel-priority",
-      //"conda install -y conda=24.11.3 conda-libmamba-solver=24.11.1 -vvv",
-      //"conda install -y conda-libmamba-solver=24.7.0 conda=24.7.1 -vvv --strict-channel-priority",
-      //"conda install -y conda-libmamba-solver=24.11.1 conda=24.7.1",
-      //"conda install -y conda-libmamba-solver=24.11.1 conda=24.11.2",
-      //"conda update -y conda-libmamba-solver",
-      //"conda update -y conda sqlite",// -vvv --debug",
-
-
-//      "conda update -y conda",// -vvv --debug",
-//      "conda update -y --all",// -vvv --debug",
-
-
-//      "python -m pip install --upgrade pip setuptools wheel",
-//      "python -m ensurepip --upgrade",
-//      "conda update -y conda",
-//      "conda update -y --all",
+      `conda install -y --override-channels -c conda-forge ${condaPackages.join(" ")} ${mods}`.trim(),
     ]
-    //if (this.kernel.platform === "win32" || this.kernel.platform === "darwin") {
-    //  cmds.push("conda install -y conda-libmamba-solver=24.7.0 conda=24.7.1 --freeze-installed")
-    //}
     await this.kernel.bin.exec({
       message: cmds,
       env: {
         PIP_REQUIRE_VIRTUALENV: "false"
       }
-//      conda: {
-//        name: "base",
-//        activate: "minimal"
-//      }
-//      [
-//        (this.kernel.platform === 'win32' ? 'conda_hook' : `eval "$(conda shell.bash hook)"`),
-//        (this.platform === 'win32' ? `activate base` : `conda activate base`),
-/*
-        `conda config --file ${this.kernel.bin.path('miniconda', 'condarc')} --remove channels conda-forge`,
-        `conda config --file ${this.kernel.bin.path('miniconda', 'condarc')} --remove channels defaults`,
-        `conda config --file ${this.kernel.bin.path('miniconda', 'condarc')} --prepend channels defaults`,
-        `conda config --file ${this.kernel.bin.path('miniconda', 'condarc')} --prepend channels conda-forge`,
-        `conda config --file ${this.kernel.bin.path('miniconda', 'condarc')} --add create_default_packages python=3.10`,
-        */
-        //"conda update -y conda",
-        //"conda update -n base -c conda-forge -c defaults conda",
-
-
-        //"conda install conda=24.5.0",
-//        "conda clean -y --index-cache",
-//        "conda update -y --all",
-//        "conda install conda=24.9.0"
-
-
-        // handling the conda-libmamba-solver bug here: https://github.com/conda/conda-libmamba-solver/issues/283
-
-
-//        "conda remove -y libarchive",   
-//        "conda install -y -c conda-forge libarchive",
-//        "conda install -y -c conda-forge pip brotli brotlipy",
-//        "conda install -y -c conda-forge libsqlite --force-reinstall",
-//        "conda install conda"
-
-
-        //"conda install -y -c conda-forge pip brotli brotlipy",
-//        "conda update --all",
-//        "conda update -y --all",
-//      ]
     }, (stream) => {
       ondata(stream)
     })
     if (this.kernel.platform === "win32") {
       // copy python.exe to python3.exe so you can run with both python3 and python
       await fs.promises.copyFile(
-        this.kernel.bin.path("miniconda", "python.exe"),
-        this.kernel.bin.path("miniconda", "python3.exe"),
+        this.kernel.bin.path(CONDA_ROOT_DIR, "python.exe"),
+        this.kernel.bin.path(CONDA_ROOT_DIR, "python3.exe"),
       )
     }
     await this.ensureSslCertDirOverride()
+    await this.ensureCompatibilityAlias()
     ondata({ raw: `Install finished\r\n` })
     await this.kernel.bin.rm(installer, ondata)
+  }
+  async removeInstallPath(target) {
+    try {
+      const stat = await fs.promises.lstat(target).catch((error) => {
+        if (error && error.code === "ENOENT") {
+          return null
+        }
+        throw error
+      })
+      if (!stat) {
+        return
+      }
+      if (stat.isSymbolicLink()) {
+        await fs.promises.rm(target, { force: true })
+        return
+      }
+      await fs.promises.rm(target, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 250,
+      })
+    } catch (error) {
+      const reason = error && (error.code || error.message) ? error.code || error.message : String(error)
+      throw new Error([
+        `Pinokio needs to replace the Conda runtime at ${target}, but it could not delete that folder.`,
+        "Close Pinokio and any terminals or editors using Pinokio, delete that folder manually, then reopen Pinokio.",
+        `Original error: ${reason}`,
+      ].join("\n"))
+    }
+  }
+  async ensureCompatibilityAlias() {
+    const target = this.kernel.bin.path(CONDA_ROOT_DIR)
+    const alias = this.kernel.bin.path(LEGACY_CONDA_ROOT_DIR)
+    if (!(await this.hasCondaMeta())) {
+      return
+    }
+    const aliasExists = await fs.promises.lstat(alias).then(() => true).catch(() => false)
+    if (aliasExists) {
+      return
+    }
+    try {
+      await fs.promises.symlink(target, alias, this.kernel.platform === "win32" ? "junction" : "dir")
+    } catch (error) {
+      console.warn("Could not create Conda compatibility alias", error && error.message ? error.message : error)
+    }
   }
   async exists(pattern) {
     let paths = this.paths[this.kernel.platform]
     for(let p of paths) {
-      //let e = await this.kernel.bin.exists(p + "/" + name)
       const found = await glob(pattern, {
         cwd: this.kernel.bin.path(p)
       })
@@ -441,17 +353,18 @@ report_errors: false`)
   }
 
   async installed() {
-    let e
     for(let p of this.paths[this.kernel.platform]) {
       let e = await this.kernel.bin.exists(p)
-      if (e && this.kernel.bin.correct_conda) return true
+      if (e && this.kernel.bin.correct_conda) {
+        return true
+      }
     }
     return false
   }
 
-  uninstall(req, ondata) {
-    const install_path = this.kernel.bin.path("miniconda")
-    return this.kernel.bin.rm(install_path, ondata)
+  async uninstall(req, ondata) {
+    await this.kernel.bin.rm(LEGACY_CONDA_ROOT_DIR, ondata)
+    return this.kernel.bin.rm(CONDA_ROOT_DIR, ondata)
   }
 
   onstart() {
