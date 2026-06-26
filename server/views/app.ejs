@@ -19,6 +19,7 @@
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
+<% const appMobileBreakpointPx = 980 %>
 <style>
 :root {
   --assist-surface-light: var(--pinokio-chrome-accent-bg-light);
@@ -6169,7 +6170,7 @@ body.dark .pinokio-fork-dropdown-remote, body.dark .pinokio-publish-dropdown-rem
   }
 }
 */
-@media only screen and (max-width: 768px) {
+@media only screen and (max-width: <%= appMobileBreakpointPx %>px) {
   body {
     display: flex !important;
     flex-direction: row !important;
@@ -6410,7 +6411,7 @@ header.navheader h1 {
     margin: 0 10px;
   }
 }
-	@media only screen and (max-width: 768px) {
+	@media only screen and (max-width: <%= appMobileBreakpointPx %>px) {
 	  :root {
 	    --mobile-bottom-bar-height: calc(46px + env(safe-area-inset-bottom));
 	  }
@@ -8361,6 +8362,10 @@ body.dark .pinokio-custom-terminal-header {
   let pendingHomeSelectionRetry = null
   let initialWorkspaceDiskUsageRequested = false
   const openWithoutLaunching = <%- JSON.stringify(type === "run" && !autoselect) %>
+  const appMobileBreakpoint = <%= appMobileBreakpointPx %>
+  const appMobileBreakpointQuery = `(max-width: ${appMobileBreakpoint}px)`
+  window.PinokioAppMobileBreakpoint = appMobileBreakpoint
+  window.PinokioAppMobileBreakpointQuery = appMobileBreakpointQuery
   const scheduleSelectionRetry = (delay = 100) => {
     if (pendingSelectionRetry !== null) {
       return
@@ -11097,14 +11102,12 @@ const rerenderMenuSection = (container, html) => {
   }
 
 
-
-
-	  const mobileMenuQuery = window.matchMedia ? window.matchMedia("(max-width: 768px)") : null
+	  const mobileMenuQuery = window.matchMedia ? window.matchMedia(appMobileBreakpointQuery) : null
 	  const isMobileMenuOpen = () => document.body.classList.contains("mobile-menu-open")
 	  const appcanvas = document.querySelector(".appcanvas")
 	  const closeWindowButton = document.querySelector("#close-window")
 	  const mobileMenuBackdrop = document.querySelector("[data-mobile-menu-backdrop]")
-	  const isMobilePanelLayout = () => mobileMenuQuery ? mobileMenuQuery.matches : window.innerWidth <= 768
+	  const isMobilePanelLayout = () => mobileMenuQuery ? mobileMenuQuery.matches : window.innerWidth <= appMobileBreakpoint
 	  const normalizeMobilePanelName = (value) => {
 	    return value === "logs" || value === "ask-ai" || value === "feed" ? value : ""
 	  }
@@ -11844,7 +11847,7 @@ const rerenderMenuSection = (container, html) => {
   if (appcanvas && sidebarResizer && sidebarContainer) {
       const SIDEBAR_MIN_WIDTH = 140
       const SIDEBAR_MAX_WIDTH = 560
-      const sidebarMobileQuery = window.matchMedia ? window.matchMedia("(max-width: 768px)") : null
+      const sidebarMobileQuery = window.matchMedia ? window.matchMedia(appMobileBreakpointQuery) : null
       const workspaceName = "<%= typeof name === 'string' ? name : '' %>"
       const sidebarWidthStorageKey = workspaceName
         ? `pinokio-app-sidebar-width:${workspaceName}`
@@ -17862,7 +17865,7 @@ document.addEventListener("DOMContentLoaded", () => {
     enabled = false
   }
 
-  const communityModeQuery = window.matchMedia ? window.matchMedia("(max-width: 768px)") : null
+  const communityModeQuery = window.matchMedia ? window.matchMedia(window.PinokioAppMobileBreakpointQuery || "(max-width: <%= appMobileBreakpointPx %>px)") : null
   let communityMode = false
 
   const setCommunityMode = (next, opts) => {
