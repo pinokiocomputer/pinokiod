@@ -1,6 +1,6 @@
 {
   "name": "pinokiod",
-  "version": "7.3.15",
+  "version": "7.4.0",
   "description": "",
   "main": "index.js",
   "scripts": {
