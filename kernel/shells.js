@@ -601,7 +601,7 @@ class Shells {
                       liveEventHandlersClosed = true
                       break
                     }
-                    if (isBreakHandler && liveErrors.size > 0) {
+                    if (isBreakHandler && params.input !== true && liveErrors.size > 0) {
                       sh.continue(liveEventBuffer)
                       liveEventHandlersClosed = true
                       break

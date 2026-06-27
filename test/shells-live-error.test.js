@@ -2,7 +2,7 @@ const test = require('node:test')
 const assert = require('node:assert/strict')
 const Module = require('node:module')
 
-async function runWithFakeShell ({ platform = 'win32', chunks, response, waitForBreak = false, on }) {
+async function runWithFakeShell ({ platform = 'win32', chunks, response, waitForBreak = false, on, extraParams = {} }) {
   class FakeShell {
     constructor () {
       this.id = 'fake-shell'
@@ -75,7 +75,11 @@ async function runWithFakeShell ({ platform = 'win32', chunks, response, waitFor
     }
     const output = []
     const shells = new Shells(kernel)
-    const result = await shells.run({ message: 'python wgp.py', on }, { cwd: '/tmp/app' }, (stream) => {
+    const runParams = { message: 'python wgp.py', ...extraParams }
+    if (on !== undefined) {
+      runParams.on = on
+    }
+    const result = await shells.run(runParams, { cwd: '/tmp/app' }, (stream) => {
       output.push(stream.raw || '')
     })
 
@@ -128,6 +132,24 @@ test('shell.run resolves an interactive run on a real live break match', async (
   assert.equal(output.some((chunk) => chunk.includes('# input.event')), true)
   assert.deepEqual(result.event[0], 'error:')
   assert.deepEqual(result.error, ['error:'])
+})
+
+test('shell.run does not live-break automatic errors for input sessions', async () => {
+  const { output, result } = await runWithFakeShell({
+    platform: 'darwin',
+    chunks: [
+      "ModuleNotFoundError: No module named 'charset_normalizer'\n"
+    ],
+    response: "ModuleNotFoundError: No module named 'charset_normalizer'\nagent continues",
+    extraParams: {
+      input: true
+    }
+  })
+
+  assert.equal(output.some((chunk) => chunk.includes('# input.event')), true)
+  assert.match(result.response, /agent continues/)
+  assert.deepEqual(result.event[0], 'Error:')
+  assert.deepEqual(result.error, ['Error:'])
 })
 
 test('shell.run does not return an error for a live match covered by break:false', async () => {
