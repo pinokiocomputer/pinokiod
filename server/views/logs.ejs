@@ -11,6 +11,7 @@
 <link href="/markdown.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
 <link href="/style.css" rel="stylesheet"/>
+<link href="/universal-launcher.css" rel="stylesheet"/>
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
 <% } %>
@@ -128,10 +129,10 @@
             </div>
           </aside>
         </div>
-        <footer class="logs-community-footer" aria-label="Ask Community">
+        <footer class="logs-community-footer logs-help-footer" aria-label="Get help with this report">
           <div class="logs-community-copy">
-            <div class="logs-community-heading"><i class="fa-solid fa-comments" aria-hidden="true"></i><span>Ask Community</span></div>
-            <div class="logs-community-subtitle">Opens a draft question on pinokio.co with this report attached.</div>
+            <div class="logs-community-heading"><i class="fa-solid fa-circle-question" aria-hidden="true"></i><span>Get help</span></div>
+            <div class="logs-community-subtitle">Use this report with a local AI agent or open a Community draft.</div>
           </div>
           <div class="logs-community-title-field">
             <label class="logs-community-title-control" for="logs-draft-title">
@@ -140,7 +141,10 @@
             </label>
             <span class="logs-community-title-note" id="logs-draft-title-note" aria-live="polite"></span>
           </div>
-          <button type="button" class="logs-primary-button logs-community-submit" id="logs-create-draft" disabled><i class="fa-solid fa-paper-plane"></i><span>Ask Community</span></button>
+          <div class="logs-help-actions">
+            <button type="button" class="logs-help-action logs-help-action--ai" id="logs-ask-ai" disabled><i class="fa-solid fa-robot"></i><span>Ask AI</span></button>
+            <button type="button" class="logs-help-action logs-help-action--community" id="logs-create-draft" disabled><i class="fa-solid fa-paper-plane"></i><span>Ask Community</span></button>
+          </div>
         </footer>
       </section>
 
@@ -207,7 +211,7 @@
   <% } %>
 </main>
 <script>
-window.LOGS_PAGE_DATA = <%- JSON.stringify({ rootDisplay: logsRootDisplay || '', downloadUrl: logsDownloadUrl || '/pinokio/logs.zip', workspace: logsWorkspace || '', workspaceTitle: logsTitle || '', reportUrl: logsReportUrl || '', draftUrl: typeof logsDraftUrl !== 'undefined' ? logsDraftUrl : '', registryBase: 'https://pinokio.co', initialView: logsInitialView || 'raw', embedded: !!logsEmbedded }) %>
+window.LOGS_PAGE_DATA = <%- JSON.stringify({ rootDisplay: logsRootDisplay || '', downloadUrl: logsDownloadUrl || '/pinokio/logs.zip', workspace: logsWorkspace || '', workspaceTitle: logsTitle || '', workspaceCwd: typeof logsWorkspaceCwd !== 'undefined' ? logsWorkspaceCwd : '', reportUrl: logsReportUrl || '', draftUrl: typeof logsDraftUrl !== 'undefined' ? logsDraftUrl : '', registryBase: 'https://pinokio.co', initialView: logsInitialView || 'raw', embedded: !!logsEmbedded }) %>
 </script>
 <script src="/logs.js"></script>
 </body>

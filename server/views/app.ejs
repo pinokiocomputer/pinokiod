@@ -7875,10 +7875,10 @@ body.dark .pinokio-custom-terminal-header {
 	        </div>
 	      </div>
 	      <div class='mobile-drawer-actions' aria-label="App actions">
-	        <button type='button' class='btn header-item mobile-nav-logs' data-mobile-proxy="#logs-toggle" data-mobile-panel="logs" data-mobile-close-menu="true" aria-pressed="false" aria-label="Report Issue">
+	        <button type='button' class='btn header-item mobile-nav-logs' data-mobile-proxy="#logs-toggle" data-mobile-panel="logs" data-mobile-close-menu="true" aria-pressed="false" aria-label="Get Help">
 	          <div class='tab'>
-	            <i class="fa-solid fa-circle-exclamation menu-action-leading-icon"></i>
-	            <div class='display'>Report Issue</div>
+	            <i class="fa-solid fa-circle-question menu-action-leading-icon"></i>
+	            <div class='display'>Get Help</div>
 	            <div class='flexible'></div>
 	          </div>
 	        </button>
@@ -7912,10 +7912,10 @@ body.dark .pinokio-custom-terminal-header {
         <% if (type === 'browse') { %>
           <%- include('./partials/fs_status') %>
         <% } %>
-        <button type='button' id='logs-toggle' class="btn header-item" data-tippy-content="Report issue with logs" aria-expanded="false" aria-controls="app-logs-drawer">
+        <button type='button' id='logs-toggle' class="btn header-item" data-tippy-content="Get help with logs" aria-expanded="false" aria-controls="app-logs-drawer">
           <div class='tab'>
-            <i class="fa-solid fa-circle-exclamation menu-action-leading-icon"></i>
-            <div class='display'>Report Issue</div>
+            <i class="fa-solid fa-circle-question menu-action-leading-icon"></i>
+            <div class='display'>Get Help</div>
             <div class='flexible'></div>
             <span class='logs-new-badge hidden' id='logs-new-badge'>New</span>
           </div>
@@ -10732,7 +10732,7 @@ const rerenderMenuSection = (container, html) => {
 	    }
 	    if (mobileLogsButton) {
 	      mobileLogsButton.classList.toggle("has-new", show)
-	      mobileLogsButton.setAttribute("aria-label", show ? "Report Issue, new report available" : "Report Issue")
+	      mobileLogsButton.setAttribute("aria-label", show ? "Get Help, new report available" : "Get Help")
 	    }
 	    try {
 	      if (show) {
@@ -16434,7 +16434,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  const normalizeLaunchUrl = (rawUrl, workspaceCwd) => {
+  const normalizeLaunchUrl = (rawUrl, workspaceCwd, prompt) => {
     if (!rawUrl) {
       return null
     }
@@ -16447,6 +16447,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (parsed.origin !== window.location.origin) {
       return null
     }
+    const hasPromptOverride = typeof prompt === "string"
+    const normalizedPrompt = hasPromptOverride ? prompt.trim() : ""
     if (
       parsed.pathname.startsWith("/run/plugin/")
       || parsed.pathname.startsWith("/pinokio/run/plugin/")
@@ -16457,6 +16459,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       parsed.searchParams.set("ask_ai", "1")
       parsed.searchParams.delete("prompt")
+      if (hasPromptOverride && normalizedPrompt) {
+        parsed.searchParams.set("prompt", normalizedPrompt)
+      }
     }
     return `${parsed.pathname}${parsed.search}${parsed.hash}`
   }
@@ -16843,7 +16848,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const openWithUrl = (rawUrl, opts = {}) => {
     const workspaceCwd = opts && typeof opts.workspaceCwd === "string" ? opts.workspaceCwd : ""
     const frameName = opts && typeof opts.frameName === "string" ? opts.frameName.trim() : ""
-    const normalized = normalizeLaunchUrl(rawUrl, workspaceCwd)
+    const prompt = opts && typeof opts.prompt === "string" ? opts.prompt : undefined
+    const normalized = normalizeLaunchUrl(rawUrl, workspaceCwd, prompt)
     if (!normalized) {
       return false
     }
@@ -16871,7 +16877,8 @@ document.addEventListener("DOMContentLoaded", () => {
       return false
     }
     return openWithUrl(payload.agentHref, {
-      workspaceCwd: resolveWorkspaceCwd(payload)
+      workspaceCwd: resolveWorkspaceCwd(payload),
+      prompt: typeof payload.prompt === "string" ? payload.prompt : undefined
     })
   }
 

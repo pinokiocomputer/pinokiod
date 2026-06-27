@@ -4776,6 +4776,7 @@ class Server {
       await fs.promises.mkdir(candidate, { recursive: true })
       return {
         logsRoot: candidate,
+        workspacePath,
         displayPath: this.formatLogsDisplayPath(candidate),
         title: normalized
       }
@@ -8142,6 +8143,7 @@ class Server {
           logsDraftUrl: draftUrl,
           logsEmbedded: embedded,
           logsInitialView: initialView,
+          logsWorkspaceCwd: '',
         })
         return
       }
@@ -8162,6 +8164,7 @@ class Server {
         logsDraftUrl: draftUrl,
         logsEmbedded: embedded,
         logsInitialView: initialView,
+        logsWorkspaceCwd: context.workspacePath || '',
       })
     }))
     this.app.get("/api/logs/tree", ex(async (req, res) => {

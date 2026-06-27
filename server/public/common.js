@@ -4165,16 +4165,21 @@ document.addEventListener("DOMContentLoaded", () => {
     refreshTerminalSessions
   });
 
-  function buildAskAiLaunchUrl(agentHref, workspaceCwd) {
+  function buildAskAiLaunchUrl(agentHref, workspaceCwd, prompt) {
     let next = agentHref || '';
     try {
       const parsed = new URL(agentHref, window.location.origin);
+      const hasPromptOverride = typeof prompt === 'string';
+      const normalizedPrompt = hasPromptOverride ? prompt.trim() : '';
       if (isPluginLauncherPath(parsed.pathname)) {
         if (workspaceCwd && !parsed.searchParams.has('cwd')) {
           parsed.searchParams.set('cwd', workspaceCwd);
         }
         parsed.searchParams.set('ask_ai', '1');
         parsed.searchParams.delete('prompt');
+        if (hasPromptOverride && normalizedPrompt) {
+          parsed.searchParams.set('prompt', normalizedPrompt);
+        }
       }
       next = `${parsed.pathname}${parsed.search}${parsed.hash}`;
     } catch (_) {}
@@ -4204,7 +4209,8 @@ document.addEventListener("DOMContentLoaded", () => {
           workspace: payload.workspace || '',
           workspaceCwd: payload.workspaceCwd || '',
           agentHref: payload.agentHref,
-          agentLabel: payload.agentLabel || ''
+          agentLabel: payload.agentLabel || '',
+          prompt: payload.prompt || ''
         }, '*');
         dispatched = true;
       }
@@ -4253,12 +4259,13 @@ document.addEventListener("DOMContentLoaded", () => {
       workspace,
       workspaceCwd,
       agentHref: tool.href,
-      agentLabel: tool.label || ''
+      agentLabel: tool.label || '',
+      prompt: options && typeof options.prompt === 'string' ? options.prompt : ''
     };
     if (dispatchAskAiLaunch(payload)) {
       return;
     }
-    const fallbackUrl = buildAskAiLaunchUrl(tool.href, workspaceCwd);
+    const fallbackUrl = buildAskAiLaunchUrl(tool.href, workspaceCwd, payload.prompt);
     if (fallbackUrl) {
       window.location.href = fallbackUrl;
     }

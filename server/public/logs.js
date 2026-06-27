@@ -20,6 +20,8 @@
   const DRAFT_TITLE_STRONG_PATTERN = /\b(?:[A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception)|ERROR|FATAL|ERR!|exit code\s+\d+)\b/i
   const DRAFT_TITLE_STACK_PATTERN = /^\s*(?:File\s+"[^"]+",\s+line\s+\d+|at\s+\S+|from\s+\S+\s+import\s+|return\s+|await\s+|sys\.exit\b)/i
   const DRAFT_TITLE_NOISE_PATTERN = /^\s*(?:<<PINOKIO_SHELL>>|={6,}|-{6,}|\[api\s+local\.set\]|The default interactive shell is now|To update your account|For more details, please visit)/i
+  const ASK_AI_DEFAULT_PROMPT = 'Investigate what went wrong. Inspect the app logs and explain the likely root cause and next fix.'
+  const TOOL_PREFERENCE_KEY = 'pinokio.universalLauncher.tool'
   const textEncoder = typeof TextEncoder === 'function' ? new TextEncoder() : null
 
   const safeJsonParse = (value) => {
@@ -57,6 +59,115 @@
     } catch (_) {
       return href
     }
+  }
+
+  const isPluginLauncherPath = (pathname) => {
+    return typeof pathname === 'string'
+      && (
+        pathname.startsWith('/run/plugin/')
+        || pathname.startsWith('/pinokio/run/plugin/')
+        || (pathname.startsWith('/run/api/') && /\/pinokio\.js$/i.test(pathname))
+      )
+  }
+
+  const pluginToolCategory = (plugin) => {
+    const explicitCategory = typeof plugin?.category === 'string' ? plugin.category.trim().toLowerCase() : ''
+    if (explicitCategory === 'ide') return 'Desktop'
+    if (explicitCategory === 'cli') return 'Terminal'
+    const launchType = typeof plugin?.launch_type === 'string' ? plugin.launch_type.trim().toLowerCase() : ''
+    if (launchType === 'desktop') return 'Desktop'
+    if (launchType === 'terminal') return 'Terminal'
+    return plugin && plugin.categoryTitle ? String(plugin.categoryTitle) : 'Plugin'
+  }
+
+  const pluginToolValue = (href) => {
+    const normalized = String(href || '').replace(/^\/run/, '').replace(/^\/+/, '')
+    const parts = normalized.split('/').filter(Boolean)
+    let value = ''
+    if (parts[0] === 'plugin' && parts.length >= 3) {
+      value = parts.slice(1, -1).join('/')
+    } else {
+      value = normalized
+    }
+    if (value.endsWith('/pinokio.js')) {
+      value = value.replace(/\/pinokio\.js$/i, '')
+    }
+    return value
+  }
+
+  const getStoredToolPreference = () => {
+    try {
+      const value = window.localStorage.getItem(TOOL_PREFERENCE_KEY)
+      return typeof value === 'string' ? value.trim() : ''
+    } catch (_) {
+      return ''
+    }
+  }
+
+  const setStoredToolPreference = (value) => {
+    try {
+      const normalized = typeof value === 'string' ? value.trim() : ''
+      if (normalized) {
+        window.localStorage.setItem(TOOL_PREFERENCE_KEY, normalized)
+      } else {
+        window.localStorage.removeItem(TOOL_PREFERENCE_KEY)
+      }
+    } catch (_) {}
+  }
+
+  const mapPluginMenuToAskAiTools = (menu) => {
+    if (!Array.isArray(menu)) {
+      return []
+    }
+    return menu.map((plugin) => {
+      if (!plugin || typeof plugin !== 'object') {
+        return null
+      }
+      const href = typeof plugin.href === 'string' ? plugin.href.trim() : ''
+      if (!href) {
+        return null
+      }
+      let parsed
+      try {
+        parsed = new URL(href, window.location.origin)
+      } catch (_) {
+        return null
+      }
+      if (parsed.origin !== window.location.origin || !isPluginLauncherPath(parsed.pathname)) {
+        return null
+      }
+      const label = typeof plugin.title === 'string' && plugin.title.trim()
+        ? plugin.title.trim()
+        : (typeof plugin.text === 'string' && plugin.text.trim() ? plugin.text.trim() : href)
+      return {
+        href,
+        value: pluginToolValue(href),
+        label,
+        category: pluginToolCategory(plugin),
+        iconSrc: typeof plugin.image === 'string' ? plugin.image : (typeof plugin.icon === 'string' ? plugin.icon : ''),
+        pluginPath: typeof plugin.pluginPath === 'string' ? plugin.pluginPath : '',
+        detailUrl: typeof plugin.detailUrl === 'string' ? plugin.detailUrl : '',
+        hasInstall: plugin.hasInstall === true,
+        hasInstalledCheck: plugin.hasInstalledCheck === true,
+        installed: typeof plugin.installed === 'boolean' ? plugin.installed : null
+      }
+    }).filter(Boolean).sort((a, b) => {
+      const categoryDelta = String(a.category || '').localeCompare(String(b.category || ''), undefined, { sensitivity: 'base' })
+      if (categoryDelta !== 0) return categoryDelta
+      return String(a.label || '').localeCompare(String(b.label || ''), undefined, { sensitivity: 'base' })
+    })
+  }
+
+  const askAiToolOptionLabel = (tool) => {
+    const label = String(tool?.label || '').trim()
+    const category = String(tool?.category || '').trim()
+    if (!category) {
+      return label
+    }
+    if (label.toLowerCase().includes(category.toLowerCase())) {
+      return label
+    }
+    return `${label} (${category})`
   }
 
   class PrivacyFilterClient {
@@ -218,6 +329,7 @@
       this.statusEl = options.statusEl
       this.outputEl = options.outputEl
       this.copyButton = options.copyButton
+      this.askAiButton = options.askAiButton
       this.createDraftButton = options.createDraftButton
       this.draftTitleInput = options.draftTitleInput
       this.draftTitleNoteEl = options.draftTitleNoteEl
@@ -232,7 +344,12 @@
       this.reviewListEl = options.reviewListEl
       this.reviewFiltersEl = options.reviewFiltersEl
       this.reviewCountEl = options.reviewCountEl
+      this.workspace = typeof options.workspace === 'string' ? options.workspace.trim() : ''
+      this.workspaceCwd = typeof options.workspaceCwd === 'string' ? options.workspaceCwd.trim() : ''
       this.privacyFilter = options.privacyFilter || new PrivacyFilterClient()
+      this.askAiTools = null
+      this.askAiToolsPromise = null
+      this.askAiLauncher = null
       this.report = null
       this.rawMarkdown = ''
       this.reviewMarkdown = ''
@@ -256,6 +373,9 @@
 
       if (this.copyButton) {
         this.copyButton.addEventListener('click', () => this.copy())
+      }
+      if (this.askAiButton) {
+        this.askAiButton.addEventListener('click', () => this.openAskAiModal())
       }
       if (this.createDraftButton) {
         this.createDraftButton.addEventListener('click', () => this.createDraft())
@@ -283,6 +403,471 @@
       if (!this.refreshButton) return
       this.refreshButton.disabled = Boolean(isBusy)
       this.refreshButton.classList.toggle('is-busy', Boolean(isBusy))
+    }
+    setAskAiBusy(isBusy) {
+      if (!this.askAiButton) return
+      if (isBusy) {
+        this.askAiButton.disabled = true
+        this.askAiButton.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Loading…</span>'
+      } else {
+        this.askAiButton.innerHTML = '<i class="fa-solid fa-robot"></i><span>Ask AI</span>'
+        this.updateDraftSizeReview()
+      }
+    }
+    buildAskAiMenuUrl() {
+      const url = new URL('/api/plugin/menu', window.location.origin)
+      if (this.workspaceCwd) {
+        url.searchParams.set('workspace', this.workspaceCwd)
+      }
+      return `${url.pathname}${url.search}`
+    }
+    async loadAskAiTools() {
+      if (Array.isArray(this.askAiTools) && this.askAiTools.length > 0) {
+        return this.askAiTools
+      }
+      if (this.askAiToolsPromise) {
+        return this.askAiToolsPromise
+      }
+      this.askAiToolsPromise = fetch(this.buildAskAiMenuUrl(), {
+        cache: 'no-store',
+        headers: {
+          Accept: 'application/json'
+        }
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Failed to load plugins (${response.status})`)
+          }
+          return response.json()
+        })
+        .then((payload) => mapPluginMenuToAskAiTools(payload && Array.isArray(payload.menu) ? payload.menu : []))
+        .finally(() => {
+          this.askAiToolsPromise = null
+        })
+      const tools = await this.askAiToolsPromise
+      this.askAiTools = tools
+      return tools
+    }
+    buildAskAiLaunchHref(tool, prompt) {
+      const href = tool && typeof tool.href === 'string' ? tool.href : ''
+      if (!href) {
+        return ''
+      }
+      try {
+        const parsed = new URL(href, window.location.origin)
+        if (parsed.origin !== window.location.origin || !isPluginLauncherPath(parsed.pathname)) {
+          return ''
+        }
+        if (this.workspaceCwd && !parsed.searchParams.has('cwd')) {
+          parsed.searchParams.set('cwd', this.workspaceCwd)
+        }
+        parsed.searchParams.set('ask_ai', '1')
+        const question = String(prompt || '').trim()
+        if (question) {
+          parsed.searchParams.set('prompt', question)
+        } else {
+          parsed.searchParams.delete('prompt')
+        }
+        return `${parsed.pathname}${parsed.search}${parsed.hash}`
+      } catch (_) {
+        return ''
+      }
+    }
+    pluginInstallHref(tool) {
+      if (!tool || tool.hasInstall !== true || tool.hasInstalledCheck !== true || tool.installed !== false) {
+        return ''
+      }
+      const fallbackPath = tool.pluginPath || ''
+      const detailUrl = tool.detailUrl || (fallbackPath ? `/plugin?path=${encodeURIComponent(fallbackPath)}` : '')
+      if (!detailUrl) {
+        return ''
+      }
+      try {
+        const parsed = new URL(detailUrl, window.location.origin)
+        parsed.searchParams.set('next', 'install')
+        return `${parsed.pathname}${parsed.search}${parsed.hash}`
+      } catch (_) {
+        const separator = detailUrl.includes('?') ? '&' : '?'
+        return `${detailUrl}${separator}next=install`
+      }
+    }
+    redirectToPluginInstallIfNeeded(tool) {
+      const href = this.pluginInstallHref(tool)
+      if (!href) {
+        return false
+      }
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.location.href = href
+          return true
+        }
+      } catch (_) {}
+      window.location.href = href
+      return true
+    }
+    dispatchAskAiLaunch(tool, prompt) {
+      const launchHref = this.buildAskAiLaunchHref(tool, prompt)
+      if (!launchHref) {
+        this.setStatus('Could not launch this plugin.', true)
+        return false
+      }
+      const payload = {
+        e: 'pinokio:ask-ai-launch',
+        workspace: this.workspace,
+        workspaceCwd: this.workspaceCwd,
+        agentHref: launchHref,
+        agentLabel: tool && tool.label ? tool.label : '',
+        prompt: String(prompt || '').trim()
+      }
+      if (window.PinokioAskAiDrawer && typeof window.PinokioAskAiDrawer.openWithUrl === 'function') {
+        try {
+          const opened = window.PinokioAskAiDrawer.openWithUrl(launchHref, {
+            workspaceCwd: this.workspaceCwd,
+            prompt: payload.prompt
+          })
+          if (opened !== false) {
+            this.setStatus('Launching Ask AI…')
+            return true
+          }
+        } catch (_) {}
+      }
+      try {
+        if (window.parent && window.parent !== window && typeof window.parent.postMessage === 'function') {
+          window.parent.postMessage(payload, '*')
+          this.setStatus('Launching Ask AI…')
+          return true
+        }
+      } catch (_) {}
+      window.location.href = launchHref
+      return true
+    }
+    createAskAiLauncher() {
+      if (this.askAiLauncher) {
+        return this.askAiLauncher
+      }
+      const overlay = document.createElement('div')
+      overlay.className = 'universal-launcher-overlay logs-ask-ai-launcher'
+      overlay.hidden = true
+
+      const panel = document.createElement('section')
+      panel.className = 'universal-launcher-panel logs-ask-ai-launcher-panel'
+      panel.setAttribute('role', 'dialog')
+      panel.setAttribute('aria-modal', 'true')
+      panel.setAttribute('aria-labelledby', 'logs-ask-ai-launcher-title')
+      panel.setAttribute('aria-describedby', 'logs-ask-ai-launcher-description')
+      overlay.appendChild(panel)
+
+      const header = document.createElement('header')
+      header.className = 'universal-launcher-header'
+      panel.appendChild(header)
+
+      const heading = document.createElement('div')
+      heading.className = 'universal-launcher-heading'
+      header.appendChild(heading)
+
+      const titleRow = document.createElement('div')
+      titleRow.className = 'universal-launcher-title-row'
+      heading.appendChild(titleRow)
+
+      const brandMark = document.createElement('span')
+      brandMark.className = 'universal-launcher-brand-mark'
+      brandMark.setAttribute('aria-hidden', 'true')
+      titleRow.appendChild(brandMark)
+
+      const title = document.createElement('h3')
+      title.className = 'universal-launcher-title'
+      title.id = 'logs-ask-ai-launcher-title'
+      title.textContent = 'Ask Pinokio'
+      titleRow.appendChild(title)
+
+      const description = document.createElement('p')
+      description.className = 'universal-launcher-description'
+      description.id = 'logs-ask-ai-launcher-description'
+      description.textContent = 'Launch a local agent with this log report open.'
+      heading.appendChild(description)
+
+      const closeButton = document.createElement('button')
+      closeButton.type = 'button'
+      closeButton.className = 'universal-launcher-close'
+      closeButton.setAttribute('aria-label', 'Close Ask Pinokio')
+      closeButton.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>'
+      header.appendChild(closeButton)
+
+      const body = document.createElement('div')
+      body.className = 'universal-launcher-body logs-ask-ai-launcher-body'
+      panel.appendChild(body)
+
+      const promptSection = document.createElement('section')
+      promptSection.className = 'universal-launcher-section universal-launcher-section-prompt'
+      body.appendChild(promptSection)
+
+      const promptHeading = document.createElement('div')
+      promptHeading.className = 'universal-launcher-section-heading'
+      promptSection.appendChild(promptHeading)
+
+      const promptTitle = document.createElement('div')
+      promptTitle.className = 'universal-launcher-section-title'
+      promptTitle.textContent = 'What should Pinokio do?'
+      promptHeading.appendChild(promptTitle)
+
+      const composer = document.createElement('div')
+      composer.className = 'universal-launcher-ask-composer is-ask-intent'
+      promptSection.appendChild(composer)
+
+      const promptTextarea = document.createElement('textarea')
+      promptTextarea.className = 'universal-launcher-textarea logs-ask-ai-launcher-textarea'
+      promptTextarea.rows = 3
+      promptTextarea.setAttribute('aria-label', 'Question')
+      composer.appendChild(promptTextarea)
+
+      const error = document.createElement('div')
+      error.className = 'universal-launcher-error'
+      body.appendChild(error)
+
+      const footer = document.createElement('footer')
+      footer.className = 'universal-launcher-footer logs-ask-ai-launcher-footer'
+      panel.appendChild(footer)
+
+      const toolSection = document.createElement('section')
+      toolSection.className = 'universal-launcher-section universal-launcher-section-tools footer-mounted logs-ask-ai-launcher-tool-section'
+      footer.appendChild(toolSection)
+
+      const toolPicker = document.createElement('div')
+      toolPicker.className = 'universal-launcher-tool-picker logs-ask-ai-tool-picker'
+      toolSection.appendChild(toolPicker)
+
+      const toolTrigger = document.createElement('div')
+      toolTrigger.className = 'universal-launcher-tool-trigger has-value logs-ask-ai-tool-trigger'
+      toolTrigger.setAttribute('aria-hidden', 'true')
+      toolPicker.appendChild(toolTrigger)
+
+      const toolIcon = document.createElement('span')
+      toolIcon.className = 'universal-launcher-tool-trigger-icon logs-ask-ai-tool-trigger-icon'
+      toolTrigger.appendChild(toolIcon)
+
+      const toolContent = document.createElement('div')
+      toolContent.className = 'universal-launcher-tool-trigger-content'
+      toolTrigger.appendChild(toolContent)
+
+      const toolLabel = document.createElement('div')
+      toolLabel.className = 'universal-launcher-tool-trigger-label'
+      toolContent.appendChild(toolLabel)
+
+      const toolMeta = document.createElement('div')
+      toolMeta.className = 'universal-launcher-tool-trigger-meta'
+      toolContent.appendChild(toolMeta)
+
+      const toolCaret = document.createElement('i')
+      toolCaret.className = 'fa-solid fa-chevron-down universal-launcher-tool-trigger-caret'
+      toolCaret.setAttribute('aria-hidden', 'true')
+      toolTrigger.appendChild(toolCaret)
+
+      const toolSelect = document.createElement('select')
+      toolSelect.className = 'logs-ask-ai-tool-select'
+      toolSelect.setAttribute('aria-label', 'Agent')
+      toolPicker.appendChild(toolSelect)
+
+      const footerActions = document.createElement('div')
+      footerActions.className = 'universal-launcher-footer-actions'
+      footer.appendChild(footerActions)
+
+      const runButton = document.createElement('button')
+      runButton.type = 'button'
+      runButton.className = 'universal-launcher-button universal-launcher-button-primary'
+      runButton.textContent = 'Run'
+      footerActions.appendChild(runButton)
+
+      let returnFocusEl = null
+      const syncRunState = () => {
+        runButton.disabled = !String(promptTextarea.value || '').trim() || !this.selectedAskAiTool()
+      }
+      const getFocusable = () => {
+        return Array.from(panel.querySelectorAll('a[href], button:not([disabled]), textarea:not([disabled]), select:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+          .filter((node) => node && !node.hidden && node.offsetParent !== null)
+      }
+      const setOpen = (isOpen) => {
+        overlay.hidden = !isOpen
+        document.documentElement.classList.toggle('universal-launcher-open', isOpen)
+        document.body.classList.toggle('universal-launcher-open', isOpen)
+        if (isOpen) {
+          returnFocusEl = document.activeElement && typeof document.activeElement.focus === 'function'
+            ? document.activeElement
+            : this.askAiButton
+          window.requestAnimationFrame(() => {
+            promptTextarea.focus()
+            const cursorIndex = promptTextarea.value.length
+            try {
+              promptTextarea.setSelectionRange(cursorIndex, cursorIndex)
+            } catch (_) {}
+          })
+        } else if (returnFocusEl && typeof returnFocusEl.focus === 'function' && document.contains(returnFocusEl)) {
+          try {
+            returnFocusEl.focus()
+          } catch (_) {}
+          returnFocusEl = null
+        }
+      }
+      const close = () => setOpen(false)
+      const syncTool = () => {
+        const tool = this.selectedAskAiTool()
+        toolLabel.textContent = tool ? tool.label : 'Choose agent'
+        toolMeta.textContent = tool ? (tool.category || 'Plugin') : ''
+        toolIcon.textContent = ''
+        while (toolIcon.firstChild) {
+          toolIcon.removeChild(toolIcon.firstChild)
+        }
+        if (tool && tool.iconSrc) {
+          const icon = document.createElement('img')
+          icon.src = tool.iconSrc
+          icon.alt = ''
+          icon.className = 'logs-ask-ai-tool-trigger-image'
+          toolIcon.appendChild(icon)
+        } else {
+          const icon = document.createElement('i')
+          icon.className = 'fa-solid fa-robot'
+          icon.setAttribute('aria-hidden', 'true')
+          toolIcon.appendChild(icon)
+        }
+        syncRunState()
+      }
+      const run = () => {
+        const prompt = String(promptTextarea.value || '').trim()
+        const tool = this.selectedAskAiTool()
+        if (!prompt) {
+          error.textContent = 'Enter a question for the agent.'
+          promptTextarea.focus()
+          return
+        }
+        if (!tool) {
+          error.textContent = 'Choose an agent.'
+          toolSelect.focus()
+          return
+        }
+        error.textContent = ''
+        if (this.redirectToPluginInstallIfNeeded(tool)) {
+          close()
+          return
+        }
+        if (this.dispatchAskAiLaunch(tool, prompt)) {
+          close()
+        }
+      }
+
+      closeButton.addEventListener('click', close)
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) {
+          close()
+        }
+      })
+      toolSelect.addEventListener('change', syncTool)
+      toolSelect.addEventListener('change', () => {
+        const tool = this.selectedAskAiTool()
+        setStoredToolPreference(tool && tool.value ? tool.value : '')
+      })
+      promptTextarea.addEventListener('input', syncRunState)
+      runButton.addEventListener('click', run)
+      overlay.addEventListener('keydown', (event) => {
+        event.stopPropagation()
+        if (event.key === 'Escape') {
+          event.preventDefault()
+          close()
+        } else if (event.key === 'Tab') {
+          const focusable = getFocusable()
+          if (focusable.length === 0) {
+            event.preventDefault()
+            return
+          }
+          const first = focusable[0]
+          const last = focusable[focusable.length - 1]
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault()
+            last.focus()
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault()
+            first.focus()
+          }
+        } else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+          event.preventDefault()
+          if (!runButton.disabled) {
+            run()
+          }
+        }
+      })
+
+      document.body.appendChild(overlay)
+      this.askAiLauncher = {
+        overlay,
+        panel,
+        promptTextarea,
+        toolSelect,
+        toolLabel,
+        toolMeta,
+        toolIcon,
+        error,
+        runButton,
+        setOpen,
+        syncTool,
+        syncRunState
+      }
+      return this.askAiLauncher
+    }
+    populateAskAiLauncherTools(tools) {
+      const launcher = this.createAskAiLauncher()
+      while (launcher.toolSelect.firstChild) {
+        launcher.toolSelect.removeChild(launcher.toolSelect.firstChild)
+      }
+      const placeholder = document.createElement('option')
+      placeholder.value = ''
+      placeholder.textContent = 'Choose agent'
+      launcher.toolSelect.appendChild(placeholder)
+      tools.forEach((tool, index) => {
+        const option = document.createElement('option')
+        option.value = String(index)
+        option.textContent = askAiToolOptionLabel(tool)
+        launcher.toolSelect.appendChild(option)
+      })
+      const preferredTool = getStoredToolPreference()
+      const preferredIndex = preferredTool
+        ? tools.findIndex((tool) => tool && tool.value === preferredTool)
+        : -1
+      launcher.toolSelect.value = preferredIndex >= 0 ? String(preferredIndex) : ''
+      if (preferredTool && preferredIndex < 0) {
+        setStoredToolPreference('')
+      }
+      launcher.syncTool()
+    }
+    selectedAskAiTool() {
+      const launcher = this.askAiLauncher
+      if (!launcher || !Array.isArray(this.askAiTools)) {
+        return null
+      }
+      const index = Number.parseInt(launcher.toolSelect.value, 10)
+      return Number.isFinite(index) ? this.askAiTools[index] || null : null
+    }
+    async openAskAiModal() {
+      if (!this.currentMarkdown && !this.reviewMarkdown) {
+        this.updateDraftSizeReview()
+        return
+      }
+      this.setAskAiBusy(true)
+      let tools = []
+      try {
+        tools = await this.loadAskAiTools()
+      } catch (error) {
+        this.setStatus(error && error.message ? error.message : 'Failed to load plugins.', true)
+        this.setAskAiBusy(false)
+        return
+      }
+      this.setAskAiBusy(false)
+      if (!Array.isArray(tools) || tools.length === 0) {
+        this.setStatus('No AI plugins are available.', true)
+        return
+      }
+      const launcher = this.createAskAiLauncher()
+      this.populateAskAiLauncherTools(tools)
+      launcher.error.textContent = ''
+      launcher.promptTextarea.value = ASK_AI_DEFAULT_PROMPT
+      launcher.setOpen(true)
     }
     formatGenerated(value) {
       if (!value) return '--'
@@ -393,7 +978,7 @@
     updateDraftTitleNote() {
       if (!this.draftTitleNoteEl) return
       let note = ''
-      if (this.draftTitleInput && !this.draftTitleInput.disabled && !this.draftTitleInput.value.trim()) {
+      if (this.draftTitleInput && this.draftTitleInput.type !== 'hidden' && !this.draftTitleInput.disabled && !this.draftTitleInput.value.trim()) {
         note = 'Title required'
       }
       this.draftTitleNoteEl.textContent = note
@@ -402,7 +987,7 @@
       this.draftTitleSuggestion = this.suggestDraftTitle()
       if (this.draftTitleInput) {
         if (force || !this.draftTitleEdited) {
-          this.draftTitleInput.value = this.draftTitleSuggestion.title
+          this.draftTitleInput.value = this.draftTitleSuggestion.title || this.defaultDraftTitle()
           this.draftTitleEdited = false
         }
         this.draftTitleInput.disabled = !this.reviewMarkdown
@@ -882,7 +1467,7 @@
           isError = true
           message = 'Add a title before posting to Community.'
         } else if (hasText) {
-          message = 'Ready. Community will use this preview exactly.'
+          message = 'Ready for Ask AI or Community.'
         }
         this.draftStatusEl.textContent = message
         this.draftStatusEl.classList.toggle('is-error', isError)
@@ -891,6 +1476,11 @@
         this.draftTitleInput.disabled = !hasText
       }
       this.updateDraftTitleNote()
+      if (this.askAiButton) {
+        const canAsk = hasText && !this.filtering
+        this.askAiButton.disabled = !canAsk
+        this.askAiButton.title = canAsk ? 'Launch a local AI agent with this report context' : 'Latest report is not ready yet'
+      }
       if (this.createDraftButton && !this.importingDraft) {
         const canCreate = hasText && hasTitle && !this.draftOversized && !this.filtering && Boolean(this.draftUrl)
         this.createDraftButton.disabled = !canCreate
@@ -1766,6 +2356,7 @@
         statusEl: document.getElementById('logs-report-status'),
         outputEl: document.getElementById('logs-report-output'),
         copyButton: document.getElementById('logs-copy-report'),
+        askAiButton: document.getElementById('logs-ask-ai'),
         createDraftButton: document.getElementById('logs-create-draft'),
         draftTitleInput: document.getElementById('logs-draft-title'),
         draftTitleNoteEl: document.getElementById('logs-draft-title-note'),
@@ -1779,7 +2370,9 @@
         draftStatusEl: document.getElementById('logs-draft-status'),
         reviewListEl: document.getElementById('logs-redaction-list'),
         reviewFiltersEl: document.getElementById('logs-redaction-filters'),
-        reviewCountEl: document.getElementById('logs-redaction-count')
+        reviewCountEl: document.getElementById('logs-redaction-count'),
+        workspace: this.workspace,
+        workspaceCwd: config.workspaceCwd || ''
       })
       this.viewer = new LogsViewer({
         outputEl: document.getElementById('logs-viewer-output'),
