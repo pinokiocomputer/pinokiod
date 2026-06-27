@@ -5990,11 +5990,13 @@ class Server {
     if (home) {
       if (version === this.version.pinokiod) {
         console.log("version up to date")
+      } else if (!(await fse.pathExists(path.resolve(home, "bin/miniforge/conda-meta")))) {
+        console.warn("[WARN] Managed home refresh deferred until Miniforge is installed")
       } else {
         // For every update, this gets triggered exactly once.
         // 1. first mkdir if it doesn't exist (this step is irrelevant since at this point the home dir will exist)
         
-        let exists = await this.kernel.exists(home)
+        let exists = await fse.pathExists(home)
         if (!exists) {
           await fs.promises.mkdir(home, { recursive: true })
         }
@@ -6002,7 +6004,7 @@ class Server {
         needsManagedRefresh = true
         console.log("[TRY] Updating to the new version")
         let envPath = path.resolve(home, "ENVIRONMENT")
-        let envExists = await this.kernel.exists(envPath)
+        let envExists = await fse.pathExists(envPath)
         if (!envExists) {
           let str = await Environment.ENV("system", home, this.kernel)
           await fs.promises.writeFile(envPath, str)
