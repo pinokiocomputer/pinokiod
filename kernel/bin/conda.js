@@ -8,9 +8,6 @@ const {
   PYTHON_INSTALL_SPEC,
   WINDOWS_PYTHON_SSL_FIX_SPEC,
   isExpectedPythonPinned,
-  isExpectedSqlitePinned,
-  sqliteInstallSpec,
-  sqlitePinnedSpec,
 } = require('./conda-pins')
 
 const MINIFORGE_RELEASE = "26.3.2-3"
@@ -46,7 +43,6 @@ class Conda {
   pinnedPackages() {
     return [
       `conda ==${CONDA_PIN_VERSION}`,
-      sqlitePinnedSpec(this.kernel.platform),
     ].join("\n")
   }
   async hasCondaMeta() {
@@ -161,22 +157,6 @@ report_errors: false`)
             }
           }
 
-          // Use sqlite to check if `conda update -y --all` went through successfully
-          // sometimes it just fails silently so need to check
-          if (name === "sqlite") {
-            if (isExpectedSqlitePinned(this.kernel.platform, version)) {
-              conda_check.sqlite = true
-            }
-            //let coerced = semver.coerce(version)
-            //let sqlite_requirement = ">=3.47.2"
-            //if (semver.satisfies(coerced, sqlite_requirement)) {
-            //  console.log("semver satisfied")
-
-            //  conda_check.sqlite = true
-            //} else {
-            //  console.log("semver NOT satisfied")
-            //}
-          }
           if (name === "python") {
             conda_check.python = isExpectedPythonPinned(this.kernel.platform, version, build)
           }
@@ -190,7 +170,7 @@ report_errors: false`)
     this.kernel.bin.installed.conda = conda
     this.kernel.bin.installed.conda_versions = conda_versions
     this.kernel.bin.installed.conda_builds = conda_builds
-    return conda_check.conda && conda_check.mamba && conda_check.sqlite && conda_check.python
+    return conda_check.conda && conda_check.mamba && conda_check.python
   }
   async install(req, ondata) {
     for(let i=0; i<5; i++) {
@@ -265,7 +245,6 @@ report_errors: false`)
 
     let condaPackages = [
       this.kernel.platform === "win32" ? `"${WINDOWS_PYTHON_SSL_FIX_SPEC}"` : `"${PYTHON_INSTALL_SPEC}"`,
-      `"${sqliteInstallSpec(this.kernel.platform)}"`,
       `"conda-libmamba-solver>=25.4.0"`,
     ]
 

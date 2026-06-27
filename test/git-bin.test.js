@@ -23,15 +23,15 @@ function createGitBin(platform, packages) {
 test('Git bin installs Git Credential Manager with the Git bundle', () => {
   assert.equal(
     createGitBin('darwin', []).cmd(),
-    'git=2.51.0 git-lfs git-credential-manager=2.7.3 gh=2.82.1'
+    '"git>=2.51.0" git-lfs git-credential-manager=2.7.3 gh=2.82.1'
   )
   assert.equal(
     createGitBin('linux', []).cmd(),
-    'git=2.51.0 git-lfs git-credential-manager=2.7.3 gh=2.82.1'
+    '"git>=2.51.0" git-lfs git-credential-manager=2.7.3 gh=2.82.1'
   )
   assert.equal(
     createGitBin('win32', []).cmd(),
-    'git=2.51.0 git-lfs git-credential-manager=2.7.3 gh=2.82.1 m2-base'
+    '"git>=2.51.0" git-lfs git-credential-manager=2.7.3 gh=2.82.1 m2-base'
   )
 })
 

@@ -24,7 +24,6 @@ const Torch = require("./torch")
 const { buildCondaListFromMeta } = require('./conda-meta')
 const {
   isExpectedPythonPinned,
-  isExpectedSqlitePinned,
 } = require('./conda-pins')
 const { glob } = require('glob')
 const fakeUa = require('fake-useragent');
@@ -406,13 +405,6 @@ class Bin {
                 conda_check.mamba = true
               }
             }
-            // Use sqlite to check if `conda update -y --all` went through successfully
-            // sometimes it just fails silently so need to check
-            if (name === "sqlite") {
-              if (isExpectedSqlitePinned(this.platform, version)) {
-                conda_check.sqlite = true
-              }
-            }
             if (name === "python") {
               conda_check.python = isExpectedPythonPinned(this.platform, version, build)
             }
@@ -424,7 +416,7 @@ class Bin {
         }
       }
 
-      if (conda_check.conda && conda_check.mamba && conda_check.sqlite && conda_check.python) {
+      if (conda_check.conda && conda_check.mamba && conda_check.python) {
         this.correct_conda = true
       }
     }

@@ -1,27 +1,9 @@
 const semver = require('semver')
 
 const CONDA_PIN_VERSION = "26.3.2"
-const DEFAULT_SQLITE_PIN_VERSION = "3.47.2"
-const WINDOWS_SQLITE_PIN_VERSION = "3.53.2"
 const PYTHON_PIN_VERSION = "3.10.20"
 const PYTHON_INSTALL_SPEC = `python=${PYTHON_PIN_VERSION}`
 const WINDOWS_PYTHON_SSL_FIX_SPEC = `${PYTHON_INSTALL_SPEC}=*_1_cpython`
-
-const sqlitePinVersion = (platform) => {
-  return platform === "win32" ? WINDOWS_SQLITE_PIN_VERSION : DEFAULT_SQLITE_PIN_VERSION
-}
-
-const sqliteInstallSpec = (platform) => {
-  return `sqlite=${sqlitePinVersion(platform)}`
-}
-
-const sqlitePinnedSpec = (platform) => {
-  return `sqlite ==${sqlitePinVersion(platform)}`
-}
-
-const isExpectedSqlitePinned = (platform, version) => {
-  return String(version) === sqlitePinVersion(platform)
-}
 
 const condaBuildNumber = (build) => {
   const chunks = String(build || "").split("_").reverse()
@@ -48,8 +30,5 @@ module.exports = {
   CONDA_PIN_VERSION,
   PYTHON_INSTALL_SPEC,
   WINDOWS_PYTHON_SSL_FIX_SPEC,
-  isExpectedSqlitePinned,
   isExpectedPythonPinned,
-  sqliteInstallSpec,
-  sqlitePinnedSpec,
 }

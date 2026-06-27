@@ -120,7 +120,7 @@ test('Conda install requests the Python 3.10.20 pin on macOS/Linux', async () =>
   assert.ok(condaInstall)
   assert.equal(
     condaInstall.message[1],
-    'conda install -y --override-channels -c conda-forge "python=3.10.20" "sqlite=3.47.2" "conda-libmamba-solver>=25.4.0"'
+    'conda install -y --override-channels -c conda-forge "python=3.10.20" "conda-libmamba-solver>=25.4.0"'
   )
 })
 
@@ -148,7 +148,7 @@ test('Conda install keeps the Windows Python 3.10.20 SSL-fixed build pin', async
   assert.ok(condaInstall)
   assert.equal(
     condaInstall.message[1],
-    'conda install -y --override-channels -c conda-forge "python=3.10.20=*_1_cpython" "sqlite=3.53.2" "conda-libmamba-solver>=25.4.0"'
+    'conda install -y --override-channels -c conda-forge "python=3.10.20=*_1_cpython" "conda-libmamba-solver>=25.4.0"'
   )
 })
 

@@ -7,7 +7,7 @@ const path = require("path")
 class Git {
   description = "Installs Git, Git LFS, Git Credential Manager, and GitHub CLI in the Pinokio environment."
   cmd() {
-    const packages = "git=2.51.0 git-lfs git-credential-manager=2.7.3 gh=2.82.1"
+    const packages = '"git>=2.51.0" git-lfs git-credential-manager=2.7.3 gh=2.82.1'
     if (this.kernel.platform === "darwin") {
       return packages
     } else if (this.kernel.platform === "win32") {
