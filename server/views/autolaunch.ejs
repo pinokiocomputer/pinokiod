@@ -919,7 +919,6 @@ const renderCandidates = () => {
       ${requirementWarning}
       <div class="autolaunch-feedback" data-feedback></div>
     </div>
-    ${renderDependencySection(app)}
     ${hasCandidates ? "" : '<div class="autolaunch-section"><div class="autolaunch-empty">No local scripts were found for this app.</div></div>'}
     ${renderScriptSection("Menu scripts", "From pinokio.js", candidateState.menu || [])}
     ${renderScriptSection("Other local scripts", "Advanced", candidateState.other || [])}
@@ -936,6 +935,7 @@ const renderCandidates = () => {
         </button>
       </div>
     </div>
+    ${renderDependencySection(app)}
   `);
   bindDetailControls();
 };

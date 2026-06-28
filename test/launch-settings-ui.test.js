@@ -74,6 +74,26 @@ test("launch settings visible labels use autolaunch wording", async () => {
   assert.doesNotMatch(sidebar, />Launch settings</)
 })
 
+test("autolaunch page presents launch script choices before requirements", async () => {
+  const globalView = await fs.readFile(path.resolve(root, "server/views/autolaunch.ejs"), "utf8")
+
+  const currentIndex = globalView.indexOf('<h3 class="autolaunch-section-title">Current</h3>')
+  const menuIndex = globalView.indexOf('${renderScriptSection("Menu scripts"')
+  const otherIndex = globalView.indexOf('${renderScriptSection("Other local scripts"')
+  const manualIndex = globalView.indexOf('<div class="autolaunch-manual">')
+  const requirementsIndex = globalView.indexOf('${renderDependencySection(app)}')
+
+  assert.notEqual(currentIndex, -1)
+  assert.notEqual(menuIndex, -1)
+  assert.notEqual(otherIndex, -1)
+  assert.notEqual(manualIndex, -1)
+  assert.notEqual(requirementsIndex, -1)
+  assert.ok(currentIndex < menuIndex)
+  assert.ok(menuIndex < otherIndex)
+  assert.ok(otherIndex < manualIndex)
+  assert.ok(manualIndex < requirementsIndex)
+})
+
 test("startup progress uses canonical ready-state progress instead of autolaunch mirrors", async () => {
   const kernelIndex = await fs.readFile(path.resolve(root, "kernel/index.js"), "utf8")
   const autolaunch = await fs.readFile(path.resolve(root, "kernel/autolaunch.js"), "utf8")
