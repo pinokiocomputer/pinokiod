@@ -180,10 +180,7 @@ class Shell {
       req.params.rows = req.client.rows
       req.params.cols = req.client.cols
     }
-    Object.defineProperty(req.params, CondaRuntimeGuard.SHELL_RUN_GUARD, {
-      configurable: true,
-      value: true,
-    })
+    options[CondaRuntimeGuard.SHELL_RUN_GUARD_OPTION] = true
     let response = await kernel.shell.run(req.params, options, async (stream, type) => {
 //      process.stdout.write(stream.raw)
       ondata(stream, type)

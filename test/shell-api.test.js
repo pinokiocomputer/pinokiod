@@ -13,23 +13,23 @@ function createKernel () {
     homedir: '/tmp/pinokio-home',
     shell: {
       start: async (params, options) => {
-        calls.push({ method: 'start', guard: params[CondaRuntimeGuard.SHELL_RUN_GUARD] === true, params: structuredClone(params), options: structuredClone(options) })
+        calls.push({ method: 'start', guard: options && options[CondaRuntimeGuard.SHELL_RUN_GUARD_OPTION] === true, params: structuredClone(params), options: structuredClone(options) })
         return 'shell-id'
       },
       enter: async (params) => {
-        calls.push({ method: 'enter', guard: params[CondaRuntimeGuard.SHELL_RUN_GUARD] === true, params: structuredClone(params) })
+        calls.push({ method: 'enter', guard: false, params: structuredClone(params) })
         return 'entered'
       },
       write: async (params) => {
-        calls.push({ method: 'write', guard: params[CondaRuntimeGuard.SHELL_RUN_GUARD] === true, params: structuredClone(params) })
+        calls.push({ method: 'write', guard: false, params: structuredClone(params) })
         return 'written'
       },
       run: async (params, options) => {
-        calls.push({ method: 'run', guard: params[CondaRuntimeGuard.SHELL_RUN_GUARD] === true, params: structuredClone(params), options: structuredClone(options) })
+        calls.push({ method: 'run', guard: options && options[CondaRuntimeGuard.SHELL_RUN_GUARD_OPTION] === true, params: structuredClone(params), options: structuredClone(options) })
         return { stdout: 'ok' }
       },
       kill: async (params) => {
-        calls.push({ method: 'kill', guard: params[CondaRuntimeGuard.SHELL_RUN_GUARD] === true, params: structuredClone(params) })
+        calls.push({ method: 'kill', guard: false, params: structuredClone(params) })
       }
     }
   }
@@ -136,7 +136,8 @@ test('shell.run applies deterministic defaults and forwards execution options', 
     },
     options: {
       cwd,
-      group: path.join(cwd, 'script.js')
+      group: path.join(cwd, 'script.js'),
+      [CondaRuntimeGuard.SHELL_RUN_GUARD_OPTION]: true
     }
   }])
 })

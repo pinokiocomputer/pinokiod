@@ -632,7 +632,7 @@ class Shells {
         sh.mute = true
         sh.kill()
       }
-    })
+    }, options)
     // If this shell ran under a workspace, rescan git repos for that workspace.
     // Snapshots are now always user-initiated via the backups UI; here we only
     // pin new repos to specific commits when this run was started from a

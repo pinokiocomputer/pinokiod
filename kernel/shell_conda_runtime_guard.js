@@ -1,7 +1,7 @@
 const path = require('path')
 const unparse = require('yargs-unparser-custom-flag')
 
-const SHELL_RUN_GUARD = Symbol('pinokio.shellRunCondaRuntimeGuard')
+const SHELL_RUN_GUARD_OPTION = 'condaRuntimeGuard'
 const noticeSessions = new Set()
 
 const MUTATING_COMMANDS = new Set([
@@ -24,6 +24,7 @@ const PROTECTED_PACKAGES = new Set([
   'python',
   'conda-libmamba-solver',
 ])
+const PROTECTED_PACKAGE_NAMES = Array.from(PROTECTED_PACKAGES).sort((a, b) => b.length - a.length)
 
 const VALUE_FLAGS = new Set([
   '-c',
@@ -34,7 +35,13 @@ const VALUE_FLAGS = new Set([
   '--name',
   '-p',
   '--prefix',
+  '--revision',
   '--solver',
+])
+
+const FILE_FLAGS = new Set([
+  '-f',
+  '--file',
 ])
 
 function pathApi(platform) {
@@ -217,12 +224,19 @@ function splitShellSegments(input, context = {}) {
   return parts
 }
 
-function getExecutableToken(tokens) {
-  let index = 0
+function getExecutableToken(tokens, startIndex = 0, context = {}) {
+  let index = startIndex
   while (index < tokens.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[index])) {
     index++
   }
-  if (tokens[index] === '&' || String(tokens[index]).toLowerCase() === 'call') {
+  const token = String(tokens[index] || '')
+  const lower = token.toLowerCase()
+  const shellName = String(context.shellName || '').toLowerCase()
+  const platform = context.platform || process.platform
+  if (
+    (token === '&' && (shellName.includes('powershell') || shellName.includes('pwsh')))
+    || (lower === 'call' && (platform === 'win32' || shellName.includes('cmd')))
+  ) {
     index++
   }
   return { executable: tokens[index] || '', index }
@@ -245,22 +259,60 @@ function isCondaExecutable(executable, context) {
   return base === 'conda' || base === 'conda.exe' || base === 'conda.bat' || base === 'conda.cmd'
 }
 
+function isPythonExecutable(executable, context) {
+  const platform = context.platform || process.platform
+  const base = executableBasename(executable, platform)
+  return /^python(?:\d+(?:\.\d+)?)?(?:\.exe)?$/.test(base)
+}
+
+function isCondaModuleToken(token) {
+  return String(token || '').toLowerCase() === 'conda'
+}
+
+function findCondaInvocation(tokens, context, startIndex = 0) {
+  const { executable, index: executableIndex } = getExecutableToken(tokens, startIndex, context)
+  if (isCondaExecutable(executable, context)) {
+    return { executableIndex, argsStart: executableIndex + 1 }
+  }
+  if (isPythonExecutable(executable, context)) {
+    if (tokens[executableIndex + 1] === '-m' && isCondaModuleToken(tokens[executableIndex + 2])) {
+      return { executableIndex, argsStart: executableIndex + 3 }
+    }
+  }
+  return null
+}
+
 function resolveWrapperTarget(params, context) {
   const conda = params ? params.conda : undefined
   const platform = context.platform || process.platform
   const cwd = context.cwd || (params && params.path) || process.cwd()
+  const managedBasePrefix = context.managedBasePrefix || ''
   if (!conda) {
-    return { kind: 'managed-base', source: 'wrapper', prefix: context.managedBasePrefix || '' }
+    return { kind: 'managed-base', source: 'wrapper', prefix: managedBasePrefix }
+  }
+  if (conda && conda.skip === true) {
+    return { kind: 'unknown', source: 'wrapper-skip' }
   }
   if (typeof conda === 'string') {
-    return { kind: 'app-env', source: 'wrapper', prefix: resolvePathFrom(cwd, conda, platform) }
+    const prefix = resolvePathFrom(cwd, conda, platform)
+    if (managedBasePrefix && isSamePath(prefix, managedBasePrefix, platform)) {
+      return { kind: 'managed-base', source: 'wrapper', prefix: managedBasePrefix }
+    }
+    return { kind: 'app-env', source: 'wrapper', prefix }
+  }
+  if (conda && conda.activate === 'minimal' && (conda.path || conda.name)) {
+    return { kind: 'managed-base', source: 'wrapper', prefix: managedBasePrefix }
   }
   if (conda && conda.path) {
-    return { kind: 'app-env', source: 'wrapper', prefix: resolvePathFrom(cwd, conda.path, platform) }
+    const prefix = resolvePathFrom(cwd, conda.path, platform)
+    if (managedBasePrefix && isSamePath(prefix, managedBasePrefix, platform)) {
+      return { kind: 'managed-base', source: 'wrapper', prefix: managedBasePrefix }
+    }
+    return { kind: 'app-env', source: 'wrapper', prefix }
   }
   if (conda && conda.name) {
     if (conda.name === 'base') {
-      return { kind: 'managed-base', source: 'wrapper', prefix: context.managedBasePrefix || '' }
+      return { kind: 'managed-base', source: 'wrapper', prefix: managedBasePrefix }
     }
     return {
       kind: 'app-env',
@@ -271,8 +323,8 @@ function resolveWrapperTarget(params, context) {
   return { kind: 'unknown', source: 'wrapper' }
 }
 
-function parseCommandTarget(tokens, executableIndex) {
-  for (let i = executableIndex + 1; i < tokens.length; i++) {
+function parseCommandTarget(tokens, argsStart) {
+  for (let i = argsStart; i < tokens.length; i++) {
     const token = tokens[i]
     if (token === '-p' || token === '--prefix') {
       return { type: 'prefix', value: tokens[i + 1] || '' }
@@ -309,13 +361,13 @@ function refineTargetFromCommandArgs(target, commandTarget, params, context) {
   return { kind: 'app-env', source: 'command-target', prefix: resolved }
 }
 
-function resolveTarget(tokens, executableIndex, params, context) {
-  const wrapperTarget = resolveWrapperTarget(params, context)
-  return refineTargetFromCommandArgs(wrapperTarget, parseCommandTarget(tokens, executableIndex), params, context)
+function resolveTarget(tokens, argsStart, params, context, wrapperTargetOverride) {
+  const wrapperTarget = wrapperTargetOverride || resolveWrapperTarget(params, context)
+  return refineTargetFromCommandArgs(wrapperTarget, parseCommandTarget(tokens, argsStart), params, context)
 }
 
-function findSubcommand(tokens, executableIndex) {
-  for (let i = executableIndex + 1; i < tokens.length; i++) {
+function findSubcommand(tokens, argsStart) {
+  for (let i = argsStart; i < tokens.length; i++) {
     const token = String(tokens[i] || '').toLowerCase()
     if (!token || token.startsWith('-')) {
       if (VALUE_FLAGS.has(token)) {
@@ -338,13 +390,8 @@ function findSubcommand(tokens, executableIndex) {
   return null
 }
 
-function isEnvironmentTargetingSubcommand(subcommand) {
-  return subcommand && (
-    subcommand.name === 'create'
-    || subcommand.name === 'env create'
-    || subcommand.name === 'env remove'
-    || subcommand.name === 'env update'
-  )
+function isCreateSubcommand(subcommand) {
+  return subcommand && (subcommand.name === 'create' || subcommand.name === 'env create')
 }
 
 function normalizePackageSpec(token) {
@@ -355,12 +402,65 @@ function normalizePackageSpec(token) {
   return scoped.split(/[=<>!~]/)[0].trim().toLowerCase()
 }
 
+function protectedPackageFromArchive(token, context) {
+  if (!token || token.startsWith('-')) {
+    return ''
+  }
+  const platform = context.platform || process.platform
+  const base = executableBasename(token, platform)
+  const lower = base.toLowerCase()
+  const ext = lower.endsWith('.tar.bz2')
+    ? '.tar.bz2'
+    : lower.endsWith('.conda')
+      ? '.conda'
+      : ''
+  if (!ext) {
+    return ''
+  }
+  for (const pkg of PROTECTED_PACKAGE_NAMES) {
+    const prefix = `${pkg}-`
+    if (!lower.startsWith(prefix)) {
+      continue
+    }
+    const body = lower.slice(prefix.length, -ext.length)
+    const buildSeparator = body.indexOf('-')
+    if (/^\d/.test(body) && buildSeparator > 0 && buildSeparator < body.length - 1) {
+      return pkg
+    }
+  }
+  return ''
+}
+
+function hasFlag(tokens, startIndex, flags) {
+  return tokens.slice(startIndex).some((token) => {
+    if (flags.has(token)) {
+      return true
+    }
+    if (String(token).startsWith('--') && String(token).includes('=')) {
+      return flags.has(String(token).slice(0, String(token).indexOf('=')))
+    }
+    return false
+  })
+}
+
 function hasAllFlag(tokens, startIndex) {
-  return tokens.slice(startIndex).some((token) => token === '--all')
+  return hasFlag(tokens, startIndex, new Set(['--all']))
 }
 
 function hasDryRunFlag(tokens, startIndex) {
-  return tokens.slice(startIndex).some((token) => token === '--dry-run')
+  return hasFlag(tokens, startIndex, new Set(['--dry-run', '-d']))
+}
+
+function hasUpdateAllFlag(tokens, startIndex) {
+  return hasFlag(tokens, startIndex, new Set(['--update-all', '--all']))
+}
+
+function hasRevisionFlag(tokens, startIndex) {
+  return hasFlag(tokens, startIndex, new Set(['--revision']))
+}
+
+function hasFileFlag(tokens, startIndex) {
+  return hasFlag(tokens, startIndex, FILE_FLAGS)
 }
 
 function explicitPackageNames(tokens, startIndex) {
@@ -388,40 +488,145 @@ function explicitPackageNames(tokens, startIndex) {
   return packages
 }
 
-function protectedPackageFromSubcommand(tokens, subcommand) {
+function protectedPackageFromSubcommand(tokens, subcommand, context) {
   const packages = explicitPackageNames(tokens, subcommand.endIndex + 1)
-  return packages.find((pkg) => PROTECTED_PACKAGES.has(pkg)) || ''
+  const explicitPackage = packages.find((pkg) => PROTECTED_PACKAGES.has(pkg))
+  if (explicitPackage) {
+    return explicitPackage
+  }
+  if (subcommand.name !== 'install') {
+    return ''
+  }
+  for (let i = subcommand.endIndex + 1; i < tokens.length; i++) {
+    const token = tokens[i]
+    if (!token) {
+      continue
+    }
+    if (token.startsWith('--') && token.includes('=')) {
+      continue
+    }
+    if (VALUE_FLAGS.has(token)) {
+      i++
+      continue
+    }
+    if (token.startsWith('-')) {
+      continue
+    }
+    const archivePackage = protectedPackageFromArchive(token, context)
+    if (archivePackage) {
+      return archivePackage
+    }
+  }
+  return ''
 }
 
 function isListedBroadMutation(tokens, subcommand, target) {
-  if ((subcommand.name === 'update' || subcommand.name === 'upgrade') && hasAllFlag(tokens, subcommand.endIndex + 1)) {
+  const startIndex = subcommand.endIndex + 1
+  if ((subcommand.name === 'update' || subcommand.name === 'upgrade') && hasUpdateAllFlag(tokens, subcommand.endIndex + 1)) {
     return true
   }
-  return subcommand.name === 'env remove' && target.source === 'command-target'
+  if (subcommand.name === 'install' && (hasUpdateAllFlag(tokens, startIndex) || hasRevisionFlag(tokens, startIndex))) {
+    return true
+  }
+  if ((subcommand.name === 'remove' || subcommand.name === 'uninstall') && hasAllFlag(tokens, startIndex)) {
+    return true
+  }
+  if ((subcommand.name === 'create' || subcommand.name === 'env create') && target.source === 'command-target') {
+    return true
+  }
+  if (subcommand.name === 'env remove' && target.source === 'command-target') {
+    return true
+  }
+  if (subcommand.name === 'env update') {
+    return true
+  }
+  if (['install', 'update', 'upgrade'].includes(subcommand.name) && hasFileFlag(tokens, startIndex)) {
+    return true
+  }
+  return false
 }
 
-function classifyCommandTokens(tokens, params = {}, context = {}) {
-  const { executable, index: executableIndex } = getExecutableToken(tokens)
-  if (!isCondaExecutable(executable, context)) {
+function parseCondaRun(tokens, argsStart, params, context, wrapperTarget) {
+  let commandTarget = null
+  let commandStart = argsStart + 1
+  for (let i = argsStart + 1; i < tokens.length; i++) {
+    const token = tokens[i]
+    if (token === '-p' || token === '--prefix') {
+      commandTarget = { type: 'prefix', value: tokens[i + 1] || '' }
+      i++
+      commandStart = i + 1
+      continue
+    }
+    if (String(token).startsWith('--prefix=')) {
+      commandTarget = { type: 'prefix', value: token.slice('--prefix='.length) }
+      commandStart = i + 1
+      continue
+    }
+    if (token === '-n' || token === '--name') {
+      commandTarget = { type: 'name', value: tokens[i + 1] || '' }
+      i++
+      commandStart = i + 1
+      continue
+    }
+    if (String(token).startsWith('--name=')) {
+      commandTarget = { type: 'name', value: token.slice('--name='.length) }
+      commandStart = i + 1
+      continue
+    }
+    if (token === '--cwd') {
+      i++
+      commandStart = i + 1
+      continue
+    }
+    if (String(token).startsWith('--cwd=')) {
+      commandStart = i + 1
+      continue
+    }
+    if (token === '--') {
+      commandStart = i + 1
+      break
+    }
+    if (String(token).startsWith('-')) {
+      commandStart = i + 1
+      continue
+    }
+    commandStart = i
+    break
+  }
+  const target = refineTargetFromCommandArgs(wrapperTarget, commandTarget, params, context)
+  return { commandStart, target }
+}
+
+function classifyCommandTokens(tokens, params = {}, context = {}, startIndex = 0, wrapperTargetOverride = null) {
+  const invocation = findCondaInvocation(tokens, context, startIndex)
+  if (!invocation) {
     return { shouldSkip: false }
   }
-  const target = resolveTarget(tokens, executableIndex, params, context)
+  const wrapperTarget = wrapperTargetOverride || resolveWrapperTarget(params, context)
+  const subcommand = findSubcommand(tokens, invocation.argsStart)
+  if (subcommand && subcommand.name === 'run') {
+    const run = parseCondaRun(tokens, invocation.argsStart, params, context, wrapperTarget)
+    return classifyCommandTokens(tokens, params, context, run.commandStart, run.target)
+  }
+  const target = resolveTarget(tokens, invocation.argsStart, params, context, wrapperTarget)
   if (target.kind !== 'managed-base') {
     return { shouldSkip: false }
   }
-  const subcommand = findSubcommand(tokens, executableIndex)
   if (!subcommand || !subcommand.mutating) {
     return { shouldSkip: false }
   }
-  if (hasDryRunFlag(tokens, subcommand.endIndex + 1)) {
+  if (hasDryRunFlag(tokens, invocation.argsStart)) {
     return { shouldSkip: false }
   }
 
-  if (isEnvironmentTargetingSubcommand(subcommand) && target.source !== 'command-target') {
+  if (isCreateSubcommand(subcommand) && target.source !== 'command-target') {
+    return { shouldSkip: false }
+  }
+  if (subcommand.name === 'env remove' && target.source !== 'command-target') {
     return { shouldSkip: false }
   }
 
-  const protectedPackage = protectedPackageFromSubcommand(tokens, subcommand)
+  const protectedPackage = protectedPackageFromSubcommand(tokens, subcommand, context)
   if (!protectedPackage && !isListedBroadMutation(tokens, subcommand, target)) {
     return { shouldSkip: false }
   }
@@ -435,72 +640,36 @@ function classifyCommandTokens(tokens, params = {}, context = {}) {
   }
 }
 
-function noopCommand() {
-  return 'echo Pinokio skipped a Conda setup command. Pinokio is continuing.'
-}
-
 function classifySegment(segment, params, context) {
   const parsed = shellTokenize(segment, context)
   if (!parsed.closed) {
     return { shouldSkip: false }
   }
-  return {
-    ...classifyCommandTokens(parsed.tokens, params, context),
-    tokens: parsed.tokens,
-  }
+  return classifyCommandTokens(parsed.tokens, params, context)
 }
 
 function rewriteStringMessage(message, params, context) {
   const parts = splitShellSegments(message, context)
   const skipped = []
-  const hasUnsafeSeparator = parts.some((part) => part.type === 'unsafe-separator')
 
-  if (hasUnsafeSeparator) {
-    for (const part of parts) {
-      if (part.type !== 'segment') {
-        continue
-      }
-      const body = part.text.trim()
-      if (!body) {
-        continue
-      }
-      const classification = classifySegment(body, params, context)
-      if (classification.shouldSkip) {
-        skipped.push({
-          command: body,
-          reason: classification.reason,
-          target: classification.target,
-        })
-      }
-    }
-    if (skipped.length > 0) {
-      return { message: noopCommand(), skipped }
-    }
-    return { message, skipped }
-  }
-
-  const rewritten = parts.map((part) => {
+  for (const part of parts) {
     if (part.type !== 'segment') {
-      return part.text
+      continue
     }
-    const leading = (part.text.match(/^\s*/) || [''])[0]
-    const trailing = (part.text.match(/\s*$/) || [''])[0]
     const body = part.text.trim()
     if (!body) {
-      return part.text
+      continue
     }
     const classification = classifySegment(body, params, context)
-    if (!classification.shouldSkip) {
-      return part.text
+    if (classification.shouldSkip) {
+      skipped.push({
+        command: body,
+        reason: classification.reason,
+        target: classification.target,
+      })
     }
-    skipped.push({
-      command: body,
-      reason: classification.reason,
-      target: classification.target,
-    })
-    return leading + noopCommand() + trailing
-  }).join('')
-  return { message: rewritten, skipped }
+  }
+  return { message: skipped.length > 0 ? '' : message, skipped }
 }
 
 function structuredTokens(message) {
@@ -525,7 +694,7 @@ function rewriteSingleMessage(message, params, context) {
     return { message, skipped: [] }
   }
   return {
-    message: noopCommand(),
+    message: '',
     skipped: [{
       command: tokens.join(' '),
       reason: classification.reason,
@@ -565,29 +734,21 @@ function formatRawNotice(skip) {
 }
 
 function formatNotifyHtml(skipped) {
-  const count = skipped.length
   const firstCommand = skipped[0] && skipped[0].command ? String(skipped[0].command) : ''
   const truncatedCommand = firstCommand.length > 240 ? `${firstCommand.slice(0, 237)}...` : firstCommand
-  const title = count === 1
-    ? 'Pinokio skipped a Conda setup command.'
-    : `Pinokio skipped ${count} Conda setup commands.`
   const commandHtml = truncatedCommand
     ? [
-        '<pre style="white-space:pre-wrap;margin:8px 0 0;font-size:12px;line-height:1.35;">',
+        '<code style="display:block;box-sizing:border-box;max-width:100%;white-space:pre-wrap;margin:0;padding:6px 8px;border:1px solid rgba(255,255,255,.16);border-radius:4px;background:rgba(255,255,255,.06);font-size:12px;line-height:1.35;">',
         escapeHtml(truncatedCommand),
-        '</pre>',
+        '</code>',
       ].join('')
     : ''
-  const moreHtml = count > 1
-    ? `<br>${escapeHtml(`${count - 1} more skipped command${count === 2 ? ' is' : 's are'} listed in the terminal log.`)}`
-    : ''
-  return [
-    `<b>${escapeHtml(title)}</b>`,
-    escapeHtml('Pinokio already manages base Conda.'),
-    escapeHtml('Pinokio is continuing.'),
+  const rows = [
+    `<b style="display:block;">${escapeHtml('Command skipped')}</b>`,
     commandHtml,
-    `${escapeHtml('Details are in the terminal/log.')}${moreHtml}`,
-  ].filter(Boolean).join('<br>')
+    `<span>${escapeHtml('No action needed. Pinokio already includes Conda.')}</span>`,
+  ].filter(Boolean).join('')
+  return `<div style="display:flex;flex-direction:column;gap:8px;">${rows}</div>`
 }
 
 function emitSkipNotices(params, skipped, context) {
@@ -610,10 +771,7 @@ function emitSkipNotices(params, skipped, context) {
 }
 
 function applyCondaRuntimeGuard(params, context = {}) {
-  if (!params || !params[SHELL_RUN_GUARD]) {
-    return { params, skipped: [] }
-  }
-  if (params.conda && params.conda.skip === true) {
+  if (!params) {
     return { params, skipped: [] }
   }
   const message = params.message
@@ -641,7 +799,7 @@ function resetNoticeSessionsForTest() {
 }
 
 module.exports = {
-  SHELL_RUN_GUARD,
+  SHELL_RUN_GUARD_OPTION,
   applyCondaRuntimeGuard,
   resetNoticeSessionsForTest,
 }

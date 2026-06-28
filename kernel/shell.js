@@ -390,8 +390,9 @@ class Shell {
     }
     return chunks.join(" ")
   }
-  async start(params, ondata) {
+  async start(params, ondata, options = {}) {
     this.ondata = ondata
+    this.condaRuntimeGuard = !!(options && options[CondaRuntimeGuard.SHELL_RUN_GUARD_OPTION])
     if (this.nudgeRestoreTimer) {
       clearTimeout(this.nudgeRestoreTimer)
       this.nudgeRestoreTimer = null
@@ -1354,7 +1355,7 @@ class Shell {
       ? this.kernel.bin.path("miniforge")
       : this.kernel.path("bin/miniforge")
     const flowSessionKey = [this.id, this.start_time].filter(Boolean).join(':')
-    if (params[CondaRuntimeGuard.SHELL_RUN_GUARD]) {
+    if (this.condaRuntimeGuard) {
       CondaRuntimeGuard.applyCondaRuntimeGuard(params, {
         cwd: params.path,
         managedBasePrefix,
