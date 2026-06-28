@@ -505,7 +505,39 @@
       window.location.href = href
       return true
     }
-    dispatchAskAiLaunch(tool, prompt) {
+    createAskAiLaunchId() {
+      try {
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+          return window.crypto.randomUUID()
+        }
+      } catch (_) {}
+      return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+    }
+    waitForAskAiLaunchAck(launchId, timeoutMs = 1500) {
+      return new Promise((resolve) => {
+        let settled = false
+        let timer = null
+        const finish = (value) => {
+          if (settled) return
+          settled = true
+          if (timer) {
+            window.clearTimeout(timer)
+          }
+          window.removeEventListener('message', onMessage)
+          resolve(value)
+        }
+        const onMessage = (event) => {
+          const data = event && event.data && typeof event.data === 'object' ? event.data : null
+          if (!data || data.e !== 'pinokio:ask-ai-launch-result' || data.launchId !== launchId) {
+            return
+          }
+          finish(data.opened !== false)
+        }
+        window.addEventListener('message', onMessage)
+        timer = window.setTimeout(() => finish(false), timeoutMs)
+      })
+    }
+    async dispatchAskAiLaunch(tool, prompt) {
       const launchHref = this.buildAskAiLaunchHref(tool, prompt)
       if (!launchHref) {
         this.setStatus('Could not launch this plugin.', true)
@@ -532,10 +564,37 @@
         } catch (_) {}
       }
       try {
+        const parentDrawer = window.parent && window.parent !== window ? window.parent.PinokioAskAiDrawer : null
+        if (parentDrawer && typeof parentDrawer.openWithAgent === 'function') {
+          const opened = parentDrawer.openWithAgent(payload)
+          if (opened !== false) {
+            this.setStatus('Launching Ask AI…')
+            return true
+          }
+        } else if (parentDrawer && typeof parentDrawer.openWithUrl === 'function') {
+          const opened = parentDrawer.openWithUrl(launchHref, {
+            workspaceCwd: this.workspaceCwd,
+            prompt: payload.prompt
+          })
+          if (opened !== false) {
+            this.setStatus('Launching Ask AI…')
+            return true
+          }
+        }
+      } catch (_) {}
+      try {
         if (window.parent && window.parent !== window && typeof window.parent.postMessage === 'function') {
+          const launchId = this.createAskAiLaunchId()
+          payload.launchId = launchId
+          const ack = this.waitForAskAiLaunchAck(launchId)
           window.parent.postMessage(payload, '*')
-          this.setStatus('Launching Ask AI…')
-          return true
+          const opened = await ack
+          if (opened) {
+            this.setStatus('Launching Ask AI…')
+            return true
+          }
+          this.setStatus('Could not confirm Ask AI launch.', true)
+          return false
         }
       } catch (_) {}
       window.location.href = launchHref
@@ -730,7 +789,7 @@
         }
         syncRunState()
       }
-      const run = () => {
+      const run = async () => {
         const prompt = String(promptTextarea.value || '').trim()
         const tool = this.selectedAskAiTool()
         if (!prompt) {
@@ -748,7 +807,7 @@
           close()
           return
         }
-        if (this.dispatchAskAiLaunch(tool, prompt)) {
+        if (await this.dispatchAskAiLaunch(tool, prompt)) {
           close()
         }
       }
@@ -867,6 +926,7 @@
       this.populateAskAiLauncherTools(tools)
       launcher.error.textContent = ''
       launcher.promptTextarea.value = ASK_AI_DEFAULT_PROMPT
+      launcher.syncRunState()
       launcher.setOpen(true)
     }
     formatGenerated(value) {

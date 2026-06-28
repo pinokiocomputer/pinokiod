@@ -17093,7 +17093,16 @@ document.addEventListener("DOMContentLoaded", () => {
       return
     }
     if (messageType === "pinokio:ask-ai-launch") {
-      openWithAgent(event.data)
+      const opened = openWithAgent(event.data)
+      if (event.source && event.data.launchId) {
+        try {
+          event.source.postMessage({
+            e: "pinokio:ask-ai-launch-result",
+            launchId: event.data.launchId,
+            opened: opened !== false
+          }, event.origin && event.origin !== "null" ? event.origin : "*")
+        } catch (_) {}
+      }
     } else if (messageType === "pinokio:ask-ai-open-url") {
       openWithUrl(event.data.url, {
         workspaceCwd: typeof event.data.workspaceCwd === "string" ? event.data.workspaceCwd : ""
