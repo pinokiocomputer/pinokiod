@@ -633,6 +633,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               if (packet.data.type) {
                 payload.type = packet.data.type
               }
+              payload.silent = packet.data.silent
               payload.callbacks = {
                 onClick: () => {
                   let params = packet.data

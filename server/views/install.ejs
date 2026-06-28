@@ -904,6 +904,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           if (packet.data.type) {
             payload.type = packet.data.type
           }
+          payload.silent = packet.data.silent
           n.Noty(payload)
         }
       } else if (packet.type === "input") {

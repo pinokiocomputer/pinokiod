@@ -497,7 +497,7 @@ class Shells {
       return ""
     }
 
-    let response = await sh.start(params, async (stream) => {
+    let response = await sh.start(params, async (stream, type) => {
       /*
         {
           method: "shell.run",
@@ -521,6 +521,12 @@ class Shells {
         }
       */
       try {
+        if (type) {
+          if (ondata) {
+            ondata(stream, type)
+          }
+          return
+        }
         const normalizedChunk = normalizeLiveEventChunk(stream.raw)
         if (normalizedChunk.length > 0) {
           liveEventBuffer = (liveEventBuffer + normalizedChunk).slice(-300)

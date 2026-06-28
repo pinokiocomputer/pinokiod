@@ -22,6 +22,7 @@ const AnsiStreamTracker = require('./ansi_stream_tracker')
 const ShellStateSync = require('./shell_state_sync')
 const ShellRunTemplate = require('./api/shell_run_template')
 const { PYTHON_INSTALL_SPEC } = require('./bin/conda-pins')
+const CondaRuntimeGuard = require('./shell_conda_runtime_guard')
 const home = os.homedir()
 
 function normalizeComparablePath(filePath, platform) {
@@ -1347,6 +1348,25 @@ class Shell {
       }
     } else {
       venv_activation = []
+    }
+
+    const managedBasePrefix = this.kernel.bin && typeof this.kernel.bin.path === "function"
+      ? this.kernel.bin.path("miniforge")
+      : this.kernel.path("bin/miniforge")
+    const flowSessionKey = [this.id, this.start_time].filter(Boolean).join(':')
+    if (params[CondaRuntimeGuard.SHELL_RUN_GUARD]) {
+      CondaRuntimeGuard.applyCondaRuntimeGuard(params, {
+        cwd: params.path,
+        managedBasePrefix,
+        ondata: (stream, type) => {
+          if (this.ondata) {
+            this.ondata(stream, type)
+          }
+        },
+        platform: this.platform,
+        sessionKey: flowSessionKey || this.group || (params.$parent && (params.$parent.id || params.$parent.path)) || params.id || params.path,
+        shellName: this.shell,
+      })
     }
 
     // 3. construct params.message

@@ -1,6 +1,7 @@
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
+const CondaRuntimeGuard = require('../../shell_conda_runtime_guard')
 class Shell {
   async applyBluefairyDefault(req = {}, kernel) {
     if (!req.params) {
@@ -179,9 +180,13 @@ class Shell {
       req.params.rows = req.client.rows
       req.params.cols = req.client.cols
     }
-    let response = await kernel.shell.run(req.params, options, async (stream) => {
+    Object.defineProperty(req.params, CondaRuntimeGuard.SHELL_RUN_GUARD, {
+      configurable: true,
+      value: true,
+    })
+    let response = await kernel.shell.run(req.params, options, async (stream, type) => {
 //      process.stdout.write(stream.raw)
-      ondata(stream)
+      ondata(stream, type)
     })
     return response
   }
