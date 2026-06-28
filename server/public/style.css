@@ -3698,9 +3698,9 @@ body.dark .swal2-styled.swal2-confirm{
 */
 .noty_bar {
   max-width: 300px !important;
-  background: rgba(0,0,0,0.9) !important;
+  background: #1b1c1d !important;
   color: white !important;
-  border-bottom: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   z-index: 1000000000000;
 }
 .noty_body a {

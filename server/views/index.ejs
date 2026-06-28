@@ -197,6 +197,15 @@ body.dark .context-menu-wrapper {
   text-transform: none;
   transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
 }
+.home-app-line .menu-btns > .open-actions-modal {
+  width: 28px;
+  min-width: 28px;
+  padding: 0 !important;
+}
+.home-app-line .menu-btns > .open-actions-modal i {
+  width: 14px;
+  font-size: 13px;
+}
 body.dark .home-app-line .menu-btns > .btn {
   border-color: rgba(255, 255, 255, 0.075) !important;
   background: rgba(255, 255, 255, 0.045) !important;
@@ -749,6 +758,8 @@ body.dark .home-search-form .home-apps-sort .ts-dropdown [data-selectable].optio
   gap: 8px;
 }
 body.is-home {
+  --home-actions-drawer-width: min(420px, calc(100vw - 240px));
+  --home-actions-drawer-top: 0px;
   --home-page-nav-bg: #ffffff;
   --home-page-nav-border: rgba(15, 23, 42, 0.12);
   --home-page-accent: #6b7280;
@@ -1164,6 +1175,69 @@ body.dark .home-actions-empty {
   border-color: rgba(255, 255, 255, 0.12);
   color: rgba(226, 232, 240, 0.58);
 }
+@media only screen and (min-width: 961px) {
+  body.is-home.home-actions-drawer-open main > .container {
+    padding-right: calc(var(--home-actions-drawer-width) + 16px);
+  }
+  @keyframes homeActionsDrawerIn {
+    from {
+      opacity: 0.72;
+      transform: translateX(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes homeActionsDrawerOut {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      opacity: 0.72;
+      transform: translateX(18px);
+    }
+  }
+  .home-actions-dialog.is-docked[open] {
+    top: var(--home-actions-drawer-top);
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: var(--home-actions-drawer-width);
+    max-height: none;
+    height: calc(100vh - var(--home-actions-drawer-top));
+    border-top: none;
+    border-right: none;
+    border-bottom: none;
+    border-radius: 0;
+    box-shadow: none;
+    transform: none;
+    animation: homeActionsDrawerIn 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform, opacity;
+  }
+  body.dark .home-actions-dialog.is-docked[open] {
+    box-shadow: none;
+  }
+  .home-actions-dialog.is-docked.is-closing[open] {
+    pointer-events: none;
+    animation: homeActionsDrawerOut 130ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  .home-actions-dialog.is-docked::backdrop {
+    background: transparent;
+  }
+  .home-actions-dialog.is-docked .home-actions-shell {
+    height: 100%;
+    min-height: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .home-actions-dialog.is-docked[open],
+    .home-actions-dialog.is-docked.is-closing[open] {
+      animation: none;
+      will-change: auto;
+    }
+  }
+}
 #suggestion {
   padding: 20px;
   display: flex;
@@ -1452,8 +1526,8 @@ body.dark aside .current.selected {
                 >
                   <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star" aria-hidden="true"></i>
                 </button>
-                <button class='btn open-menu open-actions-modal' type='button' data-dialog-id="home-actions-running-<%=index%>" aria-haspopup="dialog" title="Actions" aria-label="Actions">
-                  <i class="fa-solid fa-ellipsis" aria-hidden="true"></i><span> menu</span>
+                <button class='btn open-menu open-actions-modal' type='button' data-dialog-id="home-actions-running-<%=index%>" aria-haspopup="dialog" aria-expanded="false" title="Open actions panel" aria-label="Open actions panel">
+                  <i class="fa-solid fa-list-ul" aria-hidden="true"></i>
                 </button>
                 <% const autolaunchRunningScript = !!(item.autolaunch_starting && item.autolaunch_script && item.running_scripts && item.running_scripts.some((s) => { const scriptName = s && (s.name || s.script_path || s.path || ""); return scriptName === item.autolaunch_script || String(scriptName).endsWith(`/${item.autolaunch_script}`) })) %>
                 <% if (item.autolaunch_starting && !autolaunchRunningScript) { %>
@@ -1551,8 +1625,8 @@ body.dark aside .current.selected {
                 >
                   <i class="fa-<%=item.starred ? "solid" : "regular"%> fa-star" aria-hidden="true"></i>
                 </button>
-                <button class='btn open-menu open-actions-modal' type='button' data-dialog-id="home-actions-not-running-<%=index%>" aria-haspopup="dialog" title="Actions" aria-label="Actions">
-                  <i class="fa-solid fa-ellipsis" aria-hidden="true"></i><span> menu</span>
+                <button class='btn open-menu open-actions-modal' type='button' data-dialog-id="home-actions-not-running-<%=index%>" aria-haspopup="dialog" aria-expanded="false" title="Open actions panel" aria-label="Open actions panel">
+                  <i class="fa-solid fa-list-ul" aria-hidden="true"></i>
                 </button>
                 <% if (notRunningTerminalOnlineCount > 0) { %>
                 <% const notRunningTerminalLabel = notRunningTerminalOnlineCount > 0 ? `${notRunningTerminalOnlineCount} terminal${notRunningTerminalOnlineCount === 1 ? "" : "s"} online` : "Terminals" %>
@@ -2488,6 +2562,10 @@ const startHomeAutolaunchPolling = () => {
 startHomeAutolaunchPolling()
 document.addEventListener("keydown", (e) => {
   e = e || window.event;
+  if (e.key === "Escape" && !hasHomeActionsBlockingOverlay() && closeActiveHomeActionsDrawer()) {
+    e.preventDefault()
+    return
+  }
   if (e.key === "ArrowUp") {
     console.log("up arrow pressed");
     selectedIndex = Math.max(selectedIndex-1, 0)
@@ -2583,12 +2661,6 @@ const closeContextMenuForNode = (node) => {
       contextMenu.dataset.open = 'false'
     }
   }
-  const dialog = node && typeof node.closest === 'function'
-    ? node.closest('.home-actions-dialog')
-    : null
-  if (dialog && dialog.open && typeof dialog.close === 'function') {
-    dialog.close()
-  }
 }
 window.PinokioHomeCloseContextMenu = closeContextMenuForNode
 const setHomeActionsTab = (dialog, tabName) => {
@@ -2606,6 +2678,90 @@ const setHomeActionsTab = (dialog, tabName) => {
     panel.hidden = !isActive
   })
 }
+const homeActionsDrawerMedia = window.matchMedia('(min-width: 961px)')
+const homeActionsReducedMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)')
+const isHomeActionsDrawerViewport = () => homeActionsDrawerMedia.matches
+const syncHomeActionsDrawerState = () => {
+  const hasDockedDialog = Boolean(document.querySelector('.home-actions-dialog.is-docked[open]'))
+  document.body.classList.toggle('home-actions-drawer-open', hasDockedDialog)
+}
+const setHomeActionsDrawerOffset = () => {
+  const header = document.querySelector('body.is-home > header.navheader')
+  const top = header ? Math.max(0, Math.round(header.getBoundingClientRect().bottom)) : 0
+  document.body.style.setProperty('--home-actions-drawer-top', `${top}px`)
+}
+const setHomeActionsTriggerExpanded = (dialog, expanded) => {
+  if (!dialog || !dialog.id) {
+    return
+  }
+  document.querySelectorAll('.open-actions-modal').forEach((button) => {
+    if (button.getAttribute('data-dialog-id') === dialog.id) {
+      button.setAttribute('aria-expanded', expanded ? 'true' : 'false')
+    }
+  })
+}
+const closeHomeActionsDialog = (dialog) => {
+  if (!dialog || !dialog.open) {
+    return
+  }
+  const shouldAnimate = dialog.classList.contains('is-docked')
+    && isHomeActionsDrawerViewport()
+    && !homeActionsReducedMotionMedia.matches
+  if (!shouldAnimate) {
+    if (typeof dialog.close === 'function') {
+      dialog.close()
+    } else {
+      dialog.removeAttribute('open')
+      dialog.classList.remove('is-docked', 'is-closing')
+      setHomeActionsTriggerExpanded(dialog, false)
+      syncHomeActionsDrawerState()
+    }
+    return
+  }
+  if (dialog.classList.contains('is-closing')) {
+    return
+  }
+  dialog.classList.add('is-closing')
+  let finished = false
+  const finishClose = () => {
+    if (finished) {
+      return
+    }
+    finished = true
+    dialog.removeEventListener('animationend', finishClose)
+    if (dialog.open) {
+      dialog.close()
+    }
+  }
+  dialog.addEventListener('animationend', finishClose)
+  window.setTimeout(finishClose, 180)
+}
+const closeHomeActionsDialogs = (exceptDialog = null) => {
+  document.querySelectorAll('.home-actions-dialog[open]').forEach((dialog) => {
+    if (dialog === exceptDialog) {
+      return
+    }
+    if (typeof dialog.close === 'function') {
+      dialog.close()
+    } else {
+      dialog.removeAttribute('open')
+      dialog.classList.remove('is-docked', 'is-closing')
+      setHomeActionsTriggerExpanded(dialog, false)
+    }
+  })
+  syncHomeActionsDrawerState()
+}
+document.querySelectorAll('.home-actions-dialog').forEach((dialog) => {
+  if (dialog.dataset.homeActionsBound === 'true') {
+    return
+  }
+  dialog.dataset.homeActionsBound = 'true'
+  dialog.addEventListener('close', () => {
+    dialog.classList.remove('is-docked', 'is-closing')
+    setHomeActionsTriggerExpanded(dialog, false)
+    syncHomeActionsDrawerState()
+  })
+})
 const openHomeActionsDialog = (button) => {
   if (!button) {
     return
@@ -2615,12 +2771,60 @@ const openHomeActionsDialog = (button) => {
   if (!dialog) {
     return
   }
-  setHomeActionsTab(dialog, button.getAttribute('data-default-tab') || 'run')
-  if (typeof dialog.showModal === 'function') {
-    dialog.showModal()
-  } else {
-    dialog.setAttribute('open', '')
+  if (dialog.open) {
+    closeHomeActionsDialog(dialog)
+    return
   }
+  closeHomeActionsDialogs(dialog)
+  setHomeActionsTab(dialog, button.getAttribute('data-default-tab') || 'run')
+  if (isHomeActionsDrawerViewport()) {
+    setHomeActionsDrawerOffset()
+    dialog.classList.remove('is-closing')
+    dialog.classList.add('is-docked')
+    if (!dialog.open) {
+      if (typeof dialog.show === 'function') {
+        dialog.show()
+      } else {
+        dialog.setAttribute('open', '')
+      }
+    }
+    button.setAttribute('aria-expanded', 'true')
+    syncHomeActionsDrawerState()
+  } else if (typeof dialog.showModal === 'function') {
+    dialog.classList.remove('is-docked')
+    dialog.showModal()
+    button.setAttribute('aria-expanded', 'true')
+  } else {
+    dialog.classList.remove('is-docked')
+    dialog.setAttribute('open', '')
+    button.setAttribute('aria-expanded', 'true')
+  }
+}
+const closeActiveHomeActionsDrawer = () => {
+  const dialog = document.querySelector('.home-actions-dialog.is-docked[open]')
+  if (!dialog) {
+    return false
+  }
+  if (typeof dialog.close === 'function') {
+    closeHomeActionsDialog(dialog)
+  } else {
+    dialog.removeAttribute('open')
+    dialog.classList.remove('is-docked', 'is-closing')
+    setHomeActionsTriggerExpanded(dialog, false)
+    syncHomeActionsDrawerState()
+  }
+  return true
+}
+const hasHomeActionsBlockingOverlay = () => {
+  return Boolean(document.querySelector('.swal2-container.swal2-shown, .swal2-container.swal2-backdrop-show'))
+}
+const handleHomeActionsDrawerMediaChange = () => {
+  closeHomeActionsDialogs()
+}
+if (typeof homeActionsDrawerMedia.addEventListener === 'function') {
+  homeActionsDrawerMedia.addEventListener('change', handleHomeActionsDrawerMediaChange)
+} else if (typeof homeActionsDrawerMedia.addListener === 'function') {
+  homeActionsDrawerMedia.addListener(handleHomeActionsDrawerMediaChange)
 }
 const navigateHomeAppLine = (line) => {
   if (!line) {
@@ -2866,13 +3070,13 @@ document.addEventListener("click", async (e) => {
     e.preventDefault()
     e.stopPropagation()
     const dialog = target.closest(".home-actions-dialog")
-    if (dialog && typeof dialog.close === "function") {
-      dialog.close()
+    if (dialog) {
+      closeHomeActionsDialog(dialog)
     }
     return
   }
   if (e.target.classList.contains("home-actions-dialog")) {
-    e.target.close()
+    closeHomeActionsDialog(e.target)
     return
   }
   if (e.target.classList.contains("home-actions-tab")) {
