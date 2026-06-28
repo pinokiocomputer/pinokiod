@@ -1639,6 +1639,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       this.currentId = baseScriptId
       this.latestLogFallbackActive = false
       this.pendingInput = []
+      this.pendingTerminalWrite = ""
+      this.pendingTerminalWriteFrame = null
       this.inputBuffer = ""
       this.inputTracker = window.TerminalInputTracker ? new window.TerminalInputTracker({
         getFrameName: () => window.name || null,
@@ -1722,6 +1724,32 @@ document.addEventListener("DOMContentLoaded", async () => {
         this.term.write(text)
       }
       this.dirty = true
+    }
+    flushPendingTerminalWrite() {
+      if (!this.pendingTerminalWrite) {
+        this.pendingTerminalWriteFrame = null
+        return
+      }
+      const text = this.pendingTerminalWrite
+      this.pendingTerminalWrite = ""
+      this.pendingTerminalWriteFrame = null
+      this.write(text)
+    }
+    writeBatched(text) {
+      if (text === "\u0007" || typeof text !== "string" || text.length === 0) {
+        return
+      }
+      this.pendingTerminalWrite += text
+      this.dirty = true
+      if (this.pendingTerminalWriteFrame !== null) {
+        return
+      }
+      const flush = () => this.flushPendingTerminalWrite()
+      if (typeof window.requestAnimationFrame === "function") {
+        this.pendingTerminalWriteFrame = window.requestAnimationFrame(flush)
+      } else {
+        this.pendingTerminalWriteFrame = window.setTimeout(flush, 16)
+      }
     }
     finished() {
     /*
@@ -1921,13 +1949,13 @@ document.addEventListener("DOMContentLoaded", async () => {
               this.resizeSync.sendInitial()
             }
             if (packet.data.raw) {
-              this.write(packet.data.raw)
+              this.writeBatched(packet.data.raw)
             } else if (packet.data.json) {
-              this.write(JSON.stringify(packet.data.json).replace(/\n/g, "\r\n"))
-              this.write("\r\n")
+              this.writeBatched(JSON.stringify(packet.data.json).replace(/\n/g, "\r\n"))
+              this.writeBatched("\r\n")
             } else if (packet.data.json2) {
-              this.write(JSON.stringify(packet.data.json2, null, 2).replace(/\n/g, "\r\n"))
-              this.write("\r\n")
+              this.writeBatched(JSON.stringify(packet.data.json2, null, 2).replace(/\n/g, "\r\n"))
+              this.writeBatched("\r\n")
             }
             if (packet.data.type === "emit2") {
               // long text => still posting to the shell => show progress
@@ -1945,6 +1973,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             refreshParent(packet)
             pluginTerminalDiscoveryRefresher.clear()
             reloadMemory()
+            this.flushPendingTerminalWrite()
             this.term.write("\r\nDisconnected...\r\n")
             document.querySelector("#status-window").innerHTML = "<b>Ready</b>"
             this.socket.close()
