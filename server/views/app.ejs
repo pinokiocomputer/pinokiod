@@ -1504,19 +1504,9 @@ body.dark .ask-ai-drawer-location-input {
 body.dark .ask-ai-drawer-empty {
   color: rgba(255,255,255,0.7);
 }
-.ask-ai-drawer-empty-title {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.25;
-  color: rgba(15, 23, 42, 0.92);
-}
-body.dark .ask-ai-drawer-empty-title {
-  color: rgba(248, 250, 252, 0.95);
-}
 .ask-ai-drawer-empty-subtitle {
   font-size: 12px;
   line-height: 1.4;
-  margin-top: -6px;
   color: rgba(75, 85, 99, 0.78);
 }
 body.dark .ask-ai-drawer-empty-subtitle {
@@ -1591,6 +1581,12 @@ body.dark .ask-ai-drawer-search-input::placeholder {
   text-transform: uppercase;
   opacity: 0.58;
   padding: 0 2px 3px;
+}
+.ask-ai-drawer-picker-group-description {
+  font-size: 11px;
+  line-height: 1.35;
+  opacity: 0.62;
+  padding: 0 2px 5px;
 }
 .ask-ai-drawer-picker-option {
   appearance: none;
@@ -8077,14 +8073,13 @@ body.dark .pinokio-custom-terminal-header {
           </div>
           <div class='ask-ai-drawer-body'>
             <div class='ask-ai-drawer-empty'>
+              <div class='ask-ai-drawer-empty-subtitle'>Ask questions, debug errors, fix bugs, or edit files. Agents can read this project's code, scripts, environment, and recent logs.</div>
               <div class='ask-ai-drawer-search'>
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                <input class='ask-ai-drawer-search-input' type='search' placeholder="Search shells and plugins" autocomplete="off" spellcheck="false" aria-label="Search shells and plugins">
+                <input class='ask-ai-drawer-search-input' type='search' placeholder="Search agents and shells" autocomplete="off" spellcheck="false" aria-label="Search agents and shells">
               </div>
-              <div class='ask-ai-drawer-empty-title'>Ask an AI agent about this project</div>
-              <div class='ask-ai-drawer-empty-subtitle'>Choose the shell or plugin the agent should use.</div>
-              <div class='ask-ai-drawer-picker-list' role="list" aria-label="Ask AI shells and plugins"></div>
-              <div class='ask-ai-drawer-picker-status muted'>Choose a shell or plugin to start an agent.</div>
+              <div class='ask-ai-drawer-picker-list' role="list" aria-label="Ask AI agents and shells"></div>
+              <div class='ask-ai-drawer-picker-status muted'>Choose an agent to start, or open a project shell.</div>
             </div>
             <iframe class='ask-ai-frame hidden' title="Panel" allow="fullscreen *;" allowfullscreen></iframe>
           </div>
@@ -16789,7 +16784,7 @@ document.addEventListener("DOMContentLoaded", () => {
     clearPickerList()
     const sourceTools = Array.isArray(tools) ? tools : []
     if (sourceTools.length === 0) {
-      setPickerStatus("No shells or plugins available.")
+      setPickerStatus("No agents or shells available.")
       return
     }
     const normalizedQuery = normalizePickerQuery(query)
@@ -16797,7 +16792,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ? sourceTools.filter((tool) => toolMatchesPickerQuery(tool, normalizedQuery))
       : sourceTools
     if (visibleTools.length === 0) {
-      setPickerStatus("No matching shells or plugins.")
+      setPickerStatus("No matching agents or shells.")
       return
     }
     const groups = new Map()
@@ -16808,7 +16803,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       groups.get(category).push(tool)
     })
-    const ordered = ["SHELL", "CLI", "IDE"].concat(Array.from(groups.keys()).filter((name) => !["SHELL", "CLI", "IDE"].includes(name)))
+    const ordered = ["CLI", "IDE", "SHELL"].concat(Array.from(groups.keys()).filter((name) => !["SHELL", "CLI", "IDE"].includes(name)))
     let renderedCount = 0
     ordered.forEach((category) => {
       const items = (groups.get(category) || []).slice().sort((a, b) =>
@@ -16822,14 +16817,20 @@ document.addEventListener("DOMContentLoaded", () => {
         return
       }
       const displayCategory = category === "SHELL"
-        ? "Project Shell"
-        : (category === "IDE" ? "Desktop Plugins" : (category === "CLI" ? "Terminal Plugins" : category))
+        ? "Project Shells"
+        : (category === "IDE" ? "Desktop Agents" : (category === "CLI" ? "Terminal Agents" : category))
       const group = document.createElement("div")
       group.className = "ask-ai-drawer-picker-group"
       const label = document.createElement("div")
       label.className = "ask-ai-drawer-picker-group-label"
       label.textContent = displayCategory
       group.appendChild(label)
+      if (category === "SHELL") {
+        const description = document.createElement("div")
+        description.className = "ask-ai-drawer-picker-group-description"
+        description.textContent = "Open a shell in this project without starting an AI agent."
+        group.appendChild(description)
+      }
       items.forEach((tool) => {
         group.appendChild(createPickerOption(tool, workspaceCwd))
         renderedCount += 1
@@ -16839,7 +16840,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     })
     if (!renderedCount) {
-      setPickerStatus("No shells or plugins available.")
+      setPickerStatus("No agents or shells available.")
       return
     }
     setPickerStatus("")
