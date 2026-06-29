@@ -49,7 +49,8 @@ class Sysinfo {
       gpus = controllers.map((x) => {
         return {
           name: (x.vendor || "").toLowerCase(),
-          model: (x.model || "").toLowerCase()
+          model: (x.model || "").toLowerCase(),
+          driver: x.driverVersion ? String(x.driverVersion) : null
         }
       })
     } else {
@@ -65,6 +66,9 @@ class Sysinfo {
     }
     let model = (controller) => {
       return (controller && controller.model ? controller.model : "").toLowerCase()
+    }
+    let driver = (controller) => {
+      return controller && controller.driverVersion ? String(controller.driverVersion) : null
     }
 
     let is_nvidia = controllers.find(x => /nvidia/i.test(x.vendor || ""))
@@ -103,12 +107,14 @@ class Sysinfo {
 
     let vramMB = primaryController && primaryController.vram ? primaryController.vram : 0
     let vramGB = vramMB > 0 ? Math.round(vramMB / 1024) : 0
+    let gpu_driver = driver(primaryController)
     let torch_backend = await this.torch_backend({ is_nvidia, is_amd, is_apple, is_intel, gpu_model })
 
     this.info.graphics = g
     this.info.gpus = gpus
     this.info.gpu = gpu
     this.info.gpu_model = gpu_model
+    this.info.gpu_driver = gpu_driver
     this.info.torch_backend = torch_backend
     this.info.vram = vramGB
   }

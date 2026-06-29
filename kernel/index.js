@@ -95,6 +95,7 @@ class Kernel {
     this.torch_backend = "cpu"
     this.vram = 0
     this.ram = 0
+    this.gpu_driver = null
     this.readyState = new ReadyState(this)
     this.app_ready_status = this.readyState.status
     this.launchRequirements = new LaunchRequirements(this)
@@ -1347,6 +1348,7 @@ class Kernel {
         this.sysinfo = info
         this.gpu = info.gpu
         this.gpu_model = info.gpu_model
+        this.gpu_driver = info.gpu_driver || null
         this.torch_backend = info.torch_backend || "cpu"
         this.gpus = info.gpus
         this.vram = typeof info.vram === "number" ? info.vram : 0
