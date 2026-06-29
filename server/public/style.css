@@ -5298,25 +5298,33 @@ body.dark .logs-help-action--ai:focus-visible {
   width: 100%;
 }
 .logs-ask-ai-tool-trigger {
-  pointer-events: none;
+  pointer-events: auto;
+  font: inherit;
 }
 .logs-ask-ai-tool-picker:focus-within .logs-ask-ai-tool-trigger {
   border-color: var(--universal-launcher-border-strong);
   background: var(--universal-launcher-control-surface);
   outline: none;
 }
-.logs-ask-ai-tool-select {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  appearance: none;
-  border: 0;
-  opacity: 0;
-  cursor: pointer;
+.logs-ask-ai-tool-sheet-layer {
+  padding: 12px;
 }
-.logs-ask-ai-tool-select:disabled {
-  cursor: default;
+.logs-ask-ai-tool-sheet {
+  width: min(100%, 520px);
+  max-height: 100%;
+}
+.logs-ask-ai-tool-sheet.logs-ask-ai-tool-sheet .universal-launcher-tool-meta {
+  display: block;
+}
+.logs-ask-ai-tool-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.logs-ask-ai-tool-fallback-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--universal-launcher-text-muted);
+  font-size: 13px;
 }
 .logs-ask-ai-tool-trigger-icon {
   display: inline-flex;
@@ -5331,6 +5339,14 @@ body.dark .logs-help-action--ai:focus-visible {
   height: 20px;
   object-fit: contain;
   border-radius: 4px;
+}
+@media (max-width: 560px), (max-height: 520px) {
+  .logs-ask-ai-tool-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .logs-ask-ai-tool-sheet-layer {
+    padding: 8px;
+  }
 }
 .logs-report-pane,
 .logs-redaction-pane {

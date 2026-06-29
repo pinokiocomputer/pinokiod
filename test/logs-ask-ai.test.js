@@ -37,14 +37,24 @@ function createReportFixture() {
 
 function createPluginMenuFixture() {
   return {
-    menu: [{
-      title: "OpenAI Codex Auto",
-      href: "/pinokio/run/plugin/codex-auto/pinokio.js",
-      image: "/pinokio/asset/plugin/codex-auto/openai.webp",
-      category: "cli",
-      categoryTitle: "Terminal Plugin",
-      pluginPath: "/pinokio/run/plugin/codex-auto/pinokio.js"
-    }]
+    menu: [
+      {
+        title: "Claude Desktop",
+        href: "/pinokio/run/plugin/claude-desktop/pinokio.js",
+        image: "/pinokio/asset/plugin/claude-desktop/icon.png",
+        category: "ide",
+        categoryTitle: "Desktop Plugin",
+        pluginPath: "/pinokio/run/plugin/claude-desktop/pinokio.js"
+      },
+      {
+        title: "OpenAI Codex Auto",
+        href: "/pinokio/run/plugin/codex-auto/pinokio.js",
+        image: "/pinokio/asset/plugin/codex-auto/openai.webp",
+        category: "cli",
+        categoryTitle: "Terminal Plugin",
+        pluginPath: "/pinokio/run/plugin/codex-auto/pinokio.js"
+      }
+    ]
   }
 }
 
@@ -165,12 +175,57 @@ test("log Ask AI modal enables Run after assigning the default prompt", async ()
 
   await waitFor(() => document.querySelector(".logs-ask-ai-launcher:not([hidden])"), "Ask AI modal")
   const textarea = document.querySelector(".logs-ask-ai-launcher-textarea")
-  const select = document.querySelector(".logs-ask-ai-tool-select")
+  const trigger = document.querySelector(".logs-ask-ai-tool-trigger")
+  const selectedOption = document.querySelector(".logs-ask-ai-tool-sheet-body .universal-launcher-tool.selected")
   const runButton = document.querySelector(".logs-ask-ai-launcher .universal-launcher-button-primary")
 
   assert.match(textarea.value, /Investigate what went wrong/)
-  assert.equal(select.selectedOptions[0].textContent, "OpenAI Codex Auto (Terminal)")
+  assert.equal(document.querySelector(".logs-ask-ai-tool-select"), null)
+  assert.equal(trigger.querySelector(".universal-launcher-tool-trigger-label").textContent, "OpenAI Codex Auto")
+  assert.equal(trigger.querySelector(".universal-launcher-tool-trigger-meta").textContent, "Terminal")
+  assert.equal(selectedOption.querySelector(".universal-launcher-tool-label").textContent, "OpenAI Codex Auto")
   assert.equal(runButton.disabled, false)
+})
+
+test("log Ask AI modal uses custom plugin sheet and closes it before the modal", async () => {
+  const { dom } = await createLogsDom()
+  const { window } = dom
+  const { document } = window
+
+  document.getElementById("logs-ask-ai").click()
+  await waitFor(() => document.querySelector(".logs-ask-ai-launcher:not([hidden])"), "Ask AI modal")
+
+  const trigger = document.querySelector(".logs-ask-ai-tool-trigger")
+  const sheet = document.querySelector(".logs-ask-ai-tool-sheet-layer")
+  assert.equal(sheet.hidden, true)
+  assert.equal(document.querySelector(".logs-ask-ai-launcher .universal-launcher-button-primary").disabled, true)
+
+  trigger.click()
+  assert.equal(sheet.hidden, false)
+  assert.equal(trigger.getAttribute("aria-expanded"), "true")
+  assert.deepEqual(
+    Array.from(document.querySelectorAll(".logs-ask-ai-tool-sheet-body .universal-launcher-tool-group-title")).map((node) => node.textContent),
+    ["Terminal", "Desktop"]
+  )
+
+  const claudeOption = Array.from(document.querySelectorAll(".logs-ask-ai-tool-sheet-body .universal-launcher-tool"))
+    .find((option) => option.querySelector(".universal-launcher-tool-label").textContent === "Claude Desktop")
+  assert.ok(claudeOption)
+  claudeOption.click()
+
+  assert.equal(sheet.hidden, true)
+  assert.equal(trigger.querySelector(".universal-launcher-tool-trigger-label").textContent, "Claude Desktop")
+  assert.equal(window.localStorage.getItem("pinokio.universalLauncher.tool"), "pinokio/run/plugin/claude-desktop")
+  assert.equal(document.querySelector(".logs-ask-ai-launcher .universal-launcher-button-primary").disabled, false)
+
+  trigger.click()
+  assert.equal(sheet.hidden, false)
+  document.querySelector(".logs-ask-ai-launcher").dispatchEvent(new window.KeyboardEvent("keydown", {
+    key: "Escape",
+    bubbles: true
+  }))
+  assert.equal(sheet.hidden, true)
+  assert.equal(document.querySelector(".logs-ask-ai-launcher").hidden, false)
 })
 
 test("log Ask AI launch calls a same-origin parent drawer before postMessage fallback", async () => {

@@ -22,6 +22,7 @@
   const DRAFT_TITLE_NOISE_PATTERN = /^\s*(?:<<PINOKIO_SHELL>>|={6,}|-{6,}|\[api\s+local\.set\]|The default interactive shell is now|To update your account|For more details, please visit)/i
   const ASK_AI_DEFAULT_PROMPT = 'Investigate what went wrong. Inspect the app logs and explain the likely root cause and next fix.'
   const TOOL_PREFERENCE_KEY = 'pinokio.universalLauncher.tool'
+  const ASK_AI_TOOL_CATEGORY_ORDER = ['Terminal', 'Desktop']
   const textEncoder = typeof TextEncoder === 'function' ? new TextEncoder() : null
 
   const safeJsonParse = (value) => {
@@ -152,8 +153,10 @@
         installed: typeof plugin.installed === 'boolean' ? plugin.installed : null
       }
     }).filter(Boolean).sort((a, b) => {
-      const categoryDelta = String(a.category || '').localeCompare(String(b.category || ''), undefined, { sensitivity: 'base' })
+      const categoryDelta = askAiToolCategoryRank(a.category) - askAiToolCategoryRank(b.category)
       if (categoryDelta !== 0) return categoryDelta
+      const categoryNameDelta = String(a.category || '').localeCompare(String(b.category || ''), undefined, { sensitivity: 'base' })
+      if (categoryNameDelta !== 0) return categoryNameDelta
       return String(a.label || '').localeCompare(String(b.label || ''), undefined, { sensitivity: 'base' })
     })
   }
@@ -168,6 +171,12 @@
       return label
     }
     return `${label} (${category})`
+  }
+
+  const askAiToolCategoryRank = (category) => {
+    const normalized = String(category || '').trim().toLowerCase()
+    const index = ASK_AI_TOOL_CATEGORY_ORDER.findIndex((item) => item.toLowerCase() === normalized)
+    return index >= 0 ? index : ASK_AI_TOOL_CATEGORY_ORDER.length
   }
 
   class PrivacyFilterClient {
@@ -695,9 +704,11 @@
       toolPicker.className = 'universal-launcher-tool-picker logs-ask-ai-tool-picker'
       toolSection.appendChild(toolPicker)
 
-      const toolTrigger = document.createElement('div')
+      const toolTrigger = document.createElement('button')
+      toolTrigger.type = 'button'
       toolTrigger.className = 'universal-launcher-tool-trigger has-value logs-ask-ai-tool-trigger'
-      toolTrigger.setAttribute('aria-hidden', 'true')
+      toolTrigger.setAttribute('aria-haspopup', 'listbox')
+      toolTrigger.setAttribute('aria-expanded', 'false')
       toolPicker.appendChild(toolTrigger)
 
       const toolIcon = document.createElement('span')
@@ -721,10 +732,51 @@
       toolCaret.setAttribute('aria-hidden', 'true')
       toolTrigger.appendChild(toolCaret)
 
-      const toolSelect = document.createElement('select')
-      toolSelect.className = 'logs-ask-ai-tool-select'
-      toolSelect.setAttribute('aria-label', 'Agent')
-      toolPicker.appendChild(toolSelect)
+      const toolSheetLayer = document.createElement('div')
+      toolSheetLayer.className = 'universal-launcher-tool-sheet-layer logs-ask-ai-tool-sheet-layer'
+      toolSheetLayer.hidden = true
+      panel.appendChild(toolSheetLayer)
+
+      const toolSheetBackdrop = document.createElement('button')
+      toolSheetBackdrop.type = 'button'
+      toolSheetBackdrop.className = 'universal-launcher-tool-sheet-backdrop'
+      toolSheetBackdrop.setAttribute('aria-label', 'Close agent selection')
+      toolSheetLayer.appendChild(toolSheetBackdrop)
+
+      const toolSheet = document.createElement('section')
+      toolSheet.className = 'universal-launcher-tool-sheet logs-ask-ai-tool-sheet'
+      toolSheet.setAttribute('aria-label', 'Choose agent')
+      toolSheetLayer.appendChild(toolSheet)
+
+      const toolSheetHeader = document.createElement('div')
+      toolSheetHeader.className = 'universal-launcher-tool-sheet-header'
+      toolSheet.appendChild(toolSheetHeader)
+
+      const toolSheetHeading = document.createElement('div')
+      toolSheetHeading.className = 'universal-launcher-tool-sheet-heading'
+      toolSheetHeader.appendChild(toolSheetHeading)
+
+      const toolSheetTitle = document.createElement('div')
+      toolSheetTitle.className = 'universal-launcher-tool-sheet-title'
+      toolSheetTitle.textContent = 'Choose agent'
+      toolSheetHeading.appendChild(toolSheetTitle)
+
+      const toolSheetDescription = document.createElement('div')
+      toolSheetDescription.className = 'universal-launcher-tool-sheet-description'
+      toolSheetDescription.textContent = 'Launch this report with a local agent.'
+      toolSheetHeading.appendChild(toolSheetDescription)
+
+      const toolSheetClose = document.createElement('button')
+      toolSheetClose.type = 'button'
+      toolSheetClose.className = 'universal-launcher-tool-sheet-close'
+      toolSheetClose.setAttribute('aria-label', 'Close agent selection')
+      toolSheetClose.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>'
+      toolSheetHeader.appendChild(toolSheetClose)
+
+      const toolSheetBody = document.createElement('div')
+      toolSheetBody.className = 'universal-launcher-tool-sheet-body logs-ask-ai-tool-sheet-body'
+      toolSheetBody.setAttribute('role', 'listbox')
+      toolSheet.appendChild(toolSheetBody)
 
       const footerActions = document.createElement('div')
       footerActions.className = 'universal-launcher-footer-actions'
@@ -737,14 +789,45 @@
       footerActions.appendChild(runButton)
 
       let returnFocusEl = null
+      let toolSheetOpen = false
+      const closeToolSheet = (options = {}) => {
+        toolSheetOpen = false
+        toolSheetLayer.hidden = true
+        toolPicker.classList.remove('open')
+        toolTrigger.setAttribute('aria-expanded', 'false')
+        if (options.focusTrigger !== false) {
+          toolTrigger.focus()
+        }
+      }
+      const openToolSheet = () => {
+        if (!Array.isArray(this.askAiTools) || this.askAiTools.length === 0) {
+          return
+        }
+        toolSheetOpen = true
+        toolSheetLayer.hidden = false
+        toolPicker.classList.add('open')
+        toolTrigger.setAttribute('aria-expanded', 'true')
+        window.requestAnimationFrame(() => {
+          const selected = toolSheetBody.querySelector('.universal-launcher-tool.selected')
+          const first = toolSheetBody.querySelector('.universal-launcher-tool')
+          const target = selected || first || toolSheetClose
+          if (target && typeof target.focus === 'function') {
+            target.focus()
+          }
+        })
+      }
       const syncRunState = () => {
         runButton.disabled = !String(promptTextarea.value || '').trim() || !this.selectedAskAiTool()
       }
       const getFocusable = () => {
-        return Array.from(panel.querySelectorAll('a[href], button:not([disabled]), textarea:not([disabled]), select:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+        const scope = toolSheetOpen ? toolSheetLayer : panel
+        return Array.from(scope.querySelectorAll('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'))
           .filter((node) => node && !node.hidden && node.offsetParent !== null)
       }
       const setOpen = (isOpen) => {
+        if (!isOpen) {
+          closeToolSheet({ focusTrigger: false })
+        }
         overlay.hidden = !isOpen
         document.documentElement.classList.toggle('universal-launcher-open', isOpen)
         document.body.classList.toggle('universal-launcher-open', isOpen)
@@ -771,6 +854,8 @@
         const tool = this.selectedAskAiTool()
         toolLabel.textContent = tool ? tool.label : 'Choose agent'
         toolMeta.textContent = tool ? (tool.category || 'Plugin') : ''
+        toolTrigger.classList.toggle('has-value', Boolean(tool))
+        toolTrigger.setAttribute('aria-label', tool ? `Agent: ${askAiToolOptionLabel(tool)}` : 'Choose agent')
         toolIcon.textContent = ''
         while (toolIcon.firstChild) {
           toolIcon.removeChild(toolIcon.firstChild)
@@ -780,6 +865,15 @@
           icon.src = tool.iconSrc
           icon.alt = ''
           icon.className = 'logs-ask-ai-tool-trigger-image'
+          icon.onerror = () => {
+            while (toolIcon.firstChild) {
+              toolIcon.removeChild(toolIcon.firstChild)
+            }
+            const fallbackIcon = document.createElement('i')
+            fallbackIcon.className = 'fa-solid fa-robot'
+            fallbackIcon.setAttribute('aria-hidden', 'true')
+            toolIcon.appendChild(fallbackIcon)
+          }
           toolIcon.appendChild(icon)
         } else {
           const icon = document.createElement('i')
@@ -787,6 +881,11 @@
           icon.setAttribute('aria-hidden', 'true')
           toolIcon.appendChild(icon)
         }
+        ;(this.askAiLauncher && this.askAiLauncher.toolEntries ? this.askAiLauncher.toolEntries : []).forEach((entry) => {
+          const selected = Boolean(tool && entry.tool === tool)
+          entry.button.classList.toggle('selected', selected)
+          entry.button.setAttribute('aria-selected', selected ? 'true' : 'false')
+        })
         syncRunState()
       }
       const run = async () => {
@@ -799,7 +898,7 @@
         }
         if (!tool) {
           error.textContent = 'Choose an agent.'
-          toolSelect.focus()
+          toolTrigger.focus()
           return
         }
         error.textContent = ''
@@ -813,15 +912,19 @@
       }
 
       closeButton.addEventListener('click', close)
+      toolTrigger.addEventListener('click', () => {
+        if (toolSheetOpen) {
+          closeToolSheet()
+        } else {
+          openToolSheet()
+        }
+      })
+      toolSheetBackdrop.addEventListener('click', () => closeToolSheet())
+      toolSheetClose.addEventListener('click', () => closeToolSheet())
       overlay.addEventListener('click', (event) => {
         if (event.target === overlay) {
           close()
         }
-      })
-      toolSelect.addEventListener('change', syncTool)
-      toolSelect.addEventListener('change', () => {
-        const tool = this.selectedAskAiTool()
-        setStoredToolPreference(tool && tool.value ? tool.value : '')
       })
       promptTextarea.addEventListener('input', syncRunState)
       runButton.addEventListener('click', run)
@@ -829,7 +932,11 @@
         event.stopPropagation()
         if (event.key === 'Escape') {
           event.preventDefault()
-          close()
+          if (toolSheetOpen) {
+            closeToolSheet()
+          } else {
+            close()
+          }
         } else if (event.key === 'Tab') {
           const focusable = getFocusable()
           if (focusable.length === 0) {
@@ -858,38 +965,131 @@
         overlay,
         panel,
         promptTextarea,
-        toolSelect,
+        toolTrigger,
+        toolSheetBody,
+        toolSheetLayer,
         toolLabel,
         toolMeta,
         toolIcon,
+        selectedToolIndex: -1,
+        toolEntries: [],
+        setToolIndex(index) {
+          const nextIndex = Number.isFinite(index) ? index : -1
+          this.selectedToolIndex = nextIndex
+          const tool = Array.isArray(this.owner.askAiTools) ? this.owner.askAiTools[nextIndex] : null
+          setStoredToolPreference(tool && tool.value ? tool.value : '')
+          this.syncTool()
+        },
         error,
         runButton,
         setOpen,
+        closeToolSheet,
         syncTool,
-        syncRunState
+        syncRunState,
+        owner: this
       }
       return this.askAiLauncher
     }
     populateAskAiLauncherTools(tools) {
       const launcher = this.createAskAiLauncher()
-      while (launcher.toolSelect.firstChild) {
-        launcher.toolSelect.removeChild(launcher.toolSelect.firstChild)
+      while (launcher.toolSheetBody.firstChild) {
+        launcher.toolSheetBody.removeChild(launcher.toolSheetBody.firstChild)
       }
-      const placeholder = document.createElement('option')
-      placeholder.value = ''
-      placeholder.textContent = 'Choose agent'
-      launcher.toolSelect.appendChild(placeholder)
+      launcher.toolEntries = []
+      const createFallbackToolIcon = () => {
+        const icon = document.createElement('span')
+        icon.className = 'universal-launcher-tool-icon logs-ask-ai-tool-fallback-icon'
+        icon.innerHTML = '<i class="fa-solid fa-robot" aria-hidden="true"></i>'
+        return icon
+      }
+      const groups = new Map()
       tools.forEach((tool, index) => {
-        const option = document.createElement('option')
-        option.value = String(index)
-        option.textContent = askAiToolOptionLabel(tool)
-        launcher.toolSelect.appendChild(option)
+        const category = tool && tool.category ? tool.category : 'Plugin'
+        if (!groups.has(category)) {
+          groups.set(category, [])
+        }
+        groups.get(category).push({ tool, index })
+      })
+      const orderedGroupCategories = []
+      ASK_AI_TOOL_CATEGORY_ORDER.forEach((preferredCategory) => {
+        const match = Array.from(groups.keys()).find((category) => String(category).toLowerCase() === preferredCategory.toLowerCase())
+        if (match && !orderedGroupCategories.includes(match)) {
+          orderedGroupCategories.push(match)
+        }
+      })
+      Array.from(groups.keys()).sort((a, b) => {
+        const rankDelta = askAiToolCategoryRank(a) - askAiToolCategoryRank(b)
+        if (rankDelta !== 0) return rankDelta
+        return String(a || '').localeCompare(String(b || ''), undefined, { sensitivity: 'base' })
+      }).forEach((category) => {
+        if (!orderedGroupCategories.includes(category)) {
+          orderedGroupCategories.push(category)
+        }
+      })
+      orderedGroupCategories.forEach((category) => {
+        const entries = groups.get(category) || []
+        const group = document.createElement('div')
+        group.className = 'universal-launcher-tool-group'
+        const heading = document.createElement('div')
+        heading.className = 'universal-launcher-tool-group-title'
+        heading.textContent = category
+        group.appendChild(heading)
+        const list = document.createElement('div')
+        list.className = 'universal-launcher-tool-list logs-ask-ai-tool-list'
+        group.appendChild(list)
+        entries.forEach(({ tool, index }) => {
+          const option = document.createElement('button')
+          option.type = 'button'
+          option.className = 'universal-launcher-tool'
+          option.setAttribute('role', 'option')
+          option.setAttribute('aria-selected', 'false')
+          option.dataset.toolIndex = String(index)
+
+          const indicator = document.createElement('span')
+          indicator.className = 'universal-launcher-tool-indicator'
+          indicator.setAttribute('aria-hidden', 'true')
+          option.appendChild(indicator)
+
+          if (tool && tool.iconSrc) {
+            const icon = document.createElement('img')
+            icon.className = 'universal-launcher-tool-icon'
+            icon.src = tool.iconSrc
+            icon.alt = ''
+            icon.onerror = () => {
+              icon.replaceWith(createFallbackToolIcon())
+            }
+            option.appendChild(icon)
+          } else {
+            option.appendChild(createFallbackToolIcon())
+          }
+
+          const text = document.createElement('span')
+          text.className = 'universal-launcher-tool-copy'
+          const label = document.createElement('span')
+          label.className = 'universal-launcher-tool-label'
+          label.textContent = tool ? tool.label : 'Agent'
+          text.appendChild(label)
+          const meta = document.createElement('span')
+          meta.className = 'universal-launcher-tool-meta'
+          meta.textContent = tool && tool.category ? tool.category : 'Plugin'
+          text.appendChild(meta)
+          option.appendChild(text)
+
+          option.addEventListener('click', () => {
+            launcher.setToolIndex(index)
+            launcher.closeToolSheet()
+            launcher.toolTrigger.focus()
+          })
+          list.appendChild(option)
+          launcher.toolEntries.push({ button: option, tool })
+        })
+        launcher.toolSheetBody.appendChild(group)
       })
       const preferredTool = getStoredToolPreference()
       const preferredIndex = preferredTool
         ? tools.findIndex((tool) => tool && tool.value === preferredTool)
         : -1
-      launcher.toolSelect.value = preferredIndex >= 0 ? String(preferredIndex) : ''
+      launcher.selectedToolIndex = preferredIndex >= 0 ? preferredIndex : -1
       if (preferredTool && preferredIndex < 0) {
         setStoredToolPreference('')
       }
@@ -900,8 +1100,8 @@
       if (!launcher || !Array.isArray(this.askAiTools)) {
         return null
       }
-      const index = Number.parseInt(launcher.toolSelect.value, 10)
-      return Number.isFinite(index) ? this.askAiTools[index] || null : null
+      const index = launcher.selectedToolIndex
+      return Number.isFinite(index) && index >= 0 ? this.askAiTools[index] || null : null
     }
     async openAskAiModal() {
       if (!this.currentMarkdown && !this.reviewMarkdown) {
