@@ -38,7 +38,7 @@
   <%- include('partials/app_navheader', { agent }) %>
 <% } %>
 <main>
-  <div class='container'>
+  <div class='container <%= !logsError ? "logs-container" : "" %>'>
     <% if (!logsError) { %>
     <section class="logs-page" id="logs-root" data-workspace="<%= logsWorkspace ? logsWorkspace : '' %>" data-report-url="<%= logsReportUrl || '' %>" data-initial-view="<%= logsInitialView || 'raw' %>">
       <div class="logs-page-header">

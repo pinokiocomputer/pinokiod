@@ -6472,6 +6472,63 @@ body.dark .logs-resizer:hover .logs-resizer-toggle {
   }
 }
 
+body.main-sidebar-page main > .logs-container {
+  overflow: hidden;
+}
+
+.logs-page[data-view="latest"] {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-bottom: 96px;
+}
+
+.logs-page[data-view="latest"] .logs-latest-view {
+  flex: 1 0 auto;
+  overflow: visible;
+}
+
+.logs-page[data-view="latest"] .logs-latest-workspace {
+  flex: 1 0 auto;
+  align-items: start;
+  grid-template-rows: auto;
+  overflow: visible;
+}
+
+.logs-page[data-view="latest"] .logs-report-pane,
+.logs-page[data-view="latest"] .logs-redaction-pane {
+  align-self: start;
+  width: 100%;
+  overflow: visible;
+}
+
+.logs-page[data-view="latest"] .logs-review-content,
+.logs-page[data-view="latest"] .logs-review-section--redactions {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.logs-page[data-view="latest"] .logs-review-file-list {
+  max-height: none;
+  overflow: visible;
+}
+
+.logs-page[data-view="latest"] .logs-report-output,
+.logs-page[data-view="latest"] .logs-redaction-list {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.logs-page[data-view="latest"] .logs-redaction-pane {
+  max-height: none;
+}
+
+.logs-page[data-view="latest"] .logs-community-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+}
+
 /* Minimal SweetAlert normalization for generic QR/form modals. */
 .swal2-popup.min-popup,
 .swal2-popup.min-popup2 {
