@@ -48,7 +48,7 @@ const DEFAULT_PORT = 42000
 const NOTIFICATION_SOUND_EXTENSIONS = new Set(['.aac', '.flac', '.m4a', '.mp3', '.ogg', '.wav', '.webm'])
 const LOG_STREAM_INITIAL_BYTES = 512 * 1024
 const LOG_STREAM_KEEPALIVE_MS = 25000
-const DEFAULT_REGISTRY_URL = 'https://beta.pinokio.co'
+const DEFAULT_REGISTRY_URL = 'https://pinokio.co'
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1', '[::1]'])
 const NON_INTERACTIVE_GIT_ENV = {
   GIT_TERMINAL_PROMPT: "0",
