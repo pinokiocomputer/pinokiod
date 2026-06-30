@@ -18654,6 +18654,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!candidateState) return []
     return [].concat(candidateState.menu || [], candidateState.other || [])
   }
+  const eligibleDefaultScript = () => {
+    const defaults = allCandidates().filter((candidate) => {
+      return candidate && candidate.script && candidate.menu_default && !candidate.has_params
+    })
+    return defaults.length === 1 ? defaults[0].script : ""
+  }
   <%- include('partials/app_autolaunch_modal_helpers') %>
 	  const hasLaunchRequirementConfig = () => {
 	    return !!(
@@ -18830,7 +18836,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!candidateState) {
       await loadCandidates()
     }
-    const script = selectedScript || ""
+    const script = selectedScript || eligibleDefaultScript()
     if (!script) {
       setFeedback("Choose a launch script first.", true)
       return

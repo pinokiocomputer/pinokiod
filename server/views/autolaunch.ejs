@@ -748,6 +748,15 @@ const renderScriptSection = (title, note, candidates) => {
 };
 
 const configuredScript = (data) => data && data.current ? data.current : "";
+const allScriptCandidates = () => candidateState
+  ? [].concat(candidateState.menu || [], candidateState.other || [])
+  : [];
+const eligibleDefaultScript = () => {
+  const defaults = allScriptCandidates().filter((candidate) => {
+    return candidate && candidate.script && candidate.menu_default && !candidate.has_params;
+  });
+  return defaults.length === 1 ? defaults[0].script : "";
+};
 
 <%- include('partials/autolaunch_dependency_helpers') %>
 const bindDetailControls = () => {
@@ -950,7 +959,7 @@ const toggleAutolaunch = () => {
     return;
   }
   const manual = detailEl.querySelector("[data-manual-script]");
-  const script = manual && manual.value.trim() ? manual.value.trim() : (selectedScript || "");
+  const script = manual && manual.value.trim() ? manual.value.trim() : (selectedScript || eligibleDefaultScript());
   if (!script) {
     setFeedback("Choose a launch script first.", true);
     return;

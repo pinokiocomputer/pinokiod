@@ -27,6 +27,7 @@ const playwright = loadPlaywright()
 
 const root = path.resolve(__dirname, "..")
 const appViewPath = path.resolve(root, "server/views/app.ejs")
+const autolaunchViewPath = path.resolve(root, "server/views/autolaunch.ejs")
 const statusClientPath = path.resolve(root, "server/views/partials/launch_requirements_status_client.ejs")
 const homeViewPath = path.resolve(root, "server/views/index.ejs")
 
@@ -52,6 +53,19 @@ async function renderAppAutolaunchScript(initialState) {
     autolaunch_app: initialState
   }, {
     filename: appViewPath
+  })
+}
+
+async function renderGlobalAutolaunchScript(state) {
+  const view = await fs.readFile(autolaunchViewPath, "utf8")
+  const start = view.indexOf("<script>\nlet autolaunchApps =")
+  assert.notEqual(start, -1)
+  const end = view.indexOf("\n</script>", start)
+  assert.notEqual(end, -1)
+  return ejs.render(view.slice(start + "<script>".length, end), {
+    appsJson: JSON.stringify([state.targetApp])
+  }, {
+    filename: autolaunchViewPath
   })
 }
 
@@ -89,6 +103,9 @@ function html(body, script = "") {
           body { font-family: sans-serif; }
           .app-autolaunch-modal { position: fixed; inset: 20px; background: white; border: 1px solid #ccc; padding: 16px; }
           .app-autolaunch-script-option, .app-autolaunch-dependency-option, .app-autolaunch-dependency-row { display: block; margin: 6px 0; }
+          .transformed-sidebar-fixture { display: flex; width: 100%; min-height: 520px; }
+          .transformed-sidebar-fixture > aside { width: 280px; flex: 0 0 280px; transform: translateX(0); }
+          .transformed-sidebar-fixture > main { flex: 1 1 auto; }
           .launch-requirements-card { width: 560px; margin: 40px auto; }
           .launch-requirements-row { display: grid; grid-template-columns: 32px 1fr auto; gap: 8px; align-items: center; }
         </style>
@@ -100,9 +117,8 @@ function html(body, script = "") {
     </html>`
 }
 
-async function appFixtureHtml(initialApp) {
-  const script = await renderAppAutolaunchScript(initialApp)
-  return html(`
+function appAutolaunchMarkup(initialApp) {
+  return `
     <div class="app-autolaunch" data-app-autolaunch data-app-id="target">
       <button type="button" class="app-autolaunch-row" data-app-autolaunch-button data-enabled="${initialApp.autolaunch_enabled ? "true" : "false"}" aria-haspopup="dialog" aria-expanded="false">
         <span class="app-autolaunch-label">Autolaunch</span>
@@ -122,6 +138,37 @@ async function appFixtureHtml(initialApp) {
         <div data-app-autolaunch-feedback></div>
       </div>
     </div>
+  `
+}
+
+async function appFixtureHtml(initialApp) {
+  const script = await renderAppAutolaunchScript(initialApp)
+  return html(appAutolaunchMarkup(initialApp), script)
+}
+
+async function transformedSidebarAppFixtureHtml(initialApp) {
+  const script = await renderAppAutolaunchScript(initialApp)
+  return html(`
+    <div class="appcanvas transformed-sidebar-fixture">
+      <aside>
+        ${appAutolaunchMarkup(initialApp)}
+      </aside>
+      <main></main>
+    </div>
+  `, script)
+}
+
+async function globalAutolaunchFixtureHtml(state) {
+  const script = await renderGlobalAutolaunchScript(state)
+  return html(`
+    <main class="autolaunch-page">
+      <strong data-enabled-count>0</strong>
+      <strong data-app-count>1</strong>
+      <button type="button" data-disable-all disabled>Disable startup</button>
+      <input type="search" data-app-search>
+      <div data-app-list></div>
+      <section data-detail></section>
+    </main>
   `, script)
 }
 
@@ -201,6 +248,8 @@ function readBody(req) {
 async function startFixtureServer(state) {
   const pages = {
     app: await appFixtureHtml(state.targetApp),
+    transformedApp: await transformedSidebarAppFixtureHtml(state.targetApp),
+    autolaunch: await globalAutolaunchFixtureHtml(state),
     openWithoutLaunching: await openWithoutLaunchingHtml(),
     status: await statusFixtureHtml(),
     home: await homeFixtureHtml()
@@ -211,6 +260,16 @@ async function startFixtureServer(state) {
       if (req.method === "GET" && url.pathname === "/app-fixture") {
         res.writeHead(200, { "Content-Type": "text/html" })
         res.end(pages.app)
+        return
+      }
+      if (req.method === "GET" && url.pathname === "/app-transformed-sidebar-fixture") {
+        res.writeHead(200, { "Content-Type": "text/html" })
+        res.end(pages.transformedApp)
+        return
+      }
+      if (req.method === "GET" && url.pathname === "/autolaunch-fixture") {
+        res.writeHead(200, { "Content-Type": "text/html" })
+        res.end(pages.autolaunch)
         return
       }
       if (req.method === "GET" && url.pathname === "/open-without-launching") {
@@ -392,6 +451,15 @@ async function textContent(page, selector) {
   return page.locator(selector).first().textContent()
 }
 
+async function waitForState(predicate, message, timeoutMs = 2000) {
+  const started = Date.now()
+  while (Date.now() - started < timeoutMs) {
+    if (predicate()) return
+    await new Promise((resolve) => setTimeout(resolve, 25))
+  }
+  assert.ok(predicate(), message)
+}
+
 browserTest("browser: selecting a launch script from empty state persists and stays off", async () => {
   const state = baseState({ targetScript: "" })
   await withBrowser(state, async ({ page, baseUrl }) => {
@@ -411,6 +479,194 @@ browserTest("browser: selecting a launch script from empty state persists and st
     })
     assert.equal(await page.isChecked('input[name="app-autolaunch-script"][value="start.js"]'), true)
     assert.equal((await textContent(page, "[data-app-autolaunch-status]")).trim(), "OFF")
+  })
+})
+
+browserTest("browser: app autolaunch modal is viewport sized from transformed sidebar", async () => {
+  const state = baseState({ targetScript: "" })
+  await withBrowser(state, async ({ page, baseUrl }) => {
+    await page.setViewportSize({ width: 1000, height: 700 })
+    await page.goto(`${baseUrl}/app-transformed-sidebar-fixture`)
+    await page.click("[data-app-autolaunch-button]")
+    await page.waitForSelector("[data-app-autolaunch-modal]:not(.hidden)")
+
+    const rect = await page.locator("[data-app-autolaunch-modal]").evaluate((modal) => {
+      const box = modal.getBoundingClientRect()
+      return {
+        left: box.left,
+        top: box.top,
+        right: box.right,
+        bottom: box.bottom,
+        width: box.width,
+        height: box.height,
+        parentTag: modal.parentElement ? modal.parentElement.tagName : ""
+      }
+    })
+
+    assert.equal(rect.parentTag, "BODY")
+    assert.ok(rect.width > 900, `modal width should span the viewport, got ${rect.width}`)
+    assert.ok(Math.abs(rect.left - 20) <= 1, `modal should use viewport left inset, got ${rect.left}`)
+    assert.ok(Math.abs(rect.right - 980) <= 1, `modal should use viewport right inset, got ${rect.right}`)
+  })
+})
+
+browserTest("browser: startup toggle from empty selection saves the single eligible default", async () => {
+  const state = baseState({ targetScript: "" })
+  await withBrowser(state, async ({ page, baseUrl }) => {
+    await page.goto(`${baseUrl}/app-fixture`)
+    await page.click("[data-app-autolaunch-button]")
+    await page.waitForSelector('input[name="app-autolaunch-script"][value="start.js"]')
+
+    assert.equal(await page.isChecked('input[name="app-autolaunch-script"][value="start.js"]'), false)
+
+    await page.click("[data-app-autolaunch-switch]")
+    await waitForState(
+      () => state.autolaunchPosts.length === 1,
+      "Start with Pinokio should save the single eligible default"
+    )
+
+    assert.deepEqual(state.autolaunchPosts[0], {
+      app: "target",
+      script: "start.js",
+      enabled: true
+    })
+    assert.equal(state.launchRequirementsGets, 0)
+    assert.equal(await page.isChecked('input[name="app-autolaunch-script"][value="start.js"]'), true)
+    assert.equal((await textContent(page, "[data-app-autolaunch-status]")).trim(), "ON")
+  })
+})
+
+browserTest("browser: startup toggle from empty selection warns when no eligible default exists", async () => {
+  const cases = [{
+    name: "no default",
+    menu: [{ script: "start.js", label: "Start" }],
+    other: [{ script: "target.custom.js", label: "Custom" }]
+  }, {
+    name: "multiple defaults",
+    menu: [
+      { script: "start.js", label: "Start", menu_default: true },
+      { script: "target.custom.js", label: "Custom", menu_default: true }
+    ],
+    other: []
+  }, {
+    name: "params default",
+    menu: [{ script: "start.js", label: "Start", menu_default: true, has_params: true }],
+    other: [{ script: "target.custom.js", label: "Custom" }]
+  }]
+
+  for (const scenario of cases) {
+    const state = baseState({ targetScript: "" })
+    state.candidates.target.menu = scenario.menu
+    state.candidates.target.other = scenario.other
+    await withBrowser(state, async ({ page, baseUrl }) => {
+      await page.goto(`${baseUrl}/app-fixture`)
+      await page.click("[data-app-autolaunch-button]")
+      await page.waitForSelector("[data-app-autolaunch-switch]")
+
+      await page.click("[data-app-autolaunch-switch]")
+      await page.waitForFunction(() => {
+        const feedback = document.querySelector("[data-app-autolaunch-feedback]")
+        return feedback && /Choose .*launch script/i.test(feedback.textContent || "")
+      })
+
+      assert.equal(state.autolaunchPosts.length, 0, scenario.name)
+      assert.equal((await textContent(page, "[data-app-autolaunch-status]")).trim(), "OFF")
+    })
+  }
+})
+
+browserTest("browser: global startup toggle from empty selection saves the single eligible default", async () => {
+  const state = baseState({ targetScript: "" })
+  await withBrowser(state, async ({ page, baseUrl }) => {
+    await page.goto(`${baseUrl}/autolaunch-fixture?app=target`)
+    await page.waitForSelector('input[name="autolaunch-script"][value="start.js"]')
+
+    assert.equal(await page.isChecked('input[name="autolaunch-script"][value="start.js"]'), false)
+
+    await page.click("[data-autolaunch-switch]")
+    await waitForState(
+      () => state.autolaunchPosts.length === 1,
+      "Global Start with Pinokio should save the single eligible default"
+    )
+
+    assert.deepEqual(state.autolaunchPosts[0], {
+      app: "target",
+      script: "start.js",
+      enabled: true
+    })
+    assert.equal(state.launchRequirementsGets, 0)
+    await page.waitForFunction(() => {
+      const input = document.querySelector('input[name="autolaunch-script"][value="start.js"]')
+      const enabledCount = document.querySelector("[data-enabled-count]")
+      return input && input.checked && enabledCount && enabledCount.textContent.trim() === "1"
+    })
+    assert.equal(await page.isChecked('input[name="autolaunch-script"][value="start.js"]'), true)
+    assert.equal((await textContent(page, "[data-enabled-count]")).trim(), "1")
+  })
+})
+
+browserTest("browser: global startup toggle from empty selection warns when no eligible default exists", async () => {
+  const cases = [{
+    name: "no default",
+    menu: [{ script: "start.js", label: "Start" }],
+    other: [{ script: "target.custom.js", label: "Custom" }]
+  }, {
+    name: "multiple defaults",
+    menu: [
+      { script: "start.js", label: "Start", menu_default: true },
+      { script: "target.custom.js", label: "Custom", menu_default: true }
+    ],
+    other: []
+  }, {
+    name: "params default",
+    menu: [{ script: "start.js", label: "Start", menu_default: true, has_params: true }],
+    other: [{ script: "target.custom.js", label: "Custom" }]
+  }]
+
+  for (const scenario of cases) {
+    const state = baseState({ targetScript: "" })
+    state.candidates.target.menu = scenario.menu
+    state.candidates.target.other = scenario.other
+    await withBrowser(state, async ({ page, baseUrl }) => {
+      await page.goto(`${baseUrl}/autolaunch-fixture?app=target`)
+      await page.waitForSelector("[data-manual-script]")
+
+      await page.click("[data-autolaunch-switch]")
+      await page.waitForFunction(() => {
+        const feedback = document.querySelector("[data-feedback]")
+        return feedback && /Choose .*launch script/i.test(feedback.textContent || "")
+      })
+
+      assert.equal(state.autolaunchPosts.length, 0, scenario.name)
+      assert.equal((await textContent(page, "[data-enabled-count]")).trim(), "0")
+    })
+  }
+})
+
+browserTest("browser: global startup toggle uses pending manual script before eligible default", async () => {
+  const state = baseState({ targetScript: "" })
+  await withBrowser(state, async ({ page, baseUrl }) => {
+    await page.goto(`${baseUrl}/autolaunch-fixture?app=target`)
+    await page.waitForSelector("[data-manual-script]")
+
+    await page.fill("[data-manual-script]", "target.custom.js")
+    await page.click("[data-autolaunch-switch]")
+    await waitForState(
+      () => state.autolaunchPosts.length === 1,
+      "Global Start with Pinokio should save the pending manual script"
+    )
+
+    assert.deepEqual(state.autolaunchPosts[0], {
+      app: "target",
+      script: "target.custom.js",
+      enabled: true
+    })
+    assert.equal(await page.isChecked('input[name="autolaunch-script"][value="start.js"]'), false)
+    await page.waitForFunction(() => {
+      const enabledCount = document.querySelector("[data-enabled-count]")
+      return enabledCount && enabledCount.textContent.trim() === "1"
+    })
+    assert.equal((await textContent(page, "[data-enabled-count]")).trim(), "1")
   })
 })
 

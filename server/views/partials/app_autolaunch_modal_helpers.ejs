@@ -180,6 +180,10 @@
   const setOpen = (open) => {
     root.classList.toggle("open", !!open)
     button.setAttribute("aria-expanded", open ? "true" : "false")
+    if (open && modal.parentElement !== document.body) {
+      // Avoid transformed sidebar ancestors trapping the fixed dialog.
+      document.body.appendChild(modal)
+    }
     modal.classList.toggle("hidden", !open)
     if (open) {
       if (!candidateState && !loadingCandidates) {
