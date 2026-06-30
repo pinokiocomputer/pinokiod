@@ -3,8 +3,6 @@ const fs = require('fs')
 const path = require('path')
 const nvidia = require("./gpu/nvidia")
 const amd = require("./gpu/amd")
-const apple = require("./gpu/apple")
-const intel = require("./gpu/intel")
 class Sysinfo {
   async init(kernel) {
     this.kernel = kernel
@@ -74,7 +72,6 @@ class Sysinfo {
     let is_nvidia = controllers.find(x => /nvidia/i.test(x.vendor || ""))
     let is_amd = bestByVram(controllers.filter(x => /(amd|advanced micro devices)/i.test(x.vendor || "")))
     let is_apple = controllers.find(x => /apple/i.test(x.vendor || ""))
-    let is_intel = controllers.find(x => /intel/i.test(x.vendor || ""))
 
     let gpu
     let gpu_model
@@ -108,14 +105,22 @@ class Sysinfo {
     let vramMB = primaryController && primaryController.vram ? primaryController.vram : 0
     let vramGB = vramMB > 0 ? Math.round(vramMB / 1024) : 0
     let gpu_driver = driver(primaryController)
-    let torch_backend = await this.torch_backend({ is_nvidia, is_amd, is_apple, is_intel, gpu_model })
+    let cpu_brand_value
+    let cpu_brand = async () => {
+      if (cpu_brand_value === undefined) {
+        cpu_brand_value = await this.cpu_brand()
+      }
+      return cpu_brand_value
+    }
+    let detected = { is_nvidia, is_amd, gpu_model, primaryController, cpu_brand }
+    let gpu_target = await this.gpu_target(detected)
 
     this.info.graphics = g
     this.info.gpus = gpus
     this.info.gpu = gpu
     this.info.gpu_model = gpu_model
     this.info.gpu_driver = gpu_driver
-    this.info.torch_backend = torch_backend
+    this.info.gpu_target = gpu_target
     this.info.vram = vramGB
   }
   // Read CPU brand only when generic iGPU names need CPU fallback matching.
@@ -130,27 +135,13 @@ class Sysinfo {
     }
     return cpu && cpu.brand
   }
-  // Select the PyTorch backend install target from detected hardware identity.
-  async torch_backend(detected) {
-    // Do not require runtime probes such as rocminfo, hipInfo, ze_info, or
-    // an existing torch install here.
-    if (nvidia.supports_torch_backend(detected.is_nvidia, process.platform)) {
-      return "cuda"
-    } else if (apple.supports_torch_backend(detected.is_apple, process.platform)) {
-      return "mps"
-    } else if (
-      detected.is_amd &&
-      process.platform !== "darwin" &&
-      await amd.supports_torch_backend(detected.gpu_model, () => this.cpu_brand())
-    ) {
-      return "rocm"
-    } else if (
-      detected.is_intel &&
-      await intel.supports_torch_backend(detected.is_intel.model, () => this.cpu_brand())
-    ) {
-      return "xpu"
+  async gpu_target(detected) {
+    if (detected.is_nvidia) {
+      return await nvidia.resolve_cuda_sm_target(detected.primaryController)
+    } else if (detected.is_amd) {
+      return await amd.resolve_gpu_target(detected.gpu_model, detected.cpu_brand || (() => this.cpu_brand()))
     } else {
-      return "cpu"
+      return null
     }
   }
 //  async time() {

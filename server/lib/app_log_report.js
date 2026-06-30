@@ -358,8 +358,7 @@ class AppLogReportService {
         version: this.readPinokioVersion(),
         node: process.version,
         platform: kernel.platform || process.platform,
-        arch: kernel.arch || process.arch,
-        torch_backend: kernel.torch_backend || info.torch_backend || null
+        arch: kernel.arch || process.arch
       },
       hardware: this.compactObject({
         gpu: kernel.gpu || info.gpu || null,

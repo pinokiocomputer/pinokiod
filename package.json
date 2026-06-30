@@ -1,10 +1,11 @@
 {
   "name": "pinokiod",
-  "version": "7.5.14",
+  "version": "7.5.15",
   "description": "",
   "main": "index.js",
   "scripts": {
     "download_readme": "wget -O kernel/proto/PINOKIO.md https://raw.githubusercontent.com/pinokiocomputer/home/refs/heads/main/docs/README.md",
+    "update:amd-gfx-targets": "node script/update-amd-gfx-targets.js",
     "start": "node script/index"
   },
   "author": "",
