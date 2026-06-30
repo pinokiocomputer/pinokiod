@@ -82,6 +82,43 @@ function createHomeDomWithApps(appIds) {
   })
 }
 
+function createHomeDomForIdleOrdering() {
+  const row = (appId, name, stopButton = false) => `
+    <div
+      class="line align-top home-app-line"
+      data-name="${name}"
+      data-autolaunch-app="${appId}"
+      data-autolaunch-starting="0"
+      data-autolaunch-script="start.js"
+    >
+      <h3><span class="title"><i class="fa-solid fa-circle"></i></span></h3>
+      <div class="menu-btns">
+        <button class="open-actions-modal" data-dialog-id="actions-${appId}" type="button">menu</button>
+        ${stopButton ? `
+          <button class="btn shutdown" type="button" data-src="api/${appId}/start.js">
+            <i class="fa-solid fa-stop" aria-hidden="true"></i>
+            <span>Stop start.js</span>
+          </button>
+        ` : ""}
+      </div>
+    </div>
+    <div id="actions-${appId}"><div class="home-actions-title-row"></div></div>
+  `
+  return new JSDOM(`
+    <!doctype html>
+    <body>
+      <div class="running-apps">${row("alpha", "Alpha", true)}</div>
+      <div class="not-running-apps">
+        ${row("beta", "Beta")}
+        ${row("gamma", "Gamma")}
+      </div>
+    </body>
+  `, {
+    runScripts: "outside-only",
+    url: "http://127.0.0.1:42000/home?sort=az"
+  })
+}
+
 function installHomeStatusMocks(window, responses) {
   const timeouts = []
   const intervals = []
@@ -223,6 +260,39 @@ test("home one-shot status refresh can update a stopped app row", async () => {
   const line = window.document.querySelector(".home-app-line")
   assert.equal(line.querySelectorAll(".shutdown").length, 0)
   assert.equal(window.document.querySelector(".not-running-apps").contains(line), true)
+})
+
+test("home one-shot status refresh preserves idle app sort order after moving stopped row", async () => {
+  const script = await homeAutolaunchScript({ launchComplete: true })
+  const dom = createHomeDomForIdleOrdering()
+  const { window } = dom
+  const responses = [{
+    launch_complete: true,
+    running_apps: [],
+    running_scripts: [],
+    autolaunch: { apps: {} }
+  }]
+  installHomeStatusMocks(window, responses)
+  let reorderCalls = 0
+  window.reorderHomeSectionsByPreference = () => {
+    reorderCalls += 1
+    for (const selector of [".running-apps", ".not-running-apps"]) {
+      const section = window.document.querySelector(selector)
+      const lines = Array.from(section.querySelectorAll(":scope > .line"))
+      lines.sort((a, b) => (a.getAttribute("data-name") || "").localeCompare(b.getAttribute("data-name") || ""))
+      for (const line of lines) {
+        section.appendChild(line)
+      }
+    }
+  }
+
+  window.eval(script)
+  await window.refreshHomeStatusOnce("alpha")
+
+  const idleNames = Array.from(window.document.querySelectorAll(".not-running-apps > .line"))
+    .map((line) => line.getAttribute("data-name"))
+  assert.deepEqual(idleNames, ["Alpha", "Beta", "Gamma"])
+  assert.equal(reorderCalls, 1)
 })
 
 test("home live status discovers a running target even when preparation status has already cleared", async () => {

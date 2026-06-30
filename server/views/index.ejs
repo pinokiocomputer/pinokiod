@@ -2346,9 +2346,11 @@ const startHomeAutolaunchPolling = () => {
     updateHomeActionStatus(line, "Running")
     syncStopButtons(line, scripts)
     const runningSection = getOrCreateRunningSection()
-    if (runningSection) {
+    if (runningSection && line.parentElement !== runningSection) {
       runningSection.appendChild(line)
+      return true
     }
+    return false
   }
   const getOrCreateNotRunningSection = () => {
     let section = document.querySelector(".not-running-apps")
@@ -2374,9 +2376,11 @@ const startHomeAutolaunchPolling = () => {
     syncStopButtons(line, [])
     activeHomeAutolaunchApps.delete(line.getAttribute("data-autolaunch-app"))
     const notRunningSection = getOrCreateNotRunningSection()
-    if (notRunningSection) {
+    if (notRunningSection && line.parentElement !== notRunningSection) {
       notRunningSection.appendChild(line)
+      return true
     }
+    return false
   }
   const autolaunchDependencyLabel = (autolaunch, dependencyId) => {
     const apps = autolaunch && autolaunch.apps ? autolaunch.apps : {}
@@ -2472,18 +2476,19 @@ const startHomeAutolaunchPolling = () => {
     }
     const autolaunch = state.autolaunch || {}
     const apps = autolaunch.apps || {}
+    let shouldReorder = false
     for (const line of lines) {
       const app = line.getAttribute("data-autolaunch-app")
       const autolaunchState = apps[app]
       const runningScripts = scriptsByApp.get(app) || []
       if (autolaunchState && !shouldDisplayAutolaunchStatus(app, autolaunchState, apps, runningApps)) {
-        markAutolaunchIdle(line)
+        shouldReorder = markAutolaunchIdle(line) || shouldReorder
       } else if (isPreparingAutolaunchState(autolaunchState)) {
         updateAutolaunchWaitingVisuals(line, autolaunchState, autolaunch, runningScripts)
       } else if (runningApps.has(app)) {
-        markAutolaunchRunning(line, runningScripts)
+        shouldReorder = markAutolaunchRunning(line, runningScripts) || shouldReorder
       } else if (state.launch_complete) {
-        markAutolaunchIdle(line)
+        shouldReorder = markAutolaunchIdle(line) || shouldReorder
       } else {
         updateAutolaunchWaitingVisuals(line, autolaunchState, autolaunch, runningScripts)
       }
@@ -2491,8 +2496,11 @@ const startHomeAutolaunchPolling = () => {
     if (getStartingLines().length === 0) {
       if (hadStartingLines) {
         hadStartingLines = false
-        reorderHomeSectionsByPreference()
+        shouldReorder = true
       }
+    }
+    if (shouldReorder) {
+      reorderHomeSectionsByPreference()
     }
   }
   const requestHomeStatus = () => {
