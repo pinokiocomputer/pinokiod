@@ -309,8 +309,20 @@ body[data-agent='electron'] {
       }
     });
     window.addEventListener('message', (event) => {
+      if (event.data && event.data.e === "layout-state-request") {
+        const closable = Array.from(document.querySelectorAll('iframe')).some((iframe) => {
+          return event.source === iframe.contentWindow;
+        });
+        if (event.source && typeof event.source.postMessage === "function") {
+          event.source.postMessage({
+            e: "layout-state",
+            closable
+          }, "*");
+        }
+        return;
+      }
       if (event.data && event.data.e === "close") {
-        // find the frame 
+        // find the frame
         // Find which iframe sent the message
         const col0 = document.getElementById('col0');
         const col1 = document.getElementById('col1');

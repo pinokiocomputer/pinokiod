@@ -6634,7 +6634,7 @@ header.navheader h1 {
 	    width: min(280px, calc(100vw - 40px));
 	    max-width: 100%;
 	    margin: 0 !important;
-	    padding: calc(12px + env(safe-area-inset-top)) 12px 18px;
+	    padding: calc(12px + env(safe-area-inset-top)) 12px 0;
 	    box-sizing: border-box;
 	    overflow-y: auto;
 	    background: var(--pinokio-sidebar-tabbar-bg);
@@ -6663,7 +6663,7 @@ header.navheader h1 {
 	    width: min(280px, calc(100vw - 40px));
 	    max-width: 100%;
 	    margin: 0 !important;
-	    padding: calc(12px + env(safe-area-inset-top)) 12px 18px;
+	    padding: calc(12px + env(safe-area-inset-top)) 12px 0;
 	    box-sizing: border-box;
 	    overflow-y: auto;
 	    pointer-events: none;
@@ -6720,13 +6720,16 @@ header.navheader h1 {
   body.dark.mobile-menu-open .appcanvas > aside .disk-usage {
     color: rgba(148, 163, 184, 0.9);
   }
+  body.mobile-menu-open .appcanvas > aside .menu-container {
+    padding: 0;
+  }
 	  body.mobile-menu-open .appcanvas > aside .menu-scroller {
 	    flex-direction: column;
 	    align-items: stretch;
 	    overflow-y: auto;
 	    overflow-x: hidden;
 	    width: 100%;
-	    padding: 0 0 8px;
+	    padding: 0;
 	    gap: 8px;
 	    box-sizing: border-box;
 	  }
@@ -6760,78 +6763,86 @@ header.navheader h1 {
     gap: 4px;
     width: 100%;
   }
-	  body.mobile-menu-open .appcanvas > aside .mobile-sheet-actions {
-	    display: none;
-	    align-items: center;
-	    gap: 8px;
-	    width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 2px;
-    scrollbar-width: none;
+  body.mobile-menu-open .appcanvas > aside .mobile-sheet-actions,
+  body.mobile-menu-open[data-view='files'] .mobile-menu-fallback .mobile-sheet-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    margin: 2px 0 0;
+    padding: 4px 0 0;
+    border-top: 1px solid var(--pinokio-sidebar-separator);
+    box-sizing: border-box;
   }
   body.mobile-menu-open .appcanvas > aside .mobile-sheet-actions::-webkit-scrollbar,
   body.mobile-menu-open .mobile-menu-fallback .mobile-sheet-actions::-webkit-scrollbar {
     display: none;
   }
+  body.mobile-menu-open .appcanvas > aside .mobile-sheet-action-grid,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-sheet-action-grid {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    width: auto;
+  }
   body.mobile-menu-open .appcanvas > aside .mobile-sheet-action,
   body.mobile-menu-open .mobile-menu-fallback .mobile-sheet-action {
-    flex: 0 0 auto;
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
     padding: 0;
-    border-radius: 12px;
-    border: 1px solid rgba(0,0,0,0.06);
-    background: #fff;
-    color: #0f172a;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    border-radius: 6px;
+    border: 0;
+    background: transparent;
+    color: var(--app-mobile-drawer-icon-active);
+    box-shadow: none;
     box-sizing: border-box;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 0;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.2;
   }
   body.dark.mobile-menu-open .appcanvas > aside .mobile-sheet-action,
   body.dark.mobile-menu-open .mobile-menu-fallback .mobile-sheet-action {
-    background: rgba(15, 17, 21, 0.82);
-    border-color: rgba(255,255,255,0.08);
+    background: transparent;
+    border-color: transparent;
     color: rgba(226, 232, 240, 0.92);
-    box-shadow: 0 1px 2px rgba(2, 6, 20, 0.4);
+    box-shadow: none;
+  }
+  body.mobile-menu-open .appcanvas > aside .mobile-sheet-action:hover,
+  body.mobile-menu-open .appcanvas > aside .mobile-sheet-action:focus-visible,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-sheet-action:hover,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-sheet-action:focus-visible {
+    background: var(--app-mobile-drawer-tab-hover);
   }
   body.mobile-menu-open .appcanvas > aside .mobile-sheet-action i,
   body.mobile-menu-open .mobile-menu-fallback .mobile-sheet-action i {
-    font-size: 15px;
+    width: 15px;
+    flex: 0 0 15px;
+    font-size: 14px;
+    text-align: center;
   }
-  body.mobile-menu-open .appcanvas > aside .mobile-sheet-action span,
-  body.mobile-menu-open .mobile-menu-fallback .mobile-sheet-action span {
-    display: none;
+  body.mobile-menu-open .appcanvas > aside .mobile-sheet-action--close-pane,
+  body.mobile-menu-open .mobile-menu-fallback .mobile-sheet-action--close-pane {
+    border-color: transparent;
+    background: transparent;
+    color: #b91c1c;
   }
-  body.mobile-menu-open .appcanvas > aside .menu-scroller .mobile-sheet-action,
-  body.mobile-menu-open .mobile-menu-fallback .mobile-sheet-action {
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px !important;
-    min-height: 40px !important;
-    padding: 0 !important;
-    border-radius: 12px !important;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0;
+  body.dark.mobile-menu-open .appcanvas > aside .mobile-sheet-action--close-pane,
+  body.dark.mobile-menu-open .mobile-menu-fallback .mobile-sheet-action--close-pane {
+    border-color: transparent;
+    background: transparent;
+    color: #f87171;
   }
-	  body.mobile-menu-open[data-view='files'] .mobile-menu-fallback .mobile-sheet-actions {
-	    display: none;
-	    align-items: center;
-	    gap: 8px;
-	    width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 2px;
-  }
-  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2),
-  body.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2) {
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2):not(.mobile-sheet-action),
+  body.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2):not(.mobile-sheet-action) {
     max-width: none;
     min-width: 0;
     width: 100%;
@@ -6844,22 +6855,22 @@ header.navheader h1 {
     box-shadow: none;
     box-sizing: border-box;
   }
-  body.dark.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2),
-  body.dark.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2) {
+  body.dark.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2):not(.mobile-sheet-action),
+  body.dark.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2):not(.mobile-sheet-action) {
     background: transparent;
     border-color: transparent;
     color: var(--app-mobile-drawer-tab-muted);
     box-shadow: none;
   }
-  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2):hover,
-  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2):focus-visible,
-  body.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2):hover,
-  body.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2):focus-visible {
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2):not(.mobile-sheet-action):hover,
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn:not(.btn2):not(.mobile-sheet-action):focus-visible,
+  body.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2):not(.mobile-sheet-action):hover,
+  body.mobile-menu-open .appcanvas > aside .menu-actions .btn:not(.btn2):not(.mobile-sheet-action):focus-visible {
     background: var(--app-mobile-drawer-tab-hover);
     color: var(--app-mobile-drawer-tab-active-color);
   }
-  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn.selected:not(.btn2),
-  body.mobile-menu-open .appcanvas > aside .menu-actions .btn.selected:not(.btn2) {
+  body.mobile-menu-open .appcanvas > aside .menu-scroller .btn.selected:not(.btn2):not(.mobile-sheet-action),
+  body.mobile-menu-open .appcanvas > aside .menu-actions .btn.selected:not(.btn2):not(.mobile-sheet-action) {
     background: var(--app-mobile-drawer-tab-active-bg) !important;
     color: var(--app-mobile-drawer-tab-active-color);
   }
@@ -7006,7 +7017,7 @@ header.navheader h1 {
 	    max-width: 100%;
 	    z-index: 10000020;
 	    flex-direction: column;
-	    padding: calc(12px + env(safe-area-inset-top)) 12px 18px;
+	    padding: calc(12px + env(safe-area-inset-top)) 12px 0;
 	    box-sizing: border-box;
 	    overflow-y: auto;
 	    background: var(--pinokio-sidebar-tabbar-bg);
@@ -7037,7 +7048,7 @@ header.navheader h1 {
 	  .mobile-menu-fallback__body {
 	    flex: 1 1 auto;
 	    overflow-y: auto;
-	    padding: 0 0 16px;
+	    padding: 0;
 	    box-sizing: border-box;
 	  }
   .mobile-menu-fallback .workspace-mode-switch {
@@ -7794,32 +7805,6 @@ body.dark .pinokio-custom-terminal-header {
             <span>Dev</span>
           </a>
         </div>
-        <div class='mobile-sheet-actions' aria-label="Workspace actions">
-          <button type='button' id='menu-mobile-close' class='btn mobile-sheet-action' data-tippy-content="Close menu" aria-label="Close menu" title="Close menu">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-          <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#refresh-page" data-mobile-close-menu="true" aria-label="Refresh" title="Refresh">
-            <i class="fa-solid fa-rotate-right"></i>
-          </button>
-          <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#back" data-mobile-close-menu="true" aria-label="Back" title="Back">
-            <i class="fa-solid fa-chevron-left"></i>
-          </button>
-          <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#forward" data-mobile-close-menu="true" aria-label="Forward" title="Forward">
-            <i class="fa-solid fa-chevron-right"></i>
-          </button>
-          <a class='btn mobile-sheet-action' href="/columns" aria-label="2 Columns" title="2 Columns">
-            <i class="fa-solid fa-table-columns"></i>
-          </a>
-          <a class='btn mobile-sheet-action' href="/rows" aria-label="2 Rows" title="2 Rows">
-            <i class="fa-solid fa-table-columns fa-rotate-270"></i>
-          </a>
-          <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#new-window" data-mobile-close-menu="true" aria-label="New Window" title="New Window">
-            <i class="fa-solid fa-plus"></i>
-          </button>
-          <button type='button' class='btn mobile-sheet-action mobile-close-window-action hidden' data-mobile-proxy="#close-window" data-mobile-close-menu="true" aria-label="Close Section" title="Close Section">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
         <%if (type==='browse') { %>
           <div class='m n system' data-type="n">
             <a id='devtab' data-mode="refresh" target="<%=dev_link%>" href="<%=dev_link%>" class="btn frame-link <%=dev_initial_tab === 'files' ? '' : 'selected'%>" data-index="10">
@@ -7896,14 +7881,26 @@ body.dark .pinokio-custom-terminal-header {
 	          </div>
 	        </button>
 	        <% } %>
-	        <a class='btn header-item mobile-drawer-home' href="/home" aria-label="Home">
-	          <div class='tab'>
-	            <i class="fa-solid fa-house menu-action-leading-icon"></i>
-	            <div class='display'>Home</div>
-	            <div class='flexible'></div>
-	          </div>
-	        </a>
 	      </div>
+        <div class='mobile-sheet-actions' aria-label="Navigation and pane actions">
+          <div class='mobile-sheet-action-grid'>
+            <a class='btn mobile-sheet-action mobile-drawer-home' href="/home" aria-label="Home" title="Home">
+              <i class="fa-solid fa-house"></i>
+            </a>
+            <a class='btn mobile-sheet-action' href="/columns" aria-label="Split right" title="Split right">
+              <i class="fa-solid fa-table-columns"></i>
+            </a>
+            <a class='btn mobile-sheet-action' href="/rows" aria-label="Split down" title="Split down">
+              <i class="fa-solid fa-table-columns fa-rotate-270"></i>
+            </a>
+            <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#new-window" data-mobile-close-menu="true" aria-label="New window" title="New window">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+            <button type='button' class='btn mobile-sheet-action mobile-sheet-action--close-pane mobile-close-window-action hidden' data-mobile-proxy="#close-window" data-mobile-close-menu="true" aria-label="Close pane" title="Close pane">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
 	      <div class='menu-actions <%= type === "browse" ? "dev-menu-actions" : "" %>'>
         <% if (type === 'browse') { %>
           <%- include('./partials/fs_status') %>
@@ -8289,29 +8286,6 @@ body.dark .pinokio-custom-terminal-header {
         <span>Dev</span>
       </a>
     </div>
-    <div class='mobile-sheet-actions' aria-label="Workspace actions">
-      <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#refresh-page" data-mobile-close-menu="true" aria-label="Refresh" title="Refresh">
-        <i class="fa-solid fa-rotate-right"></i>
-      </button>
-      <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#back" data-mobile-close-menu="true" aria-label="Back" title="Back">
-        <i class="fa-solid fa-chevron-left"></i>
-      </button>
-      <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#forward" data-mobile-close-menu="true" aria-label="Forward" title="Forward">
-        <i class="fa-solid fa-chevron-right"></i>
-      </button>
-      <a class='btn mobile-sheet-action' href="/columns" aria-label="2 Columns" title="2 Columns">
-        <i class="fa-solid fa-table-columns"></i>
-      </a>
-      <a class='btn mobile-sheet-action' href="/rows" aria-label="2 Rows" title="2 Rows">
-        <i class="fa-solid fa-table-columns fa-rotate-270"></i>
-      </a>
-      <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#new-window" data-mobile-close-menu="true" aria-label="New Window" title="New Window">
-        <i class="fa-solid fa-plus"></i>
-      </button>
-      <button type='button' class='btn mobile-sheet-action mobile-close-window-action hidden' data-mobile-proxy="#close-window" data-mobile-close-menu="true" aria-label="Close Section" title="Close Section">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </div>
     <div class='mobile-drawer-actions' aria-label="App actions">
       <button type='button' class='btn header-item mobile-nav-logs' data-mobile-proxy="#fs-status .fs-logs .fs-status-btn" data-mobile-panel="logs" data-mobile-close-menu="true" aria-pressed="false" aria-label="Logs">
         <div class='tab'>
@@ -8329,13 +8303,25 @@ body.dark .pinokio-custom-terminal-header {
         </div>
       </button>
       <% } %>
-      <a class='btn header-item mobile-drawer-home' href="/home" aria-label="Home">
-        <div class='tab'>
-          <i class="fa-solid fa-house menu-action-leading-icon"></i>
-          <div class='display'>Home</div>
-          <div class='flexible'></div>
-        </div>
-      </a>
+    </div>
+    <div class='mobile-sheet-actions' aria-label="Navigation and pane actions">
+      <div class='mobile-sheet-action-grid'>
+        <a class='btn mobile-sheet-action mobile-drawer-home' href="/home" aria-label="Home" title="Home">
+          <i class="fa-solid fa-house"></i>
+        </a>
+        <a class='btn mobile-sheet-action' href="/columns" aria-label="Split right" title="Split right">
+          <i class="fa-solid fa-table-columns"></i>
+        </a>
+        <a class='btn mobile-sheet-action' href="/rows" aria-label="Split down" title="Split down">
+          <i class="fa-solid fa-table-columns fa-rotate-270"></i>
+        </a>
+        <button type='button' class='btn mobile-sheet-action' data-mobile-proxy="#new-window" data-mobile-close-menu="true" aria-label="New window" title="New window">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+        <button type='button' class='btn mobile-sheet-action mobile-sheet-action--close-pane mobile-close-window-action hidden' data-mobile-proxy="#close-window" data-mobile-close-menu="true" aria-label="Close pane" title="Close pane">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -11150,7 +11136,7 @@ const rerenderMenuSection = (container, html) => {
 	    const communityModeActive = !!(appcanvas && appcanvas.classList.contains("community-mode"))
     const askAiOpen = !!(appcanvas && appcanvas.classList.contains("panel-open"))
     const mobileMenuFallback = document.querySelector(".mobile-menu-fallback")
-    const closeSectionVisible = !!(closeWindowButton && !closeWindowButton.classList.contains("hidden"))
+    const closePaneAvailable = !!(closeWindowButton && !closeWindowButton.classList.contains("hidden"))
 
 	    document.querySelectorAll(".mobile-nav-menu").forEach((button) => {
 	      button.classList.toggle("selected", mobileMenuOpen)
@@ -11171,8 +11157,8 @@ const rerenderMenuSection = (container, html) => {
       syncLogsSelectedState()
     }
     document.querySelectorAll(".mobile-close-window-action").forEach((button) => {
-      button.classList.toggle("hidden", !closeSectionVisible)
-      button.setAttribute("aria-hidden", closeSectionVisible ? "false" : "true")
+      button.classList.toggle("hidden", !closePaneAvailable)
+      button.setAttribute("aria-hidden", closePaneAvailable ? "false" : "true")
     })
     if (mobileMenuFallback) {
       const showFallback = mobileMenuOpen && document.body.getAttribute("data-view") === "files"
@@ -11217,13 +11203,13 @@ const rerenderMenuSection = (container, html) => {
       setMobileMenuOpen(!isMobileMenuOpen())
     })
   }
-	  if (document.querySelector("#menu-mobile-close")) {
-	    document.querySelector("#menu-mobile-close").addEventListener("click", (e) => {
-	      e.preventDefault()
-	      setMobileMenuOpen(false, { skipRefresh: true })
-	    })
-	  }
-	  if (mobileMenuBackdrop) {
+  if (document.querySelector("#menu-mobile-close")) {
+    document.querySelector("#menu-mobile-close").addEventListener("click", (e) => {
+      e.preventDefault()
+      setMobileMenuOpen(false, { skipRefresh: true })
+    })
+  }
+  if (mobileMenuBackdrop) {
 	    mobileMenuBackdrop.addEventListener("click", () => {
 	      setMobileMenuOpen(false, { skipRefresh: true })
 	    })
