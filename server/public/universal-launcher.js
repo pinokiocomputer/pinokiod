@@ -513,6 +513,34 @@
     }
   }
 
+  function ensureSocketReady() {
+    if (typeof Socket === 'function') {
+      return Promise.resolve(Socket);
+    }
+    return new Promise((resolve, reject) => {
+      const target = document.head || document.body || document.documentElement;
+      if (!target) {
+        reject(new Error('Socket runtime is unavailable.'));
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = '/Socket.js';
+      script.async = true;
+      script.onload = () => {
+        if (typeof Socket === 'function') {
+          resolve(Socket);
+          return;
+        }
+        reject(new Error('Socket runtime failed to load.'));
+      };
+      script.onerror = () => {
+        reject(new Error('Socket runtime failed to load.'));
+      };
+      target.appendChild(script);
+    });
+  }
+
   async function checkLauncherInstallDestinationExists(relativePath, folderName) {
     const response = await fetch('/pinokio/install/exists', {
       method: 'POST',
@@ -4257,8 +4285,9 @@
       throw new Error('Download is unavailable right now.');
     }
     appendDownloadOutput(ui, `$ ${clone.message}\n\n`);
+    const SocketConstructor = await ensureSocketReady();
     await new Promise((resolve, reject) => {
-      const socket = new Socket();
+      const socket = new SocketConstructor();
       let settled = false;
       const settle = (fn, value) => {
         if (settled) {
