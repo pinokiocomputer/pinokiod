@@ -348,6 +348,7 @@ body.dark .snapshot-comment {
   padding: 0;
   border-radius: 9px;
   box-sizing: border-box;
+  transition: background-color 140ms cubic-bezier(0.25, 1, 0.5, 1), box-shadow 140ms cubic-bezier(0.25, 1, 0.5, 1), color 140ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 body.dark #sidebar-toggle {
   color: rgba(248, 250, 252, 0.92);
@@ -383,7 +384,8 @@ body.dark #sidebar-toggle[aria-expanded="true"] {
   width: 4px;
   border-radius: 1px;
   background: currentColor;
-  transition: opacity 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  transform-origin: left center;
+  transition: opacity 150ms cubic-bezier(0.25, 1, 0.5, 1), transform 150ms cubic-bezier(0.25, 1, 0.5, 1), background-color 150ms cubic-bezier(0.25, 1, 0.5, 1), border-color 150ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 .sidebar-toggle-content {
   position: absolute;
@@ -395,12 +397,18 @@ body.dark #sidebar-toggle[aria-expanded="true"] {
   background: currentColor;
   opacity: 0.32;
   box-shadow: 0 3.8px 0 currentColor, 0 7.6px 0 currentColor;
+  transition: opacity 150ms cubic-bezier(0.25, 1, 0.5, 1), transform 150ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 #sidebar-toggle[aria-expanded="false"] .sidebar-toggle-panel {
   background: transparent;
   outline: 1.5px solid currentColor;
   outline-offset: -1px;
   opacity: 0.35;
+  transform: translateX(-1px) scaleX(0.8);
+}
+#sidebar-toggle[aria-expanded="false"] .sidebar-toggle-content {
+  opacity: 0.42;
+  transform: translateX(-2px);
 }
 #devtab {
   align-items: center;
@@ -1999,6 +2007,7 @@ body.dark .appcanvas_filler {
   cursor: col-resize;
   touch-action: none;
   outline: none;
+  opacity: 1;
 }
 /*
 .appcanvas.vertical .appcanvas-resizer:hover::before {
@@ -2063,6 +2072,26 @@ body.dark .appcanvas > aside {
   --sidebar-tab-radius: 6px;
   --sidebar-tab-selected-translate: 0;
   --sidebar-tab-outline: var(--pinokio-sidebar-tabbar-border);
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.appcanvas.vertical > aside {
+  flex: 0 0 var(--appcanvas-sidebar-width);
+  width: var(--appcanvas-sidebar-width);
+  max-width: var(--appcanvas-sidebar-width);
+}
+
+.appcanvas.sidebar-motion-ready > aside,
+.appcanvas.sidebar-motion-ready > aside .menu-container,
+.appcanvas.sidebar-motion-ready .appcanvas-resizer {
+  transition: flex-basis 190ms cubic-bezier(0.25, 1, 0.5, 1), width 190ms cubic-bezier(0.25, 1, 0.5, 1), max-width 190ms cubic-bezier(0.25, 1, 0.5, 1), margin 190ms cubic-bezier(0.25, 1, 0.5, 1), opacity 140ms cubic-bezier(0.25, 1, 0.5, 1), transform 190ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.appcanvas.sidebar-resizing > aside,
+.appcanvas.sidebar-resizing > aside .menu-container,
+.appcanvas.sidebar-resizing .appcanvas-resizer {
+  transition: none !important;
 }
 
 .appcanvas.sidebar-collapsed > aside {
@@ -2073,6 +2102,7 @@ body.dark .appcanvas > aside {
   opacity: 0;
   pointer-events: none;
   overflow: hidden;
+  transform: translateX(-10px);
 }
 
 .appcanvas.sidebar-collapsed > aside .menu-container {
@@ -2080,7 +2110,24 @@ body.dark .appcanvas > aside {
 }
 
 .appcanvas.sidebar-collapsed .appcanvas-resizer {
-  display: none;
+  flex-basis: 0;
+  width: 0;
+  min-width: 0;
+  margin-left: 0;
+  margin-right: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #sidebar-toggle,
+  .sidebar-toggle-panel,
+  .sidebar-toggle-content,
+  .appcanvas.sidebar-motion-ready > aside,
+  .appcanvas.sidebar-motion-ready > aside .menu-container,
+  .appcanvas.sidebar-motion-ready .appcanvas-resizer {
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /*
@@ -6667,14 +6714,14 @@ header.navheader h1 {
 	    box-sizing: border-box;
 	    overflow-y: auto;
 	    pointer-events: none;
-	    background: var(--pinokio-sidebar-tabbar-bg);
-	    border-right: 1px solid var(--pinokio-sidebar-separator);
-	    border-left: 0;
-	    box-shadow: 24px 0 48px rgba(15, 23, 42, 0.12);
-	    transform: translateX(-100%);
-	    transition: transform 180ms ease;
-	    z-index: 10000020;
-	  }
+		    background: var(--pinokio-sidebar-tabbar-bg);
+		    border-right: 1px solid var(--pinokio-sidebar-separator);
+		    border-left: 0;
+		    box-shadow: none;
+		    transform: translateX(-100%);
+		    transition: transform 180ms ease;
+		    z-index: 10000020;
+		  }
 	  body.mobile-menu-open .appcanvas.sidebar-collapsed > aside {
 	    width: min(280px, calc(100vw - 40px));
 	    min-width: 0;
@@ -11890,6 +11937,7 @@ const rerenderMenuSection = (container, html) => {
       }
 
       const finishResizing = () => {
+        appcanvas.classList.remove("sidebar-resizing")
         if (!isResizing) {
           if (document.activeElement === sidebarResizer) {
             sidebarResizer.blur()
@@ -11958,6 +12006,7 @@ const rerenderMenuSection = (container, html) => {
         }
         event.preventDefault()
         isResizing = true
+        appcanvas.classList.add("sidebar-resizing")
         pointerId = event.pointerId
         try {
           sidebarResizer.setPointerCapture(event.pointerId)
@@ -16013,6 +16062,9 @@ const rerenderMenuSection = (container, html) => {
     initialCollapsed = window.localStorage.getItem(storageKey) === "1"
   } catch (_) {}
   setCollapsed(initialCollapsed, { persist: false })
+  requestAnimationFrame(() => {
+    appcanvas.classList.add("sidebar-motion-ready")
+  })
 
   toggle.addEventListener("click", (event) => {
     event.preventDefault()

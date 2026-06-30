@@ -1284,6 +1284,7 @@ body.main-sidebar-page .navheader .sidebar-toggle {
   padding: 0;
   border-radius: 9px;
   box-sizing: border-box;
+  transition: background-color 140ms cubic-bezier(0.25, 1, 0.5, 1), box-shadow 140ms cubic-bezier(0.25, 1, 0.5, 1), color 140ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 body.dark.main-sidebar-page .navheader .sidebar-toggle {
   color: rgba(248, 250, 252, 0.92);
@@ -1319,6 +1320,8 @@ body.main-sidebar-page .sidebar-toggle-panel {
   width: 4px;
   border-radius: 1px;
   background: currentColor;
+  transform-origin: left center;
+  transition: opacity 150ms cubic-bezier(0.25, 1, 0.5, 1), transform 150ms cubic-bezier(0.25, 1, 0.5, 1), background-color 150ms cubic-bezier(0.25, 1, 0.5, 1), border-color 150ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 body.main-sidebar-page .sidebar-toggle-content {
   position: absolute;
@@ -1330,12 +1333,18 @@ body.main-sidebar-page .sidebar-toggle-content {
   background: currentColor;
   opacity: 0.32;
   box-shadow: 0 3.8px 0 currentColor, 0 7.6px 0 currentColor;
+  transition: opacity 150ms cubic-bezier(0.25, 1, 0.5, 1), transform 150ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 body.main-sidebar-page .navheader .sidebar-toggle[aria-expanded="false"] .sidebar-toggle-panel {
   background: transparent;
   outline: 1.5px solid currentColor;
   outline-offset: -1px;
   opacity: 0.35;
+  transform: translateX(-1px) scaleX(0.8);
+}
+body.main-sidebar-page .navheader .sidebar-toggle[aria-expanded="false"] .sidebar-toggle-content {
+  opacity: 0.42;
+  transform: translateX(-2px);
 }
 body.main-sidebar-page main {
   display: flex;
@@ -1810,6 +1819,10 @@ body.dark .main-sidebar-peer-dialog-surface {
 
   body.main-sidebar-page .main-sidebar {
     align-self: stretch;
+    flex: 0 0 180px;
+    width: 180px;
+    min-width: 180px;
+    max-width: 180px;
     height: auto;
     max-height: none;
     overflow-x: hidden;
@@ -1817,6 +1830,14 @@ body.dark .main-sidebar-peer-dialog-surface {
     overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  body.main-sidebar-page.main-sidebar-motion-ready .main-sidebar,
+  body.main-sidebar-page.main-sidebar-motion-ready main > .container,
+  body.main-sidebar-page.main-sidebar-motion-ready main > .task-container {
+    transition: flex-basis 190ms cubic-bezier(0.25, 1, 0.5, 1), width 190ms cubic-bezier(0.25, 1, 0.5, 1), min-width 190ms cubic-bezier(0.25, 1, 0.5, 1), max-width 190ms cubic-bezier(0.25, 1, 0.5, 1), padding 190ms cubic-bezier(0.25, 1, 0.5, 1), border-color 190ms cubic-bezier(0.25, 1, 0.5, 1), opacity 140ms cubic-bezier(0.25, 1, 0.5, 1), transform 190ms cubic-bezier(0.25, 1, 0.5, 1);
   }
 
   body.dark.main-sidebar-page .main-sidebar {
@@ -1842,6 +1863,7 @@ body.dark .main-sidebar-peer-dialog-surface {
   }
 
   body.main-sidebar-page.main-sidebar-collapsed .main-sidebar {
+    flex-basis: 0;
     width: 0;
     min-width: 0;
     max-width: 0;
@@ -1852,11 +1874,23 @@ body.dark .main-sidebar-peer-dialog-surface {
     opacity: 0;
     pointer-events: none;
     overflow: hidden;
+    transform: translateX(-10px);
   }
 
   body.main-sidebar-page.main-sidebar-collapsed main > .container,
   body.main-sidebar-page.main-sidebar-collapsed main > .task-container {
     padding-left: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body.main-sidebar-page .navheader .sidebar-toggle,
+    body.main-sidebar-page .sidebar-toggle-panel,
+    body.main-sidebar-page .sidebar-toggle-content,
+    body.main-sidebar-page.main-sidebar-motion-ready .main-sidebar,
+    body.main-sidebar-page.main-sidebar-motion-ready main > .container,
+    body.main-sidebar-page.main-sidebar-motion-ready main > .task-container {
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 form.search input[type=search] {

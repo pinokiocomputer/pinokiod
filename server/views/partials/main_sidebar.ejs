@@ -193,6 +193,9 @@
       };
 
       setCollapsed(false);
+      requestAnimationFrame(() => {
+        body.classList.add("main-sidebar-motion-ready");
+      });
 
       headerToggle.addEventListener("click", (event) => {
         event.preventDefault();
