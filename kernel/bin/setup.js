@@ -49,7 +49,6 @@ module.exports = {
     }
     requirements = requirements.concat([
 //      { name: "cloudflared" },
-//      { name: "playwright" },
       { name: "huggingface" },
       { name: "uv" },
       { name: "py" },

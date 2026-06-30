@@ -1272,9 +1272,6 @@ class Kernel {
 
               await fs.promises.mkdir(this.path("logs"), { recursive: true }).catch((e) => { })
               await fs.promises.writeFile(this.path("logs/system.json"), JSON.stringify(this.i, null, 2))
-              let pwpath = this.bin.path("playwright/node_modules/playwright")
-              this.playwright = (await this.loader.load(pwpath)).resolved
-
               //await this.fileserver()
 
               // get env
