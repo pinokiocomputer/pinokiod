@@ -3301,7 +3301,7 @@ document.addEventListener("DOMContentLoaded", () => {
       selectedUrl = await api.openSplitModal({
         title: modalTitle,
         description: 'Choose a running process or use the current tab URL for the new pane.',
-        confirmLabel: 'Split',
+        confirmLabel: 'Open in pane',
         includeCurrent: true
       });
     } catch (error) {

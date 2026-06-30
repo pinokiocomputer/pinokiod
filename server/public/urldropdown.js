@@ -191,13 +191,13 @@ function initUrlDropdown(config = {}) {
     };
   };
 
-  const buildProjectModeButtons = (projectCtx) => {
+  const buildProjectModeButtons = (projectCtx, { includeFiles = true } = {}) => {
     if (!projectCtx) return '';
     const modes = [
       { key: 'run', label: 'Run', icon: 'fa-solid fa-circle-play', suffix: '' },
       { key: 'dev', label: 'Dev', icon: 'fa-solid fa-code', suffix: '/dev' },
       { key: 'files', label: 'Files', icon: 'fa-solid fa-file-lines', suffix: '/files' },
-    ];
+    ].filter((mode) => includeFiles || mode.key !== 'files');
 
     const buildTarget = (suffix) => {
       const targetPath = `${projectCtx.basePath}${suffix}`;
@@ -244,14 +244,15 @@ function initUrlDropdown(config = {}) {
     currentUrl = '',
     currentTitle = 'Current tab',
     currentProject = null,
-    origin = ''
+    origin = '',
+    includeFiles = true
   } = {}) => {
     const entries = [];
 
     if (includeCurrentTab && currentUrl) {
       const schemeLabel = currentUrl.startsWith('https://') ? 'HTTPS' : 'HTTP';
       const currentPathLabel = currentProject ? currentProject.basePath : formatUrlLabel(currentUrl) || currentUrl;
-      const projectButtons = currentProject ? buildProjectModeButtons(currentProject) : '';
+      const projectButtons = currentProject ? buildProjectModeButtons(currentProject, { includeFiles }) : '';
       entries.push(`
         <div class="url-dropdown-item${currentProject ? ' non-selectable current-project' : ''}" data-url="${escapeAttribute(currentUrl)}" data-host-type="current">
           <div class="url-dropdown-name">
@@ -285,7 +286,7 @@ function initUrlDropdown(config = {}) {
       if (!projectCtx) return;
       const displayUrl = projectCtx.origin ? `${projectCtx.origin}${projectCtx.basePath}` : projectCtx.basePath;
       const schemeLabel = displayUrl.startsWith('https://') ? 'HTTPS' : 'HTTP';
-      const projectButtons = buildProjectModeButtons(projectCtx);
+      const projectButtons = buildProjectModeButtons(projectCtx, { includeFiles });
       const displayTitle = getAppDisplayTitle(app);
       entries.push(`
         <div class="url-dropdown-item non-selectable current-project" data-url="${escapeAttribute(displayUrl)}" data-host-type="current">
@@ -707,7 +708,7 @@ function initUrlDropdown(config = {}) {
     return html;
   };
 
-  const buildDropdownHtml = (processes, { includeCurrentTab = true, apps = [], inputElement } = {}) => {
+  const buildDropdownHtml = (processes, { includeCurrentTab = true, apps = [], inputElement, includeFiles = true } = {}) => {
     const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
     const currentTitle = typeof document !== 'undefined' ? (document.title || 'Current tab') : 'Current tab';
     const currentProject = parseProjectContext(currentUrl);
@@ -719,7 +720,8 @@ function initUrlDropdown(config = {}) {
       currentUrl,
       currentTitle,
       currentProject,
-      origin
+      origin,
+      includeFiles
     });
     if (appsHtml) {
       html += appsHtml;
@@ -932,6 +934,17 @@ function initUrlDropdown(config = {}) {
     modalInput.className = 'url-modal-input';
     modalInput.placeholder = 'Example: http://localhost:7860';
 
+    const inputRow = document.createElement('div');
+    inputRow.className = 'url-modal-input-row';
+
+    const inlineConfirmButton = document.createElement('button');
+    inlineConfirmButton.type = 'button';
+    inlineConfirmButton.className = 'url-modal-inline-submit';
+    inlineConfirmButton.textContent = 'Open';
+    inlineConfirmButton.disabled = true;
+
+    inputRow.append(modalInput, inlineConfirmButton);
+
     const modalDropdown = document.createElement('div');
     modalDropdown.className = 'url-dropdown';
     modalDropdown.id = 'url-modal-dropdown';
@@ -952,11 +965,13 @@ function initUrlDropdown(config = {}) {
 
     actions.append(cancelButton, confirmButton);
 
-    content.append(closeButton, heading, description, modalInput, modalDropdown, actions);
+    content.append(closeButton, heading, description, inputRow, modalDropdown, actions);
     overlay.append(content);
 
     const updateConfirmState = () => {
-      confirmButton.disabled = !modalInput.value.trim();
+      const disabled = !modalInput.value.trim();
+      confirmButton.disabled = disabled;
+      inlineConfirmButton.disabled = disabled;
     };
 
     modalInput.addEventListener('focus', () => {
@@ -981,6 +996,7 @@ function initUrlDropdown(config = {}) {
 
     cancelButton.addEventListener('click', closeMobileModal);
     confirmButton.addEventListener('click', submitMobileModal);
+    inlineConfirmButton.addEventListener('click', submitMobileModal);
     closeButton.addEventListener('click', closeMobileModal);
 
     overlay.addEventListener('click', (event) => {
@@ -991,9 +1007,12 @@ function initUrlDropdown(config = {}) {
 
     overlay._modalRefs = {
       input: modalInput,
+      inputRow,
       dropdown: modalDropdown,
       confirmButton,
+      inlineConfirmButton,
       cancelButton,
+      content,
       closeButton,
       heading,
       description,
@@ -1038,12 +1057,18 @@ function initUrlDropdown(config = {}) {
     refs.heading.textContent = title;
     refs.description.textContent = descriptionText;
     refs.confirmButton.textContent = confirmLabel;
+    if (refs.inlineConfirmButton) {
+      refs.inlineConfirmButton.textContent = confirmLabel;
+    }
     refs.includeCurrent = includeCurrent;
     refs.context = customOptions.context || 'default';
     refs.returnSelection = Boolean(customOptions.awaitSelection);
     refs.resolve = null;
+    overlay.classList.toggle('split-mode', refs.context === 'split');
+    refs.content?.classList.toggle('split-mode', refs.context === 'split');
     if (refs.dropdown) {
       refs.dropdown._includeCurrent = includeCurrent;
+      refs.dropdown._context = refs.context;
     }
 
     modalInput.value = initialValue;
@@ -1086,6 +1111,9 @@ function initUrlDropdown(config = {}) {
     if (refs?.confirmButton) {
       refs.confirmButton.disabled = true;
     }
+    if (refs?.inlineConfirmButton) {
+      refs.inlineConfirmButton.disabled = true;
+    }
 
     if (refs) {
       if (options.resolveValue !== undefined) {
@@ -1102,6 +1130,8 @@ function initUrlDropdown(config = {}) {
       if (!options.keepMode) {
         refs.context = 'default';
         refs.includeCurrent = true;
+        overlay.classList.remove('split-mode');
+        refs.content?.classList.remove('split-mode');
       }
     }
 
@@ -1151,7 +1181,8 @@ function initUrlDropdown(config = {}) {
       modalDropdown.innerHTML = buildDropdownHtml(processes, {
         includeCurrentTab: includeCurrent,
         apps,
-        inputElement: modalDropdown.parentElement.querySelector('.url-modal-input')
+        inputElement: modalDropdown.parentElement.querySelector('.url-modal-input'),
+        includeFiles: modalDropdown._context !== 'split'
       });
       attachCreateButtonHandler(modalDropdown, modalDropdown.parentElement.querySelector('.url-modal-input'));
       attachUrlItemHandlers(modalDropdown, { onSelect: handleModalSelection });
@@ -1216,7 +1247,8 @@ function initUrlDropdown(config = {}) {
     modalDropdown.innerHTML = buildDropdownHtml(processes, {
       includeCurrentTab: includeCurrent,
       apps,
-      inputElement: modalInput
+      inputElement: modalInput,
+      includeFiles: modalDropdown._context !== 'split'
     });
 
     attachCreateButtonHandler(modalDropdown, modalInput);
@@ -1251,7 +1283,7 @@ function initUrlDropdown(config = {}) {
       return showMobileModal({
         title: modalOptions.title || 'Split View',
         description: modalOptions.description || 'Choose an app, a running process, or use the current tab URL for the new pane.',
-        confirmLabel: modalOptions.confirmLabel || 'Split',
+        confirmLabel: modalOptions.confirmLabel || 'Open in pane',
         includeCurrent: modalOptions.includeCurrent !== false,
         awaitSelection: true,
         context: 'split'
