@@ -227,6 +227,20 @@ class Huggingface {
     await this.runHf(["auth", "logout"]).catch(() => {})
     await fs.promises.rm(this.kernel.path("connect", "huggingface"), { recursive: true, force: true }).catch(() => {})
   }
+  async cancelLogin() {
+    const session = this.loginSession
+    if (!session || session.status !== "pending") {
+      return
+    }
+    session.status = "canceled"
+    session.error = "Hugging Face login canceled."
+    if (session.child) {
+      session.child.kill()
+    }
+    if (this.loginSession === session) {
+      this.loginSession = null
+    }
+  }
   async logout() {
     await this.destroy()
   }

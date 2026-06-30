@@ -71,3 +71,36 @@ test('Hugging Face connect uses shared HF_TOKEN_PATH and ignores ambient HF_TOKE
     await fs.rm(root, { recursive: true, force: true })
   }
 })
+
+test('Hugging Face connect cancelLogin only stops a pending login session', async () => {
+  const provider = new HuggingfaceConnect(createKernel('/tmp/pinokio'), {})
+  let killed = false
+  provider.loginSession = {
+    status: 'pending',
+    error: null,
+    child: {
+      kill() {
+        killed = true
+      }
+    }
+  }
+
+  await provider.cancelLogin()
+
+  assert.equal(killed, true)
+  assert.equal(provider.loginSession, null)
+
+  const completeSession = {
+    status: 'success',
+    child: {
+      kill() {
+        throw new Error('should not kill completed sessions')
+      }
+    }
+  }
+  provider.loginSession = completeSession
+
+  await provider.cancelLogin()
+
+  assert.equal(provider.loginSession, completeSession)
+})

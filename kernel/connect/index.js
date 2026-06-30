@@ -32,6 +32,12 @@ class Connect {
     let res = await this.clients[provider].logout(req)
     return res
   }
+  async cancelLogin(provider, req) {
+    if (this.clients[provider] && this.clients[provider].cancelLogin) {
+      return await this.clients[provider].cancelLogin(req)
+    }
+    return null
+  }
   async keys(provider) {
     let res = await this.clients[provider].keys()
     return res
