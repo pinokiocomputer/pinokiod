@@ -1,0 +1,32 @@
+<%
+  const href = i && typeof i.href === "string" ? i.href : "";
+  const target = href ? `@${href}` : "";
+  const tabIndex = typeof indexState !== "undefined" && indexState && typeof indexState.value === "number" ? indexState.value++ : 0;
+  const tabClass = ["tab", typeof className === "string" ? className : ""].filter(Boolean).join(" ");
+  const description = typeof getItemDescription === "function" ? getItemDescription(i) : (i && (i.description || i.subtitle || ""));
+  const enableSettings = typeof showSettings !== "undefined" && showSettings === true && href;
+  const isTerminalOption = typeof terminalOption !== "undefined" && terminalOption === true;
+%>
+<div class='<%= tabClass %>' role="button" tabindex="0" data-index="<%= tabIndex %>"<% if (isTerminalOption) { %> data-terminal-option-tab="true"<% } %> data-target="<%= target %>" data-href="<%= href %>">
+  <% if (i.image) { %>
+    <img src="<%= i.image %>">
+  <% } else if (i.icon) { %>
+    <i class="img <%= i.icon %>"></i>
+  <% } %>
+  <div class='tab-copy'>
+    <h2 class='tab-title'><%= i.title %></h2>
+    <% if (description) { %>
+      <div class='tab-subtitle subtitle'><%= description %></div>
+    <% } %>
+  </div>
+  <div class='tab-actions'>
+    <% if (enableSettings) { %>
+      <button class="tab-action-link" type="button" data-plugin-settings="true" data-href="<%= href %>" title="Manage plugin" data-tippy-content="Manage plugin" aria-label="Manage plugin">
+        <i class="fa-solid fa-gear"></i>
+      </button>
+    <% } %>
+    <div class='disclosure-indicator' aria-hidden="true">
+      <i class="fa-solid fa-chevron-right"></i>
+    </div>
+  </div>
+</div>

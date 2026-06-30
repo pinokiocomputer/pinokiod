@@ -872,144 +872,44 @@ body.dark .terminal-shell-options {
 </div>
 
   <%
-    let index = 0;
-    const userTerminal = dynamic && dynamic.length ? dynamic[0] : null;
-    const cliMenu = dynamic.find((item) => item && item.title === "Terminal Apps");
-    const ideMenu = dynamic.find((item) => item && item.title === "Desktop Apps");
+    const dynamicItems = Array.isArray(dynamic) ? dynamic : [];
+    const indexState = { value: 0 };
+    const getItemDescription = (item) => {
+      if (!item || typeof item !== "object") {
+        return "";
+      }
+      const candidates = [
+        item.description,
+        item.subtitle,
+        item.summary,
+        item.metadata && item.metadata.description,
+        item.meta && item.meta.description,
+      ];
+      for (const candidate of candidates) {
+        if (typeof candidate === "string" && candidate.trim()) {
+          return candidate.trim();
+        }
+      }
+      return "";
+    };
+    const userTerminal = dynamicItems.find((item) => item && (item.title === "Terminals" || item.title === "Project Shell"));
+    const cliMenu = dynamicItems.find((item) => item && item.title === "Terminal Apps");
+    const ideMenu = dynamicItems.find((item) => item && item.title === "Desktop Apps");
     const handled = new Set();
-    const primaryColumnCount = [userTerminal, cliMenu, ideMenu].filter((item) => item && item.menu && item.menu.length).length;
     if (userTerminal) handled.add(userTerminal);
     if (cliMenu) handled.add(cliMenu);
     if (ideMenu) handled.add(ideMenu);
-    const remaining = dynamic.filter((item) => !handled.has(item));
+    const remaining = dynamicItems.filter((item) => !handled.has(item));
   %>
 
-  <div class='menu-grid <%= primaryColumnCount === 3 ? "menu-grid--triptych" : "" %>'>
-    <% if (userTerminal && userTerminal.menu && userTerminal.menu.length) { %>
-      <%- include('./partials/d_terminal_column', { userTerminal }) %>
-    <% } %>
-
-    <% if (cliMenu && cliMenu.menu && cliMenu.menu.length) { %>
-      <div class='menu-container menu-column cli-column'>
-        <div class='tab-header'>
-          <h3><i class='<%= cliMenu.icon %>'></i> <%= cliMenu.title %></h3>
-        </div>
-        <% if (cliMenu.subtitle || cliMenu.subtitle_link_href) { %>
-          <div class='column-subtitle'>
-            <% if (cliMenu.subtitle) { %>
-              <span><%= cliMenu.subtitle %></span><% if (cliMenu.subtitle_link_href && cliMenu.subtitle_link_label) { %> <% } %>
-            <% } %>
-            <% if (cliMenu.subtitle_link_href && cliMenu.subtitle_link_label) { %>
-              <a class='column-subtitle-link' href="<%= cliMenu.subtitle_link_href %>" target="_parent"><%= cliMenu.subtitle_link_label %></a>
-            <% } %>
-          </div>
-        <% } %>
-        <div class='tab-content'>
-          <% cliMenu.menu.forEach((i) => { %>
-            <div class='tab' role="button" tabindex="0" data-index="<%= index++ %>" data-target="@<%= i.href %>" data-href="<%= i.href %>">
-              <% if (i.image) { %>
-                <img src="<%= i.image %>">
-              <% } else if (i.icon) { %>
-                <i class="img <%= i.icon %>"></i>
-              <% } %>
-              <div class='tab-copy'>
-                <h2 class='tab-title'><%= i.title %></h2>
-                <% if (i.subtitle) { %>
-                  <div class='tab-subtitle subtitle'><%= i.subtitle %></div>
-                <% } %>
-              </div>
-              <div class='tab-actions'>
-                <button class="tab-action-link" type="button" data-plugin-settings="true" data-href="<%= i.href %>" title="Manage plugin" data-tippy-content="Manage plugin" aria-label="Manage plugin">
-                  <i class="fa-solid fa-gear"></i>
-                </button>
-                <div class='disclosure-indicator' aria-hidden="true">
-                  <i class="fa-solid fa-chevron-right"></i>
-                </div>
-              </div>
-            </div>
-          <% }) %>
-        </div>
-      </div>
-    <% } %>
-
-    <% if (ideMenu && ideMenu.menu && ideMenu.menu.length) { %>
-      <div class='menu-container menu-column ide-column'>
-        <div class='tab-header'>
-          <h3><i class='<%= ideMenu.icon %>'></i> <%= ideMenu.title %></h3>
-        </div>
-        <% if (ideMenu.subtitle || ideMenu.subtitle_link_href) { %>
-          <div class='column-subtitle'>
-            <% if (ideMenu.subtitle) { %>
-              <span><%= ideMenu.subtitle %></span><% if (ideMenu.subtitle_link_href && ideMenu.subtitle_link_label) { %> <% } %>
-            <% } %>
-            <% if (ideMenu.subtitle_link_href && ideMenu.subtitle_link_label) { %>
-              <a class='column-subtitle-link' href="<%= ideMenu.subtitle_link_href %>" target="_parent"><%= ideMenu.subtitle_link_label %></a>
-            <% } %>
-          </div>
-        <% } %>
-        <div class='tab-content'>
-          <% ideMenu.menu.forEach((i) => { %>
-            <div class='tab' role="button" tabindex="0" data-index="<%= index++ %>" data-target="@<%= i.href %>" data-href="<%= i.href %>">
-              <% if (i.image) { %>
-                <img src="<%= i.image %>">
-              <% } else if (i.icon) { %>
-                <i class="img <%= i.icon %>"></i>
-              <% } %>
-              <div class='tab-copy'>
-                <h2 class='tab-title'><%= i.title %></h2>
-                <% if (i.subtitle) { %>
-                  <div class='tab-subtitle subtitle'><%= i.subtitle %></div>
-                <% } %>
-              </div>
-              <div class='tab-actions'>
-                <button class="tab-action-link" type="button" data-plugin-settings="true" data-href="<%= i.href %>" title="Manage plugin" data-tippy-content="Manage plugin" aria-label="Manage plugin">
-                  <i class="fa-solid fa-gear"></i>
-                </button>
-                <div class='disclosure-indicator' aria-hidden="true">
-                  <i class="fa-solid fa-chevron-right"></i>
-                </div>
-              </div>
-            </div>
-          <% }) %>
-        </div>
-      </div>
-    <% } %>
-  </div>
-
-  <% remaining.forEach((item) => { %>
-    <% if (item.menu) { %>
-      <div class='menu-container'>
-        <div class='tab-header'>
-          <h3><i class='<%= item.icon %>'></i> <%= item.title %></h3>
-        </div>
-        <div class='tab-content'>
-          <% item.menu.forEach((i) => { %>
-            <div class='tab' role="button" tabindex="0" data-index="<%= index++ %>" data-target="@<%= i.href %>" data-href="<%= i.href %>">
-              <% if (i.image) { %>
-                <img src="<%= i.image %>">
-              <% } else if (i.icon) { %>
-                <i class="img <%= i.icon %>"></i>
-              <% } %>
-              <div class='tab-copy'>
-                <h2 class='tab-title'><%= i.title %></h2>
-                <% if (i.subtitle) { %>
-                  <div class='tab-subtitle subtitle'><%= i.subtitle %></div>
-                <% } %>
-              </div>
-              <div class='tab-actions'>
-                <button class="tab-action-link" type="button" data-plugin-settings="true" data-href="<%= i.href %>" title="Manage plugin" data-tippy-content="Manage plugin" aria-label="Manage plugin">
-                  <i class="fa-solid fa-gear"></i>
-                </button>
-                <div class='disclosure-indicator' aria-hidden="true">
-                  <i class="fa-solid fa-chevron-right"></i>
-                </div>
-              </div>
-            </div>
-          <% }) %>
-        </div>
-      </div>
-    <% } else { %>
-      <div class='tab' data-index="<%= index++ %>">
+  <div class='menu-grid'>
+    <%- include('./partials/d_menu_column', { section: cliMenu, indexState, getItemDescription, className: 'cli-column', showSettings: true }) %>
+    <%- include('./partials/d_menu_column', { section: ideMenu, indexState, getItemDescription, className: 'ide-column', showSettings: true }) %>
+    <% remaining.forEach((item) => { %>
+      <% if (item.menu) { %>
+        <%- include('./partials/d_menu_column', { section: item, indexState, getItemDescription, showSettings: true }) %>
+      <% } else { %>
+      <div class='tab' data-index="<%= indexState.value++ %>">
         <% if (item.image) { %>
           <img src="<%= item.image %>">
         <% } else if (item.icon) { %>
@@ -1017,8 +917,9 @@ body.dark .terminal-shell-options {
         <% } %>
         <div class='col'>
           <h2><%= item.title %></h2>
-          <% if (item.subtitle) { %>
-            <div class='subtitle'><%= item.subtitle %></div>
+          <% const itemDescription = getItemDescription(item); %>
+          <% if (itemDescription) { %>
+            <div class='subtitle'><%= itemDescription %></div>
           <% } %>
           <div class='btns'>
             <% if (item.link) { %>
@@ -1028,8 +929,12 @@ body.dark .terminal-shell-options {
           </div>
         </div>
       </div>
+      <% } %>
+    <% }) %>
+    <% if (userTerminal && userTerminal.menu && userTerminal.menu.length) { %>
+      <%- include('./partials/d_terminal_column', { userTerminal, indexState, getItemDescription }) %>
     <% } %>
-  <% }) %>
+  </div>
   <% if (retry) { %>
     <div class='requirements'>
       <div class='content'>

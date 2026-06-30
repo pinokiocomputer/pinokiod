@@ -1,0 +1,10 @@
+<% if (section && (section.subtitle || section.subtitle_link_href)) { %>
+  <div class='column-subtitle'>
+    <% if (section.subtitle) { %>
+      <span><%= section.subtitle %></span><% if (section.subtitle_link_href && section.subtitle_link_label) { %> <% } %>
+    <% } %>
+    <% if (section.subtitle_link_href && section.subtitle_link_label) { %>
+      <a class='column-subtitle-link' href="<%= section.subtitle_link_href %>" target="_parent"><%= section.subtitle_link_label %></a>
+    <% } %>
+  </div>
+<% } %>

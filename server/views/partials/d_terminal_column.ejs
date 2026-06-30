@@ -2,16 +2,7 @@
   <div class='tab-header'>
     <h3><i class='<%= userTerminal.icon %>'></i> <%= userTerminal.title === "Terminals" ? "Project Shell" : userTerminal.title %></h3>
   </div>
-  <% if (userTerminal.subtitle || userTerminal.subtitle_link_href) { %>
-    <div class='column-subtitle'>
-      <% if (userTerminal.subtitle) { %>
-        <span><%= userTerminal.subtitle %></span><% if (userTerminal.subtitle_link_href && userTerminal.subtitle_link_label) { %> <% } %>
-      <% } %>
-      <% if (userTerminal.subtitle_link_href && userTerminal.subtitle_link_label) { %>
-        <a class='column-subtitle-link' href="<%= userTerminal.subtitle_link_href %>" target="_parent"><%= userTerminal.subtitle_link_label %></a>
-      <% } %>
-    </div>
-  <% } %>
+  <%- include('./d_column_subtitle', { section: userTerminal }) %>
   <div class='tab-content'>
     <% userTerminal.menu.forEach((i) => { %>
       <div class='terminal-shell-group'>
@@ -29,7 +20,7 @@
           </div>
         </div>
         <div class='terminal-shell-options'>
-          <%- include('./d_terminal_options', { options: i.menu || [] }) %>
+          <%- include('./d_terminal_options', { options: i.menu || [], indexState, getItemDescription }) %>
         </div>
       </div>
     <% }) %>

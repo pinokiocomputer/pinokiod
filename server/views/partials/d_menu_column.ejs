@@ -1,0 +1,18 @@
+<%
+  const rows = section && Array.isArray(section.menu) ? section.menu : [];
+  const sectionClass = typeof className === "string" ? className : "";
+  const enableSettings = typeof showSettings === "boolean" ? showSettings : true;
+%>
+<% if (section && rows.length) { %>
+  <div class='menu-container menu-column <%= sectionClass %>'>
+    <div class='tab-header'>
+      <h3><i class='<%= section.icon %>'></i> <%= section.title %></h3>
+    </div>
+    <%- include('./d_column_subtitle', { section }) %>
+    <div class='tab-content'>
+      <% rows.forEach((i) => { %>
+        <%- include('./d_tool_tab', { i, indexState, getItemDescription, showSettings: enableSettings }) %>
+      <% }) %>
+    </div>
+  </div>
+<% } %>
