@@ -51,10 +51,9 @@ function installSteps(kernel) {
     id: "install",
     method: "shell.run",
     params: {
-      conda: { skip: true },
       message: {
         _: [
-          process.execPath,
+          "node",
           installerPath(),
           "--install-dir",
           installDir(kernel),

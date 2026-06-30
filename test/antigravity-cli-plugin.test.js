@@ -35,8 +35,9 @@ test("Antigravity CLI install and update install agy into Pinokio bin", () => {
   for (const step of [install, update]) {
     assert.equal(step.method, "shell.run")
     assert.equal(step.params.path, root)
-    assert.equal(step.params.conda.skip, true)
-    assert.equal(step.params.message._[0], process.execPath)
+    assert.equal(Object.prototype.hasOwnProperty.call(step.params, "conda"), false)
+    assert.equal(Object.prototype.hasOwnProperty.call(step.params, "env"), false)
+    assert.equal(step.params.message._[0], "node")
     assert.equal(step.params.message._[1], antigravityCommon.installerPath())
     assert.deepEqual(step.params.message._.slice(2), [
       "--install-dir",
