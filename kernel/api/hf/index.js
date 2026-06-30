@@ -327,5 +327,36 @@ class HF {
     let res = await shell.run(req, ondata, kernel)
     return res
   }
+  /*
+  {
+    "method": "hf.upload",
+    "params": {
+      path: <cwd>,
+      env: {
+        <env1>: <val1>,
+        <env1>: <val1>,
+        <env1>: <val1>,
+      },
+      _: [<command line args>'],
+      <arg1>: <val1>,
+      <arg2>: <val2>,
+      ...
+    }
+  }
+  */
+  async upload(req, ondata, kernel) {
+    const shell = new Shell()
+    let params = Object.assign({}, req.params)
+    delete params.env
+    delete params.path
+    const positional = Array.isArray(params._) ? params._ : (params._ == null ? [] : [params._])
+    params._ = ["hf", "upload", ...positional]
+    let message = [
+      params
+    ]
+    req.params.message = message
+    let res = await shell.run(req, ondata, kernel)
+    return res
+  }
 }
 module.exports = HF

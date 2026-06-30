@@ -408,6 +408,53 @@ test('hf.logout delegates to the Hugging Face connect provider and returns succe
   assert.deepEqual(calls, [{ method: 'logout', provider: 'huggingface', params: req.params }])
 })
 
+test('hf.upload runs hf upload through shell.run with Hugging Face CLI args', async () => {
+  const hf = new HF()
+  const calls = []
+  const kernel = {
+    platform: 'darwin',
+    shell: {
+      async run(params, options) {
+        calls.push({
+          params,
+          options
+        })
+        return { status: 'success' }
+      }
+    }
+  }
+  const req = {
+    cwd: '/pinokio/api/test',
+    parent: { id: 'test-script' },
+    params: {
+      path: '/pinokio/api/test/output',
+      env: { TEST_ENV: '1' },
+      _: ['cocktailpeanut/privatetest', './output', '.'],
+      'repo-type': 'dataset',
+      private: true,
+      'commit-message': 'initial upload'
+    }
+  }
+
+  const result = await hf.upload(req, () => {}, kernel)
+
+  assert.deepEqual(result, { status: 'success' })
+  assert.equal(calls.length, 1)
+  assert.deepEqual(calls[0].params.message, [
+    {
+      _: ['hf', 'upload', 'cocktailpeanut/privatetest', './output', '.'],
+      'repo-type': 'dataset',
+      private: true,
+      'commit-message': 'initial upload'
+    }
+  ])
+  assert.deepEqual(calls[0].params.env, { TEST_ENV: '1' })
+  assert.equal(calls[0].params.path, '/pinokio/api/test/output')
+  assert.equal(calls[0].params.bluefairy, 'off')
+  assert.equal(calls[0].options.cwd, '/pinokio/api/test')
+  assert.equal(calls[0].options.group, 'test-script')
+})
+
 test('hf.login reports unavailable Hugging Face connect provider', async () => {
   const hf = new HF()
 
