@@ -710,11 +710,14 @@ body.net-page .running-apps {
   gap: 0;
 }
 body.net-page .line {
-  padding: 11px 0;
+  box-sizing: border-box;
+  padding: 11px 14px;
   border-top: 1px solid var(--task-border);
-  border-radius: 0;
+  border-radius: 6px;
   background: transparent;
+  transition: background-color 120ms ease-out;
 }
+body.net-page .line:hover,
 body.net-page .line.selected {
   background: color-mix(in srgb, var(--task-soft) 34%, transparent);
 }
