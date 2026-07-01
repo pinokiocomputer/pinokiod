@@ -213,6 +213,43 @@ test("plugin action event panel completion closes the modal and refreshes after 
   assert.deepEqual(unexpectedJsdomErrors, [])
 })
 
+test("plugin delete confirmation and failure do not request SweetAlert icons", async () => {
+  const fireOptions = []
+  const document = await renderSharePanel({
+    localLabel: "plugin/demo",
+  }, {
+    actionMarkup: '<button type="button" data-plugin-delete>Delete</button>',
+    beforeScript(window) {
+      window.fetch = () => Promise.resolve({
+        ok: false,
+        status: 400,
+        json: () => Promise.resolve({ ok: false, error: "Plugin path is required." }),
+      })
+      window.Swal = {
+        fire(options) {
+          fireOptions.push(options)
+          return Promise.resolve(fireOptions.length === 1 ? { isConfirmed: true } : {})
+        },
+      }
+    },
+  })
+
+  document.querySelector("[data-plugin-delete]").click()
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  await new Promise((resolve) => setTimeout(resolve, 0))
+
+  assert.equal(fireOptions.length, 2)
+  assert.equal(fireOptions[0].icon, undefined)
+  assert.equal(fireOptions[0].title, "Delete Demo Plugin?")
+  assert.match(fireOptions[0].html, /plugin\/demo/)
+  assert.equal(fireOptions[0].confirmButtonText, "Delete plugin")
+  assert.equal(fireOptions[1].icon, undefined)
+  assert.equal(fireOptions[1].title, "Delete failed")
+  assert.equal(fireOptions[1].text, "Plugin path is required.")
+  assert.equal(fireOptions[1].confirmButtonText, "Close")
+  assert.equal(fireOptions[1].buttonsStyling, false)
+})
+
 test("terminal action view uses generic event panel completion", async () => {
   const terminalView = await fs.readFile(path.join(repoRoot, "server/views/terminal.ejs"), "utf8")
   const disconnectBranchStart = terminalView.indexOf("packet.type === 'disconnect'")

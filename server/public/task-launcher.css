@@ -2780,7 +2780,7 @@ body.connect-page .connect-service-open {
   align-items: center;
   gap: 14px;
   min-height: 0;
-  padding: 8px 0;
+  padding: 9px 12px;
   border: 0;
   border-top: 1px solid var(--task-border);
   border-radius: 0;
@@ -2793,11 +2793,17 @@ body.connect-page .connect-service-open {
 
 .plugin-detail-action-card:hover,
 .plugin-detail-action-card:focus-within {
-  background: transparent;
+  background: color-mix(in srgb, var(--task-soft) 64%, transparent);
 }
 
 .plugin-detail-action-card.is-recommended {
-  background: transparent;
+  background: color-mix(in srgb, var(--task-accent) 7%, transparent);
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--task-accent) 42%, var(--task-border));
+}
+
+.plugin-detail-action-card.is-recommended:hover,
+.plugin-detail-action-card.is-recommended:focus-within {
+  background: color-mix(in srgb, var(--task-accent) 10%, transparent);
 }
 
 .plugin-detail-action-copy {

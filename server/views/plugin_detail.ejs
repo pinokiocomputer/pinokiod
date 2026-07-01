@@ -33,6 +33,8 @@
             : shareState.gitInitialized
               ? "Local only"
               : "Setup needed"
+    const canDeletePlugin = Boolean(plugin.pluginPath && shareState && shareState.ownership === "local" && shareState.dir)
+    const showHeaderWebsite = Boolean(!pluginUi.showSidebar && plugin.link)
   %>
   <%- include('partials/app_navheader', { agent }) %>
   <main>
@@ -66,12 +68,20 @@
               </div>
             <% } %>
           </div>
-          <% if (!pluginUi.showSidebar && plugin.link) { %>
+          <% if (showHeaderWebsite || canDeletePlugin) { %>
           <div class="task-header-actions">
+            <% if (showHeaderWebsite) { %>
             <a class="task-link-button" href="<%= plugin.link %>" target="_blank" rel="noopener noreferrer">
               <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
               <span>Website</span>
             </a>
+            <% } %>
+            <% if (canDeletePlugin) { %>
+            <button class="task-button danger" type="button" data-plugin-delete aria-label="Delete <%= plugin.title %> plugin">
+              <i class="fa-solid fa-trash" aria-hidden="true"></i>
+              <span>Delete</span>
+            </button>
+            <% } %>
           </div>
           <% } %>
         </header>

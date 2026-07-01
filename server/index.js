@@ -78,6 +78,7 @@ const { createTerminalSessionHelpers } = require("./lib/terminal_session_helpers
 const { createLauncherInstructionBootstrap } = require("./lib/launcher_instruction_bootstrap")
 const { createTerminalGitResetHandler } = require("./lib/terminal_git_reset")
 const { createDesktopEventRouter } = require("./lib/desktop_event_router")
+const { deletePluginFolder } = require("./lib/plugin_delete")
 const { createInjectRouter, resolveInjectList } = require("./lib/inject_router")
 const { createTaskPackageService } = require("./lib/task_packages")
 const { createTaskWorkspaceLinkService } = require("./lib/task_workspace_links")
@@ -7868,6 +7869,54 @@ class Server {
         },
         share: shareState
       })
+    }))
+    this.app.post("/plugin/delete", ex(async (req, res) => {
+      const requestedPath = typeof req.body.path === "string" ? req.body.path.trim() : ""
+      if (!requestedPath) {
+        res.status(400).json({
+          ok: false,
+          error: "Plugin path is required."
+        })
+        return
+      }
+      try {
+        const plugins = await loadSerializedPlugins()
+        let plugin = findPluginByPath(plugins, requestedPath)
+        if (!plugin) {
+          const validation = await contentValidation.validatePluginByPath(requestedPath)
+          if (!validation.valid) {
+            res.status(404).json({
+              ok: false,
+              error: validation.message || "Plugin not found."
+            })
+            return
+          }
+          plugin = buildSerializedPluginFromValidation(validation)
+        }
+        if (!plugin) {
+          res.status(404).json({
+            ok: false,
+            error: "Plugin not found."
+          })
+          return
+        }
+
+        const target = await deletePluginFolder({ kernel: this.kernel, plugin })
+        res.set("Cache-Control", "no-store")
+        res.json({
+          ok: true,
+          redirect: "/plugins",
+          deleted: {
+            pluginPath: target.pluginPath,
+            localLabel: target.localLabel,
+          }
+        })
+      } catch (error) {
+        res.status(error && error.status ? error.status : 500).json({
+          ok: false,
+          error: error && error.message ? error.message : "Failed to delete plugin."
+        })
+      }
     }))
     this.app.get("/api/plugin/menu", ex(async (req, res) => {
       try {

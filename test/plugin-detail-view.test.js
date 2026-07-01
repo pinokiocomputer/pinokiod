@@ -54,7 +54,7 @@ function baseShareState(overrides = {}) {
     ownership: "local",
     manageable: true,
     canOpenFolder: false,
-    dir: "",
+    dir: "/tmp/pinokio/plugin/demo",
     localLabel: "plugin/demo",
     remoteUrl: "",
     remoteWebUrl: "",
@@ -110,6 +110,7 @@ test("plugin detail omits the right column for built-in system plugins", async (
   assert.doesNotMatch(document.body.textContent, /Plugin status/)
   assert.match(document.querySelector(".task-header-actions").textContent, /Website/)
   assert.doesNotMatch(document.querySelector(".task-header-actions").textContent, /Back/)
+  assert.equal(document.querySelector("[data-plugin-delete]"), null)
   assert.equal(document.querySelector('.plugin-detail-breadcrumb a[href="/plugins"]')?.textContent, "Plugins")
 })
 
@@ -125,11 +126,35 @@ test("plugin detail keeps source management column for local plugins", async () 
     document.querySelector('.plugin-detail-breadcrumb a[aria-current="page"]')?.getAttribute("href"),
     "/plugin?path=%2Fplugin%2Fdemo%2Fpinokio.js"
   )
-  assert.equal(document.querySelector(".task-header-actions"), null)
+  assert.match(document.querySelector(".task-header-actions").textContent, /Delete/)
+  assert.ok(document.querySelector(".task-header-actions [data-plugin-delete]"))
+  assert.doesNotMatch(document.querySelector(".task-header-actions").textContent, /Back/)
   assert.equal(document.querySelectorAll(".plugin-detail-status-row").length, 3)
   assert.equal(document.querySelectorAll(".task-detail-sidebar .task-meta-chip").length, 0)
   assert.equal(
     Array.from(document.querySelectorAll(".task-detail-sidebar h2")).some((heading) => heading.textContent.trim() === "GitHub"),
     false
   )
+})
+
+test("plugin detail does not show delete for managed non-local plugin source", async () => {
+  const document = await renderPluginDetail({
+    pluginUi: {
+      badges: [{ label: "Managed by Pinokio", tone: "neutral" }],
+      canManageSource: false,
+      isManagedSource: true,
+      sourceLabel: "Managed folder",
+      sourceValue: "plugin/code/demo",
+      githubPanelTitle: "Managed by Pinokio",
+      githubPanelCopy: "Managed plugin source.",
+    },
+    shareState: {
+      ownership: "managed",
+      manageable: false,
+      dir: "/tmp/pinokio/plugin/code/demo",
+      localLabel: "plugin/code/demo",
+    },
+  })
+
+  assert.equal(document.querySelector("[data-plugin-delete]"), null)
 })

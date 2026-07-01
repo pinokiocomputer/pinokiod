@@ -61,6 +61,7 @@
   const aiPermissionClear = document.querySelector("[data-plugin-ai-permission-clear]");
   const aiPermissionPath = document.querySelector("[data-plugin-ai-permission-path]");
   const aiPermissionStatus = document.querySelector("[data-plugin-ai-permission-status]");
+  const deleteButton = document.querySelector("[data-plugin-delete]");
 
   let refreshInFlight = false;
   let createFormOpen = false;
@@ -182,6 +183,72 @@
     } catch (_) {
       updateAiPermissionStatus();
       showFeedback("Unable to clear AI permission.", "error");
+    }
+  }
+
+  async function confirmPluginDelete() {
+    if (!deleteButton || !plugin || !plugin.pluginPath) {
+      return;
+    }
+
+    const pluginTitle = plugin.title || "this plugin";
+    const localLabel = share && share.localLabel ? share.localLabel : "this plugin folder";
+    let confirmed = false;
+    if (window.Swal && typeof Swal.fire === "function") {
+      const result = await Swal.fire({
+        title: `Delete ${pluginTitle}?`,
+        html: `This permanently deletes <code>${escapeHtml(localLabel)}</code>. Only this plugin folder will be removed.`,
+        showCancelButton: true,
+        confirmButtonText: "Delete plugin",
+        cancelButtonText: "Cancel",
+        focusCancel: true,
+        reverseButtons: true,
+        buttonsStyling: false,
+        customClass: {
+          confirmButton: "task-button danger",
+          cancelButton: "task-button"
+        }
+      });
+      confirmed = !!(result && result.isConfirmed);
+    } else {
+      confirmed = window.confirm(`Delete ${pluginTitle}? This permanently deletes ${localLabel}.`);
+    }
+    if (!confirmed) {
+      return;
+    }
+
+    const originalHtml = deleteButton.innerHTML;
+    deleteButton.disabled = true;
+    deleteButton.classList.add("is-busy");
+    try {
+      const response = await fetch("/plugin/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: plugin.pluginPath })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload && payload.error ? payload.error : `HTTP ${response.status}`);
+      }
+      window.location.href = payload.redirect || "/plugins";
+    } catch (error) {
+      deleteButton.disabled = false;
+      deleteButton.classList.remove("is-busy");
+      deleteButton.innerHTML = originalHtml;
+      const message = error && error.message ? error.message : "Failed to delete plugin.";
+      if (window.Swal && typeof Swal.fire === "function") {
+        Swal.fire({
+          title: "Delete failed",
+          text: message,
+          confirmButtonText: "Close",
+          buttonsStyling: false,
+          customClass: {
+            confirmButton: "task-button"
+          }
+        });
+      } else {
+        alert(message);
+      }
     }
   }
 
@@ -1052,6 +1119,13 @@
       clearAiPermission();
     });
     updateAiPermissionStatus();
+  }
+
+  if (deleteButton) {
+    deleteButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      confirmPluginDelete();
+    });
   }
 
   render();
