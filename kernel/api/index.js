@@ -575,20 +575,32 @@ class Api {
     // 1. if the scropt has 'on.stop', run it when stopping
     let requestPath = this.filePath(req.params.uri)
     this.clearResolvedAction(requestPath)
-    let { cwd, script } = await this.resolveScript(requestPath)
-    if (script.on) {
+    let cwd
+    let script
+    try {
+      const resolved = await this.resolveScript(requestPath)
+      cwd = resolved.cwd
+      script = resolved.script
+    } catch (e) {
+      if (!e || e.code !== "ENOENT") {
+        throw e
+      }
+    }
+    if (script && script.on) {
       if (script.on.stop) {
         await this.process(script.on.stop) 
       }
     }
     // reset modules
-    let modpath = this.resolvePath(cwd, req.params.uri)
-    if (this.child_procs[modpath]) {
-      let child_procs = Array.from(this.child_procs[modpath])
-      for(let proc of child_procs) {
-        delete this.mods[proc]
+    if (cwd) {
+      let modpath = this.resolvePath(cwd, req.params.uri)
+      if (this.child_procs[modpath]) {
+        let child_procs = Array.from(this.child_procs[modpath])
+        for(let proc of child_procs) {
+          delete this.mods[proc]
+        }
+        delete this.child_procs[modpath]
       }
-      delete this.child_procs[modpath]
     }
 
 

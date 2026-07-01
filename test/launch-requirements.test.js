@@ -1153,6 +1153,33 @@ test("api.stop stops the canonical script path when the visible run id is decora
   })
 })
 
+test("api.stop disconnects when the script was deleted before stop cleanup", async () => {
+  await withApiStopFixture(async ({ api, launchPath, killedGroups, stopped, packets }) => {
+    const decoratedId = `${launchPath}?cwd=undefined`
+    api.resolveScript = async () => {
+      const error = new Error("missing script")
+      error.code = "ENOENT"
+      throw error
+    }
+    api.running[launchPath] = true
+    api.running[decoratedId] = true
+    api.kernel.memory.local[launchPath] = { live: true }
+    api.kernel.memory.local[decoratedId] = { live: true }
+
+    await api.stop({ params: { id: decoratedId } })
+
+    assert.equal(api.running[launchPath], undefined)
+    assert.equal(api.running[decoratedId], undefined)
+    assert.equal(api.kernel.memory.local[launchPath], undefined)
+    assert.equal(api.kernel.memory.local[decoratedId], undefined)
+    assert.ok(killedGroups.includes(launchPath), "canonical script group must be killed")
+    assert.ok(killedGroups.includes(decoratedId), "visible run id group must remain stopped")
+    assert.equal(stopped.length, 1)
+    assert.equal(stopped[0].scriptPath, launchPath)
+    assert.ok(packets.some((packet) => packet.type === "disconnect" && packet.id === decoratedId))
+  })
+})
+
 test("startup launch request does not block on its own startup status row", async () => {
   await withFixtureApps({
     target: {}
