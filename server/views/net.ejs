@@ -1271,8 +1271,10 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="/fseditor.js"></script>
 </head>
 <%
+  const showStaticRoutes = false
+  const visibleStaticRoutes = showStaticRoutes ? static_routes : []
   const routeCount = current_host === host
-    ? processes.length + static_routes.length
+    ? processes.length + visibleStaticRoutes.length
     : processes.length + installed.length + serverless.length
 %>
 <body class='<%=theme%> main-sidebar-page task-launcher-page task-page net-page' data-agent="<%=agent%>">
@@ -1328,7 +1330,9 @@ document.addEventListener('DOMContentLoaded', function() {
         <span class='net-summary-item'><strong><%= routeCount %></strong>&nbsp;<%= routeCount === 1 ? 'entry' : 'entries' %></span>
         <% if (current_host === host) { %>
           <span class='net-summary-item'><strong><%= processes.length %></strong>&nbsp;live</span>
-          <span class='net-summary-item'><strong><%= static_routes.length %></strong>&nbsp;static</span>
+          <% if (showStaticRoutes) { %>
+            <span class='net-summary-item'><strong><%= visibleStaticRoutes.length %></strong>&nbsp;static</span>
+          <% } %>
         <% } else { %>
           <span class='net-summary-item'><strong><%= processes.length %></strong>&nbsp;online</span>
           <span class='net-summary-item'><strong><%= installed.length %></strong>&nbsp;installed</span>
@@ -1352,7 +1356,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </form>
     <div class='running-apps net-route-list'>
     <% if (current_host === host) { %>
-      <% if (processes.length === 0 && static_routes.length === 0) { %>
+      <% if (processes.length === 0 && visibleStaticRoutes.length === 0) { %>
         <div class='task-empty-state'>
           <p class='task-empty-copy'>No live app routes are available on this machine.</p>
         </div>
@@ -1465,7 +1469,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </h3>
         </div>
       <% }) %>
-      <% static_routes.forEach((route, index) => { %>
+      <% visibleStaticRoutes.forEach((route, index) => { %>
         <div class='line align-top' data-index="<%=processes.length+index%>" data-name="<%=route.name%>" data-title="<%=route.name%>" data-description="<%=route.internal_router.join(' ')%>">
           <h3>
             <div class='item-icon'>
