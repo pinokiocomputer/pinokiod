@@ -7,6 +7,7 @@ const test = require("node:test")
 const antigravityCli = require("../system/plugin/antigravity-cli/pinokio")
 const antigravityCliAuto = require("../system/plugin/antigravity-cli-auto/pinokio")
 const antigravityCommon = require("../system/plugin/antigravity-cli/common")
+const antigravityInstaller = require("../system/plugin/antigravity-cli/install")
 
 function createKernel(root, platform = "darwin") {
   return {
@@ -25,29 +26,34 @@ test("Antigravity CLI plugins expose managed lifecycle actions", () => {
   }
 })
 
-test("Antigravity CLI install and update install agy into Pinokio bin", () => {
+test("Antigravity CLI install and update call the bundled installer internally", async () => {
   const root = path.join(os.tmpdir(), "pinokio-antigravity-test")
   const kernel = createKernel(root)
+  const calls = []
+  const originalInstall = antigravityInstaller.install
+  antigravityInstaller.install = async (options) => {
+    calls.push(options)
+  }
 
-  const install = antigravityCli.install(kernel, {})[0]
-  const update = antigravityCli.update(kernel, {})[0]
+  try {
+    const install = await antigravityCli.install(kernel, {})
+    const update = await antigravityCli.update(kernel, {})
 
-  for (const step of [install, update]) {
-    assert.equal(step.method, "shell.run")
-    assert.equal(step.params.path, root)
-    assert.equal(Object.prototype.hasOwnProperty.call(step.params, "conda"), false)
-    assert.equal(Object.prototype.hasOwnProperty.call(step.params, "env"), false)
-    assert.equal(step.params.message._[0], "node")
-    assert.equal(step.params.message._[1], antigravityCommon.installerPath())
-    assert.deepEqual(step.params.message._.slice(2), [
-      "--install-dir",
-      path.join(root, "bin"),
-      "--managed-dir",
-      path.join(root, "bin", "antigravity-cli"),
-    ])
-    assert.doesNotMatch(step.params.message._.join(" "), / -e /)
-    assert.doesNotMatch(step.params.message._.join(" "), /api\.github\.com\/repos\/google-antigravity\/antigravity-cli\/releases\/latest/)
-    assert.equal(Object.prototype.hasOwnProperty.call(step.params, "input"), false)
+    assert.deepEqual(calls, [{
+      installDir: path.join(root, "bin"),
+      managedDir: path.join(root, "bin", "antigravity-cli"),
+    }, {
+      installDir: path.join(root, "bin"),
+      managedDir: path.join(root, "bin", "antigravity-cli"),
+    }])
+
+    for (const steps of [install, update]) {
+      assert.equal(steps.length, 1)
+      assert.equal(steps[0].method, "notify")
+      assert.equal(steps[0].params.type, "success")
+    }
+  } finally {
+    antigravityInstaller.install = originalInstall
   }
 })
 

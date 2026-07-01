@@ -1,5 +1,6 @@
 const fs = require("fs")
 const path = require("path")
+const installer = require("./install")
 
 const MANAGED_DIR_PARTS = ["bin", "antigravity-cli"]
 
@@ -46,23 +47,17 @@ function workspaceFor(context, kernel) {
   return args.cwd || kernel.path("home")
 }
 
-function installSteps(kernel) {
+async function installSteps(kernel) {
+  await installer.install({
+    installDir: installDir(kernel),
+    managedDir: managedDir(kernel),
+  })
   return [{
-    id: "install",
-    method: "shell.run",
+    id: "installed",
+    method: "notify",
     params: {
-      message: {
-        _: [
-          "node",
-          installerPath(),
-          "--install-dir",
-          installDir(kernel),
-          "--managed-dir",
-          managedDir(kernel),
-        ]
-      },
-      path: kernel.path(),
-      buffer: 1024,
+      html: "Antigravity CLI installed in Pinokio.",
+      type: "success",
     }
   }]
 }
