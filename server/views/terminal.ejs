@@ -1910,6 +1910,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           payload.id = runId
           payload.useId = true
         }
+        this.error = false
+        this.eventPanelStopPending = false
         this.resizeSync.reset()
         this.socket.run(payload, async (packet) => {
           if (packet.type === 'start') {
@@ -1973,6 +1975,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             refreshParent(packet)
             pluginTerminalDiscoveryRefresher.clear()
             reloadMemory()
+            if (this.eventPanelStopPending) {
+              this.eventPanelStopPending = false
+              postMessageToAncestors({
+                e: "pinokio:event-panel-status",
+                success: !this.error,
+                status: "stopped"
+              })
+            }
             this.flushPendingTerminalWrite()
             this.term.write("\r\nDisconnected...\r\n")
             document.querySelector("#status-window").innerHTML = "<b>Ready</b>"
@@ -2339,11 +2349,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           } else if (packet.type === "event") {
             if (packet.data === "stop") {
               if (window.__pinokioEventPanel) {
-                postMessageToAncestors({
-                  e: "pinokio:event-panel-status",
-                  success: !this.error,
-                  status: "stopped"
-                })
+                this.eventPanelStopPending = true
               }
               document.querySelector("#status-window").innerHTML = "<b>Ready</b>"
               setTimeout(() => {

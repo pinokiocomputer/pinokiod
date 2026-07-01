@@ -34,6 +34,7 @@
     uninstall: "fa-solid fa-trash-can",
     update: "fa-solid fa-rotate-right"
   };
+  const EVENT_PANEL_STATUS_EVENT = "pinokio:event-panel-status";
 
   const noteEl = document.querySelector("[data-plugin-share-note]");
   const nextTitleEl = document.querySelector("[data-plugin-share-next-title]");
@@ -63,6 +64,7 @@
 
   let refreshInFlight = false;
   let createFormOpen = false;
+  let activeActionModal = null;
   const AI_CONSENT_PREFIX = "pinokio:ai-consent:";
 
   function readDownloadState() {
@@ -234,8 +236,36 @@
     if (plugin.defaultCwd) {
       params.set("cwd", plugin.defaultCwd);
     }
+    params.set("__pinokio_event_panel", "1");
     params.set("ts", String(Date.now()));
     return `/action/${encodeURIComponent(actionType)}/${encodedPath}?${params.toString()}`;
+  }
+
+  function finishActionModal(modalState) {
+    if (!modalState || modalState.completed) {
+      return;
+    }
+    modalState.completed = true;
+    Swal.close();
+  }
+
+  function handleActionCompleteMessage(event) {
+    const data = event && event.data && typeof event.data === "object" ? event.data : null;
+    if (!data || data.e !== EVENT_PANEL_STATUS_EVENT || !activeActionModal) {
+      return;
+    }
+    if (event.origin !== window.location.origin) {
+      return;
+    }
+    const modalState = activeActionModal;
+    if (data.success === false) {
+      return;
+    }
+    const iframe = modalState.iframe;
+    if (!iframe || event.source !== iframe.contentWindow) {
+      return;
+    }
+    finishActionModal(modalState);
   }
 
   function showActionModal(actionType) {
@@ -262,6 +292,11 @@
         </div>
       </div>
     `;
+    const modalState = {
+      iframe: null,
+      completed: false
+    };
+    activeActionModal = modalState;
 
     Swal.fire({
       html: modalHtml,
@@ -279,9 +314,18 @@
       didOpen: (popup) => {
         const iframe = popup.querySelector("iframe");
         if (iframe) {
+          modalState.iframe = iframe;
           iframe.dataset.forceVisible = "true";
           iframe.classList.remove("hidden");
           iframe.removeAttribute("hidden");
+        }
+      },
+      didClose: () => {
+        if (activeActionModal === modalState) {
+          activeActionModal = null;
+        }
+        if (modalState.completed) {
+          window.location.reload();
         }
       }
     });
@@ -945,6 +989,8 @@
       pluginModal.open();
     });
   }
+
+  window.addEventListener("message", handleActionCompleteMessage);
 
   document.querySelectorAll("[data-plugin-action]").forEach((button) => {
     button.addEventListener("click", (event) => {

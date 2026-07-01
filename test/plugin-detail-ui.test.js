@@ -2,7 +2,7 @@ const assert = require("node:assert/strict")
 const fs = require("node:fs/promises")
 const path = require("node:path")
 const test = require("node:test")
-const { JSDOM } = require("jsdom")
+const { JSDOM, VirtualConsole } = require("jsdom")
 
 const repoRoot = path.resolve(__dirname, "..")
 
@@ -15,7 +15,7 @@ function visibleTextMatches(document, selector, text) {
   })
 }
 
-async function renderSharePanel(shareOverrides) {
+async function renderSharePanel(shareOverrides, options = {}) {
   const script = await fs.readFile(path.join(repoRoot, "server/public/plugin-detail.js"), "utf8")
   const share = {
     manageable: true,
@@ -45,6 +45,7 @@ async function renderSharePanel(shareOverrides) {
 
   const dom = new JSDOM(`<!doctype html>
 <body>
+  ${options.actionMarkup || ""}
   <section class="task-side-group">
     <div class="task-section-note" data-plugin-share-note></div>
     <div class="task-share-next-step-main">
@@ -70,7 +71,12 @@ async function renderSharePanel(shareOverrides) {
 </body>`, {
     runScripts: "dangerously",
     url: "http://localhost/plugin",
+    virtualConsole: options.virtualConsole,
   })
+
+  if (typeof options.beforeScript === "function") {
+    options.beforeScript(dom.window)
+  }
 
   const scriptElement = dom.window.document.createElement("script")
   scriptElement.textContent = script
@@ -134,4 +140,93 @@ test("plugin detail does not duplicate refresh when auth is disconnected but a r
   assert.equal(visibleTextMatches(document, "a,button", "Check again").length, 1)
   assert.equal(visibleTextMatches(document, "a,button", "View on GitHub").length, 1)
   assert.equal(document.querySelector("[data-plugin-share-note]").textContent, "Connected")
+})
+
+test("plugin action event panel completion closes the modal and refreshes after close", async () => {
+  let closeCount = 0
+  let fireOptions = null
+  let actionIframe = null
+  let reloadCount = 0
+  const unexpectedJsdomErrors = []
+  const virtualConsole = new VirtualConsole()
+  virtualConsole.on("jsdomError", (error) => {
+    if (error && /Not implemented: navigation/.test(error.message || "")) {
+      reloadCount += 1
+      return
+    }
+    unexpectedJsdomErrors.push(error)
+  })
+  const document = await renderSharePanel({}, {
+    actionMarkup: '<button type="button" data-plugin-action="install">Install</button>',
+    virtualConsole,
+    beforeScript(window) {
+      window.Swal = {
+        fire(options) {
+          fireOptions = options
+          const popup = window.document.createElement("div")
+          popup.innerHTML = options.html || ""
+          window.document.body.appendChild(popup)
+          actionIframe = popup.querySelector("iframe")
+          if (typeof options.didOpen === "function") {
+            options.didOpen(popup)
+          }
+          return Promise.resolve({})
+        },
+        close() {
+          closeCount += 1
+          if (fireOptions && typeof fireOptions.didClose === "function") {
+            fireOptions.didClose()
+          }
+        },
+      }
+    },
+  })
+  const window = document.defaultView
+
+  document.querySelector("[data-plugin-action='install']").click()
+  assert.ok(fireOptions)
+  assert.match(fireOptions.html, /\/action\/install\/plugin\/demo\/pinokio\.js/)
+  assert.match(fireOptions.html, /__pinokio_event_panel=1/)
+  assert.ok(actionIframe && actionIframe.contentWindow)
+
+  window.dispatchEvent(new window.MessageEvent("message", {
+    origin: window.location.origin,
+    data: {
+      e: "pinokio:event-panel-status",
+      success: true,
+    },
+  }))
+  assert.equal(closeCount, 0)
+  assert.equal(reloadCount, 0)
+
+  window.dispatchEvent(new window.MessageEvent("message", {
+    origin: window.location.origin,
+    source: actionIframe.contentWindow,
+    data: {
+      e: "pinokio:event-panel-status",
+      success: true,
+    },
+  }))
+
+  assert.equal(closeCount, 1)
+  assert.equal(reloadCount, 1)
+  assert.deepEqual(unexpectedJsdomErrors, [])
+})
+
+test("terminal action view uses generic event panel completion", async () => {
+  const terminalView = await fs.readFile(path.join(repoRoot, "server/views/terminal.ejs"), "utf8")
+  const disconnectBranchStart = terminalView.indexOf("packet.type === 'disconnect'")
+  const eventBranchStart = terminalView.indexOf('packet.type === "event"', disconnectBranchStart)
+  const eventBranchEnd = terminalView.indexOf("//this.socket.close()", eventBranchStart)
+
+  assert.ok(disconnectBranchStart >= 0)
+  assert.ok(eventBranchStart > disconnectBranchStart)
+  assert.ok(eventBranchEnd > eventBranchStart)
+
+  assert.match(terminalView, /pinokio:event-panel-status/)
+  assert.match(terminalView.slice(disconnectBranchStart, eventBranchStart), /pinokio:event-panel-status/)
+  assert.match(terminalView.slice(eventBranchStart, eventBranchEnd), /eventPanelStopPending = true/)
+  assert.doesNotMatch(terminalView.slice(eventBranchStart, eventBranchEnd), /pinokio:event-panel-status/)
+  assert.doesNotMatch(terminalView, /pluginActionCompletion/)
+  assert.doesNotMatch(terminalView, /pinokio:plugin-action-complete/)
 })
