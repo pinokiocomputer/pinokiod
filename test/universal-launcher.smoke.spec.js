@@ -136,4 +136,54 @@ test.describe('universal launcher smoke', () => {
       await deleteTask(request, tempPluginTask && tempPluginTask.id);
     }
   });
+
+  test('plugins page create and download buttons open plugin launcher on expected tabs', async ({ page }) => {
+    const pageErrors = [];
+    const consoleErrors = [];
+
+    page.on('pageerror', (error) => {
+      pageErrors.push(String(error));
+    });
+
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text());
+      }
+    });
+
+    await page.goto(`${BASE_URL}/plugins`, { waitUntil: 'networkidle' });
+
+    const createTrigger = page.locator('.task-shell-header [data-universal-launcher-open="create_plugin"]:not([data-universal-launcher-mode])').first();
+    await expect(createTrigger).toBeVisible();
+    await createTrigger.click();
+
+    const overlay = page.locator('.universal-launcher-overlay:not([hidden])').first();
+    await expect(overlay).toBeVisible();
+    await expect(overlay.locator('.universal-launcher-title')).toHaveText('Create Plugin');
+    await expect(overlay.locator('.universal-launcher-mode[data-mode="primary"]')).toHaveClass(/active/);
+    await expect(overlay.locator('.universal-launcher-section-prompt')).toBeVisible();
+    await expect(overlay.locator('.universal-launcher-section-tools')).toBeVisible();
+    await expect(overlay.locator('.universal-launcher-section-download')).toBeHidden();
+
+    await overlay.locator('.universal-launcher-close').click();
+    await expect(overlay).toBeHidden();
+
+    const downloadTrigger = page.locator('.task-shell-header [data-universal-launcher-open="create_plugin"][data-universal-launcher-mode="download"]').first();
+    await expect(downloadTrigger).toBeVisible();
+    await downloadTrigger.click();
+
+    await expect(overlay).toBeVisible();
+    await expect(overlay.locator('.universal-launcher-title')).toHaveText('Create Plugin');
+    await expect(overlay.locator('.universal-launcher-mode[data-mode="download"]')).toHaveClass(/active/);
+    await expect(overlay.locator('.universal-launcher-section-download')).toBeVisible();
+    await expect(overlay.locator('.universal-launcher-section-prompt')).toBeHidden();
+    await expect(overlay.locator('.universal-launcher-section-tools')).toBeHidden();
+    await expect(overlay.locator('.universal-launcher-download-input').first()).toBeFocused();
+
+    expect(pageErrors, `page errors: ${pageErrors.join('\n')}`).toEqual([]);
+    expect(
+      consoleErrors.filter((line) => !line.includes('favicon')),
+      `console errors: ${consoleErrors.join('\n')}`
+    ).toEqual([]);
+  });
 });

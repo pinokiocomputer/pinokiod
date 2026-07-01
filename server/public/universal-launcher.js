@@ -4393,6 +4393,7 @@
     const prompt = typeof options.prompt === 'string' ? options.prompt : '';
     const name = typeof options.name === 'string' ? options.name.trim() : '';
     const tool = typeof options.tool === 'string' ? options.tool.trim().replace(/^\/+|\/+$/g, '') : '';
+    const mode = options.mode === 'download' ? 'download' : 'primary';
 
     ui.error.textContent = '';
     ui.promptDrafts = {
@@ -4428,7 +4429,7 @@
       ui.intentWrap.setAttribute('aria-hidden', hasPresetIntent ? 'true' : 'false');
     }
     ui.setIntent(type);
-    ui.setMode('primary');
+    ui.setMode(mode);
     if (name) {
       ui.nameInput.value = name;
       scheduleNameValidation(ui);

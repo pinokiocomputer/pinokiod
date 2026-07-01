@@ -869,12 +869,25 @@ body.dark {
           <h1 class='task-title'>Plugins</h1>
           <p class='task-description'>Open desktop editors externally or launch coding tools inside Pinokio.</p>
         </div>
+        <div class="task-header-actions">
+          <button type="button" class="task-link-button primary" data-universal-launcher-open="create_plugin">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            <span>Create plugin</span>
+          </button>
+          <button type="button" class="task-link-button" data-universal-launcher-open="create_plugin" data-universal-launcher-mode="download">
+            <i class="fa-solid fa-download" aria-hidden="true"></i>
+            <span>Download</span>
+          </button>
+        </div>
       </header>
       <div class='task-shell-body plugin-shell-body'>
     <% if (plugins.length === 0) { %>
       <div class='plugin-empty task-empty-state'>
         <p>No plugins found. Clone or add plugin definitions under <code>~/pinokio/plugin</code> to see them listed here.</p>
-        <a class='task-link-button primary' href="/home?mode=download"><i class="fa-solid fa-download"></i> Download plugins</a>
+        <button type="button" class="task-button primary" data-universal-launcher-open="create_plugin" data-universal-launcher-mode="download">
+          <i class="fa-solid fa-download" aria-hidden="true"></i>
+          <span>Download plugins</span>
+        </button>
       </div>
     <% } else { %>
       <div class='plugin-category-layout'>

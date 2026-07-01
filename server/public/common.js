@@ -3699,9 +3699,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const type = trigger.dataset && typeof trigger.dataset.universalLauncherOpen === 'string'
           ? trigger.dataset.universalLauncherOpen.trim()
           : '';
-        createLauncherDebugLog('universal launcher trigger clicked', { type });
+        const mode = trigger.dataset && typeof trigger.dataset.universalLauncherMode === 'string'
+          ? trigger.dataset.universalLauncherMode.trim()
+          : '';
+        createLauncherDebugLog('universal launcher trigger clicked', { type, mode });
         guardUniversalLauncher(api, {
-          type: type || 'create_app'
+          type: type || 'create_app',
+          mode: mode || ''
         });
       });
     });
