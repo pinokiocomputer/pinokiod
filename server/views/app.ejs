@@ -727,27 +727,38 @@ body.dark .browserview-network-status .browserview-network-status-secondary:focu
   75% { transform: translate(0, 11px); }
 }
 .community-drawer {
-  display: none;
-  flex: 0 0 auto;
-  width: var(--community-width, 360px);
-  min-width: 240px;
+  display: flex;
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+  max-width: 0;
   min-height: 0;
-  border-left: 1px solid rgba(0,0,0,0.08);
+  box-sizing: border-box;
+  border-left: 0 solid rgba(0,0,0,0.08);
   background: #f7f8fa;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateX(10px);
 }
 body.dark .community-drawer {
   border-left-color: rgba(255,255,255,0.08);
   background: #0f1115;
 }
 .community-resizer {
-  display: none;
-  flex: 0 0 7px;
+  display: flex;
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
   align-items: stretch;
   justify-content: center;
   cursor: col-resize;
   touch-action: none;
   outline: none;
   background: transparent;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 .community-resizer::before {
   content: '';
@@ -773,13 +784,27 @@ body.dark .community-resizer:focus-visible::before {
   background: var(--pinokio-sidebar-separator-focus, rgba(96, 165, 250, 0.6));
 }
 .appcanvas.community-open .community-resizer {
-  display: flex;
+  flex: 0 0 7px;
+  width: 7px;
+  min-width: 7px;
+  opacity: 1;
+  pointer-events: auto;
 }
 .appcanvas.community-open .community-drawer {
-  display: flex;
+  flex: 0 0 var(--community-width, 360px);
+  width: var(--community-width, 360px);
+  max-width: var(--community-width, 360px);
+  border-left-width: 1px;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
 }
 .appcanvas.community-expanded .community-resizer {
-  display: none;
+  flex-basis: 0;
+  width: 0;
+  min-width: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 .appcanvas.community-expanded .community-drawer {
   position: absolute;
@@ -1362,27 +1387,38 @@ body.dark .mobile-nav-logs.has-new::after {
   }
 }
 .ask-ai-drawer {
-  display: none;
-  flex: 0 0 auto;
-  width: var(--ask-ai-width, 560px);
-  min-width: 240px;
+  display: flex;
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+  max-width: 0;
   min-height: 0;
-  border-left: 1px solid rgba(0,0,0,0.08);
+  box-sizing: border-box;
+  border-left: 0 solid rgba(0,0,0,0.08);
   background: #f8fafc;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateX(10px);
 }
 body.dark .ask-ai-drawer {
   border-left-color: rgba(255,255,255,0.08);
   background: #0f1115;
 }
 .ask-ai-resizer {
-  display: none;
-  flex: 0 0 7px;
+  display: flex;
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
   align-items: stretch;
   justify-content: center;
   cursor: col-resize;
   touch-action: none;
   outline: none;
   background: transparent;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 .ask-ai-resizer::before {
   content: '';
@@ -1408,10 +1444,20 @@ body.dark .ask-ai-resizer:focus-visible::before {
   background: var(--pinokio-sidebar-separator-focus, rgba(96, 165, 250, 0.6));
 }
 .appcanvas.panel-open .ask-ai-resizer {
-  display: flex;
+  flex: 0 0 7px;
+  width: 7px;
+  min-width: 7px;
+  opacity: 1;
+  pointer-events: auto;
 }
 .appcanvas.panel-open .ask-ai-drawer {
-  display: flex;
+  flex: 0 0 var(--ask-ai-width, 560px);
+  width: var(--ask-ai-width, 560px);
+  max-width: var(--ask-ai-width, 560px);
+  border-left-width: 1px;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
 }
 .ask-ai-drawer-inner {
   display: flex;
@@ -2088,9 +2134,23 @@ body.dark .appcanvas > aside {
   transition: flex-basis 190ms cubic-bezier(0.25, 1, 0.5, 1), width 190ms cubic-bezier(0.25, 1, 0.5, 1), max-width 190ms cubic-bezier(0.25, 1, 0.5, 1), margin 190ms cubic-bezier(0.25, 1, 0.5, 1), opacity 140ms cubic-bezier(0.25, 1, 0.5, 1), transform 190ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 
+.appcanvas.right-panel-motion-ready .ask-ai-drawer,
+.appcanvas.right-panel-motion-ready .ask-ai-resizer,
+.appcanvas.right-panel-motion-ready .community-drawer,
+.appcanvas.right-panel-motion-ready .community-resizer {
+  transition: flex-basis 190ms cubic-bezier(0.25, 1, 0.5, 1), width 190ms cubic-bezier(0.25, 1, 0.5, 1), max-width 190ms cubic-bezier(0.25, 1, 0.5, 1), min-width 190ms cubic-bezier(0.25, 1, 0.5, 1), opacity 140ms cubic-bezier(0.25, 1, 0.5, 1), transform 190ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
 .appcanvas.sidebar-resizing > aside,
 .appcanvas.sidebar-resizing > aside .menu-container,
 .appcanvas.sidebar-resizing .appcanvas-resizer {
+  transition: none !important;
+}
+
+.appcanvas.right-panel-resizing .ask-ai-drawer,
+.appcanvas.right-panel-resizing .ask-ai-resizer,
+.appcanvas.right-panel-resizing .community-drawer,
+.appcanvas.right-panel-resizing .community-resizer {
   transition: none !important;
 }
 
@@ -2125,7 +2185,11 @@ body.dark .appcanvas > aside {
   .sidebar-toggle-content,
   .appcanvas.sidebar-motion-ready > aside,
   .appcanvas.sidebar-motion-ready > aside .menu-container,
-  .appcanvas.sidebar-motion-ready .appcanvas-resizer {
+  .appcanvas.sidebar-motion-ready .appcanvas-resizer,
+  .appcanvas.right-panel-motion-ready .ask-ai-drawer,
+  .appcanvas.right-panel-motion-ready .ask-ai-resizer,
+  .appcanvas.right-panel-motion-ready .community-drawer,
+  .appcanvas.right-panel-motion-ready .community-resizer {
     transition-duration: 0.01ms !important;
   }
 }
@@ -7147,6 +7211,9 @@ header.navheader h1 {
   }
   .appcanvas.community-mode .community-drawer {
     display: flex;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
     width: 100%;
     max-width: none;
     border-left: 0;
@@ -16461,9 +16528,20 @@ document.addEventListener("DOMContentLoaded", () => {
       askAiTrigger.setAttribute("aria-hidden", "false")
       askAiTrigger.setAttribute("aria-expanded", open ? "true" : "false")
     }
+    if (!open && drawer.contains(document.activeElement) && askAiTrigger) {
+      try {
+        askAiTrigger.focus({ preventScroll: true })
+      } catch (_) {
+        askAiTrigger.focus()
+      }
+    }
     drawer.setAttribute("aria-hidden", open ? "false" : "true")
+    if ("inert" in drawer) {
+      drawer.inert = !open
+    }
     if (resizer) {
       resizer.setAttribute("aria-hidden", open ? "false" : "true")
+      resizer.tabIndex = open ? 0 : -1
     }
   }
 
@@ -17174,6 +17252,9 @@ document.addEventListener("DOMContentLoaded", () => {
     let handlePointerUp = null
 
     const finishResizing = () => {
+      if (appcanvas) {
+        appcanvas.classList.remove("right-panel-resizing")
+      }
       if (!isResizing) {
         return
       }
@@ -17220,6 +17301,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       event.preventDefault()
       isResizing = true
+      if (appcanvas) {
+        appcanvas.classList.add("right-panel-resizing")
+      }
       pointerId = event.pointerId
       startX = event.clientX
       startWidth = drawer.getBoundingClientRect().width
@@ -17938,6 +18022,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     appcanvas.classList.toggle("community-mode", communityMode)
     if (communityMode) {
+      const ensureOpen = () => {
+        if (communityMode && !open) {
+          setOpen(true, { persist: false })
+        }
+      }
+      if (window.queueMicrotask) {
+        window.queueMicrotask(ensureOpen)
+      } else {
+        setTimeout(ensureOpen, 0)
+      }
       setExpanded(false)
     }
     if (communityModeToggle) {
@@ -18059,9 +18153,20 @@ document.addEventListener("DOMContentLoaded", () => {
       toggle.classList.toggle("selected", open)
       toggle.setAttribute("aria-expanded", open ? "true" : "false")
     }
+    if (!open && drawer.contains(document.activeElement) && toggle) {
+      try {
+        toggle.focus({ preventScroll: true })
+      } catch (_) {
+        toggle.focus()
+      }
+    }
     drawer.setAttribute("aria-hidden", open ? "false" : "true")
+    if ("inert" in drawer) {
+      drawer.inert = !open
+    }
     if (resizer) {
       resizer.setAttribute("aria-hidden", open ? "false" : "true")
+      resizer.tabIndex = open ? 0 : -1
     }
     if (persist) {
       try {
@@ -18541,6 +18646,9 @@ document.addEventListener("DOMContentLoaded", () => {
     let handlePointerUp = null
 
     const finishResizing = () => {
+      if (appcanvas) {
+        appcanvas.classList.remove("right-panel-resizing")
+      }
       if (!isResizing) {
         return
       }
@@ -18593,6 +18701,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       event.preventDefault()
       isResizing = true
+      if (appcanvas) {
+        appcanvas.classList.add("right-panel-resizing")
+      }
       pointerId = event.pointerId
       startX = event.clientX
       startWidth = drawer.getBoundingClientRect().width
@@ -18602,6 +18713,16 @@ document.addEventListener("DOMContentLoaded", () => {
       bindResizeListeners()
     })
   }
+})()
+
+;(function() {
+  const appcanvas = document.querySelector(".appcanvas")
+  if (!appcanvas) {
+    return
+  }
+  requestAnimationFrame(() => {
+    appcanvas.classList.add("right-panel-motion-ready")
+  })
 })()
 
 <%- include('partials/launch_requirements_status_client') %>
