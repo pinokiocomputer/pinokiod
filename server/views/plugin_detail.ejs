@@ -18,15 +18,33 @@
 </head>
 <body class="<%= theme %> main-sidebar-page task-launcher-page task-page plugin-page plugin-detail-page" data-agent="<%= agent %>">
   <% const currentPluginCwd = typeof pluginCwd === "string" ? pluginCwd : ""; %>
+  <%
+    const pluginDetailHref = plugin.pluginPath
+      ? `/plugin?path=${encodeURIComponent(plugin.pluginPath)}`
+      : "/plugin"
+    const githubStatusValue = !shareState.manageable
+      ? "Read only"
+      : shareState.remoteWebUrl && !shareState.hasPublished
+        ? "Remote created"
+        : shareState.remoteWebUrl && ((Number(shareState.changeCount || 0) > 0) || (Number(shareState.aheadCount || 0) > 0))
+          ? "Out of date"
+          : shareState.remoteWebUrl
+            ? "Connected"
+            : shareState.gitInitialized
+              ? "Local only"
+              : "Setup needed"
+  %>
   <%- include('partials/app_navheader', { agent }) %>
   <main>
     <div class="task-container">
       <section class="task-shell">
         <header class="task-shell-header">
           <div class="task-shell-header-main">
-            <div class="task-shell-topline">
-              <p class="task-eyebrow">Plugins</p>
-            </div>
+            <nav class="task-breadcrumb plugin-detail-breadcrumb" aria-label="Plugin breadcrumb">
+              <a class="task-breadcrumb-link" href="/plugins">Plugins</a>
+              <span class="task-breadcrumb-separator" aria-hidden="true">&gt;</span>
+              <a class="task-breadcrumb-link task-breadcrumb-current" href="<%= pluginDetailHref %>" aria-current="page"><%= plugin.title %></a>
+            </nav>
             <div class="plugin-detail-title-row">
               <% if (plugin.image) { %>
                 <img class="plugin-detail-title-art" src="<%= plugin.image %>" alt="<%= plugin.title %> icon">
@@ -48,18 +66,14 @@
               </div>
             <% } %>
           </div>
+          <% if (!pluginUi.showSidebar && plugin.link) { %>
           <div class="task-header-actions">
-            <% if (!pluginUi.showSidebar && plugin.link) { %>
-              <a class="task-link-button" href="<%= plugin.link %>" target="_blank" rel="noopener noreferrer">
-                <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
-                <span>Website</span>
-              </a>
-            <% } %>
-            <a class="task-link-button" href="/plugins">
-              <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
-              <span>Back</span>
+            <a class="task-link-button" href="<%= plugin.link %>" target="_blank" rel="noopener noreferrer">
+              <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+              <span>Website</span>
             </a>
           </div>
+          <% } %>
         </header>
 
         <div class="task-shell-body">
@@ -172,14 +186,18 @@
                 <h2 class="task-section-title">Plugin status</h2>
               </div>
               <div class="task-side-stack">
-                <div class="task-meta-row task-meta-row-compact">
-                  <div class="task-meta-chip">
-                    <span class="task-meta-chip-label"><%= pluginUi.sourceLabel %></span>
-                    <span class="task-meta-chip-value"><%= pluginUi.sourceValue %></span>
+                <div class="plugin-detail-status-list">
+                  <div class="plugin-detail-status-row">
+                    <span class="plugin-detail-status-label"><%= pluginUi.sourceLabel %></span>
+                    <span class="plugin-detail-status-value"><%= pluginUi.sourceValue %></span>
                   </div>
-                  <div class="task-meta-chip">
-                    <span class="task-meta-chip-label"><%= pluginUi.statusLabel %></span>
-                    <span class="task-meta-chip-value"><%= pluginUi.statusValue %></span>
+                  <div class="plugin-detail-status-row">
+                    <span class="plugin-detail-status-label"><%= pluginUi.statusLabel %></span>
+                    <span class="plugin-detail-status-value"><%= pluginUi.statusValue %></span>
+                  </div>
+                  <div class="plugin-detail-status-row">
+                    <span class="plugin-detail-status-label"><%= pluginUi.githubPanelTitle %></span>
+                    <span class="plugin-detail-status-value" data-plugin-share-note><%= githubStatusValue %></span>
                   </div>
                 </div>
                 <div class="task-actions task-detail-status-actions">
@@ -199,10 +217,6 @@
               </div>
 
               <section class="task-side-group">
-                <div class="task-section-head">
-                  <h2 class="task-section-title"><%= pluginUi.githubPanelTitle %></h2>
-                  <div class="task-section-note" data-plugin-share-note></div>
-                </div>
                 <% if (pluginUi.canManageSource) { %>
                   <div class="task-share-next-step-main">
                     <h3 class="task-share-next-step-title" data-plugin-share-next-title></h3>

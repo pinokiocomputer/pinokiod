@@ -109,6 +109,8 @@ test("plugin detail omits the right column for built-in system plugins", async (
   assert.equal(document.querySelector("[data-plugin-share-next-title]"), null)
   assert.doesNotMatch(document.body.textContent, /Plugin status/)
   assert.match(document.querySelector(".task-header-actions").textContent, /Website/)
+  assert.doesNotMatch(document.querySelector(".task-header-actions").textContent, /Back/)
+  assert.equal(document.querySelector('.plugin-detail-breadcrumb a[href="/plugins"]')?.textContent, "Plugins")
 })
 
 test("plugin detail keeps source management column for local plugins", async () => {
@@ -118,4 +120,16 @@ test("plugin detail keeps source management column for local plugins", async () 
   assert.equal(document.querySelector(".task-detail-layout-single"), null)
   assert.ok(document.querySelector("[data-plugin-share-next-title]"))
   assert.match(document.body.textContent, /Plugin status/)
+  assert.equal(document.querySelector('.plugin-detail-breadcrumb a[href="/plugins"]')?.textContent, "Plugins")
+  assert.equal(
+    document.querySelector('.plugin-detail-breadcrumb a[aria-current="page"]')?.getAttribute("href"),
+    "/plugin?path=%2Fplugin%2Fdemo%2Fpinokio.js"
+  )
+  assert.equal(document.querySelector(".task-header-actions"), null)
+  assert.equal(document.querySelectorAll(".plugin-detail-status-row").length, 3)
+  assert.equal(document.querySelectorAll(".task-detail-sidebar .task-meta-chip").length, 0)
+  assert.equal(
+    Array.from(document.querySelectorAll(".task-detail-sidebar h2")).some((heading) => heading.textContent.trim() === "GitHub"),
+    false
+  )
 })
