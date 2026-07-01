@@ -681,26 +681,62 @@ class Socket {
     return false
   }
 
+  homeRelativePath(targetPath) {
+    const home = this.parent && this.parent.kernel ? this.parent.kernel.homedir : ''
+    if (!home || !targetPath || !path.isAbsolute(targetPath)) return null
+    const relative = path.relative(path.resolve(home), path.resolve(targetPath))
+    if (relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative)) return null
+    return relative
+  }
+
+  validLogCwd(cwd) {
+    if (typeof cwd !== 'string') return ''
+    const trimmed = cwd.trim()
+    if (!trimmed || trimmed.toLowerCase() === 'undefined' || trimmed.toLowerCase() === 'null') return ''
+    if (this.homeRelativePath(trimmed) === null) return ''
+    return path.resolve(trimmed)
+  }
+
+  async appLogRootFromCwd(cwd) {
+    cwd = this.validLogCwd(cwd)
+    if (!cwd) return ''
+    const relative = this.homeRelativePath(cwd)
+    if (relative === null) return ''
+    const parts = relative.split(path.sep).filter(Boolean)
+    if (parts[0] !== "api" || !parts[1]) return ''
+    const appDir = this.parent.kernel.path("api", parts[1])
+    const root = await Environment.get_root({ path: appDir }, this.parent.kernel)
+    const appRoot = root.root
+    if (path.resolve(cwd) !== path.resolve(appDir) && path.resolve(cwd) !== path.resolve(appRoot)) return ''
+    return appRoot
+  }
+
+  async appLogRootFromKey(key) {
+    let m = /\?.*$/.exec(key)
+    if (!m || m.length === 0) return ''
+    let paramStr = m[0]
+    let cwd = new URL("http://localhost" + paramStr).searchParams.get("cwd")
+    return this.appLogRootFromCwd(cwd)
+  }
+
   async resolveLogDir(key) {
     if (path.isAbsolute(key)) {
       let p = key.replace(/\?.*$/, '')
-      let relative = path.relative(this.parent.kernel.homedir, p)
-      if (relative.startsWith("plugin")) {
-        let m = /\?.*$/.exec(key)
-        if (m && m.length > 0) {
-          let paramStr = m[0]
-          let cwd = new URL("http://localhost" + paramStr).searchParams.get("cwd")
-          let root = await Environment.get_root({ path: cwd }, this.parent.kernel)
-          cwd = root.root
-          return path.resolve(cwd, "logs/dev", relative)
-        }
-      } else if (relative.startsWith("api")) {
-        let filepath_chunks = relative.split(path.sep).slice(2)
-        let cwd = this.parent.kernel.path(...relative.split(path.sep).slice(0, 2))
+      let relative = this.homeRelativePath(p)
+      if (relative === null) return null
+      let relative_parts = relative.split(path.sep).filter(Boolean)
+      if (relative_parts[0] === "api" && relative_parts[1]) {
+        let filepath_chunks = relative_parts.slice(2)
+        let cwd = this.parent.kernel.path(...relative_parts.slice(0, 2))
         let root = await Environment.get_root({ path: cwd }, this.parent.kernel)
         cwd = root.root
         return path.resolve(cwd, "logs/api", ...filepath_chunks)
       }
+      let appRoot = await this.appLogRootFromKey(key)
+      if (appRoot) {
+        return path.resolve(appRoot, "logs/dev", relative)
+      }
+      return path.resolve(this.parent.kernel.homedir, "logs", relative)
     } else {
       if (typeof key === 'string' && key.startsWith("shell/")) {
         let unix_id = key.slice(6)
@@ -772,94 +808,18 @@ class Socket {
 
   async log_buffer(key, buf, meta) {
     const resolvedMeta = meta || this.logMeta[key] || { source: 'shell', method: 'shell' }
+    const logpath = await this.resolveLogDir(key)
+    if (!logpath) return
+    let session = this.sessions[key]
 
-    /*
-      
-      dev
-        /Users/x/pinokio/plugin/dev/claude.json?cwd=/Users/x/pinokio/api/audioplay
-        /Users/x/pinokio/plugin/dev/gemini.json?cwd=/Users/x/pinokio/api/audioplay
-
-      api 
-        /Users/x/pinokio/api/audioplay/start.json
-
-      shell
-        facefusion-pinokio.git_0.0_a56eb7d48c9e96d8a5217d625d83d204
-        facefusion-pinokio.git_0.0_a56eb7d48c9e96d8a5217d625d83d204
-        audioplay_0.0_a56eb7d48c9e96d8a5217d625d83d204
-    */
-
-    // 1. dev
-    if (path.isAbsolute(key)) {
-      let p = key.replace(/\?.*$/, '')
-      let relative = path.relative(this.parent.kernel.homedir, p)
-      if (relative.startsWith("plugin")) {
-        // dev
-        let m = /\?.*$/.exec(key)
-        if (m && m.length > 0) {
-          /*
-          DEV Changed {
-            cwd: '/Users/x/pinokio/api/audioplay',
-            relative: 'plugin/dev/claude.json'
-          }
-          */
-          let paramStr = m[0]
-          let cwd = new URL("http://localhost" + paramStr).searchParams.get("cwd")
-          let root = await Environment.get_root({ path: cwd }, this.parent.kernel)
-          cwd = root.root
-          let session = this.sessions[key]
-          //let logpath = path.resolve(cwd, "logs/dev", path.parse(relative).base)
-          let logpath = path.resolve(cwd, "logs/dev", relative)
-          const raw = this.rawLog[key] || ""
-          const tagged = buf ? this.tagLines(resolvedMeta, buf) : ""
-          const content = [raw, tagged].filter(Boolean).join("\n")
-          await Util.log(logpath, content, session)
-        }
-      } else if (relative.startsWith("api")) {
-        // api
-        /*
-        API Changed {
-          cwd: '/Users/x/pinokio/api/audioplay/start.json',
-          filepath: [ 'start.json' ]
-        }
-        */
-        let filepath_chunks = relative.split(path.sep).slice(2)
-        let cwd = this.parent.kernel.path(...relative.split(path.sep).slice(0, 2))
-        let root = await Environment.get_root({ path: cwd }, this.parent.kernel)
-        cwd = root.root
-        let session = this.sessions[key]
-        let logpath = path.resolve(cwd, "logs/api", ...filepath_chunks)
-        const raw = this.rawLog[key] || ""
-        const tagged = buf ? this.tagLines(resolvedMeta, buf) : ""
-        const content = [raw, tagged].filter(Boolean).join("\n")
-        await Util.log(logpath, content, session)
-      }
+    if (typeof key === 'string' && key.startsWith("shell/")) {
+      const content = buf || ""
+      await Util.log(logpath, content, session)
     } else {
-      // Only log SHELL
-      /*
-        examples:
-          key: facefusion-pinokio.git_0.0_a56eb7d48c9e96d8a5217d625d83d204
-          key: facefusion-pinokio.git_0.0_a56eb7d48c9e96d8a5217d625d83d204
-          key: audioplay_0.0_a56eb7d48c9e96d8a5217d625d83d204
-
-          key: shell:/Users/x/pinokio/api/comfy.git_0.0.0_session_6e89dd5ef73b94e728634729d08a3cf1
-
-      */
-
-      if (key.startsWith("shell/")) {
-        let unix_id = key.slice(6)
-        let unix_path = unix_id.split("_")[0]
-        let native_path = Util.u2p(unix_path)
-        let native_path_exists = await new Promise(r=>fs.access(native_path, fs.constants.F_OK, e => r(!e)))
-        if (native_path_exists) {
-          let cwd = native_path
-          let root = await Environment.get_root({ path: cwd }, this.parent.kernel)
-          cwd = root.root
-          let session = this.sessions[key]
-          let logpath = path.resolve(cwd, "logs/shell")
-          const content = buf || ""
-          await Util.log(logpath, content, session)
-        }
-      }
+      const raw = this.rawLog[key] || ""
+      const tagged = buf ? this.tagLines(resolvedMeta, buf) : ""
+      const content = [raw, tagged].filter(Boolean).join("\n")
+      await Util.log(logpath, content, session)
     }
   }
 }
