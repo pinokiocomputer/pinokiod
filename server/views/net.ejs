@@ -2396,6 +2396,78 @@ let interval = setInterval(() => {
     }
   })
 }, 2000)
+clearInterval(interval)
+
+const netRoutesEndpoint = "/net/" + encodeURIComponent(<%- JSON.stringify(selected_name) %>) + "/routes"
+let netRoutesFingerprint = null
+let netRoutesInFlight = false
+const rebuildNetRouteSearchIndex = () => {
+  list = []
+  document.querySelectorAll(".line[data-index]").forEach((el) => {
+    const titleEl = el.querySelector(".title span, .title")
+    const routeEls = [...el.querySelectorAll(".net")]
+    const routes = routeEls.map((node) => (node.textContent || '').trim()).filter(Boolean)
+    const haystack = [
+      el.getAttribute("data-name") || '',
+      titleEl ? titleEl.textContent || '' : '',
+      el.getAttribute("data-description") || '',
+      ...routes
+    ].join(' ').toLowerCase()
+    list.push({
+      index: parseInt(el.getAttribute("data-index")),
+      name: el.getAttribute("data-name"),
+      description: el.getAttribute("data-description"),
+      uri: el.getAttribute("data-uri"),
+      haystack
+    })
+  })
+  filteredCount = list.length
+  filteredBtnsCount = 0
+}
+const applyNetRouteFragment = (payload) => {
+  const routesEl = document.querySelector(".net-route-list")
+  const summaryEl = document.querySelector(".net-summary")
+  if (!routesEl || !summaryEl) return
+  const searchInput = document.querySelector("form input[type=search]")
+  const searchHadFocus = searchInput && document.activeElement === searchInput
+  const scrollX = window.scrollX
+  const scrollY = window.scrollY
+  summaryEl.innerHTML = payload.summary_html || ''
+  routesEl.innerHTML = payload.routes_html || ''
+  selectedIndex = -1
+  selectedBtnIndex = 0
+  rebuildNetRouteSearchIndex()
+  renderSearch()
+  if (searchHadFocus && searchInput) {
+    searchInput.focus()
+  }
+  window.scrollTo(scrollX, scrollY)
+}
+const refreshNetRouteFragment = async () => {
+  if (dnsModalActive || netRoutesInFlight) return
+  netRoutesInFlight = true
+  try {
+    const response = await fetch(netRoutesEndpoint, { cache: "no-store" })
+    const payload = await response.json()
+    if (!payload || !payload.success || !payload.fingerprint) {
+      return
+    }
+    if (netRoutesFingerprint === null) {
+      netRoutesFingerprint = payload.fingerprint
+      return
+    }
+    if (payload.fingerprint !== netRoutesFingerprint) {
+      netRoutesFingerprint = payload.fingerprint
+      applyNetRouteFragment(payload)
+    }
+  } catch (error) {
+    console.warn("net route refresh failed", error)
+  } finally {
+    netRoutesInFlight = false
+  }
+}
+refreshNetRouteFragment()
+setInterval(refreshNetRouteFragment, 2000)
 </script>
 </body>
 </html>

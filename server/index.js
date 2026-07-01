@@ -13519,6 +13519,104 @@ class Server {
         requirements_pending,
       })
     }))
+    this.app.get("/net/:name/routes", ex(async (req, res) => {
+      const protocol = req.get('X-Forwarded-Proto') || "http"
+      await this.kernel.peer.check_peers()
+
+      const list = this.kernel.peer.info ? this.getPeers() : []
+      let processes = []
+      let host
+      let peer
+      for (let item of list) {
+        if (item.name === req.params.name) {
+          processes = item.processes
+          host = item.host
+          peer = item
+        }
+      }
+
+      let peer_info = host && this.kernel.peer.info ? this.kernel.peer.info[host] : null
+      if (!peer_info && req.params.name === this.kernel.peer.name) {
+        try {
+          await this.kernel.peer.refresh_host(this.kernel.peer.host)
+        } catch (e) {
+        }
+        host = this.kernel.peer.host
+        peer_info = this.kernel.peer.info && this.kernel.peer.info[host] ? this.kernel.peer.info[host] : null
+        if (peer_info) {
+          peer = peer_info
+        }
+      }
+
+      if (peer_info) {
+        processes = peer_info.router_info || []
+      }
+      for (let i = 0; i < processes.length; i++) {
+        if (!processes[i].icon) {
+          if (protocol === "https") {
+            processes[i].icon = processes[i].https_icon
+          } else {
+            processes[i].icon = processes[i].http_icon
+          }
+        }
+      }
+
+      const installed = peer_info ? peer_info.installed : []
+      const serverless_mapping = peer_info ? peer_info.rewrite_mapping : {}
+      const serverless = Object.keys(serverless_mapping).map((name) => {
+        return serverless_mapping[name]
+      })
+      const static_routes = this.kernel.router && this.kernel.router.rewrite_mapping
+        ? Object.keys(this.kernel.router.rewrite_mapping).map((key) => this.kernel.router.rewrite_mapping[key])
+        : []
+      const current_host = this.kernel.peer.host
+      const showStaticRoutes = false
+      const visibleStaticRoutes = showStaticRoutes ? static_routes : []
+      const routeCount = current_host === host
+        ? processes.length + visibleStaticRoutes.length
+        : processes.length + installed.length + serverless.length
+      const allow_dns_creation = !!peer_info && req.params.name === this.kernel.peer.name
+      const locals = {
+        static_routes,
+        visibleStaticRoutes,
+        showStaticRoutes,
+        processes,
+        installed,
+        serverless,
+        host,
+        peer,
+        protocol,
+        current_host,
+        allow_dns_creation,
+        routeCount,
+      }
+      const fingerprintPayload = current_host === host
+        ? { current_host, host, processes, visibleStaticRoutes }
+        : { current_host, host, processes, installed, serverless }
+      const fingerprint = crypto
+        .createHash('sha256')
+        .update(JSON.stringify(fingerprintPayload))
+        .digest('hex')
+      const renderPartial = (name) => {
+        return new Promise((resolve, reject) => {
+          this.app.render(name, locals, (err, html) => {
+            if (err) {
+              reject(err)
+            } else {
+              resolve(html)
+            }
+          })
+        })
+      }
+      const routes_html = await renderPartial("partials/net_route_list")
+      const summary_html = await renderPartial("partials/net_summary")
+      res.json({
+        success: true,
+        fingerprint,
+        routes_html,
+        summary_html,
+      })
+    }))
     this.app.get("/net/:name/diff", ex(async (req, res) => {
       try {
         let processes = this.kernel.peer.info[this.kernel.peer.host].router_info

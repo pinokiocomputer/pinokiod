@@ -1,0 +1,278 @@
+<% if (current_host === host) { %>
+  <% if (processes.length === 0 && visibleStaticRoutes.length === 0) { %>
+    <div class='task-empty-state'>
+      <p class='task-empty-copy'>No live app routes are available on this machine.</p>
+    </div>
+  <% } %>
+  <% processes.forEach((item, index) => { %>
+    <div class='index line align-top' data-index="<%=index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.internal_router.join(' ')%> <%=item.port%>">
+      <h3>
+        <div class='item-icon'>
+          <% if (item.icon) { %>
+            <div class='placeholder-icon'>
+              <img src="<%=item.icon%>" onerror="this.src='/pinokio-black.png'"/>
+            </div>
+          <% } else { %>
+            <div class='placeholder-icon'>
+              <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+          <% } %>
+        </div>
+        <div class='col'>
+          <div class='title'><i class="fa-solid fa-circle"></i><span><%=item.title || item.name%></span></div>
+          <div class='grid-3'>
+            <div class='section'>
+              <h2><i class='fas fa-laptop-code'></i> This machine</h2>
+              <% 
+                let default_dns_name = ''
+                if (item.internal_router && item.internal_router.length > 0) {
+                  const firstDomain = item.internal_router[0]
+                  if (typeof firstDomain === 'string') {
+                    if (firstDomain.endsWith('.localhost')) {
+                      default_dns_name = firstDomain.replace(/\.localhost$/, '')
+                    } else {
+                      default_dns_name = firstDomain
+                    }
+                  }
+                }
+                if (!default_dns_name) {
+                  default_dns_name = (item.port ? item.port.toString() : (item.name || '')).toString()
+                }
+                default_dns_name = default_dns_name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '')
+                if (!default_dns_name && item.port) {
+                  default_dns_name = item.port.toString()
+                }
+              %>
+              <% item.internal_router.forEach((domain) => { %>
+                <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+              <% }) %>
+              <a class='net' target="_blank" href="http://localhost:<%=item.port%>">http://localhost:<%=item.port%></a>
+              <% if (allow_dns_creation && item.port) { %>
+                <button type='button' class='btn get-dns-btn' data-port="<%=item.port%>" data-default-dns="<%=default_dns_name%>" data-process-title="<%=item.title || item.name%>">
+                  <i class="fa-solid fa-globe"></i>
+                  <span>Get .localhost domain</span>
+                </button>
+              <% } %>
+            </div>
+            <div class='section'>
+              <h2><i class="fa-solid fa-wifi"></i> Local network</h2>
+              <%
+                const directHosts = []
+                if (Array.isArray(item.external_hosts)) {
+                  const seenHosts = new Set()
+                  item.external_hosts.forEach((hostEntry) => {
+                    if (!hostEntry || !hostEntry.url) {
+                      return
+                    }
+                    const key = hostEntry.url.toLowerCase()
+                    if (seenHosts.has(key)) {
+                      return
+                    }
+                    seenHosts.add(key)
+                    const scope = (hostEntry.scope || '').toLowerCase()
+                    let badge = ''
+                    if (scope === 'lan') badge = 'LAN'
+                    else if (scope === 'cgnat') badge = 'VPN'
+                    else if (scope === 'public') badge = 'Public'
+                    else if (scope === 'loopback') badge = 'Local'
+                    else if (scope === 'linklocal') badge = 'Link-Local'
+                    directHosts.push({
+                      url: hostEntry.url,
+                      badge
+                    })
+                  })
+                }
+              %>
+              <% if (directHosts.length > 0) { %>
+                <ul class="access-point-list">
+                  <% directHosts.forEach((point) => {
+                       const hasProtocol = /^https?:\/\//i.test(point.url)
+                       const hrefValue = hasProtocol ? point.url : `http://${point.url}`
+                  %>
+                    <li>
+                      <a class='net' target="_blank" href="<%= hrefValue %>"><%= point.url %></a>
+                      <% if (point.badge) { %>
+                        <span class="badge"><%= point.badge %></span>
+                      <% } %>
+                    </li>
+                  <% }) %>
+                </ul>
+              <% } else if (item.external_ip) { %>
+                <a class='net' target="_blank" href="http://<%=item.external_ip%>">http://<%=item.external_ip%></a>
+              <% } %>
+            </div>
+            <div class='section'>
+              <h2><i class="fa-solid fa-podcast"></i> Peer</h2>
+              <% item.external_router.forEach((domain) => { %>
+                <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+              <% }) %>
+            </div>
+          </div>
+        </div>
+      </h3>
+    </div>
+  <% }) %>
+  <% visibleStaticRoutes.forEach((route, index) => { %>
+    <div class='line align-top' data-index="<%=processes.length+index%>" data-name="<%=route.name%>" data-title="<%=route.name%>" data-description="<%=route.internal_router.join(' ')%>">
+      <h3>
+        <div class='item-icon'>
+          <div class='placeholder-icon'>
+            <i class="fa-solid fa-clock-rotate-left"></i>
+          </div>
+        </div>
+        <div class='col'>
+          <div class='title'><i class="fa-solid fa-circle"></i><span><%=route.name%></span></div>
+          <div class='grid-3'>
+            <div class='section'>
+              <h2><i class='fas fa-laptop-code'></i> This machine</h2>
+              <% route.internal_router.forEach((domain) => { %>
+                <% if (domain.endsWith(".localhost")) { %>
+                  <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+                <% } else { %>
+                  <a class='net' target="_blank" href="http://<%=domain%>">http://<%=domain%></a>
+                <% } %>
+              <% }) %>
+            </div>
+            <div class='section'>
+              <h2><i class="fa-solid fa-wifi"></i> Local network</h2>
+              <% if (route.external_ip) { %>
+                <a class='net' target="_blank" href="http://<%=route.external_ip%>">http://<%=route.external_ip%></a>
+              <% } %>
+            </div>
+            <div class='section'>
+              <h2><i class="fa-solid fa-podcast"></i> Peer</h2>
+              <% route.external_router.forEach((domain) => { %>
+                <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
+              <% }) %>
+            </div>
+          </div>
+        </div>
+      </h3>
+    </div>
+  <% }) %>
+<% } else { %>
+  <div class='section-container'>
+    <div class='section-col'>
+      <div class='section-header'>
+        <h3>
+          <div class='col'>
+            <div class='grid-1'>
+              <div class='section'>
+                <h2><i class="fa-solid fa-plug-circle-check"></i> Online</h2><div>Use these URLs to access the online remote servers.</div>
+              </div>
+            </div>
+          </div>
+        </h3>
+      </div>
+      <% processes.forEach((item, index) => { %>
+        <div class='index line align-top' data-index="<%=index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.external_router.join(' ')%> <%=item.external_ip%>">
+          <h3>
+            <div class='item-icon'>
+              <% if (item[`${protocol}_icon`]) { %>
+                <img src="<%=item[`${protocol}_icon`]%>" onerror="this.src='/pinokio-black.png'"/>
+              <% } else { %>
+                <div class='placeholder-icon'>
+                  <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+              <% } %>
+            </div>
+            <div class='col'>
+              <div class='title'><i class="fa-solid fa-circle"></i><span><%=item.title || item.name%></span></div>
+              <div class='grid-1'>
+                <div class='section'>
+                  <% if (item.external_router.length > 0) { %>
+                    <% item.external_router.forEach((domain) => { %>
+                        <a class='net' target="_blank" href="https://<%=domain%>"><span class='mark'>HTTPS</span><span><%=domain%></span></a>
+                    <% }) %>
+                  <% } %>
+                  <% if (item.external_ip) { %>
+                    <a class='net' target="_blank" href="http://<%=item.external_ip%>"><span class='mark'>HTTP</span><span><%=item.external_ip%></span></a>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          </h3>
+        </div>
+      <% }) %>
+    </div>
+    <div class='section-col'>
+      <div class='section-header'>
+        <h3>
+          <div class='col'>
+            <div class='grid-1'>
+              <div class='section'>
+                <h2><i class="fa-solid fa-folder-tree"></i> Installed</h2><div>Remotely launch the installed apps.</div>
+              </div>
+            </div>
+          </div>
+        </h3>
+      </div>
+      <% installed.forEach((item, index) => { %>
+        <div class='index line align-top' data-index="<%=processes.length + index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.description%>">
+          <h3>
+            <div class='item-icon'>
+              <% if (item[`${protocol}_icon`]) { %>
+                <img src="<%=item[`${protocol}_icon`]%>" onerror="this.src='/pinokio-black.png'"/>
+              <% } else { %>
+                <div class='placeholder-icon'>
+                  <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+              <% } %>
+            </div>
+            <div class='col'>
+              <div class='title'><%=item.title || item.name%></div>
+              <div class='description'><%=item.description%></div>
+              <div class='launch-btns grid-1'>
+                <div class='section'>
+                  <% if (item.app_href) { %>
+                    <a target="_blank" href="<%=item.app_href%>" class='net'><span class='mark'>HTTPS</span><span><%=item.app_href.replace("https://", "")%></span></a>
+                  <% } else if (item.https_href) { %>
+                    <a target="_blank" href="<%=item.https_href%>" class='net'><span class='mark'>HTTPS</span><span><%=item.https_href.replace("https://", "")%></span></a>
+                  <% } else { %>
+                    <a target="_blank" href="<%=item.http_href%>" class='net'><span class='mark'>HTTP</span><span><%=item.http_href.replace("http://", "")%></span></a>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          </div>
+        </h3>
+      <% }) %>
+    </div>
+    <div class='section-col'>
+      <div class='section-header'>
+        <h3>
+          <div class='col'>
+            <div class='grid-1'>
+              <div class='section'>
+                <h2>Serverless</h2><div>Static websites or serverless apps that connect to 3rd party APIs</div>
+              </div>
+            </div>
+          </div>
+        </h3>
+      </div>
+      <% serverless.forEach((item, index) => { %>
+        <div class='index line align-top' data-index="<%=processes.length + installed.length + index%>" data-name="<%=item.name%>" data-title="<%=item.name%>" data-description="<%=item.name%>">
+          <h3>
+            <div class='item-icon'>
+              <div class='placeholder-icon'>
+                <i class="fa-solid fa-clock-rotate-left"></i>
+              </div>
+            </div>
+            <div class='col'>
+              <div class='title'><%=item.name%></div>
+              <div class='launch-btns grid-1'>
+                <div class='section'>
+                  <% if (item.external_router.length > 0) { %>
+                    <a target="_blank" href="https://<%=item.external_router[0]%>" class='net'><span class='mark'>HTTPS</span><span><%=item.external_router[0]%></span></a>
+                  <% } else { %>
+                    <a target="_blank" href="http://<%=item.external_ip%>" class='net'><span class='mark'>HTTP</span><span><%=item.external_ip%></span></a>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          </div>
+        </h3>
+      <% }) %>
+    </div>
+  </div>
+<% } %>

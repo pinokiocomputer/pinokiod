@@ -1,0 +1,10 @@
+<span class='net-summary-item'><strong><%= routeCount %></strong>&nbsp;<%= routeCount === 1 ? 'entry' : 'entries' %></span>
+<% if (current_host === host) { %>
+  <span class='net-summary-item'><strong><%= processes.length %></strong>&nbsp;live</span>
+  <% if (showStaticRoutes) { %>
+    <span class='net-summary-item'><strong><%= visibleStaticRoutes.length %></strong>&nbsp;static</span>
+  <% } %>
+<% } else { %>
+  <span class='net-summary-item'><strong><%= processes.length %></strong>&nbsp;online</span>
+  <span class='net-summary-item'><strong><%= installed.length %></strong>&nbsp;installed</span>
+<% } %>

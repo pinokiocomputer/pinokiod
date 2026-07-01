@@ -5100,7 +5100,7 @@ body.dark .logs-icon-button:focus-visible {
   border-top: 1px solid rgba(78, 111, 176, 0.22);
   border-radius: 0;
   background:
-    linear-gradient(90deg, rgba(236, 243, 255, 0.96), rgba(248, 250, 252, 0.96));
+    linear-gradient(90deg, #ecf3ff, #f8fafc);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
     0 -1px 0 rgba(78, 111, 176, 0.06);
@@ -5118,7 +5118,7 @@ body.dark .logs-icon-button:focus-visible {
 body.dark .logs-community-footer {
   border-top-color: rgba(139, 171, 235, 0.18);
   background:
-    linear-gradient(90deg, rgba(45, 65, 110, 0.34), rgba(255, 255, 255, 0.045));
+    linear-gradient(90deg, #25314a, #202224);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
     0 -1px 0 rgba(0, 0, 0, 0.18);
