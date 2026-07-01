@@ -276,6 +276,10 @@ body.task-page .task-shell {
   padding-top: 18px;
 }
 
+.task-detail-layout-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .task-detail-main {
   min-width: 0;
 }

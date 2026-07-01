@@ -7203,6 +7203,8 @@ class Server {
         link: pluginItem?.link || "",
         image: pluginItem?.image || null,
         icon: pluginItem?.icon || null,
+        source: pluginItem?.source || "",
+        system: pluginItem?.system === true,
         default: pluginItem?.default === true,
         pluginPath: normalizedPluginPath,
         pluginKey: normalizePluginLookupKey(normalizedPluginPath),
@@ -7335,7 +7337,18 @@ class Server {
       if (!targetKey) {
         return null
       }
-      return plugins.find((plugin) => plugin && plugin.pluginKey === targetKey) || null
+      const exact = plugins.find((plugin) => plugin && plugin.pluginKey === targetKey)
+      if (exact) {
+        return exact
+      }
+      return findSystemPluginFallbackByPath(plugins, targetPath, targetKey)
+    }
+    const findSystemPluginFallbackByPath = (plugins, targetPath, targetKey = "") => {
+      const systemFallbackKey = normalizePluginLookupKey(PluginSources.systemPluginPathForLocalPath(targetPath))
+      if (!systemFallbackKey || systemFallbackKey === targetKey) {
+        return null
+      }
+      return plugins.find((plugin) => plugin && plugin.system === true && plugin.pluginKey === systemFallbackKey) || null
     }
     const buildSerializedPluginFromValidation = (validation) => {
       const context = validation && validation.context && typeof validation.context === "object"
@@ -7383,6 +7396,10 @@ class Server {
       const pluginRoot = path.resolve(this.kernel.path("plugin"))
       const managedRoot = path.resolve(pluginRoot, "code")
       const normalizedPath = normalizePluginPath(plugin && plugin.pluginPath ? plugin.pluginPath : "")
+      const isSystemPlugin = Boolean(plugin && (plugin.system === true || plugin.source === "system"))
+      const systemPluginPath = PluginSources.isSystemPluginPath(normalizedPath)
+        ? normalizedPath
+        : (isSystemPlugin ? PluginSources.systemPluginPathForLocalPath(normalizedPath) : "")
       const emptyState = {
         ownership: "bundled",
         manageable: false,
@@ -7396,8 +7413,8 @@ class Server {
         localLabel: "",
         managedPrefix: "",
       }
-      if (PluginSources.isSystemPluginPath(normalizedPath)) {
-        const relativeSystemPath = normalizedPath.replace(/^\/pinokio\/run\/+/, "")
+      if (isSystemPlugin || systemPluginPath) {
+        const relativeSystemPath = (systemPluginPath || normalizedPath).replace(/^\/pinokio\/run\/+/, "")
         return {
           ...emptyState,
           ownership: "system",
@@ -7497,6 +7514,27 @@ class Server {
           canOpenFolder: false,
           dir: "",
           localLabel: "",
+          remoteUrl: "",
+          remoteWebUrl: "",
+          githubConnected: false,
+          gitInitialized: false,
+          hasCommit: false,
+          changeCount: 0,
+          changes: [],
+          branch: "HEAD",
+          commitUrl: "",
+          createUrl: "",
+          pushUrl: "",
+        }
+      }
+
+      if (localState.ownership === "system") {
+        return {
+          ownership: "system",
+          manageable: false,
+          canOpenFolder: false,
+          dir: "",
+          localLabel: localState.localLabel,
           remoteUrl: "",
           remoteWebUrl: "",
           githubConnected: false,
@@ -7726,6 +7764,7 @@ class Server {
         changePreview,
         extraChangeCount: Math.max(changes.length - changePreview.length, 0),
         canManageSource: ownership === "local",
+        showSidebar: ownership !== "system",
         canOpenFolder: Boolean(shareState && shareState.canOpenFolder && shareState.dir),
         openFolderPath: shareState && shareState.canOpenFolder ? shareState.dir : "",
         isManagedSource: ownership === "managed",
@@ -7758,17 +7797,29 @@ class Server {
         res.redirect("/plugins")
         return
       }
-      const validation = await contentValidation.validatePluginByPath(requestedPath)
-      if (!validation.valid) {
-        await this.renderInvalidContentPage(req, res, validation, {
-          sidebarSelected: "plugins",
-          backHref: "/plugins",
-          backLabel: "Back to Plugins",
-        })
-        return
+      let plugins = null
+      const loadPluginsOnce = async () => {
+        if (!plugins) {
+          plugins = await loadSerializedPlugins()
+        }
+        return plugins
       }
-      const plugins = await loadSerializedPlugins()
-      const plugin = findPluginByPath(plugins, requestedPath) || buildSerializedPluginFromValidation(validation)
+      let plugin = null
+      if (PluginSources.systemPluginPathForLocalPath(requestedPath)) {
+        plugin = findPluginByPath(await loadPluginsOnce(), requestedPath)
+      }
+      if (!plugin) {
+        const validation = await contentValidation.validatePluginByPath(requestedPath)
+        if (!validation.valid) {
+          await this.renderInvalidContentPage(req, res, validation, {
+            sidebarSelected: "plugins",
+            backHref: "/plugins",
+            backLabel: "Back to Plugins",
+          })
+          return
+        }
+        plugin = findPluginByPath(await loadPluginsOnce(), requestedPath) || buildSerializedPluginFromValidation(validation)
+      }
       if (!plugin) {
         res.status(404).send("Plugin not found.")
         return

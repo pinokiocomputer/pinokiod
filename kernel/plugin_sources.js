@@ -75,6 +75,13 @@ const normalizePluginPath = (value) => {
   return normalized
 }
 
+const systemPluginPathForLocalPath = (value) => {
+  const normalized = normalizePluginPath(value)
+  const localPrefix = "/plugin/"
+  if (!normalized.startsWith(localPrefix)) return ""
+  return `${SYSTEM_PLUGIN_RUN_PREFIX}/${normalized.slice(localPrefix.length)}`
+}
+
 const pluginSelectionMatches = (src, selectedValue) => {
   const selectedPlugin = normalizeSlashes(typeof selectedValue === "string" ? selectedValue.trim() : "")
   if (!selectedPlugin || !src) return false
@@ -297,6 +304,7 @@ module.exports = {
   isSystemPluginPath,
   isLegacyPluginCodePath,
   normalizePluginPath,
+  systemPluginPathForLocalPath,
   pluginSelectionMatches,
   resolveRunPath,
   pluginPathToAbsolute,

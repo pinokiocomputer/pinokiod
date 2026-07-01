@@ -32,6 +32,25 @@ test("resolveLauncherPluginSelection returns app-dev plugin query paths", () => 
   )
 })
 
+test("systemPluginPathForLocalPath maps local-shaped plugin paths to system candidates", () => {
+  assert.strictEqual(
+    PluginSources.systemPluginPathForLocalPath("/plugin/antigravity-cli-auto/pinokio.js"),
+    "/pinokio/run/plugin/antigravity-cli-auto/pinokio.js"
+  )
+  assert.strictEqual(
+    PluginSources.systemPluginPathForLocalPath("plugin/antigravity-cli-auto"),
+    "/pinokio/run/plugin/antigravity-cli-auto/pinokio.js"
+  )
+  assert.strictEqual(
+    PluginSources.systemPluginPathForLocalPath("/pinokio/run/plugin/antigravity-cli-auto/pinokio.js"),
+    ""
+  )
+  assert.strictEqual(
+    PluginSources.systemPluginPathForLocalPath("/api/example/plugins/helper/pinokio.js"),
+    ""
+  )
+})
+
 test("normalizeActionPathComponents maps action URLs back to filesystem roots", () => {
   assert.deepStrictEqual(
     PluginSources.normalizeActionPathComponents(["pinokio", "run", "plugin", "antigravity-cli", "pinokio.js"]),
