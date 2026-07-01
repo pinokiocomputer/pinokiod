@@ -224,12 +224,12 @@
                       </div>
                     </div>
                   </form>
-                  <div class="task-actions plugin-share-static-actions">
+                  <div class="task-actions plugin-share-static-actions <%= shareState.remoteWebUrl || (shareState.remoteUrl && shareState.githubConnected) ? '' : 'task-hidden' %>" data-plugin-share-static-actions>
                     <a class="task-link-button <%= shareState.remoteWebUrl ? '' : 'task-hidden' %>" href="<%= shareState.remoteWebUrl || '#' %>" target="_blank" rel="noopener noreferrer" data-plugin-share-remote-link>
                       <i class="fa-brands fa-github" aria-hidden="true"></i>
                       <span>View on GitHub</span>
                     </a>
-                    <button class="task-button" type="button" data-plugin-share-refresh>
+                    <button class="task-button <%= shareState.remoteUrl && shareState.githubConnected ? '' : 'task-hidden' %>" type="button" data-plugin-share-refresh>
                       <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
                       <span>Check again</span>
                     </button>

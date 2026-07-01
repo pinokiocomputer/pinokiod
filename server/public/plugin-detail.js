@@ -43,6 +43,7 @@
   const createCancel = document.querySelector("[data-plugin-share-create-cancel]");
   const repoNameInput = document.querySelector("[data-plugin-share-repo-name]");
   const visibilitySelect = document.querySelector("[data-plugin-share-visibility]");
+  const staticActions = document.querySelector("[data-plugin-share-static-actions]");
   const remoteLink = document.querySelector("[data-plugin-share-remote-link]");
   const refreshButton = document.querySelector("[data-plugin-share-refresh]");
   const shareCopyEl = document.querySelector("[data-plugin-share-copy]");
@@ -761,6 +762,9 @@
   }
 
   function renderRemoteState() {
+    const hasRemote = !!share.remoteUrl;
+    const hasRemoteWebUrl = !!share.remoteWebUrl;
+    const showStaticRefresh = hasRemote && !!share.githubConnected;
     if (noteEl) {
       if (!share.manageable) {
         noteEl.textContent = "Read only";
@@ -776,8 +780,14 @@
         noteEl.textContent = "Setup needed";
       }
     }
+    if (staticActions) {
+      staticActions.classList.toggle("task-hidden", !hasRemoteWebUrl && !showStaticRefresh);
+    }
+    if (refreshButton) {
+      refreshButton.classList.toggle("task-hidden", !showStaticRefresh);
+    }
     if (remoteLink) {
-      if (share.remoteWebUrl) {
+      if (hasRemoteWebUrl) {
         remoteLink.href = share.remoteWebUrl;
         remoteLink.classList.remove("task-hidden", "is-disabled");
         remoteLink.removeAttribute("aria-disabled");
