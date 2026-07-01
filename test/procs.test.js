@@ -16,7 +16,7 @@ function loadProcsForPlatform(platform) {
   }
 }
 
-test("Windows process parser only probes listening TCP rows", async () => {
+test("Windows process parser only probes listening TCP rows without relying on localized state text", async () => {
   const Procs = loadProcsForPlatform("win32")
   const procs = new Procs({})
   const probed = []
@@ -28,8 +28,8 @@ test("Windows process parser only probes listening TCP rows", async () => {
 
   const stdout = [
     "  Proto  Local Address          Foreign Address        State           PID",
-    "  TCP    127.0.0.1:5173         0.0.0.0:0              LISTENING       1111",
-    "  TCP    127.0.0.1:49153        127.0.0.1:5173         ESTABLISHED     2222",
+    "  TCP    127.0.0.1:5173         0.0.0.0:0              ABHOEREN        1111",
+    "  TCP    127.0.0.1:49153        127.0.0.1:5173         HERGESTELLT     2222",
     "  TCP    0.0.0.0:7860           0.0.0.0:0              LISTENING       3333",
     "  TCP    [::1]:11434            [::]:0                 LISTENING       4444"
   ].join("\n")

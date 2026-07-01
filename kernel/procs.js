@@ -73,13 +73,15 @@ class Procs {
     let pids = new Set()
     let s = stdout.trim()
     const lines = s.split('\n');
+    const listeningForeignAddresses = new Set(['0.0.0.0:0', '[::]:0', '*:*', '*:0'])
     for(let line of lines) {
       if (isWin) {
         // Skip headers
         try {
           if (!line.startsWith('  TCP')) continue;
           const parts = line.trim().split(/\s+/);
-          const [ , localAddress, , state, pid ] = parts;
+          const [ , localAddress, foreignAddress ] = parts;
+          const pid = parts[parts.length - 1]
 
           let pid_int = parseInt(pid)
           if (pid_int === 0 || pid_int === 4) {
@@ -88,7 +90,7 @@ class Procs {
             continue
           }
 
-          if (state !== 'LISTENING') continue;
+          if (!listeningForeignAddresses.has(foreignAddress)) continue;
           const chunks = /(.+):([0-9]+)/.exec(localAddress)
           let host = chunks[1]
           let port = chunks[2]
