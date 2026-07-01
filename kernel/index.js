@@ -311,9 +311,6 @@ class Kernel {
           }
         }
       }
-      if (!filtered.includes(".")) {
-        filtered.push(".")
-      }
       config.dns[key] = filtered
       
     }

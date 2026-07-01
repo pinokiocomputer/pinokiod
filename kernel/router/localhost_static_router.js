@@ -32,10 +32,12 @@ class LocalhostStaticRouter extends Processor {
         continue
       }
       const hasIndex = fs.existsSync(indexPath)
-      const fileServerOptions = {}
-      if (hasIndex) {
-        fileServerOptions.index_names = ["index.html"]
+      if (!hasIndex) {
+        delete this.router.rewrite_mapping[api_name]
+        continue
       }
+      const fileServerOptions = {}
+      fileServerOptions.index_names = ["index.html"]
       const effectiveFileServerOptions = Object.keys(fileServerOptions).length ? { ...fileServerOptions } : undefined
       for(let domain in config.dns) {
         let localhost_match
