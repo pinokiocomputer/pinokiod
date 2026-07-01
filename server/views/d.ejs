@@ -1192,12 +1192,24 @@ const getPluginInstallRedirect = async (rawHref) => {
   pluginInstallPreflightCache.set(pluginPath, redirectHref)
   return redirectHref
 }
+const navigateOutsideLauncher = (href) => {
+  if (!href) {
+    return
+  }
+  try {
+    if (window.parent && window.parent !== window && window.parent !== window.top) {
+      window.parent.location.href = href
+      return
+    }
+  } catch (_) {}
+  window.location.href = href
+}
 const redirectToPluginInstallIfNeeded = async (rawHref) => {
   const redirectHref = await getPluginInstallRedirect(rawHref)
   if (!redirectHref) {
     return false
   }
-  window.top.location.href = redirectHref
+  navigateOutsideLauncher(redirectHref)
   return true
 }
 const pluginSettingsHrefFromLaunchHref = (rawHref) => {
@@ -1367,7 +1379,7 @@ document.addEventListener("click", async (e) => {
     e.stopPropagation()
     const settingsHref = pluginSettingsHrefFromLaunchHref(settingsTarget.getAttribute('data-href') || '')
     if (settingsHref) {
-      window.top.location.href = settingsHref
+      navigateOutsideLauncher(settingsHref)
     }
     return
   }
