@@ -1485,7 +1485,7 @@
         this.renderedRedactionItems = []
         this.selectedRedactionId = null
         this.activeRedactionFilter = 'all'
-        this.resetRedactionReview(this.reviewMarkdown ? 'Run the privacy filter to review detected items.' : 'No report text to review.')
+        this.resetRedactionReview(this.reviewMarkdown ? 'Redact the report to mask sensitive items.' : 'No report text to review.')
       }
       this.currentMarkdown = this.reviewMarkdown
       this.updateDraftTitleSuggestion(false)
@@ -1604,7 +1604,7 @@
         this.runFilterButton.disabled = !enabled
         if (!this.filtering) {
           this.runFilterButton.classList.remove('is-busy')
-          this.runFilterButton.innerHTML = '<i class="fa-solid fa-shield-halved"></i><span>Run privacy filter</span>'
+          this.runFilterButton.innerHTML = '<i class="fa-solid fa-shield-halved"></i><span>Redact report</span>'
         }
       }
     }
@@ -1614,9 +1614,9 @@
         this.runFilterButton.disabled = this.filtering || !this.reviewMarkdown
         this.runFilterButton.classList.toggle('is-busy', this.filtering)
         if (this.filtering) {
-          this.runFilterButton.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Filtering…</span>'
+          this.runFilterButton.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Redacting…</span>'
         } else {
-          this.runFilterButton.innerHTML = '<i class="fa-solid fa-shield-halved"></i><span>Run privacy filter</span>'
+          this.runFilterButton.innerHTML = '<i class="fa-solid fa-shield-halved"></i><span>Redact report</span>'
         }
       }
       this.updateDraftSizeReview()
@@ -1919,7 +1919,7 @@
       if (!items.length) {
         const empty = document.createElement('div')
         empty.className = 'logs-redaction-empty'
-        empty.textContent = this.redactionHasRun ? 'No redactions detected.' : 'Run the privacy filter to review detected items.'
+        empty.textContent = this.redactionHasRun ? 'No redactions detected.' : 'Redact the report to mask sensitive items.'
         this.reviewListEl.appendChild(empty)
         return
       }
@@ -2068,14 +2068,14 @@
       this.draftTitleEdited = false
       this.updateDraftTitleSuggestion(true)
       this.renderCurrentReport()
-      this.resetRedactionReview(this.reviewMarkdown ? 'Run the privacy filter to review detected items.' : 'No report text to review.')
+      this.resetRedactionReview(this.reviewMarkdown ? 'Redact the report to mask sensitive items.' : 'No report text to review.')
       this.updateRedactionCount()
       this.setRunFilterEnabled(Boolean(this.reviewMarkdown))
       if (!this.reviewMarkdown) {
         this.setStatus(`Session report found ${sections.length} log section${sections.length === 1 ? '' : 's'}.`)
         return
       }
-      this.setStatus(`Session report built from ${sections.length} log section${sections.length === 1 ? '' : 's'}. Run the privacy filter only if you want local redaction review.`)
+      this.setStatus(`Session report built from ${sections.length} log section${sections.length === 1 ? '' : 's'}. Redact the displayed report if you want local privacy filtering.`)
     }
     renderError(message) {
       if (this.reportSectionsEl) this.reportSectionsEl.textContent = '--'
@@ -2112,7 +2112,7 @@
       } else if (progress.type === 'chunk') {
         const total = Number(progress.total) || 0
         const done = Number(progress.done) || 0
-        this.setStatus(total > 0 ? `Filtering locally… ${Math.min(done + 1, total)} / ${total} chunks.` : 'Filtering locally…')
+        this.setStatus(total > 0 ? `Redacting locally… ${Math.min(done + 1, total)} / ${total} chunks.` : 'Redacting locally…')
       }
     }
     renderFilterError(error) {
@@ -2125,7 +2125,7 @@
       this.setRunFilterEnabled(Boolean(this.reviewMarkdown))
       this.setOutputText(this.reviewMarkdown || 'Privacy filter failed. No report text is available.')
       this.updateDraftSizeReview()
-      this.resetRedactionReview('Privacy filtering failed before any redactions could be reviewed.')
+      this.resetRedactionReview('Privacy filtering failed before the report could be redacted.')
       this.setStatus(error && error.message ? error.message : 'Privacy filter failed.', true)
     }
     async filterReport() {
@@ -2153,7 +2153,7 @@
         this.renderCurrentReport()
         this.selectRedaction(this.selectedRedactionId, false)
         const maskedCount = this.enabledRedactionCount()
-        this.setStatus(`Privacy filter finished locally. ${maskedCount} item${maskedCount === 1 ? '' : 's'} masked across ${this.filterChunks} chunk${this.filterChunks === 1 ? '' : 's'}.`)
+        this.setStatus(`Report redacted locally. ${maskedCount} item${maskedCount === 1 ? '' : 's'} masked across ${this.filterChunks} chunk${this.filterChunks === 1 ? '' : 's'}.`)
       } catch (error) {
         if (token === this.filterToken) {
           this.renderFilterError(error)
@@ -2174,7 +2174,7 @@
         this.rebuildDraftPreview(false)
         this.setRunFilterEnabled(Boolean(this.reviewMarkdown) && !this.filtering)
         if (!this.redactionHasRun && this.reviewMarkdown) {
-          this.setStatus('Unfiltered report is ready. Run the privacy filter only if you want local redaction review.')
+          this.setStatus('Unfiltered report is ready. Redact the displayed report if you want local privacy filtering.')
         }
         return
       }

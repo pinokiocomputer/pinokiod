@@ -70,7 +70,7 @@ function createLogsHtml(script) {
           <button id="logs-create-draft" type="button" disabled>Ask Community</button>
           <input id="logs-draft-title">
           <span id="logs-draft-title-note"></span>
-          <button id="logs-run-filter" type="button">Run privacy filter</button>
+          <button id="logs-run-filter" type="button">Redact report</button>
           <pre id="logs-report-output"></pre>
           <div id="logs-report-status"></div>
           <div id="logs-report-files"></div>
