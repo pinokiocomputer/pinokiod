@@ -91,8 +91,8 @@ function createLogsHtml(script) {
           <div id="logs-viewer-path"></div>
           <button id="logs-clear-viewer" type="button">Clear</button>
           <input id="logs-autoscroll" type="checkbox">
-          <button data-logs-view="latest" type="button">Latest</button>
-          <button data-logs-view="raw" type="button">Raw</button>
+          <button data-logs-view="latest" type="button">Issue report</button>
+          <button data-logs-view="raw" type="button">Raw logs</button>
           <section id="logs-latest-panel"></section>
           <section id="logs-raw-panel"></section>
         </section>

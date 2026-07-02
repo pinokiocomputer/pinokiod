@@ -40,15 +40,13 @@
 <main>
   <div class='container <%= !logsError ? "logs-container" : "" %>'>
     <% if (!logsError) { %>
-    <section class="logs-page" id="logs-root" data-workspace="<%= logsWorkspace ? logsWorkspace : '' %>" data-report-url="<%= logsReportUrl || '' %>" data-initial-view="<%= logsInitialView || 'raw' %>">
+    <section class="logs-page" id="logs-root" data-workspace="<%= logsWorkspace ? logsWorkspace : '' %>" data-report-url="<%= logsReportUrl || '' %>" data-initial-view="<%= logsInitialView || 'raw' %>" aria-label="Logs">
       <div class="logs-page-header">
         <div class="logs-page-header-main">
-          <h1 class="logs-page-title">Logs</h1>
-          <p class="logs-page-description">Inspect live log files and export diagnostics from this machine.</p>
           <% if (logsReportUrl) { %>
             <div class="logs-page-switch">
               <div class="logs-view-switch" role="tablist" aria-label="Log views">
-                <button type="button" class="logs-view-tab" data-logs-view="latest" role="tab" aria-controls="logs-latest-panel">Latest</button>
+                <button type="button" class="logs-view-tab" data-logs-view="latest" role="tab" aria-controls="logs-latest-panel">Issue report</button>
                 <button type="button" class="logs-view-tab" data-logs-view="raw" role="tab" aria-controls="logs-raw-panel">Raw logs</button>
               </div>
             </div>

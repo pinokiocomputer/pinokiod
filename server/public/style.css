@@ -4881,6 +4881,10 @@ header.navheader.transitioning {
   --logs-sidebar-width: 320px;
   --logs-sidebar-min-width: 220px;
   --logs-sidebar-max-width: 560px;
+  --logs-sticky-gap: 12px;
+  --logs-sticky-header-height: 0px;
+  --logs-sticky-review-top: calc(var(--logs-sticky-header-height) + var(--logs-sticky-gap));
+  --logs-sticky-review-bottom-clearance: 84px;
   --logs-bg: #ffffff;
   --logs-panel: #ffffff;
   --logs-soft: rgba(15, 23, 42, 0.035);
@@ -4919,41 +4923,29 @@ body.dark #logs-root {
 }
 .logs-page-header {
   flex: 0 0 auto;
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   justify-content: space-between;
-  gap: 16px 24px;
+  gap: 8px 16px;
   min-height: 0;
-  padding: 12px 18px 14px;
+  padding: 8px 14px;
   border-bottom: 1px solid var(--logs-border);
-  background: transparent;
+  background: var(--logs-bg);
   backdrop-filter: none;
 }
 .logs-page-header-main {
   min-width: 0;
   max-width: 760px;
 }
-.logs-page-title {
-  margin: 0;
-  color: var(--logs-text);
-  font-size: 22px;
-  line-height: 1.12;
-  letter-spacing: 0;
-  font-weight: 760;
-}
-.logs-page-description {
-  margin: 4px 0 0;
-  max-width: 64ch;
-  color: var(--logs-muted);
-  font-size: 12px;
-  line-height: 1.4;
-}
 .logs-page-switch {
   display: flex;
   align-items: center;
   min-width: 0;
-  margin-top: 14px;
+  margin-top: 0;
 }
 .logs-page-controls {
   display: flex;
@@ -6495,8 +6487,8 @@ body.dark .logs-resizer:hover .logs-resizer-toggle {
 @media (max-width: 720px) {
   .logs-page-header {
     grid-template-columns: 1fr;
-    gap: 14px;
-    padding: 4px 14px 16px;
+    gap: 8px;
+    padding: 8px 12px;
   }
   .logs-page-switch {
     width: 100%;
@@ -6548,6 +6540,7 @@ body.main-sidebar-page main > .logs-container {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scroll-padding-top: var(--logs-sticky-review-top);
   scroll-padding-bottom: 96px;
 }
 
@@ -6589,6 +6582,18 @@ body.main-sidebar-page main > .logs-container {
 
 .logs-page[data-view="latest"] .logs-redaction-pane {
   max-height: none;
+}
+
+@media (min-width: 721px) {
+  .logs-page[data-view="latest"] .logs-redaction-pane {
+    position: sticky;
+    top: var(--logs-sticky-review-top);
+    z-index: 2;
+    max-height: max(180px, calc(100dvh - var(--logs-sticky-review-top) - var(--logs-sticky-review-bottom-clearance)));
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
 }
 
 .logs-page[data-view="latest"] .logs-community-footer {

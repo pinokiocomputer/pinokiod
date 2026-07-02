@@ -1994,10 +1994,14 @@
         return
       }
       const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      const outputRect = this.outputEl.getBoundingClientRect()
+      const outputStyle = window.getComputedStyle ? window.getComputedStyle(this.outputEl) : null
+      const outputOverflowY = outputStyle ? outputStyle.overflowY : ''
+      const outputCanScroll = /auto|scroll|overlay/.test(outputOverflowY) && this.outputEl.scrollHeight > this.outputEl.clientHeight
+      const scrollTarget = outputCanScroll ? this.outputEl : (this.outputEl.closest('.logs-page') || this.outputEl)
+      const outputRect = scrollTarget.getBoundingClientRect()
       const tokenRect = token.getBoundingClientRect()
-      const nextTop = this.outputEl.scrollTop + tokenRect.top - outputRect.top - Math.round(outputRect.height * 0.35)
-      this.outputEl.scrollTo({
+      const nextTop = scrollTarget.scrollTop + tokenRect.top - outputRect.top - Math.round(outputRect.height * 0.35)
+      scrollTarget.scrollTo({
         top: Math.max(0, nextTop),
         behavior: reducedMotion ? 'auto' : 'smooth'
       })
@@ -3032,10 +3036,13 @@
       window.addEventListener('resize', apply)
       window.addEventListener('orientationchange', apply)
       if (window.ResizeObserver) {
-        const header = document.querySelector('header.navheader')
-        if (header) {
+        const headers = [
+          document.querySelector('header.navheader'),
+          this.rootElement.querySelector('.logs-page-header')
+        ].filter(Boolean)
+        if (headers.length > 0) {
           this.headerObserver = new ResizeObserver(apply)
-          this.headerObserver.observe(header)
+          headers.forEach((header) => this.headerObserver.observe(header))
         }
       }
       this.boundBeforeUnload = () => this.dispose()
@@ -3055,6 +3062,9 @@
       const fallback = Math.max(320, Math.round(viewportHeight * 0.6))
       const target = available > 0 ? available : fallback
       this.rootElement.style.setProperty('--logs-pane-height', `${target}px`)
+      const pageHeader = this.rootElement.querySelector('.logs-page-header')
+      const pageHeaderHeight = pageHeader ? Math.ceil(pageHeader.getBoundingClientRect().height) : 0
+      this.rootElement.style.setProperty('--logs-sticky-header-height', `${pageHeaderHeight}px`)
     }
 
     dispose() {
