@@ -6,6 +6,7 @@ const { JSDOM, VirtualConsole } = require("jsdom")
 
 const root = path.resolve(__dirname, "..")
 const logsScriptPath = path.resolve(root, "server/public/logs.js")
+const logsTopRedactionScriptPath = path.resolve(root, "server/public/logs-top-redaction.js")
 
 function jsonResponse(payload, status = 200) {
   return {
@@ -125,6 +126,7 @@ async function createLogsDom(options = {}) {
     virtualConsole,
     beforeParse(window) {
       window.matchMedia = () => ({ matches: false })
+      window.HTMLElement.prototype.scrollIntoView = function() {}
       window.ResizeObserver = class {
         observe() {}
         disconnect() {}
@@ -154,6 +156,162 @@ async function createLogsDom(options = {}) {
   await new Promise((resolve) => window.addEventListener("DOMContentLoaded", resolve, { once: true }))
   await waitFor(() => !window.document.getElementById("logs-ask-ai").disabled, "Ask AI button enabled")
   return { dom }
+}
+
+function createRawLogsHtml(topRedactionScript, script) {
+  return `<!doctype html>
+    <html>
+      <body>
+        <section id="logs-root">
+          <div class="logs-page-header">
+            <div data-logs-actions="raw">
+              <button id="logs-redact-top-level" type="button">Redact</button>
+              <button id="logs-redaction-chip" type="button" class="hidden"><span>Not run</span></button>
+              <button id="logs-generate-archive" type="button">Generate zip</button>
+              <a id="logs-download-archive"></a>
+              <div id="logs-zip-status"></div>
+            </div>
+          </div>
+          <section id="logs-raw-panel">
+            <div id="logs-tree"></div>
+            <div id="logs-viewer-output"></div>
+            <div id="logs-viewer-status"></div>
+            <div id="logs-viewer-path"></div>
+            <button id="logs-clear-viewer" type="button">Clear</button>
+            <input id="logs-autoscroll" type="checkbox">
+            <aside id="logs-top-redaction-pane" class="hidden">
+              <button id="logs-redaction-collapse" type="button">Collapse</button>
+              <div id="logs-top-redaction-status"></div>
+              <div id="logs-top-redaction-count"></div>
+              <div id="logs-top-redaction-files"></div>
+              <div id="logs-top-redaction-filters"></div>
+              <div id="logs-top-redaction-list"></div>
+            </aside>
+          </section>
+          <section id="logs-latest-panel"></section>
+        </section>
+        <script>
+          window.LOGS_PAGE_DATA = {
+            rootDisplay: "~/pinokio/logs",
+            downloadUrl: "/pinokio/logs.zip",
+            initialView: "raw"
+          };
+        </script>
+        <script>${topRedactionScript}</script>
+        <script>${script}</script>
+      </body>
+    </html>`
+}
+
+async function createRawLogsDom() {
+  const script = await fs.readFile(logsScriptPath, "utf8")
+  const topRedactionScript = await fs.readFile(logsTopRedactionScriptPath, "utf8")
+  const archiveRequests = []
+  const files = {
+    "system.json": '{ "home": "/Users/alice", "token": "sk-proj-123456789012345678901234" }',
+    "stdout.txt": 'Started from /Users/alice/pinokio with token sk-proj-abcdefghijklmnopqrstuvwx',
+    "caddy.log": '127.0.0.1 request token sk-proj-caddyshouldnotbesent',
+    "caddy-2026-07-02T16-04-26.109.log": '127.0.0.1 request token sk-proj-rotatedcaddyshouldnotbesent'
+  }
+  const virtualConsole = new VirtualConsole()
+  virtualConsole.on("jsdomError", (error) => {
+    throw error
+  })
+  const dom = new JSDOM(createRawLogsHtml(topRedactionScript, script), {
+    url: "http://127.0.0.1:42000/logs",
+    runScripts: "dangerously",
+    resources: "usable",
+    pretendToBeVisual: true,
+    virtualConsole,
+    beforeParse(window) {
+      window.matchMedia = () => ({ matches: false })
+      window.HTMLElement.prototype.scrollIntoView = function() {}
+      window.ResizeObserver = class {
+        observe() {}
+        disconnect() {}
+      }
+      window.Worker = class {
+        constructor() {
+          this.listeners = new Map()
+        }
+        addEventListener(type, callback) {
+          this.listeners.set(type, callback)
+        }
+        postMessage(message) {
+          const text = String(message && message.text || "")
+          const items = []
+          const addItem = (label, value) => {
+            const start = text.indexOf(value)
+            if (start >= 0) {
+              items.push({
+                id: items.length,
+                label,
+                sourceStart: start,
+                sourceEnd: start + value.length,
+                replacement: `[${label}]`
+              })
+            }
+          }
+          addItem("private_path", "/Users/alice")
+          const tokenMatch = text.match(/sk-proj-[A-Za-z0-9]+/)
+          if (tokenMatch) {
+            addItem("private_key", tokenMatch[0])
+          }
+          setTimeout(() => {
+            const listener = this.listeners.get("message")
+            if (listener) {
+              listener({
+                data: {
+                  type: "result",
+                  id: message.id,
+                  items,
+                  counts: {},
+                  chunks: 1
+                }
+              })
+            }
+          }, 0)
+        }
+      }
+      window.fetch = async (url, options = {}) => {
+        const href = String(url)
+        const parsed = new URL(href, "http://127.0.0.1:42000")
+        if (parsed.pathname === "/api/logs/tree") {
+          return jsonResponse({
+            entries: Object.entries(files).map(([name, text]) => ({
+              name,
+              path: name,
+              type: "file",
+              size: Buffer.byteLength(text)
+            })).concat([{ name: "shell", path: "shell", type: "directory" }])
+          })
+        }
+        if (parsed.pathname === "/pinokio/logs/file") {
+          const filePath = parsed.searchParams.get("path")
+          return jsonResponse({
+            path: filePath,
+            name: filePath,
+            size: Buffer.byteLength(files[filePath] || ""),
+            text: files[filePath] || ""
+          })
+        }
+        if (parsed.pathname === "/pinokio/log") {
+          const body = options.body ? JSON.parse(options.body) : {}
+          archiveRequests.push(body)
+          return jsonResponse({
+            success: true,
+            download: "/pinokio/logs.zip",
+            redacted_overrides: Array.isArray(body.redacted_overrides) ? body.redacted_overrides.length : 0
+          })
+        }
+        return jsonResponse({})
+      }
+    }
+  })
+
+  const { window } = dom
+  await new Promise((resolve) => window.addEventListener("DOMContentLoaded", resolve, { once: true }))
+  return { dom, archiveRequests }
 }
 
 async function waitFor(predicate, message = "condition") {
@@ -297,4 +455,37 @@ test("log Ask AI launch waits for parent postMessage acknowledgement before clos
   assert.equal(posted.length, 1)
   assert.equal(Boolean(posted[0].launchId), true)
   assert.equal(posted[0].agentHref.includes("/pinokio/run/plugin/codex-auto/pinokio.js"), true)
+})
+
+test("raw logs redaction sends reviewed top-level overrides when generating zip", async () => {
+  const { dom, archiveRequests } = await createRawLogsDom()
+  const { document } = dom.window
+
+  document.getElementById("logs-redact-top-level").click()
+  assert.equal(document.getElementById("logs-generate-archive").disabled, true)
+
+  await waitFor(() => {
+    return !document.getElementById("logs-top-redaction-pane").classList.contains("hidden") &&
+      document.getElementById("logs-viewer-output").textContent.includes("[private_path]") &&
+      document.getElementById("logs-redaction-chip").textContent.includes("Redacted")
+  }, "top-level redaction review")
+
+  assert.match(document.getElementById("logs-top-redaction-list").textContent, /private_key/)
+
+  document.getElementById("logs-redaction-collapse").click()
+  assert.equal(document.getElementById("logs-top-redaction-pane").classList.contains("hidden"), true)
+
+  document.getElementById("logs-generate-archive").click()
+
+  await waitFor(() => archiveRequests.length === 1, "archive request")
+  await waitFor(() => /reviewed files/.test(document.getElementById("logs-zip-status").textContent), "archive ready status")
+  const overrides = archiveRequests[0].redacted_overrides
+  assert.equal(Array.isArray(overrides), true)
+  assert.deepEqual(overrides.map((entry) => entry.path).sort(), ["stdout.txt", "system.json"])
+  const systemOverride = overrides.find((entry) => entry.path === "system.json")
+  assert.ok(systemOverride)
+  assert.match(systemOverride.text, /\[private_path\]/)
+  assert.match(systemOverride.text, /\[private_key\]/)
+  assert.equal(systemOverride.text.includes("/Users/alice"), false)
+  assert.equal(systemOverride.text.includes("sk-proj-123456789012345678901234"), false)
 })

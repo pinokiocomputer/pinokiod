@@ -11,6 +11,7 @@
 <link href="/markdown.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
 <link href="/style.css" rel="stylesheet"/>
+<link href="/logs-top-redaction.css" rel="stylesheet"/>
 <link href="/universal-launcher.css" rel="stylesheet"/>
 <% if (agent === "electron") { %>
   <link href="/electron.css" rel="stylesheet"/>
@@ -58,6 +59,9 @@
             <button type="button" class="logs-flat-button" id="logs-refresh-report"><i class="fa-solid fa-arrows-rotate"></i><span>Refresh</span></button>
           </div>
           <div class="logs-action-group" data-logs-actions="raw">
+            <% if (!logsWorkspace) { %>
+              <%- include('partials/logs_top_redaction_actions') %>
+            <% } %>
             <button type="button" class="logs-primary-button" id="logs-generate-archive"><i class="fa-solid fa-file-zipper"></i><span>Generate zip</span></button>
             <a id="logs-download-archive" class="logs-secondary-button hidden" href="<%= typeof logsDownloadUrl !== 'undefined' ? logsDownloadUrl : '/pinokio/logs.zip' %>" download><i class="fa-solid fa-download"></i><span>Download</span></a>
             <button type="button" class="logs-flat-button" id="logs-refresh-tree"><i class="fa-solid fa-arrows-rotate"></i><span>Refresh tree</span></button>
@@ -190,6 +194,9 @@
             <pre class="logs-viewer-output" id="logs-viewer-output" role="log" aria-live="polite" tabindex="0"></pre>
           </div>
         </div>
+        <% if (!logsWorkspace) { %>
+          <%- include('partials/logs_top_redaction_pane') %>
+        <% } %>
       </section>
     </section>
     <% } else { %>
@@ -215,6 +222,7 @@
 <script>
 window.LOGS_PAGE_DATA = <%- JSON.stringify({ rootDisplay: logsRootDisplay || '', downloadUrl: logsDownloadUrl || '/pinokio/logs.zip', workspace: logsWorkspace || '', workspaceTitle: logsTitle || '', workspaceCwd: typeof logsWorkspaceCwd !== 'undefined' ? logsWorkspaceCwd : '', reportUrl: logsReportUrl || '', draftUrl: typeof logsDraftUrl !== 'undefined' ? logsDraftUrl : '', registryBase: 'https://pinokio.co', initialView: logsInitialView || 'raw', embedded: !!logsEmbedded }) %>
 </script>
+<script src="/logs-top-redaction.js"></script>
 <script src="/logs.js"></script>
 </body>
 </html>

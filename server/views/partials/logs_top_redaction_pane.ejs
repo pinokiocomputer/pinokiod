@@ -1,0 +1,25 @@
+<aside class="logs-top-redaction-pane hidden" id="logs-top-redaction-pane" aria-label="Top-level log redaction review">
+  <div class="logs-top-redaction-header">
+    <div>
+      <p class="logs-latest-pane-eyebrow">Privacy filter</p>
+      <div class="logs-latest-pane-title">Top-level files</div>
+    </div>
+    <button type="button" class="logs-icon-button" id="logs-redaction-collapse" aria-label="Collapse redaction review" title="Collapse redaction review"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="logs-review-content">
+    <section class="logs-review-section" aria-label="Top-level file redaction status">
+      <div class="logs-review-section-row">
+        <div class="logs-review-section-title">Reviewed files</div>
+        <div class="logs-review-badge" id="logs-top-redaction-count">Not run</div>
+      </div>
+      <div class="logs-report-status" id="logs-top-redaction-status" role="status" aria-live="polite">Run Redact to review top-level log files before generating a zip.</div>
+      <div class="logs-top-redaction-files" id="logs-top-redaction-files"></div>
+    </section>
+    <section class="logs-review-section logs-review-section--redactions" aria-label="Top-level file redactions">
+      <div class="logs-review-section-title">Redactions</div>
+      <div class="logs-redaction-filters" id="logs-top-redaction-filters" aria-label="Filter top-level file redactions"></div>
+      <div class="logs-redaction-list" id="logs-top-redaction-list"></div>
+    </section>
+    <div class="logs-top-redaction-note">Generate zip will use reviewed browser redactions for top-level files.</div>
+  </div>
+</aside>

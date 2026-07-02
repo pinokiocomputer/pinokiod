@@ -84,6 +84,7 @@ const { createTaskPackageService } = require("./lib/task_packages")
 const { createTaskWorkspaceLinkService } = require("./lib/task_workspace_links")
 const { createContentValidationService } = require("./lib/content_validation")
 const { buildSecureRouterDebugSnapshot, createSecureRouterDebugStore } = require("./lib/secure_router_debug")
+const logRedaction = require("./lib/log_redaction")
 const AppRegistryService = require("./lib/app_registry")
 const AppLogService = require("./lib/app_logs")
 const AppLogReportService = require("./lib/app_log_report")
@@ -6375,8 +6376,7 @@ class Server {
         path.resolve(__dirname, "views")
       ])
     }
-    this.app.use(express.json());
-    this.app.use(express.urlencoded({ extended: true }));
+    logRedaction.createLogRedactionBodyParsers(express).forEach((parser) => this.app.use(parser))
     this.app.use(cookieParser());
     this.app.use(session({
       secret: "secret",
@@ -8294,6 +8294,9 @@ class Server {
         })
         return
       }
+      if (!workspace) {
+        await logRedaction.writeCurrentLogSnapshot(this.kernel, this.version)
+      }
       res.render("logs", {
         current_host: this.kernel.peer.host,
         ...peerAccess,
@@ -8382,6 +8385,7 @@ class Server {
         entries
       })
     }))
+    this.app.get("/pinokio/logs/file", ex(logRedaction.createTopLevelLogFileHandler(this)))
     this.app.get("/api/logs/stream", ex(async (req, res) => {
       const workspace = typeof req.query.workspace === 'string' ? req.query.workspace.trim() : ''
       let context
@@ -15957,37 +15961,19 @@ class Server {
         }
         return
       }
-
-      let states = this.kernel.shell.shells.map((s) => {
-        return {
-          state: s.state,
-          id: s.id,
-          group: s.group,
-          env: s.env,
-          path: s.path,
-          cmd: s.cmd,
-          done: s.done,
-          ready: s.ready,
-        }
-      })
-
-      let info = {
-        platform: this.kernel.platform,
-        arch: this.kernel.arch,
-        running: this.kernel.api.running,
-        home: this.kernel.homedir,
-        vars: this.kernel.vars,
-        memory: this.kernel.memory,
-        procs: this.kernel.procs,
-        gpu: this.kernel.gpu,
-        gpus: this.kernel.gpus,
-        version: this.version,
-        ...this.kernel.sysinfo
+      const redactionOverridesRequested = Boolean(req.body && Object.prototype.hasOwnProperty.call(req.body, 'redacted_overrides'))
+      let redactionOverrides = []
+      try {
+        redactionOverrides = logRedaction.normalizeLogRedactionOverrides(req.body || {})
+      } catch (error) {
+        res.status(400).json({ error: error && error.message ? error.message : 'Invalid redaction overrides' })
+        return
       }
-      await fs.promises.writeFile(this.kernel.path("logs/system.json"), JSON.stringify(info, null, 2))
-      await fs.promises.writeFile(this.kernel.path("logs/state.json"), JSON.stringify(states, null, 2))
+
+      await logRedaction.writeCurrentLogSnapshot(this.kernel, this.version)
 
 
+      await fs.promises.rm(this.kernel.path("exported_logs"), { recursive: true, force: true }).catch(() => {})
       await fs.promises.cp(
         this.kernel.path("logs"),
         this.kernel.path("exported_logs")
@@ -15998,8 +15984,22 @@ class Server {
 
       let folder = this.kernel.path("exported_logs")
       let zipPath = this.kernel.path("logs.zip")
+      if (redactionOverridesRequested) {
+        await fs.promises.rm(zipPath, { force: true }).catch(() => {})
+      }
+      let appliedRedactionOverrides = 0
+      try {
+        if (redactionOverridesRequested) {
+          await logRedaction.assertCompleteLogRedactionOverrides(folder, redactionOverrides)
+        }
+        appliedRedactionOverrides = await logRedaction.applyLogRedactionOverrides(folder, redactionOverrides)
+      } catch (error) {
+        res.status(400).json({ error: error && error.message ? error.message : 'Failed to apply redaction overrides' })
+        return
+      }
+      await fs.promises.rm(zipPath, { force: true }).catch(() => {})
       await compressing.zip.compressDir(folder, zipPath)
-      res.json({ success: true, download: '/pinokio/logs.zip' })
+      res.json({ success: true, download: '/pinokio/logs.zip', redacted_overrides: appliedRedactionOverrides })
     }))
     this.app.get("/pinokio/version", ex(async (req, res) => {
       let version = this.version

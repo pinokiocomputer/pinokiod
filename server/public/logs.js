@@ -281,9 +281,14 @@
       this.statusEl = options.status
       this.defaultLabel = this.button ? this.button.innerHTML : ''
       this.endpoint = options.endpoint || '/pinokio/log'
+      this.payloadProvider = typeof options.payloadProvider === 'function' ? options.payloadProvider : null
+      this.generateBlockedProvider = typeof options.generateBlockedProvider === 'function' ? options.generateBlockedProvider : null
       this.defaultDownloadHref = options.defaultDownloadHref || (this.downloadLink ? this.downloadLink.getAttribute('href') || '/pinokio/logs.zip' : '/pinokio/logs.zip')
+      this.isBusy = false
+      this.externalDisabled = false
       if (this.button) {
         this.button.addEventListener('click', () => this.generate())
+        this.syncButtonState()
       }
     }
     updateDownloadLink(href) {
@@ -301,26 +306,50 @@
     }
     setBusy(isBusy) {
       if (!this.button) return
-      if (isBusy) {
+      this.isBusy = Boolean(isBusy)
+      if (this.isBusy) {
         this.button.disabled = true
         this.button.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Generating…</span>'
       } else {
-        this.button.disabled = false
         this.button.innerHTML = this.defaultLabel
+        this.syncButtonState()
       }
     }
+    setExternalDisabled(isDisabled) {
+      this.externalDisabled = Boolean(isDisabled)
+      this.syncButtonState()
+    }
+    syncButtonState() {
+      if (!this.button || this.isBusy) return
+      this.button.disabled = this.externalDisabled
+    }
     async generate() {
+      const blockedMessage = this.generateBlockedProvider ? this.generateBlockedProvider() : ''
+      if (blockedMessage) {
+        this.setStatus(blockedMessage, true)
+        return
+      }
       this.setBusy(true)
       this.setStatus('Generating archive…')
       try {
-        const response = await fetch(this.endpoint, { method: 'POST' })
-        if (!response.ok) {
-          throw new Error(`Failed (${response.status})`)
+        const request = { method: 'POST' }
+        const requestPayload = this.payloadProvider ? this.payloadProvider() : null
+        if (requestPayload && typeof requestPayload === 'object' && Object.keys(requestPayload).length > 0) {
+          request.headers = { 'Content-Type': 'application/json' }
+          request.body = JSON.stringify(requestPayload)
         }
-        const payload = await response.json().catch(() => ({}))
-        const downloadHref = payload && payload.download ? payload.download : this.defaultDownloadHref
+        const response = await fetch(this.endpoint, request)
+        if (!response.ok) {
+          const message = await response.text().catch(() => '')
+          throw new Error(message || `Failed (${response.status})`)
+        }
+        const responsePayload = await response.json().catch(() => ({}))
+        const downloadHref = responsePayload && responsePayload.download ? responsePayload.download : this.defaultDownloadHref
         this.updateDownloadLink(downloadHref)
-        this.setStatus('Archive ready. Click download.')
+        const overrideCount = Number(responsePayload && responsePayload.redacted_overrides) || 0
+        this.setStatus(overrideCount > 0
+          ? `Archive ready with ${overrideCount} reviewed file${overrideCount === 1 ? '' : 's'}.`
+          : 'Archive ready. Click download.')
       } catch (error) {
         this.setStatus(error.message || 'Failed to generate archive.', true)
       } finally {
@@ -2677,7 +2706,11 @@
         downloadLink: document.getElementById('logs-download-archive'),
         status: document.getElementById('logs-zip-status'),
         endpoint: zipEndpoint,
-        defaultDownloadHref: downloadHref
+        defaultDownloadHref: downloadHref,
+        payloadProvider: () => this.topRedactor ? this.topRedactor.buildArchivePayload() : null,
+        generateBlockedProvider: () => this.topRedactor && typeof this.topRedactor.getArchiveBlockMessage === 'function'
+          ? this.topRedactor.getArchiveBlockMessage()
+          : ''
       })
       this.zipControls = zipControls
       this.latestReport = new LogsSessionReport({
@@ -2719,9 +2752,24 @@
       this.tree = new LogsTree({
         container: document.getElementById('logs-tree'),
         rootLabel: this.rootDisplay || 'logs',
-        onFileSelected: (entry) => this.viewer.open(entry),
+        onFileSelected: (entry) => {
+          if (this.topRedactor && this.topRedactor.handleFileSelection(entry)) {
+            return
+          }
+          if (this.topRedactor && this.topRedactor.hasRun && this.viewer && entry && entry.path === this.viewer.currentPath) {
+            this.viewer.currentPath = ''
+          }
+          this.viewer.open(entry)
+        },
         workspace: this.workspace
       })
+      this.topRedactor = typeof window.mountLogsTopLevelRedactor === 'function' ? window.mountLogsTopLevelRedactor({
+        viewer: this.viewer,
+        tree: this.tree,
+        privacyFilter: new PrivacyFilterClient(),
+        onLayoutChange: () => this.applyPaneHeight(),
+        onRunningChange: (isRunning) => this.zipControls.setExternalDisabled(isRunning)
+      }) : null
       const refreshBtn = document.getElementById('logs-refresh-tree')
       if (refreshBtn) {
         refreshBtn.addEventListener('click', async () => {
