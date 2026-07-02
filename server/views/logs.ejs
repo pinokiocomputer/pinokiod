@@ -101,6 +101,10 @@
                     <strong id="logs-report-sections">--</strong>
                   </div>
                 </div>
+                <label class="logs-session-picker hidden" id="logs-session-picker">
+                  <span>Session</span>
+                  <select id="logs-session-select" aria-label="Select log session"></select>
+                </label>
                 <div class="logs-review-file-list" id="logs-report-files" aria-label="Included log files"></div>
               </section>
               <section class="logs-review-section" aria-label="Registry draft size">
@@ -111,14 +115,14 @@
                 <div class="logs-draft-meter" aria-hidden="true">
                   <div class="logs-draft-meter-fill" id="logs-draft-meter-fill"></div>
                 </div>
-                <div class="logs-draft-status" id="logs-draft-status">Waiting for latest log snapshot.</div>
+                <div class="logs-draft-status" id="logs-draft-status">Waiting for session report.</div>
               </section>
               <section class="logs-review-section" aria-label="Privacy filter status">
                 <div class="logs-review-section-row">
                   <div class="logs-review-section-title">Privacy filter</div>
                   <div class="logs-review-badge" id="logs-redaction-count">Not run</div>
                 </div>
-                <div class="logs-report-status" id="logs-report-status" role="status" aria-live="polite">Building latest log snapshot…</div>
+                <div class="logs-report-status" id="logs-report-status" role="status" aria-live="polite">Building session report…</div>
                 <button type="button" class="logs-primary-button logs-review-filter-button" id="logs-run-filter" disabled><i class="fa-solid fa-shield-halved"></i><span>Run privacy filter</span></button>
               </section>
               <section class="logs-review-section logs-review-section--redactions" aria-label="Redaction review">

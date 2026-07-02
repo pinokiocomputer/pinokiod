@@ -13,6 +13,7 @@ const Environment = require("../environment")
 const Util = require('../util')
 const ShellRunTemplate = require('./shell_run_template')
 const PluginSources = require('../plugin_sources')
+const AppLogSessions = require('../app_log_sessions')
 
 const escapeHtml = (value) => String(value || "")
   .replace(/&/g, "&amp;")
@@ -36,6 +37,7 @@ class Api {
     this.mods = {}
     this.child_procs = {}
     this.resolved_actions = {}
+    this.logSessions = new AppLogSessions({ kernel })
     this.lproxy = new Lproxy()
   }
   async launcher_path(name) {
@@ -637,6 +639,14 @@ class Api {
     }
     if (this.kernel && typeof this.kernel.markAppLaunchStopped === "function") {
       this.kernel.markAppLaunchStopped(requestPath, {
+        internal_completion: !!(options && options.internal_completion)
+      })
+    }
+    if (this.logSessions) {
+      await this.logSessions.finishRun({
+        id: req.params.id,
+        path: requestPath
+      }, {
         internal_completion: !!(options && options.internal_completion)
       })
     }
@@ -1386,7 +1396,7 @@ class Api {
             console.log(msg)
           } else {
             // 11. actually make the rpc call
-            result = await this.run(resolved.method, rpc, (stream, type) => {
+            const runEndpoint = () => this.run(resolved.method, rpc, (stream, type) => {
               let m = {
                 id: request.id || request.path,
                 caller: request.caller,
@@ -1410,6 +1420,9 @@ class Api {
   //            }
               this.ondata(m)
             })
+            result = this.logSessions
+              ? await this.logSessions.withRunContext(request, runEndpoint)
+              : await runEndpoint()
           }
 
 
@@ -1423,6 +1436,9 @@ class Api {
               rpc,
               rawrpc
             })
+            if (this.logSessions) {
+              await this.logSessions.finishRun(request, { internal_completion: true })
+            }
 
             // if there's an error, set the PINOKIO_SCRIPT_DEFAULT to false
 
@@ -1604,6 +1620,9 @@ class Api {
             rpc,
             rawrpc
           })
+          if (this.logSessions) {
+            await this.logSessions.finishRun(request, { internal_completion: true })
+          }
           return    // halt when there's an error
         }
       }
@@ -1657,6 +1676,9 @@ class Api {
         let response  = await this.step(request, rawrpc, input, step, total, args)
         if (response) {
           if (response.cancelled) {
+            if (this.logSessions) {
+              await this.logSessions.finishRun(response.request || request)
+            }
             return
           }
           if (response.rawrpc) {
@@ -1692,6 +1714,9 @@ class Api {
         this.clearResolvedAction(request)
         if (this.kernel && typeof this.kernel.markAppLaunchFailed === "function") {
           this.kernel.markAppLaunchFailed(request.path, e)
+        }
+        if (this.logSessions) {
+          await this.logSessions.finishRun(request, { internal_completion: true })
         }
         ondata({ raw: e.toString() })
       }
@@ -1992,6 +2017,9 @@ class Api {
               return
             }
 
+            if (this.logSessions) {
+              await this.logSessions.startRun(request)
+            }
             this.queue(request, steps[0], initialPayload, 0, steps.length, cwd, initialPayload)
 
           } else {

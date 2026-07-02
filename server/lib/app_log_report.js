@@ -1,6 +1,7 @@
 const fs = require('fs')
 const os = require('os')
 const path = require('path')
+const Environment = require('../../kernel/environment')
 
 const DEFAULT_TAIL_LINES = 800
 const MAX_SECTION_CHARS = 120000
@@ -17,19 +18,26 @@ class AppLogReportService {
     this.kernel = kernel
   }
 
-  async buildReport({ appId, status, tail = DEFAULT_TAIL_LINES, redact = true }) {
-    const appRoot = status && status.path ? status.path : null
-    if (!appRoot) {
+  async buildReport({ appId, status, tail = DEFAULT_TAIL_LINES, redact = true, session = '' }) {
+    const workspaceRoot = status && status.path ? status.path : null
+    if (!workspaceRoot) {
       return null
     }
+    const appRoot = await this.resolveAppRoot(workspaceRoot)
     const tailLines = this.registry.parseTailCount(tail, DEFAULT_TAIL_LINES)
-    const rawSections = await this.collectSections(appRoot, tailLines)
+    const sessionIndex = await this.readSessionIndex(appRoot)
+    const requestedSession = typeof session === 'string' && session.trim()
+      ? session.trim()
+      : sessionIndex.latest_session
+    const manifest = requestedSession ? await this.readSessionManifest(appRoot, requestedSession) : null
+    const selectedSession = manifest ? manifest.id : null
+    const rawSections = await this.collectSections(appRoot, tailLines, manifest)
     const sections = []
     const totals = {}
 
     for (const section of rawSections) {
       if (redact) {
-        const redacted = this.redactText(section.text, { appRoot })
+        const redacted = this.redactText(section.text, { appRoot, workspaceRoot })
         this.mergeCounts(totals, redacted.counts)
         sections.push({
           ...section,
@@ -47,7 +55,7 @@ class AppLogReportService {
     const metadata = {
       app_id: appId,
       title: status.title || appId,
-      repo_url: this.sanitizeRemoteUrl(status.repo_url || this.readGitRemote(appRoot)),
+      repo_url: this.sanitizeRemoteUrl(status.repo_url || this.readGitRemote(workspaceRoot)),
       generated_at: new Date().toISOString(),
       pinokiod: this.readPinokioVersion(),
       platform: os.platform(),
@@ -55,7 +63,11 @@ class AppLogReportService {
       node: process.version,
       tail_count: tailLines,
       system_spec: this.buildSystemSpec(),
-      redaction_mode: redact ? 'server_deterministic' : 'none'
+      redaction_mode: redact ? 'server_deterministic' : 'none',
+      latest_session: sessionIndex.latest_session,
+      session: selectedSession,
+      sessions: sessionIndex.sessions,
+      no_session: !manifest
     }
 
     return {
@@ -67,54 +79,121 @@ class AppLogReportService {
     }
   }
 
-  async collectSections(appRoot, tailLines) {
+  async collectSections(appRoot, tailLines, manifest = null) {
     const sections = []
-    const apiLogsRoot = path.resolve(appRoot, 'logs', 'api')
-
-    if (await this.registry.pathIsDirectory(apiLogsRoot)) {
-      const latestFiles = await this.findNamedFiles(apiLogsRoot, 'latest')
-      for (const file of latestFiles) {
-        const relativeDir = path.relative(apiLogsRoot, path.dirname(file))
-        const script = this.toPosix(relativeDir)
+    if (!manifest || !Array.isArray(manifest.runs)) {
+      return sections
+    }
+    const logsRoot = path.resolve(appRoot, 'logs')
+    for (const run of manifest.runs) {
+      const logs = Array.isArray(run && run.logs) ? run.logs : []
+      for (const log of logs) {
+        const file = this.resolveManifestLog(appRoot, log)
+        if (!file) {
+          continue
+        }
+        const relativeLog = this.toPosix(path.relative(appRoot, file))
         sections.push(await this.buildSection({
           appRoot,
-          root: apiLogsRoot,
+          root: logsRoot,
           file,
-          source: 'api',
-          script,
+          source: this.sourceFromRelativeFile(relativeLog),
+          script: run.script || this.scriptFromRelativeFile(relativeLog),
           tailLines
         }))
       }
     }
 
-    return sections
-      .filter(Boolean)
-      .sort((a, b) => this.compareSections(a, b))
+    return sections.filter(Boolean)
   }
 
-  async findNamedFiles(root, filename) {
-    const out = []
-    const walk = async (dir) => {
-      let entries = []
-      try {
-        entries = await fs.promises.readdir(dir, { withFileTypes: true })
-      } catch (_) {
-        return
-      }
-      for (const entry of entries) {
-        const entryPath = path.resolve(dir, entry.name)
-        if (!this.registry.isPathWithin(root, entryPath)) {
-          continue
-        }
-        if (entry.isDirectory()) {
-          await walk(entryPath)
-        } else if (entry.name === filename) {
-          out.push(entryPath)
-        }
-      }
+  async resolveAppRoot(workspaceRoot) {
+    const fallback = path.resolve(workspaceRoot)
+    if (!this.kernel || typeof this.kernel.exists !== 'function') {
+      return fallback
     }
-    await walk(root)
-    return out
+    try {
+      const root = await Environment.get_root({ path: fallback }, this.kernel)
+      return root && root.root ? path.resolve(root.root) : fallback
+    } catch (_) {
+      return fallback
+    }
+  }
+
+  safeSessionId(value) {
+    return typeof value === 'string' && /^[A-Za-z0-9._-]+$/.test(value) ? value : ''
+  }
+
+  async readSessionIndex(appRoot) {
+    try {
+      const indexPath = path.resolve(appRoot, 'logs', 'sessions', 'index.json')
+      const parsed = JSON.parse(await fs.promises.readFile(indexPath, 'utf8'))
+      if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.sessions)) {
+        return { latest_session: null, sessions: [] }
+      }
+      return {
+        latest_session: this.safeSessionId(parsed.latest_session) || null,
+        sessions: parsed.sessions
+          .filter((entry) => entry && typeof entry === 'object' && this.safeSessionId(entry.id))
+          .map((entry) => ({
+            id: entry.id,
+            created_at: typeof entry.created_at === 'string' ? entry.created_at : null,
+            updated_at: typeof entry.updated_at === 'string' ? entry.updated_at : null,
+            runs: Array.isArray(entry.runs) ? entry.runs.filter((run) => typeof run === 'string') : []
+          }))
+      }
+    } catch (_) {
+      return { latest_session: null, sessions: [] }
+    }
+  }
+
+  async readSessionManifest(appRoot, sessionId) {
+    const safeId = this.safeSessionId(sessionId)
+    if (!safeId) {
+      return null
+    }
+    try {
+      const manifestPath = path.resolve(appRoot, 'logs', 'sessions', `${safeId}.json`)
+      const parsed = JSON.parse(await fs.promises.readFile(manifestPath, 'utf8'))
+      if (!parsed || typeof parsed !== 'object' || parsed.id !== safeId || !Array.isArray(parsed.runs)) {
+        return null
+      }
+      return parsed
+    } catch (_) {
+      return null
+    }
+  }
+
+  resolveManifestLog(appRoot, log) {
+    if (!log || typeof log.path !== 'string' || !log.path.trim()) {
+      return null
+    }
+    const logsRoot = path.resolve(appRoot, 'logs')
+    const sessionsRoot = path.resolve(logsRoot, 'sessions')
+    const file = path.resolve(appRoot, log.path)
+    if (!this.registry.isPathWithin(logsRoot, file)) {
+      return null
+    }
+    if (this.registry.isPathWithin(sessionsRoot, file)) {
+      return null
+    }
+    if (path.basename(file) === 'latest') {
+      return null
+    }
+    return file
+  }
+
+  sourceFromRelativeFile(relativeFile) {
+    const parts = String(relativeFile || '').split('/').filter(Boolean)
+    return parts[0] === 'logs' && parts[1] ? parts[1] : 'api'
+  }
+
+  scriptFromRelativeFile(relativeFile) {
+    const parts = String(relativeFile || '').split('/').filter(Boolean)
+    if (parts[0] === 'logs' && parts[1] === 'api' && parts.length > 3) {
+      return parts.slice(2, -1).join('/')
+    }
+    return ''
   }
 
   async buildSection({ appRoot, root, file, source, script, tailLines }) {
@@ -211,9 +290,11 @@ class AppLogReportService {
       /(^|[\s"'(=])\/home\/[^/\s"')]+/g,
       /(^|[\s"'(=])[A-Za-z]:\\Users\\[^\\\s"')]+/g
     ]
-    const appRoot = context.appRoot ? String(context.appRoot) : ''
-    if (appRoot) {
-      patterns.push(new RegExp(`(^|[\\s"'(=])${escapeRegExp(appRoot)}`, 'g'))
+    const roots = [context.workspaceRoot, context.appRoot]
+      .map((root) => root ? String(root) : '')
+      .filter((root, index, values) => root && values.indexOf(root) === index)
+    for (const root of roots) {
+      patterns.push(new RegExp(`(^|[\\s"'(=])${escapeRegExp(root)}`, 'g'))
     }
     return patterns
   }
@@ -257,7 +338,7 @@ class AppLogReportService {
     lines.push('', '## Logs')
 
     if (sections.length === 0) {
-      lines.push('', 'No app log files were found.')
+      lines.push('', metadata.no_session ? 'No session log bundle found.' : 'No app log files were found.')
     }
 
     for (const section of sections) {
@@ -328,22 +409,6 @@ class AppLogReportService {
       return text
     }
     return text
-  }
-
-  compareSections(a, b) {
-    const sourceOrder = { api: 0, shell: 1 }
-    const bySource = (sourceOrder[a.source] ?? 99) - (sourceOrder[b.source] ?? 99)
-    if (bySource !== 0) return bySource
-    return this.scriptRank(a.script) - this.scriptRank(b.script)
-      || String(a.script || '').localeCompare(String(b.script || ''))
-      || String(a.file || '').localeCompare(String(b.file || ''))
-  }
-
-  scriptRank(script) {
-    const value = String(script || '').toLowerCase()
-    const ordered = ['install', 'update', 'start', 'run', 'launch', 'serve', 'shell']
-    const idx = ordered.findIndex((name) => value === name || value.startsWith(`${name}.`) || value.includes(`/${name}.`))
-    return idx >= 0 ? idx : ordered.length
   }
 
   toPosix(value) {

@@ -1137,7 +1137,8 @@ module.exports = function registerAppRoutes(app, { registry, preferences, appSea
       appId,
       status,
       tail,
-      redact: req.query.redaction !== 'none'
+      redact: req.query.redaction !== 'none',
+      session: typeof req.query.session === 'string' ? req.query.session : ''
     })
     if (!report) {
       res.status(404).json({ error: 'No log report available', app_id: appId })

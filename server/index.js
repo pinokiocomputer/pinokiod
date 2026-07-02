@@ -858,6 +858,50 @@ class Server {
     }
     return cfg
   }
+  defaultAppLogLaunchPath(menu) {
+    const stack = Array.isArray(menu) ? [...menu] : []
+    while (stack.length > 0) {
+      const item = stack.shift()
+      if (!item || typeof item !== "object") {
+        continue
+      }
+      if (Array.isArray(item.menu)) {
+        stack.unshift(...item.menu)
+      }
+      if (!item.default || typeof item.href !== "string") {
+        continue
+      }
+      let pathname
+      try {
+        pathname = new URL(item.href, "http://localhost").pathname
+      } catch (_) {
+        continue
+      }
+      if (pathname.startsWith("/api/")) {
+        try {
+          const parts = pathname.slice("/api/".length).split("/").filter(Boolean).map(decodeURIComponent)
+          return this.kernel.path("api", ...parts)
+        } catch (_) {
+          return ""
+        }
+      }
+      if (PluginSources.isRunPath(pathname)) {
+        return PluginSources.resolveRunPath(this.kernel, pathname)
+      }
+    }
+    return ""
+  }
+  async reserveDefaultAppLogSession(menu, enabled, options = {}) {
+    if (!enabled || !this.kernel || !this.kernel.api || !this.kernel.api.logSessions) {
+      return
+    }
+    const launchPath = this.defaultAppLogLaunchPath(menu)
+    if (launchPath) {
+      await this.kernel.api.logSessions.reserveLaunch(launchPath, {
+        existingRoutineOnly: !!options.existingRoutineOnly
+      })
+    }
+  }
   async renderIndex(name, cfg) {
     let p = this.kernel.path("api", name)
     let index_path = path.resolve(p, "index.html")
@@ -1337,7 +1381,6 @@ class Server {
     } catch(e) {
       config.menu = []
     }
-
     await this.renderMenu(req, uri, name, config, [])
 
     let platform = os.platform()
@@ -1425,6 +1468,10 @@ class Server {
       run_tab = "/p/" + name
       autoselect = false
     }
+    await this.reserveDefaultAppLogSession(
+      config && config.menu,
+      autoselect && env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true"
+    )
     let dev_tab = "/p/" + name + "/dev"
     let review_tab = "/p/" + name + "/review"
     let files_tab = "/p/" + name + "/files"
@@ -15240,6 +15287,12 @@ class Server {
         }
       }
       await this.renderMenu(req, uri, name, config, [])
+      const env = await this.kernel.env("api/" + name)
+      await this.reserveDefaultAppLogSession(
+        config && config.menu,
+        env.PINOKIO_SCRIPT_DEFAULT && env.PINOKIO_SCRIPT_DEFAULT.toString().toLowerCase() === "true",
+        { existingRoutineOnly: true }
+      )
 
       ejs.renderFile(path.resolve(__dirname, "views/partials/menu.ejs"), { menu: config.menu }, (err, html) => {
         res.send(html)

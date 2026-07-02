@@ -5526,6 +5526,40 @@ body.dark .logs-review-meta span {
 body.dark .logs-review-meta strong {
   color: rgba(248, 250, 252, 0.9);
 }
+.logs-session-picker {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+}
+.logs-session-picker.hidden {
+  display: none;
+}
+.logs-session-picker span {
+  color: rgba(15, 23, 42, 0.52);
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+body.dark .logs-session-picker span {
+  color: rgba(248, 250, 252, 0.54);
+}
+.logs-session-picker select {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 6px;
+  padding: 0 7px;
+  background: rgba(255,255,255,0.72);
+  color: rgba(15, 23, 42, 0.78);
+  font-size: 11px;
+  font-weight: 700;
+}
+body.dark .logs-session-picker select {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.07);
+  color: rgba(248, 250, 252, 0.82);
+}
 .logs-review-file-list {
   display: flex;
   flex-direction: column;

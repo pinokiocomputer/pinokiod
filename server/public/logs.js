@@ -329,10 +329,9 @@
     }
   }
 
-  class LogsLatestReport {
+  class LogsSessionReport {
     constructor(options) {
       this.reportUrl = options.reportUrl || ''
-      this.rawReportUrl = this.reportUrl ? withQueryParam(this.reportUrl, 'redaction', 'none') : ''
       this.draftUrl = options.draftUrl || ''
       this.registryBase = options.registryBase || 'https://pinokio.co'
       this.statusEl = options.statusEl
@@ -347,6 +346,8 @@
       this.reportFilesEl = options.reportFilesEl
       this.reportGeneratedEl = options.reportGeneratedEl
       this.reportSectionsEl = options.reportSectionsEl
+      this.sessionPickerEl = options.sessionPickerEl
+      this.sessionSelectEl = options.sessionSelectEl
       this.draftSizeBadgeEl = options.draftSizeBadgeEl
       this.draftMeterFillEl = options.draftMeterFillEl
       this.draftStatusEl = options.draftStatusEl
@@ -379,6 +380,8 @@
       this.selectedRedactionId = null
       this.filterToken = 0
       this.loading = false
+      this.selectedSession = ''
+      this.latestSession = ''
 
       if (this.copyButton) {
         this.copyButton.addEventListener('click', () => this.copy())
@@ -401,6 +404,15 @@
       }
       if (this.refreshButton) {
         this.refreshButton.addEventListener('click', () => this.load(true))
+      }
+      if (this.sessionSelectEl) {
+        this.sessionSelectEl.addEventListener('change', () => {
+          const value = this.sessionSelectEl.value || ''
+          this.selectedSession = value && value !== this.latestSession ? value : ''
+          this.report = null
+          this.sectionModes.clear()
+          this.load(true)
+        })
       }
     }
     setStatus(message, isError) {
@@ -429,6 +441,27 @@
         url.searchParams.set('workspace', this.workspaceCwd)
       }
       return `${url.pathname}${url.search}`
+    }
+    buildReportUrl() {
+      if (!this.reportUrl) {
+        return ''
+      }
+      try {
+        const url = new URL(this.reportUrl, window.location.origin)
+        url.searchParams.set('redaction', 'none')
+        if (this.selectedSession) {
+          url.searchParams.set('session', this.selectedSession)
+        } else {
+          url.searchParams.delete('session')
+        }
+        return `${url.pathname}${url.search}${url.hash}`
+      } catch (_) {
+        let href = withQueryParam(this.reportUrl, 'redaction', 'none')
+        if (this.selectedSession) {
+          href = withQueryParam(href, 'session', this.selectedSession)
+        }
+        return href
+      }
     }
     async loadAskAiTools() {
       if (Array.isArray(this.askAiTools) && this.askAiTools.length > 0) {
@@ -1431,7 +1464,7 @@
       this.updateSectionCount(this.report && this.report.sections)
       this.setRunFilterEnabled(Boolean(this.reviewMarkdown) && !this.filtering)
     }
-    renderReportFiles(sections) {
+    renderReportFiles(sections, noSession = false) {
       this.clearReportFiles()
       if (!this.reportFilesEl) return
       ;(sections || []).forEach((section, index) => {
@@ -1485,17 +1518,51 @@
       if (!sections || !sections.length) {
         const empty = document.createElement('div')
         empty.className = 'logs-review-empty'
-        empty.textContent = 'No latest files found.'
+        empty.textContent = noSession ? 'No session log bundle found.' : 'No session log files found.'
         this.reportFilesEl.appendChild(empty)
+      }
+    }
+    sessionOptionLabel(session, index, latestId) {
+      const runs = Array.isArray(session && session.runs) ? session.runs.filter(Boolean) : []
+      const prefix = session && session.id === latestId ? 'Latest' : `Session ${index + 1}`
+      const detail = runs.length ? runs.join(' -> ') : (session && session.id ? session.id : 'log bundle')
+      return `${prefix}: ${detail}`
+    }
+    renderSessionPicker(payload) {
+      if (!this.sessionPickerEl || !this.sessionSelectEl) return
+      const sessions = Array.isArray(payload && payload.sessions) ? payload.sessions : []
+      const selectedId = String((payload && payload.session) || (payload && payload.latest_session) || '')
+      const latestId = String((payload && payload.latest_session) || '')
+      this.latestSession = latestId
+      if (this.selectedSession && this.selectedSession === latestId) {
+        this.selectedSession = ''
+      }
+      if (this.selectedSession && !sessions.some((session) => session && session.id === this.selectedSession)) {
+        this.selectedSession = ''
+      }
+      this.sessionPickerEl.classList.toggle('hidden', sessions.length === 0)
+      this.sessionSelectEl.disabled = sessions.length === 0
+      this.sessionSelectEl.textContent = ''
+      sessions.forEach((session, index) => {
+        if (!session || !session.id) return
+        const option = document.createElement('option')
+        option.value = session.id
+        option.textContent = this.sessionOptionLabel(session, index, latestId)
+        this.sessionSelectEl.appendChild(option)
+      })
+      const displayId = this.selectedSession || selectedId
+      if (displayId) {
+        this.sessionSelectEl.value = displayId
       }
     }
     renderSummary(payload) {
       const sections = Array.isArray(payload && payload.sections) ? payload.sections : []
+      this.renderSessionPicker(payload)
       this.updateSectionCount(sections)
       if (this.reportGeneratedEl) {
         this.reportGeneratedEl.textContent = this.formatGenerated(payload && payload.generated_at)
       }
-      this.renderReportFiles(sections)
+      this.renderReportFiles(sections, Boolean(payload && payload.no_session))
       return sections
     }
     setCopyEnabled(enabled) {
@@ -1716,7 +1783,7 @@
         this.draftMeterFillEl.classList.toggle('is-error', Boolean(hasText && this.draftOversized))
       }
       if (this.draftStatusEl) {
-        let message = 'Waiting for latest log snapshot.'
+        let message = 'Waiting for session report.'
         let isError = false
         if (hasText && this.draftOversized) {
           isError = true
@@ -1739,7 +1806,7 @@
       if (this.askAiButton) {
         const canAsk = hasText && !this.filtering
         this.askAiButton.disabled = !canAsk
-        this.askAiButton.title = canAsk ? 'Launch a local AI agent with this report context' : 'Latest report is not ready yet'
+        this.askAiButton.title = canAsk ? 'Launch a local AI agent with this report context' : 'Session report is not ready yet'
       }
       if (this.createDraftButton && !this.importingDraft) {
         const canCreate = hasText && hasTitle && !this.draftOversized && !this.filtering && Boolean(this.draftUrl)
@@ -1751,7 +1818,7 @@
     }
     renderCurrentReport() {
       this.buildCurrentReport()
-      const text = this.currentMarkdown || 'No latest app logs were found.'
+      const text = this.currentMarkdown || 'No session log bundle found.'
       this.renderHighlightedOutput(text, this.renderedRedactionItems)
       this.renderRedactionReview()
       this.updateRedactionCount()
@@ -1972,10 +2039,10 @@
       this.updateRedactionCount()
       this.setRunFilterEnabled(Boolean(this.reviewMarkdown))
       if (!this.reviewMarkdown) {
-        this.setStatus(`Latest snapshot found ${sections.length} log section${sections.length === 1 ? '' : 's'}.`)
+        this.setStatus(`Session report found ${sections.length} log section${sections.length === 1 ? '' : 's'}.`)
         return
       }
-      this.setStatus(`Latest snapshot built from ${sections.length} log section${sections.length === 1 ? '' : 's'}. Run the privacy filter only if you want local redaction review.`)
+      this.setStatus(`Session report built from ${sections.length} log section${sections.length === 1 ? '' : 's'}. Run the privacy filter only if you want local redaction review.`)
     }
     renderError(message) {
       if (this.reportSectionsEl) this.reportSectionsEl.textContent = '--'
@@ -1987,12 +2054,12 @@
       this.redactionHasRun = false
       this.filtering = false
       this.clearDraftTitle()
-      this.setOutputText(message || 'Unable to build latest log snapshot.')
+      this.setOutputText(message || 'Unable to build session report.')
       this.resetRedactionReview('No redaction review is available.')
       this.setCopyEnabled(false)
       this.setRunFilterEnabled(false)
       this.updateDraftSizeReview()
-      this.setStatus(message || 'Unable to build latest log snapshot.', true)
+      this.setStatus(message || 'Unable to build session report.', true)
     }
     renderFilterProgress(progress) {
       if (!progress || typeof progress !== 'object') {
@@ -2066,7 +2133,7 @@
     }
     async load(force = false) {
       if (!this.reportUrl) {
-        this.renderError('Latest log snapshot is available for app workspaces.')
+        this.renderError('Session reports are available for app workspaces.')
         return
       }
       if (this.report && !force) {
@@ -2081,7 +2148,7 @@
       if (this.loading) return
       this.loading = true
       this.setBusy(true)
-      this.setStatus('Building latest log snapshot…')
+      this.setStatus('Building session report…')
       this.filterToken += 1
       this.rawMarkdown = ''
       this.reviewMarkdown = ''
@@ -2092,12 +2159,12 @@
       this.selectedRedactionId = null
       this.activeRedactionFilter = 'all'
       this.clearDraftTitle()
-      this.resetRedactionReview('Waiting for latest log snapshot.')
+      this.resetRedactionReview('Waiting for session report.')
       this.setCopyEnabled(false)
       this.setFiltering(false)
       this.updateDraftSizeReview()
       try {
-        const response = await fetch(this.rawReportUrl || this.reportUrl, {
+        const response = await fetch(this.buildReportUrl(), {
           headers: { 'Accept': 'application/json' },
           cache: 'no-store'
         })
@@ -2609,7 +2676,7 @@
         defaultDownloadHref: downloadHref
       })
       this.zipControls = zipControls
-      this.latestReport = new LogsLatestReport({
+      this.latestReport = new LogsSessionReport({
         reportUrl: this.reportUrl,
         draftUrl: config.draftUrl || '',
         registryBase: config.registryBase || 'https://pinokio.co',
@@ -2625,6 +2692,8 @@
         reportFilesEl: document.getElementById('logs-report-files'),
         reportGeneratedEl: document.getElementById('logs-report-generated'),
         reportSectionsEl: document.getElementById('logs-report-sections'),
+        sessionPickerEl: document.getElementById('logs-session-picker'),
+        sessionSelectEl: document.getElementById('logs-session-select'),
         draftSizeBadgeEl: document.getElementById('logs-draft-size-badge'),
         draftMeterFillEl: document.getElementById('logs-draft-meter-fill'),
         draftStatusEl: document.getElementById('logs-draft-status'),

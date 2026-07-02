@@ -238,6 +238,9 @@ class Socket {
               let id = this.parent.kernel.api.filePath(req.uri)
               try {
                 let defaultTarget = await getLaunchTarget(this.parent.kernel.api, id, req.default)
+                if (defaultTarget && defaultTarget.uri && this.parent.kernel.api.logSessions) {
+                  await this.parent.kernel.api.logSessions.reserveLaunch(defaultTarget.uri)
+                }
                 const launchTargetUri = defaultTarget && defaultTarget.uri
                   ? this.projectLaunchTargetUri(defaultTarget.uri, ws)
                   : undefined
@@ -808,9 +811,16 @@ class Socket {
 
   async log_buffer(key, buf, meta) {
     const resolvedMeta = meta || this.logMeta[key] || { source: 'shell', method: 'shell' }
+    const logSessions = this.parent && this.parent.kernel && this.parent.kernel.api
+      ? this.parent.kernel.api.logSessions
+      : null
+    const session = this.sessions[key]
+    const scriptPath = logSessions && session && path.isAbsolute(key)
+      ? key.split('?')[0]
+      : ''
+    const run = scriptPath ? logSessions.activeRun({ path: scriptPath }) : null
     const logpath = await this.resolveLogDir(key)
     if (!logpath) return
-    let session = this.sessions[key]
 
     if (typeof key === 'string' && key.startsWith("shell/")) {
       const content = buf || ""
@@ -820,6 +830,13 @@ class Socket {
       const tagged = buf ? this.tagLines(resolvedMeta, buf) : ""
       const content = [raw, tagged].filter(Boolean).join("\n")
       await Util.log(logpath, content, session)
+    }
+    if (logSessions && session && path.isAbsolute(key)) {
+      await logSessions.recordLogFile({
+        scriptPath: key,
+        logFile: path.resolve(logpath, session),
+        run
+      })
     }
   }
 }

@@ -7,6 +7,8 @@ const test = require('node:test')
 const Socket = require('../server/socket')
 const Util = require('../kernel/util')
 
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
 function createSocket(home) {
   const kernel = {
     homedir: home,
@@ -180,6 +182,51 @@ test('event and output logging use the same terminal log resolver', async () => 
     const dir = await socket.resolveLogDir(key)
     assert.match(await fs.readFile(path.join(dir, 'events'), 'utf8'), /event/)
     assert.match(await fs.readFile(path.join(dir, 'latest'), 'utf8'), /hello/)
+  } finally {
+    await fs.rm(root, { recursive: true, force: true })
+  }
+})
+
+test('app log metadata captures the active run before async log path resolution', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-terminal-log-'))
+  try {
+    const socket = createSocket(root)
+    const appRoot = path.join(root, 'api', 'demo')
+    const key = path.join(appRoot, 'install.js')
+    const run = {
+      session_id: 'session-1',
+      appRoot,
+      scriptPath: key
+    }
+    let resolving = false
+    let activeRunWasCapturedBeforeResolve = false
+    let recorded = null
+
+    socket.parent.kernel.api = {
+      logSessions: {
+        activeRun: () => {
+          activeRunWasCapturedBeforeResolve = !resolving
+          return run
+        },
+        recordLogFile: async (payload) => {
+          recorded = payload
+        }
+      }
+    }
+    const resolveLogDir = socket.resolveLogDir.bind(socket)
+    socket.resolveLogDir = async (...args) => {
+      resolving = true
+      await delay(5)
+      return resolveLogDir(...args)
+    }
+    socket.sessions[key] = 'session-1'
+
+    await socket.log_buffer(key, 'hello\n', { source: 'api', method: 'shell.run' })
+
+    assert.equal(activeRunWasCapturedBeforeResolve, true)
+    assert.equal(recorded.run, run)
+    assert.equal(recorded.scriptPath, key)
+    assert.equal(recorded.logFile, path.join(appRoot, 'logs', 'api', 'install.js', 'session-1'))
   } finally {
     await fs.rm(root, { recursive: true, force: true })
   }
