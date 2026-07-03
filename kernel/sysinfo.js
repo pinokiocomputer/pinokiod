@@ -12,8 +12,8 @@ class Sysinfo {
 //    await this.refresh()
   }
   async static() {
-    //await Promise.all([this.gpus(), this.system(), this.cpu(), this.os(), this.audio(), this.env()])
-    await Promise.all([this.gpus(), this.system(), this.cpu(), this.os(), this.audio(), this.env(), this.memory()])
+    //await Promise.all([this.gpus(), this.system(), this.cpu(), this.os(), this.audio(), this.env(), this.memory()])
+    await Promise.all([this.gpus(), this.system(), this.cpu(), this.os(), this.audio(), this.memory()])
 //    await this.gpus()
 //    await this.system()
 //    await this.cpu()
