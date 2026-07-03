@@ -2887,7 +2887,49 @@ function updateAllTooltips() {
   tippyInstances.forEach(updateTippyPlacement);
 }
 
+function ensureExploreNavButton() {
+  const header = document.querySelector("header.navheader");
+  if (!header) {
+    return;
+  }
+
+  let button = header.querySelector("[data-pinokio-explore-nav]");
+  if (!button) {
+    const headerRow = header.querySelector("h1") || header;
+    const anchor =
+      header.querySelector("#sidebar-toggle") ||
+      header.querySelector(".main-sidebar-header-toggle") ||
+      header.querySelector("#minimize-header");
+
+    if (!anchor || !headerRow.contains(anchor)) {
+      return;
+    }
+
+    button = document.createElement("a");
+    button.innerHTML = '<div><i class="fa-solid fa-globe" aria-hidden="true"></i></div>';
+    anchor.insertAdjacentElement("afterend", button);
+  }
+
+  button.classList.add("btn2", "pinokio-explore-nav-button");
+  button.href = "/home?mode=explore";
+  button.setAttribute("data-pinokio-explore-nav", "true");
+  button.setAttribute("data-tippy-content", "Explore");
+  button.setAttribute("title", "Explore");
+  button.setAttribute("aria-label", "Explore");
+
+  const params = new URLSearchParams(window.location.search || "");
+  if (window.location.pathname === "/home" && params.get("mode") === "explore") {
+    button.classList.add("selected");
+    button.setAttribute("aria-current", "page");
+  } else {
+    button.classList.remove("selected");
+    button.removeAttribute("aria-current");
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  ensureExploreNavButton();
+
   if (typeof initUrlDropdown === 'function' && !window.PinokioUrlDropdown) {
     try {
       initUrlDropdown();
