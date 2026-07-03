@@ -33,7 +33,7 @@ const buildHomeSelectionPayload = (menuItem, index) => {
   return payload
 }
 const buildHomeSelectionUrl = (menuItem, index) => {
-  const base = homeRunApp && homeRunApp.browser_url ? homeRunApp.browser_url : ""
+  const base = homeRunApp && homeRunApp.view_url ? homeRunApp.view_url : (homeRunApp && homeRunApp.browser_url ? homeRunApp.browser_url : "")
   if (!base) {
     return menuItem.href || "#"
   }

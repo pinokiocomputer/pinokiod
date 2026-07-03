@@ -391,3 +391,10 @@ test("static guard: open without launching disables page-load script frame selec
   assert.match(appView, /if \(!target && !automaticSelectionDisabled && followCurrentDefault\)/)
   assert.match(appView, /if \(!target && !automaticSelectionDisabled && preselected && preselected !== devTab\)/)
 })
+
+test("static guard: home run command selection opens without launching before selecting command", async () => {
+  const homeRunMenu = await fs.readFile(path.resolve(root, "server/views/partials/home_run_menu.ejs"), "utf8")
+
+  assert.match(homeRunMenu, /homeRunApp && homeRunApp\.view_url \? homeRunApp\.view_url :/)
+  assert.match(homeRunMenu, /pinokio_home_select: JSON\.stringify\(buildHomeSelectionPayload\(menuItem, index\)\)/)
+})
