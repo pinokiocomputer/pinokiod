@@ -185,6 +185,7 @@
       };
 
       const desktopPeekMq = window.matchMedia("(min-width: 769px) and (hover: hover) and (pointer: fine)");
+      const storageKey = "pinokio.main-sidebar-collapsed";
       let peekCloseTimer = 0;
 
       const isCollapsed = () => body.classList.contains("main-sidebar-collapsed");
@@ -220,7 +221,7 @@
         }, 120);
       };
 
-      const setCollapsed = (collapsed) => {
+      const setCollapsed = (collapsed, options = {}) => {
         const next = !!collapsed;
         if (!next) {
           body.classList.remove("main-sidebar-peeking");
@@ -228,12 +229,21 @@
         body.classList.toggle("main-sidebar-collapsed", next);
         syncSidebarVisibility();
         updateToggle(next);
+        if (options.persist !== false) {
+          try {
+            window.localStorage.setItem(storageKey, next ? "1" : "0");
+          } catch (_) {}
+        }
         document.dispatchEvent(new CustomEvent("pinokio:sidebar-state", {
           detail: { collapsed: next, source: "main-sidebar" }
         }));
       };
 
-      setCollapsed(false);
+      let initialCollapsed = false;
+      try {
+        initialCollapsed = window.localStorage.getItem(storageKey) === "1";
+      } catch (_) {}
+      setCollapsed(initialCollapsed, { persist: false });
       requestAnimationFrame(() => {
         body.classList.add("main-sidebar-motion-ready");
       });
