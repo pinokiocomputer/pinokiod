@@ -35,6 +35,7 @@
   <i class="fa-solid fa-bars" aria-hidden="true"></i>
 </button>
 <button type="button" class="main-sidebar-mobile-backdrop" data-main-sidebar-backdrop aria-label="Close navigation" hidden></button>
+<button type="button" class="main-sidebar-peek-trigger" data-main-sidebar-peek-trigger aria-label="Show navigation" aria-controls="main-sidebar" aria-expanded="false"></button>
 <aside class="main-sidebar" id="main-sidebar" aria-label="Primary navigation">
   <nav class="main-sidebar-nav" aria-label="Pinokio navigation">
     <div class='main-sidebar-section main-sidebar-section-actions' aria-label="Actions">
@@ -155,6 +156,7 @@
 
     const headerToggle = document.getElementById("minimize-header");
     const sidebar = document.getElementById("main-sidebar");
+    const peekTrigger = document.querySelector("[data-main-sidebar-peek-trigger]");
     if (body && sidebar && headerToggle && !headerToggle.dataset.mainSidebarHeaderToggle) {
       headerToggle.dataset.mainSidebarHeaderToggle = "true";
       headerToggle.classList.add("sidebar-toggle", "main-sidebar-header-toggle");
@@ -182,10 +184,49 @@
         }
       };
 
+      const desktopPeekMq = window.matchMedia("(min-width: 769px) and (hover: hover) and (pointer: fine)");
+      let peekCloseTimer = 0;
+
+      const isCollapsed = () => body.classList.contains("main-sidebar-collapsed");
+      const isPeeking = () => body.classList.contains("main-sidebar-peeking");
+      const syncSidebarVisibility = () => {
+        const peeking = isPeeking();
+        sidebar.setAttribute("aria-hidden", isCollapsed() && !peeking ? "true" : "false");
+        if (peekTrigger) {
+          peekTrigger.setAttribute("aria-expanded", peeking ? "true" : "false");
+        }
+      };
+      const canPeek = () => desktopPeekMq.matches && isCollapsed() && !body.classList.contains("main-sidebar-mobile-open");
+      const setPeeking = (peeking) => {
+        const next = !!peeking && canPeek();
+        window.clearTimeout(peekCloseTimer);
+        body.classList.toggle("main-sidebar-peeking", next);
+        syncSidebarVisibility();
+      };
+      const shouldKeepPeekOpen = () => {
+        const active = document.activeElement;
+        return (
+          (peekTrigger && peekTrigger.matches(":hover")) ||
+          sidebar.matches(":hover") ||
+          (peekTrigger && active === peekTrigger) ||
+          (active instanceof Node && sidebar.contains(active))
+        );
+      };
+      const closePeekSoon = () => {
+        window.clearTimeout(peekCloseTimer);
+        peekCloseTimer = window.setTimeout(() => {
+          if (shouldKeepPeekOpen()) return;
+          setPeeking(false);
+        }, 120);
+      };
+
       const setCollapsed = (collapsed) => {
         const next = !!collapsed;
+        if (!next) {
+          body.classList.remove("main-sidebar-peeking");
+        }
         body.classList.toggle("main-sidebar-collapsed", next);
-        sidebar.setAttribute("aria-hidden", next ? "true" : "false");
+        syncSidebarVisibility();
         updateToggle(next);
         document.dispatchEvent(new CustomEvent("pinokio:sidebar-state", {
           detail: { collapsed: next, source: "main-sidebar" }
@@ -202,9 +243,55 @@
         setCollapsed(!body.classList.contains("main-sidebar-collapsed"));
       });
 
+      if (peekTrigger) {
+        peekTrigger.addEventListener("pointerenter", () => setPeeking(true));
+        peekTrigger.addEventListener("focus", () => setPeeking(true));
+        peekTrigger.addEventListener("click", () => setPeeking(true));
+        peekTrigger.addEventListener("pointerleave", closePeekSoon);
+        peekTrigger.addEventListener("blur", closePeekSoon);
+        sidebar.addEventListener("pointerenter", () => {
+          if (isPeeking()) {
+            window.clearTimeout(peekCloseTimer);
+          }
+        });
+        sidebar.addEventListener("focusin", () => {
+          if (isPeeking()) {
+            window.clearTimeout(peekCloseTimer);
+          }
+        });
+        sidebar.addEventListener("pointerleave", closePeekSoon);
+        sidebar.addEventListener("focusout", closePeekSoon);
+        document.addEventListener("pointerdown", (event) => {
+          if (!isPeeking()) return;
+          const target = event.target;
+          if (target instanceof Node && (sidebar.contains(target) || peekTrigger.contains(target))) return;
+          setPeeking(false);
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && isPeeking()) {
+            setPeeking(false);
+            if (typeof peekTrigger.focus === "function") {
+              peekTrigger.focus();
+            }
+          }
+        });
+        const handlePeekMediaChange = () => {
+          if (!desktopPeekMq.matches) {
+            setPeeking(false);
+          }
+        };
+        if (typeof desktopPeekMq.addEventListener === "function") {
+          desktopPeekMq.addEventListener("change", handlePeekMediaChange);
+        } else if (typeof desktopPeekMq.addListener === "function") {
+          desktopPeekMq.addListener(handlePeekMediaChange);
+        }
+      }
+
       window.PinokioMainSidebar = {
         setCollapsed,
-        isCollapsed: () => body.classList.contains("main-sidebar-collapsed")
+        setPeeking,
+        isCollapsed,
+        isPeeking
       };
     }
 

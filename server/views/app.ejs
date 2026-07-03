@@ -2017,6 +2017,7 @@ body.dark .workspace-mode-link:hover {
   flex-grow: 1;
   min-height: 0;
   overflow: hidden;
+  position: relative;
   /*
   border-top: 1px solid rgba(0,0,0,0.04);
   */
@@ -2035,6 +2036,9 @@ body.dark .appcanvas_filler {
   display: none;
   height: 5px;
   background: #F1F1F1 !important;
+}
+.app-sidebar-peek-trigger {
+  display: none;
 }
 .appcanvas-resizer {
   display: none;
@@ -2177,6 +2181,81 @@ body.dark .appcanvas > aside {
   margin-right: 0;
   opacity: 0;
   pointer-events: none;
+}
+
+@media (min-width: 769px) and (hover: hover) and (pointer: fine) {
+  .appcanvas.vertical.sidebar-collapsed > aside {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 10000020;
+    display: flex;
+    flex: none;
+    width: var(--appcanvas-sidebar-width);
+    min-width: var(--appcanvas-sidebar-width);
+    max-width: var(--appcanvas-sidebar-width);
+    border-right: 1px solid var(--pinokio-sidebar-separator);
+    opacity: 0;
+    pointer-events: none;
+    overflow: hidden;
+    transform: translateX(-100%);
+  }
+
+  .appcanvas.vertical.sidebar-collapsed > aside .menu-container {
+    width: var(--appcanvas-sidebar-width);
+  }
+
+  .appcanvas.vertical.sidebar-collapsed .app-sidebar-peek-trigger {
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 10000021;
+    width: 14px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    cursor: default;
+  }
+
+  .appcanvas.vertical.sidebar-collapsed .app-sidebar-peek-trigger::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 4px;
+    width: 3px;
+    height: 36px;
+    border-radius: 999px;
+    background: var(--pinokio-sidebar-separator-hover);
+    opacity: 0;
+    transform: translateY(-50%);
+    transition: opacity 140ms cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  .appcanvas.vertical.sidebar-collapsed .app-sidebar-peek-trigger:hover::after,
+  .appcanvas.vertical.sidebar-collapsed .app-sidebar-peek-trigger:focus-visible::after,
+  .appcanvas.vertical.sidebar-peeking .app-sidebar-peek-trigger::after {
+    opacity: 1;
+  }
+
+  .appcanvas.vertical.sidebar-peeking .app-sidebar-peek-trigger {
+    z-index: 10000019;
+  }
+
+  .appcanvas.vertical.sidebar-collapsed.sidebar-peeking > aside {
+    box-shadow: 20px 0 42px rgba(15, 23, 42, 0.16);
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+  }
+
+  body.dark .appcanvas.vertical.sidebar-collapsed.sidebar-peeking > aside {
+    box-shadow: 22px 0 46px rgba(0, 0, 0, 0.38);
+  }
+
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -7906,6 +7985,7 @@ body.dark .pinokio-custom-terminal-header {
 </header>
 <div class='appcanvas vertical <%=type === "browse" ? "dev-workspace" : ""%>' data-page-error="<%= error ? '1' : '0' %>">
   <% if (type !== 'files') { %>
+  <button type='button' class='app-sidebar-peek-trigger' data-app-sidebar-peek-trigger aria-label='Show app navigation' aria-controls='app-sidebar' aria-expanded='false'></button>
   <aside id='app-sidebar' class='active'>
       <div class='menu-container'>
         <div class='menu-scroller'>
@@ -16084,6 +16164,7 @@ const rerenderMenuSection = (container, html) => {
   const appcanvas = document.querySelector(".appcanvas")
   const aside = document.getElementById("app-sidebar")
   const toggle = document.getElementById("sidebar-toggle")
+  const peekTrigger = document.querySelector("[data-app-sidebar-peek-trigger]")
   if (!appcanvas || !aside || !toggle) {
     if (toggle) {
       toggle.classList.add("hidden")
@@ -16109,10 +16190,49 @@ const rerenderMenuSection = (container, html) => {
     }
   }
 
+  const desktopPeekMq = window.matchMedia("(min-width: 769px) and (hover: hover) and (pointer: fine)")
+  let peekCloseTimer = 0
+
+  const isCollapsed = () => appcanvas.classList.contains("sidebar-collapsed")
+  const isPeeking = () => appcanvas.classList.contains("sidebar-peeking")
+  const syncSidebarVisibility = () => {
+    const peeking = isPeeking()
+    aside.setAttribute("aria-hidden", isCollapsed() && !peeking ? "true" : "false")
+    if (peekTrigger) {
+      peekTrigger.setAttribute("aria-expanded", peeking ? "true" : "false")
+    }
+  }
+  const canPeek = () => desktopPeekMq.matches && isCollapsed() && !document.body.classList.contains("mobile-menu-open")
+  const setPeeking = (peeking) => {
+    const next = !!peeking && canPeek()
+    window.clearTimeout(peekCloseTimer)
+    appcanvas.classList.toggle("sidebar-peeking", next)
+    syncSidebarVisibility()
+  }
+  const shouldKeepPeekOpen = () => {
+    const active = document.activeElement
+    return (
+      (peekTrigger && peekTrigger.matches(":hover")) ||
+      aside.matches(":hover") ||
+      (peekTrigger && active === peekTrigger) ||
+      (active instanceof Node && aside.contains(active))
+    )
+  }
+  const closePeekSoon = () => {
+    window.clearTimeout(peekCloseTimer)
+    peekCloseTimer = window.setTimeout(() => {
+      if (shouldKeepPeekOpen()) return
+      setPeeking(false)
+    }, 120)
+  }
+
   const setCollapsed = (collapsed, options = {}) => {
     const next = !!collapsed
+    if (!next) {
+      appcanvas.classList.remove("sidebar-peeking")
+    }
     appcanvas.classList.toggle("sidebar-collapsed", next)
-    aside.setAttribute("aria-hidden", next ? "true" : "false")
+    syncSidebarVisibility()
     updateToggle(next)
     if (options.persist !== false) {
       try {
@@ -16138,9 +16258,55 @@ const rerenderMenuSection = (container, html) => {
     setCollapsed(!appcanvas.classList.contains("sidebar-collapsed"))
   })
 
+  if (peekTrigger) {
+    peekTrigger.addEventListener("pointerenter", () => setPeeking(true))
+    peekTrigger.addEventListener("focus", () => setPeeking(true))
+    peekTrigger.addEventListener("click", () => setPeeking(true))
+    peekTrigger.addEventListener("pointerleave", closePeekSoon)
+    peekTrigger.addEventListener("blur", closePeekSoon)
+    aside.addEventListener("pointerenter", () => {
+      if (isPeeking()) {
+        window.clearTimeout(peekCloseTimer)
+      }
+    })
+    aside.addEventListener("focusin", () => {
+      if (isPeeking()) {
+        window.clearTimeout(peekCloseTimer)
+      }
+    })
+    aside.addEventListener("pointerleave", closePeekSoon)
+    aside.addEventListener("focusout", closePeekSoon)
+    document.addEventListener("pointerdown", (event) => {
+      if (!isPeeking()) return
+      const target = event.target
+      if (target instanceof Node && (aside.contains(target) || peekTrigger.contains(target))) return
+      setPeeking(false)
+    })
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && isPeeking()) {
+        setPeeking(false)
+        if (typeof peekTrigger.focus === "function") {
+          peekTrigger.focus()
+        }
+      }
+    })
+    const handlePeekMediaChange = () => {
+      if (!desktopPeekMq.matches) {
+        setPeeking(false)
+      }
+    }
+    if (typeof desktopPeekMq.addEventListener === "function") {
+      desktopPeekMq.addEventListener("change", handlePeekMediaChange)
+    } else if (typeof desktopPeekMq.addListener === "function") {
+      desktopPeekMq.addListener(handlePeekMediaChange)
+    }
+  }
+
   window.PinokioSidebar = {
     setCollapsed,
-    isCollapsed: () => appcanvas.classList.contains("sidebar-collapsed")
+    setPeeking,
+    isCollapsed,
+    isPeeking
   }
 })()
 </script>

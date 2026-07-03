@@ -1357,6 +1357,7 @@ body.main-sidebar-page .navheader .sidebar-toggle[aria-expanded="false"] .sideba
 body.main-sidebar-page main {
   display: flex;
   align-items: stretch;
+  position: relative;
 }
 body.main-sidebar-page main > :not(.main-sidebar) {
   flex: 1 1 auto;
@@ -1888,6 +1889,79 @@ body.dark .main-sidebar-peer-dialog-surface {
   body.main-sidebar-page.main-sidebar-collapsed main > .container,
   body.main-sidebar-page.main-sidebar-collapsed main > .task-container {
     padding-left: 0;
+  }
+
+  @media (min-width: 769px) and (hover: hover) and (pointer: fine) {
+    body.main-sidebar-page.main-sidebar-collapsed .main-sidebar {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 10000020;
+      flex: none;
+      width: 180px;
+      min-width: 180px;
+      max-width: 180px;
+      padding: 8px 5px;
+      border-right-width: 1px;
+      border-right-color: var(--pinokio-sidebar-separator);
+      background: var(--pinokio-sidebar-tabbar-bg);
+      opacity: 0;
+      pointer-events: none;
+      overflow-x: hidden;
+      overflow-y: auto;
+      transform: translateX(-100%);
+    }
+
+    body.main-sidebar-page.main-sidebar-collapsed .main-sidebar-peek-trigger {
+      display: block;
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 10000021;
+      width: 14px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      cursor: default;
+    }
+
+    body.main-sidebar-page.main-sidebar-collapsed .main-sidebar-peek-trigger::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 4px;
+      width: 3px;
+      height: 36px;
+      border-radius: 999px;
+      background: var(--pinokio-sidebar-separator-hover);
+      opacity: 0;
+      transform: translateY(-50%);
+      transition: opacity 140ms cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    body.main-sidebar-page.main-sidebar-collapsed .main-sidebar-peek-trigger:hover::after,
+    body.main-sidebar-page.main-sidebar-collapsed .main-sidebar-peek-trigger:focus-visible::after,
+    body.main-sidebar-page.main-sidebar-peeking .main-sidebar-peek-trigger::after {
+      opacity: 1;
+    }
+
+    body.main-sidebar-page.main-sidebar-peeking .main-sidebar-peek-trigger {
+      z-index: 10000019;
+    }
+
+    body.main-sidebar-page.main-sidebar-collapsed.main-sidebar-peeking .main-sidebar {
+      box-shadow: 20px 0 42px rgba(15, 23, 42, 0.16);
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+
+    body.dark.main-sidebar-page.main-sidebar-collapsed.main-sidebar-peeking .main-sidebar {
+      box-shadow: 22px 0 46px rgba(0, 0, 0, 0.38);
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -4307,6 +4381,7 @@ aside .qr {
   padding: 15px;
 }
 
+.main-sidebar-peek-trigger,
 .main-sidebar-mobile-toggle,
 .main-sidebar-mobile-backdrop {
   display: none;
