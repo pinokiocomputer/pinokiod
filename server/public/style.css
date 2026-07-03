@@ -451,6 +451,14 @@ body.dark .swal2-popup.pinokio-input-modal .swal2-html-container .pinokio-input-
   background: var(--pinokio-input-modal-surface-muted) !important;
   color: var(--pinokio-input-modal-text) !important;
 }
+body.dark .swal2-popup.pinokio-input-modal .swal2-html-container select.pinokio-input-modal-control option {
+  background: #ffffff;
+  color: #111827;
+}
+body.dark select.pinokio-modal-input option {
+  background: #ffffff;
+  color: #111827;
+}
 
 .swal2-popup.pinokio-input-modal .swal2-html-container .pinokio-input-modal-control::placeholder {
   color: var(--pinokio-input-modal-muted);
@@ -5552,6 +5560,10 @@ body.dark .logs-session-picker select {
   background: rgba(255,255,255,0.07);
   color: rgba(248, 250, 252, 0.82);
 }
+body.dark .logs-session-picker select option {
+  background: #ffffff;
+  color: #111827;
+}
 .logs-review-file-list {
   display: flex;
   flex-direction: column;
@@ -5632,6 +5644,10 @@ body.dark .logs-section-mode {
   border-color: rgba(255,255,255,0.12);
   background: rgba(255,255,255,0.07);
   color: rgba(248, 250, 252, 0.82);
+}
+body.dark .logs-section-mode option {
+  background: #ffffff;
+  color: #111827;
 }
 .logs-review-file,
 .logs-review-empty {

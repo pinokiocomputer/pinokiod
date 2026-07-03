@@ -1344,6 +1344,17 @@ body.dark .task-badge-warning {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--task-accent) 18%, transparent);
 }
 
+body.dark .task-select option {
+  background: #ffffff;
+  color: #111827;
+}
+
+body.dark.settings-page .item select option,
+body.dark.settings-page .debug-shell-controls select option {
+  background: #ffffff;
+  color: #111827;
+}
+
 .task-textarea {
   min-height: 160px;
   resize: vertical;
