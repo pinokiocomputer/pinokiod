@@ -1005,51 +1005,29 @@ body.dark .home-actions-close:hover,
 body.dark .home-actions-close:focus-visible {
   background: rgba(255, 255, 255, 0.08);
 }
-.home-actions-tabs {
-  display: flex;
-  gap: 6px;
-  padding: 10px 18px 0;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.09);
-}
-body.dark .home-actions-tabs {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
-}
-.home-actions-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 34px;
-  padding: 0 12px;
-  border: 1px solid transparent;
-  border-bottom: none;
-  border-radius: 6px 6px 0 0;
-  background: transparent;
-  color: rgba(15, 23, 42, 0.68);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.home-actions-tab.is-active {
-  border-color: rgba(15, 23, 42, 0.11);
-  background: rgba(248, 250, 252, 0.9);
-  color: rgba(15, 23, 42, 0.94);
-}
-body.dark .home-actions-tab {
-  color: rgba(226, 232, 240, 0.68);
-}
-body.dark .home-actions-tab.is-active {
-  border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.055);
-  color: rgba(248, 250, 252, 0.94);
-}
 .home-actions-body {
   min-height: 0;
   flex: 1 1 auto;
   overflow: auto;
   padding: 14px 18px 18px;
 }
-.home-actions-panel[hidden] {
-  display: none;
+.home-actions-section + .home-actions-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(15, 23, 42, 0.09);
+}
+body.dark .home-actions-section + .home-actions-section {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+.home-actions-section-title {
+  margin: 0 0 8px;
+  color: rgba(15, 23, 42, 0.58);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+body.dark .home-actions-section-title {
+  color: rgba(226, 232, 240, 0.56);
 }
 .home-run-menu-list,
 .home-actions-command-list,
@@ -1165,6 +1143,7 @@ body.dark .home-run-stop {
   color: rgba(252, 165, 165, 0.86);
 }
 .home-mode-command.is-danger {
+  margin-top: 6px;
   color: rgba(185, 28, 28, 0.86);
 }
 body.dark .home-mode-command.is-danger {
@@ -2681,21 +2660,6 @@ const closeContextMenuForNode = (node) => {
   }
 }
 window.PinokioHomeCloseContextMenu = closeContextMenuForNode
-const setHomeActionsTab = (dialog, tabName) => {
-  if (!dialog || !tabName) {
-    return
-  }
-  dialog.querySelectorAll('.home-actions-tab[data-tab]').forEach((tab) => {
-    const isActive = tab.getAttribute('data-tab') === tabName
-    tab.classList.toggle('is-active', isActive)
-    tab.setAttribute('aria-selected', isActive ? 'true' : 'false')
-  })
-  dialog.querySelectorAll('.home-actions-panel').forEach((panel) => {
-    const isActive = panel.getAttribute('data-panel') === tabName
-    panel.classList.toggle('is-active', isActive)
-    panel.hidden = !isActive
-  })
-}
 const homeActionsDrawerMedia = window.matchMedia('(min-width: 961px)')
 const homeActionsReducedMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)')
 const isHomeActionsDrawerViewport = () => homeActionsDrawerMedia.matches
@@ -2794,7 +2758,6 @@ const openHomeActionsDialog = (button) => {
     return
   }
   closeHomeActionsDialogs(dialog)
-  setHomeActionsTab(dialog, button.getAttribute('data-default-tab') || 'run')
   if (isHomeActionsDrawerViewport()) {
     setHomeActionsDrawerOffset()
     dialog.classList.remove('is-closing')
@@ -3095,17 +3058,6 @@ document.addEventListener("click", async (e) => {
   }
   if (e.target.classList.contains("home-actions-dialog")) {
     closeHomeActionsDialog(e.target)
-    return
-  }
-  if (e.target.classList.contains("home-actions-tab")) {
-    target = e.target
-  } else {
-    target = e.target.closest(".home-actions-tab")
-  }
-  if (target && target.hasAttribute("data-tab")) {
-    e.preventDefault()
-    e.stopPropagation()
-    setHomeActionsTab(target.closest(".home-actions-dialog"), target.getAttribute("data-tab"))
     return
   }
   if (e.target.classList.contains("home-run-stop")) {

@@ -369,6 +369,9 @@ test("static guard: open without launching is not wired to launch requirement st
 
   assert.match(homeActionModal, /Open without launching/)
   assert.match(homeActionModal, /class='home-mode-command home-browse' data-src='<%= item\.view_url %>'/)
+  assert.match(homeActionModal, /Open dev mode/)
+  assert.doesNotMatch(homeActionModal, /home-actions-tabs|home-actions-tab|role='tab'|role='tabpanel'/)
+  assert.doesNotMatch(homeActionModal, /Open files mode/)
   assert.doesNotMatch(homeActionModal, /launch.requirements|data-launch-requirements|frame-link/)
   assert.match(homeView, /if \(target\) \{[\s\S]*window\.PinokioHomeGuardNavigate\(src\)[\s\S]*location\.href = src/)
   assert.match(statusClient, /const status = data && data\.ok \? data\.status : null/)
