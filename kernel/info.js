@@ -2,6 +2,7 @@
 info.local(...args)
 info.running(...args)
 info.exists(...args)
+info.ready(...args)
 info.path(...args)
 */
 const path = require('path')
@@ -56,6 +57,25 @@ class Info {
     let resolved_path = path.resolve(cwd, ...args)
     let exists = fs.existsSync(resolved_path)
     return exists ? exists: false
+  }
+  ready(...args) {
+    if (!this.kernel || typeof this.kernel.isScriptReady !== "function") {
+      return false
+    }
+    let cwd = path.dirname(this.caller())
+    let resolved_path = path.resolve(cwd, ...args)
+    if (this.kernel.isScriptReady(resolved_path)) {
+      return true
+    }
+    if (!this.kernel.script || typeof this.kernel.script.resolve !== "function") {
+      return false
+    }
+    try {
+      let script_path = this.kernel.script.resolve(...args)
+      return script_path ? this.kernel.isScriptReady(script_path) : false
+    } catch (e) {
+      return false
+    }
   }
   local(...args) {
     let cwd = path.dirname(this.caller())
