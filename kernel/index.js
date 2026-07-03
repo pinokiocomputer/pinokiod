@@ -697,7 +697,6 @@ class Kernel {
   async clearLog(group) {
     let relativePath = path.relative(this.homedir, group)
     for(let type of ["info", "buf", "cleaned"]) {
-    //for(let type of ["info", "cleaned"]) {
       let logPath = path.resolve(this.homedir, "logs", "shell", type, relativePath)
       let logFolder = path.dirname(logPath)
       let filename = path.basename(logPath)
@@ -775,8 +774,7 @@ class Kernel {
       let relativePath = path.relative(this.homedir, group)
 
       if (!path.isAbsolute(relativePath)) {
-        //for(let type of ["info", "buf", "cleaned"]) {
-        for(let type of ["info", "cleaned"]) {
+        for(let type of ["cleaned"]) {
           let logPath = path.resolve(this.homedir, "logs", "shell", type, relativePath + "." + info.index + ".txt")
           let logFolder = path.dirname(logPath)
           await fs.promises.mkdir(logFolder, { recursive: true }).catch((e) => { })
@@ -784,8 +782,7 @@ class Kernel {
         }
       }
     } else {
-      //for(let type of ["info", "buf", "cleaned"]) {
-      for(let type of ["info", "cleaned"]) {
+      for(let type of ["cleaned"]) {
         let logPath = path.resolve(this.homedir, "logs", "shell", type, "index.txt")
         let logFolder = path.dirname(logPath)
         await fs.promises.mkdir(logFolder, { recursive: true }).catch((e) => { })

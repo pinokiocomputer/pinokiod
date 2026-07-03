@@ -1,7 +1,6 @@
 const { Terminal } = require('@xterm/headless');
 const { SerializeAddon } = require("xterm-addon-serialize");
 const sanitize = require("sanitize-filename");
-const YAML = require('yaml')
 const kill = require('kill-sync')
 const fastq = require('fastq')
 const normalize = require('normalize-path');
@@ -1749,59 +1748,10 @@ class Shell {
       this.nudgeRestoreTimer = null
     }, 100)
   }
-  _log(buf, cleaned) {
-
-
-    /*
-
-    /logs
-      /shell
-        /[...group]
-          ### info
-
-          ### stdout
-
-    */
-    let info = {
-      path: this.path,
-      cmd: this.cmd,
-      index: this.index,
-      group: this.group,
-      env: ShellRunTemplate.redactEnvArgs(this.env),
-      done: this.done,
-      ready: this.ready,
-      id: this.id,
-      ts: Date.now()
-    }
-
+  _log(_buf, cleaned) {
     let time = `${new Date().toLocaleString()} (${Date.now()})`
 
-    let infoYAML = YAML.stringify(info)
     let data = {}
-    data.info = `######################################################################
-#
-# group: ${this.group}
-# id: ${this.id}
-# index: ${this.index}
-# cmd: ${this.cmd}
-# timestamp: ${time}
-
-${infoYAML}
-
-`
-
-    data.buf = `######################################################################
-#
-# group: ${this.group}
-# id: ${this.id}
-# index: ${this.index}
-# cmd: ${this.cmd}
-# timestamp: ${time}
-#
-
-${buf}
-
-`
 
     data.cleaned = `######################################################################
 #
@@ -1815,9 +1765,7 @@ ${cleaned}
 
 `
 
-    this.kernel.log(data, this.group, info) 
-
-
+    this.kernel.log(data, this.group, { index: this.index })
   }
   stream(msg, callback) {
     if (msg === "\u0007") {
