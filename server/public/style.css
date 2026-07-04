@@ -1284,6 +1284,10 @@ body.main-sidebar-page .navheader {
   box-shadow: none;
   isolation: isolate;
 }
+body.main-sidebar-page > header.navheader h1,
+body.app-page > header.navheader h1 {
+  gap: 6px;
+}
 body.main-sidebar-page .navheader .sidebar-toggle {
   color: #0f172a;
   position: relative;
