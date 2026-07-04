@@ -2,7 +2,7 @@ const fs = require('fs')
 const path = require('path')
 const { glob } = require('glob')
 const semver = require('semver')
-const { buildCondaListFromMeta } = require('./conda-meta')
+const { buildCondaListFromMeta, managedCondaRuns } = require('./conda-meta')
 const {
   CONDA_PIN_VERSION,
   PYTHON_INSTALL_SPEC,
@@ -182,7 +182,10 @@ report_errors: false`)
     this.kernel.bin.installed.conda = conda
     this.kernel.bin.installed.conda_versions = conda_versions
     this.kernel.bin.installed.conda_builds = conda_builds
-    return conda_check.conda && conda_check.mamba && conda_check.python
+    if (!(conda_check.conda && conda_check.mamba && conda_check.python)) {
+      return false
+    }
+    return await managedCondaRuns(this.kernel.bin.path(CONDA_ROOT_DIR), this.kernel.platform)
   }
   async install(req, ondata) {
     for(let i=0; i<5; i++) {

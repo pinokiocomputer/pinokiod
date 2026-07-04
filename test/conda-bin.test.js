@@ -25,10 +25,36 @@ function createKernel(root, platform = 'win32') {
     exists: async (...parts) => pathExists(path.join(root, ...parts)),
     bin: {
       correct_conda: true,
+      installed: {},
       path: (...parts) => path.join(root, 'bin', ...parts),
       exists: async (target) => pathExists(path.join(root, 'bin', target)),
     },
   }
+}
+
+async function writeCondaMeta(root, name, version, build = 'py_0') {
+  const metaDir = path.join(root, 'bin', 'miniforge', 'conda-meta')
+  await fs.mkdir(metaDir, { recursive: true })
+  await fs.writeFile(
+    path.join(metaDir, `${name}-${version}.json`),
+    JSON.stringify({ name, version, build_string: build, channel: 'conda-forge' })
+  )
+}
+
+async function writeHealthyCondaMeta(root, platform = 'win32') {
+  await writeCondaMeta(root, 'conda', '26.3.2', 'py310')
+  await writeCondaMeta(root, 'conda-libmamba-solver', '25.4.0', 'pyhd3eb1b0_0')
+  await writeCondaMeta(root, 'python', '3.10.20', platform === 'win32' ? 'h4de0772_1_cpython' : 'cpython')
+}
+
+async function writeFakeManagedConda(root, platform = 'win32') {
+  const condaPath = platform === 'win32'
+    ? path.join(root, 'bin', 'miniforge', 'Scripts', 'conda.exe')
+    : path.join(root, 'bin', 'miniforge', 'bin', 'conda')
+  await fs.mkdir(path.dirname(condaPath), { recursive: true })
+  await fs.copyFile(process.execPath, condaPath)
+  await fs.chmod(condaPath, 0o755)
+  return condaPath
 }
 
 async function createCondaRoot(root, name) {
@@ -247,6 +273,21 @@ test('Conda installed stays false when metadata check already marked Conda inval
   kernel.bin.correct_conda = false
 
   assert.equal(await createConda(kernel).installed(), false)
+})
+
+test('Conda check rejects metadata-only Windows installs', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-smoke-missing-'))
+  await writeHealthyCondaMeta(root, 'win32')
+
+  assert.equal(await createConda(createKernel(root, 'win32')).check(), false)
+})
+
+test('Conda check accepts a runnable managed Windows conda executable', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-smoke-runnable-'))
+  await writeHealthyCondaMeta(root, 'win32')
+  await writeFakeManagedConda(root, 'win32')
+
+  assert.equal(await createConda(createKernel(root, 'win32')).check(), true)
 })
 
 test('Conda install keeps the old runtime when the replacement installer download fails', async () => {

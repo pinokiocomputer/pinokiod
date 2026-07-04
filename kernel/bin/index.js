@@ -21,7 +21,7 @@ const LLVM = require('./llvm')
 const VS = require("./vs")
 const Cuda = require("./cuda")
 const Torch = require("./torch")
-const { buildCondaListFromMeta } = require('./conda-meta')
+const { buildCondaListFromMeta, managedCondaRuns } = require('./conda-meta')
 const {
   isExpectedPythonPinned,
 } = require('./conda-pins')
@@ -412,7 +412,7 @@ class Bin {
       }
 
       if (conda_check.conda && conda_check.mamba && conda_check.python) {
-        this.correct_conda = true
+        this.correct_conda = await managedCondaRuns(this.kernel.bin.path("miniforge"), this.platform)
       }
     }
     this.installed.conda = conda

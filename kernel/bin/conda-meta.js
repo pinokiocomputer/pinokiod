@@ -69,15 +69,27 @@ async function runCondaList(minicondaPath) {
   })
 }
 
-function resolveCondaBinary(minicondaPath) {
-  if (process.platform === 'win32') {
+async function managedCondaRuns(minicondaPath, platform = process.platform) {
+  const condaBinary = resolveCondaBinary(minicondaPath, platform, false)
+  if (!condaBinary) {
+    return false
+  }
+  return await new Promise((resolve) => {
+    execFile(condaBinary, ['--version'], { windowsHide: true, timeout: 15000 }, (err) => {
+      resolve(!err)
+    })
+  })
+}
+
+function resolveCondaBinary(minicondaPath, platform = process.platform, allowFallback = true) {
+  if (platform === 'win32') {
     if (minicondaPath) {
       const scriptPath = path.join(minicondaPath, 'Scripts', 'conda.exe')
       if (fs.existsSync(scriptPath)) {
         return scriptPath
       }
     }
-    return 'conda'
+    return allowFallback ? 'conda' : null
   }
   if (minicondaPath) {
     const binPath = path.join(minicondaPath, 'bin', 'conda')
@@ -85,9 +97,10 @@ function resolveCondaBinary(minicondaPath) {
       return binPath
     }
   }
-  return 'conda'
+  return allowFallback ? 'conda' : null
 }
 
 module.exports = {
-  buildCondaListFromMeta
+  buildCondaListFromMeta,
+  managedCondaRuns,
 }
