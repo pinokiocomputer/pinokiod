@@ -448,6 +448,9 @@ class Bin {
           break 
         }
       }
+      if (this.mod && this.mod.conda && this.mod.conda.ensureWindowsOpenSslHooks) {
+        await this.mod.conda.ensureWindowsOpenSslHooks()
+      }
     }
 
     if (this.platform === "darwin") {

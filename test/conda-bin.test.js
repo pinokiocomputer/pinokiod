@@ -78,6 +78,88 @@ function createConda(kernel) {
   return conda
 }
 
+const EXPECTED_WINDOWS_OPENSSL_HOOKS = {
+  [path.join('activate.d', 'openssl_activate-win.bat')]: [
+    '@echo off',
+    'if "%SSL_CERT_FILE%"=="" (',
+    '    set "SSL_CERT_FILE=%CONDA_PREFIX%\\Library\\ssl\\cacert.pem"',
+    '    set "__CONDA_OPENSSL_CERT_FILE_SET=1"',
+    ')',
+    '',
+  ].join('\r\n'),
+  [path.join('activate.d', 'openssl_activate-win.ps1')]: [
+    'if (-not $Env:SSL_CERT_FILE) {',
+    '    $Env:SSL_CERT_FILE = "$Env:CONDA_PREFIX\\Library\\ssl\\cacert.pem"',
+    '    $Env:__CONDA_OPENSSL_CERT_FILE_SET = "1"',
+    '}',
+    '',
+  ].join('\r\n'),
+  [path.join('activate.d', 'openssl_activate-win.sh')]: [
+    'if [[ "${SSL_CERT_FILE:-}" == "" ]]; then',
+    '    export SSL_CERT_FILE="${CONDA_PREFIX}\\\\Library\\\\ssl\\\\cacert.pem"',
+    '    export __CONDA_OPENSSL_CERT_FILE_SET="1"',
+    'fi',
+    '',
+  ].join('\n'),
+  [path.join('deactivate.d', 'openssl_deactivate-win.bat')]: [
+    '@echo off',
+    'if "%__CONDA_OPENSSL_CERT_FILE_SET%" == "1" (',
+    '    set SSL_CERT_FILE=',
+    '    set __CONDA_OPENSSL_CERT_FILE_SET=',
+    ')',
+    '',
+  ].join('\r\n'),
+  [path.join('deactivate.d', 'openssl_deactivate-win.ps1')]: [
+    'if ($Env:__CONDA_OPENSSL_CERT_FILE_SET -eq "1") {',
+    '    Remove-Item -Path Env:\\SSL_CERT_FILE',
+    '    Remove-Item -Path Env:\\__CONDA_OPENSSL_CERT_FILE_SET',
+    '}',
+    '',
+  ].join('\r\n'),
+  [path.join('deactivate.d', 'openssl_deactivate-win.sh')]: [
+    'if [[ "${__CONDA_OPENSSL_CERT_FILE_SET:-}" == "1" ]]; then',
+    '    unset SSL_CERT_FILE',
+    '    unset __CONDA_OPENSSL_CERT_FILE_SET',
+    'fi',
+    '',
+  ].join('\n'),
+}
+
+async function seedWindowsOpenSslHooks(root, condaRootName) {
+  const condaHookRoot = path.join(root, 'bin', condaRootName, 'etc', 'conda')
+  for (const hookRelativePath of Object.keys(EXPECTED_WINDOWS_OPENSSL_HOOKS)) {
+    const hookPath = path.join(condaHookRoot, hookRelativePath)
+    await fs.mkdir(path.dirname(hookPath), { recursive: true })
+    await fs.writeFile(hookPath, 'upstream hook with SSL_CERT_DIR\n')
+  }
+  for (const hookDirName of ['activate.d', 'deactivate.d']) {
+    for (const filename of [
+      'zz_pinokio_unset_ssl_cert_dir-win.bat',
+      'zz_pinokio_unset_ssl_cert_dir-win.ps1',
+      'zz_pinokio_unset_ssl_cert_dir-win.sh',
+    ]) {
+      await fs.writeFile(path.join(condaHookRoot, hookDirName, filename), 'legacy hook\n')
+    }
+  }
+}
+
+async function assertWindowsOpenSslHooksPatched(root, condaRootName) {
+  const condaHookRoot = path.join(root, 'bin', condaRootName, 'etc', 'conda')
+  for (const [hookRelativePath, expectedContent] of Object.entries(EXPECTED_WINDOWS_OPENSSL_HOOKS)) {
+    const hookPath = path.join(condaHookRoot, hookRelativePath)
+    assert.equal(await fs.readFile(hookPath, 'utf8'), expectedContent)
+  }
+  for (const hookDirName of ['activate.d', 'deactivate.d']) {
+    for (const filename of [
+      'zz_pinokio_unset_ssl_cert_dir-win.bat',
+      'zz_pinokio_unset_ssl_cert_dir-win.ps1',
+      'zz_pinokio_unset_ssl_cert_dir-win.sh',
+    ]) {
+      assert.equal(await pathExists(path.join(condaHookRoot, hookDirName, filename)), false)
+    }
+  }
+}
+
 test('Conda uses Miniforge assets and writes conda-forge-only config', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-miniforge-config-'))
   const conda = createConda(createKernel(root))
@@ -99,59 +181,26 @@ test('Conda uses Miniforge assets and writes conda-forge-only config', async () 
   assert.equal(await pathExists(path.join(root, 'bin', 'miniforge')), false)
 })
 
-test('Conda init writes SSL_CERT_DIR neutralizing hooks only after Miniforge exists', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-init-hooks-'))
+test('Conda init patches Windows OpenSSL hooks and removes legacy SSL_CERT_DIR hooks', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-openssl-hooks-'))
   await fs.mkdir(path.join(root, 'bin', 'miniforge', 'conda-meta'), { recursive: true })
+  await seedWindowsOpenSslHooks(root, 'miniforge')
   const conda = createConda(createKernel(root))
 
   await conda.init()
 
-  const hookRelativePaths = [
-    path.join('activate.d', 'zz_pinokio_unset_ssl_cert_dir-win.bat'),
-    path.join('activate.d', 'zz_pinokio_unset_ssl_cert_dir-win.ps1'),
-    path.join('activate.d', 'zz_pinokio_unset_ssl_cert_dir-win.sh'),
-    path.join('deactivate.d', 'zz_pinokio_unset_ssl_cert_dir-win.bat'),
-    path.join('deactivate.d', 'zz_pinokio_unset_ssl_cert_dir-win.ps1'),
-    path.join('deactivate.d', 'zz_pinokio_unset_ssl_cert_dir-win.sh'),
-  ]
-  for (const hookRelativePath of hookRelativePaths) {
-    assert.equal(
-      await pathExists(path.join(root, 'bin', 'miniforge', 'etc', 'conda', hookRelativePath)),
-      true
-    )
-  }
-
-  const batHook = await fs.readFile(
-    path.join(root, 'bin', 'miniforge', 'etc', 'conda', 'activate.d', 'zz_pinokio_unset_ssl_cert_dir-win.bat'),
-    'utf8'
-  )
-  assert.match(batHook, /set "SSL_CERT_DIR="/)
-  assert.match(batHook, /set "__CONDA_OPENSSL_CERT_DIR_SET="/)
-  assert.doesNotMatch(batHook, /SSL_CERT_FILE/)
+  await assertWindowsOpenSslHooksPatched(root, 'miniforge')
 })
 
-test('Conda init writes SSL_CERT_DIR neutralizing hooks for legacy Miniconda roots', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-legacy-init-hooks-'))
+test('Conda init patches Windows OpenSSL hooks for legacy Miniconda roots', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-legacy-openssl-hooks-'))
   await fs.mkdir(path.join(root, 'bin', 'miniconda', 'conda-meta'), { recursive: true })
+  await seedWindowsOpenSslHooks(root, 'miniconda')
   const conda = createConda(createKernel(root))
 
   await conda.init()
 
-  const batHookPath = path.join(
-    root,
-    'bin',
-    'miniconda',
-    'etc',
-    'conda',
-    'deactivate.d',
-    'zz_pinokio_unset_ssl_cert_dir-win.bat'
-  )
-  assert.equal(await pathExists(batHookPath), true)
-
-  const batHook = await fs.readFile(batHookPath, 'utf8')
-  assert.match(batHook, /set "SSL_CERT_DIR="/)
-  assert.match(batHook, /set "__CONDA_OPENSSL_CERT_DIR_SET="/)
-  assert.doesNotMatch(batHook, /SSL_CERT_FILE/)
+  await assertWindowsOpenSslHooksPatched(root, 'miniconda')
 })
 
 test('Conda pins Python 3.10.20 consistently across platforms', async () => {

@@ -14,6 +14,61 @@ const MINIFORGE_RELEASE = "26.3.2-3"
 const MINIFORGE_BASE_URL = `https://github.com/conda-forge/miniforge/releases/download/${MINIFORGE_RELEASE}`
 const CONDA_ROOT_DIR = "miniforge"
 const LEGACY_CONDA_ROOT_DIR = "miniconda"
+const WINDOWS_OPENSSL_HOOKS = {
+  activate: {
+    "openssl_activate-win.bat": [
+      "@echo off",
+      'if "%SSL_CERT_FILE%"=="" (',
+      '    set "SSL_CERT_FILE=%CONDA_PREFIX%\\Library\\ssl\\cacert.pem"',
+      '    set "__CONDA_OPENSSL_CERT_FILE_SET=1"',
+      ")",
+      "",
+    ].join("\r\n"),
+    "openssl_activate-win.ps1": [
+      "if (-not $Env:SSL_CERT_FILE) {",
+      '    $Env:SSL_CERT_FILE = "$Env:CONDA_PREFIX\\Library\\ssl\\cacert.pem"',
+      '    $Env:__CONDA_OPENSSL_CERT_FILE_SET = "1"',
+      "}",
+      "",
+    ].join("\r\n"),
+    "openssl_activate-win.sh": [
+      'if [[ "${SSL_CERT_FILE:-}" == "" ]]; then',
+      '    export SSL_CERT_FILE="${CONDA_PREFIX}\\\\Library\\\\ssl\\\\cacert.pem"',
+      '    export __CONDA_OPENSSL_CERT_FILE_SET="1"',
+      "fi",
+      "",
+    ].join("\n"),
+  },
+  deactivate: {
+    "openssl_deactivate-win.bat": [
+      "@echo off",
+      'if "%__CONDA_OPENSSL_CERT_FILE_SET%" == "1" (',
+      "    set SSL_CERT_FILE=",
+      "    set __CONDA_OPENSSL_CERT_FILE_SET=",
+      ")",
+      "",
+    ].join("\r\n"),
+    "openssl_deactivate-win.ps1": [
+      'if ($Env:__CONDA_OPENSSL_CERT_FILE_SET -eq "1") {',
+      "    Remove-Item -Path Env:\\SSL_CERT_FILE",
+      "    Remove-Item -Path Env:\\__CONDA_OPENSSL_CERT_FILE_SET",
+      "}",
+      "",
+    ].join("\r\n"),
+    "openssl_deactivate-win.sh": [
+      'if [[ "${__CONDA_OPENSSL_CERT_FILE_SET:-}" == "1" ]]; then',
+      "    unset SSL_CERT_FILE",
+      "    unset __CONDA_OPENSSL_CERT_FILE_SET",
+      "fi",
+      "",
+    ].join("\n"),
+  },
+}
+const LEGACY_SSL_CERT_DIR_HOOK_FILES = [
+  "zz_pinokio_unset_ssl_cert_dir-win.bat",
+  "zz_pinokio_unset_ssl_cert_dir-win.ps1",
+  "zz_pinokio_unset_ssl_cert_dir-win.sh",
+]
 
 class Conda {
   description = "Pinokio uses Conda to install various useful programs in an isolated manner."
@@ -69,7 +124,7 @@ class Conda {
     }
     return base
   }
-  async ensureSslCertDirOverride() {
+  async ensureWindowsOpenSslHooks() {
     if (this.kernel.platform !== "win32") {
       return
     }
@@ -82,33 +137,26 @@ class Conda {
     if (condaRootDirs.length === 0) {
       return
     }
-    const hookFiles = {
-      "zz_pinokio_unset_ssl_cert_dir-win.bat": `@echo off
-if "%__CONDA_OPENSSL_CERT_DIR_SET%"=="1" (
-    set "SSL_CERT_DIR="
-    set "__CONDA_OPENSSL_CERT_DIR_SET="
-)
-`,
-      "zz_pinokio_unset_ssl_cert_dir-win.ps1": `if ($Env:__CONDA_OPENSSL_CERT_DIR_SET -eq "1") {
-  Remove-Item -Path Env:\\SSL_CERT_DIR -ErrorAction SilentlyContinue
-  Remove-Item -Path Env:\\__CONDA_OPENSSL_CERT_DIR_SET -ErrorAction SilentlyContinue
-}
-`,
-      "zz_pinokio_unset_ssl_cert_dir-win.sh": `if [[ "\${__CONDA_OPENSSL_CERT_DIR_SET:-}" == "1" ]]; then
-  unset SSL_CERT_DIR
-  unset __CONDA_OPENSSL_CERT_DIR_SET
-fi
-`,
-    }
     for (const rootDir of condaRootDirs) {
-      const hookDirs = [
-        this.kernel.bin.path(`${rootDir}/etc/conda/activate.d`),
-        this.kernel.bin.path(`${rootDir}/etc/conda/deactivate.d`),
-      ]
-      for (const hookDir of hookDirs) {
-        await fs.promises.mkdir(hookDir, { recursive: true }).catch(() => {})
-        for (const [filename, content] of Object.entries(hookFiles)) {
-          await fs.promises.writeFile(path.resolve(hookDir, filename), content)
+      const activateDir = this.kernel.bin.path(`${rootDir}/etc/conda/activate.d`)
+      const deactivateDir = this.kernel.bin.path(`${rootDir}/etc/conda/deactivate.d`)
+      for (const hookDir of [activateDir, deactivateDir]) {
+        for (const filename of LEGACY_SSL_CERT_DIR_HOOK_FILES) {
+          await fs.promises.rm(path.resolve(hookDir, filename), { force: true }).catch(() => {})
+        }
+      }
+      for (const [filename, content] of Object.entries(WINDOWS_OPENSSL_HOOKS.activate)) {
+        const hookPath = path.resolve(activateDir, filename)
+        const exists = await fs.promises.access(hookPath).then(() => true).catch(() => false)
+        if (exists) {
+          await fs.promises.writeFile(hookPath, content)
+        }
+      }
+      for (const [filename, content] of Object.entries(WINDOWS_OPENSSL_HOOKS.deactivate)) {
+        const hookPath = path.resolve(deactivateDir, filename)
+        const exists = await fs.promises.access(hookPath).then(() => true).catch(() => false)
+        if (exists) {
+          await fs.promises.writeFile(hookPath, content)
         }
       }
     }
@@ -134,7 +182,7 @@ report_errors: false`)
         await fs.promises.writeFile(this.kernel.path(`bin/${CONDA_ROOT_DIR}/conda-meta/pinned`), this.pinnedPackages())
         await this.ensureCompatibilityAlias()
       }
-      await this.ensureSslCertDirOverride()
+      await this.ensureWindowsOpenSslHooks()
     }
   }
   async check() {
@@ -282,7 +330,7 @@ report_errors: false`)
         this.kernel.bin.path(CONDA_ROOT_DIR, "python3.exe"),
       )
     }
-    await this.ensureSslCertDirOverride()
+    await this.ensureWindowsOpenSslHooks()
     await this.ensureCompatibilityAlias()
     ondata({ raw: `Install finished\r\n` })
     await this.kernel.bin.rm(installer, ondata)
