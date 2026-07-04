@@ -73,33 +73,45 @@ class Conda {
     if (this.kernel.platform !== "win32") {
       return
     }
-    if (!(await this.hasCondaMeta())) {
+    const condaRootDirs = []
+    for (const rootDir of [CONDA_ROOT_DIR, LEGACY_CONDA_ROOT_DIR]) {
+      if (await this.kernel.exists(`bin/${rootDir}/conda-meta`)) {
+        condaRootDirs.push(rootDir)
+      }
+    }
+    if (condaRootDirs.length === 0) {
       return
     }
-    const activateDir = this.kernel.bin.path(`${CONDA_ROOT_DIR}/etc/conda/activate.d`)
-    await fs.promises.mkdir(activateDir, { recursive: true }).catch(() => {})
-    await fs.promises.writeFile(
-      path.resolve(activateDir, "zz_pinokio_unset_ssl_cert_dir-win.bat"),
-      `@echo off
+    const hookFiles = {
+      "zz_pinokio_unset_ssl_cert_dir-win.bat": `@echo off
 if "%__CONDA_OPENSSL_CERT_DIR_SET%"=="1" (
     set "SSL_CERT_DIR="
+    set "__CONDA_OPENSSL_CERT_DIR_SET="
 )
-`
-    )
-    await fs.promises.writeFile(
-      path.resolve(activateDir, "zz_pinokio_unset_ssl_cert_dir-win.ps1"),
-      `if ($Env:__CONDA_OPENSSL_CERT_DIR_SET -eq "1") {
+`,
+      "zz_pinokio_unset_ssl_cert_dir-win.ps1": `if ($Env:__CONDA_OPENSSL_CERT_DIR_SET -eq "1") {
   Remove-Item -Path Env:\\SSL_CERT_DIR -ErrorAction SilentlyContinue
+  Remove-Item -Path Env:\\__CONDA_OPENSSL_CERT_DIR_SET -ErrorAction SilentlyContinue
 }
-`
-    )
-    await fs.promises.writeFile(
-      path.resolve(activateDir, "zz_pinokio_unset_ssl_cert_dir-win.sh"),
-      `if [[ "\${__CONDA_OPENSSL_CERT_DIR_SET:-}" == "1" ]]; then
+`,
+      "zz_pinokio_unset_ssl_cert_dir-win.sh": `if [[ "\${__CONDA_OPENSSL_CERT_DIR_SET:-}" == "1" ]]; then
   unset SSL_CERT_DIR
+  unset __CONDA_OPENSSL_CERT_DIR_SET
 fi
-`
-    )
+`,
+    }
+    for (const rootDir of condaRootDirs) {
+      const hookDirs = [
+        this.kernel.bin.path(`${rootDir}/etc/conda/activate.d`),
+        this.kernel.bin.path(`${rootDir}/etc/conda/deactivate.d`),
+      ]
+      for (const hookDir of hookDirs) {
+        await fs.promises.mkdir(hookDir, { recursive: true }).catch(() => {})
+        for (const [filename, content] of Object.entries(hookFiles)) {
+          await fs.promises.writeFile(path.resolve(hookDir, filename), content)
+        }
+      }
+    }
   }
   async init() {
     if (this.kernel.homedir) {
@@ -120,9 +132,9 @@ report_errors: false`)
       let pinned_exists = await this.hasCondaMeta()
       if (pinned_exists) {
         await fs.promises.writeFile(this.kernel.path(`bin/${CONDA_ROOT_DIR}/conda-meta/pinned`), this.pinnedPackages())
-        await this.ensureSslCertDirOverride()
         await this.ensureCompatibilityAlias()
       }
+      await this.ensureSslCertDirOverride()
     }
   }
   async check() {

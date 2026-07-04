@@ -73,17 +73,59 @@ test('Conda uses Miniforge assets and writes conda-forge-only config', async () 
   assert.equal(await pathExists(path.join(root, 'bin', 'miniforge')), false)
 })
 
-test('Conda init writes activation hooks only after Miniforge exists', async () => {
+test('Conda init writes SSL_CERT_DIR neutralizing hooks only after Miniforge exists', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-init-hooks-'))
   await fs.mkdir(path.join(root, 'bin', 'miniforge', 'conda-meta'), { recursive: true })
   const conda = createConda(createKernel(root))
 
   await conda.init()
 
-  assert.equal(
-    await pathExists(path.join(root, 'bin', 'miniforge', 'etc', 'conda', 'activate.d', 'zz_pinokio_unset_ssl_cert_dir-win.bat')),
-    true
+  const hookRelativePaths = [
+    path.join('activate.d', 'zz_pinokio_unset_ssl_cert_dir-win.bat'),
+    path.join('activate.d', 'zz_pinokio_unset_ssl_cert_dir-win.ps1'),
+    path.join('activate.d', 'zz_pinokio_unset_ssl_cert_dir-win.sh'),
+    path.join('deactivate.d', 'zz_pinokio_unset_ssl_cert_dir-win.bat'),
+    path.join('deactivate.d', 'zz_pinokio_unset_ssl_cert_dir-win.ps1'),
+    path.join('deactivate.d', 'zz_pinokio_unset_ssl_cert_dir-win.sh'),
+  ]
+  for (const hookRelativePath of hookRelativePaths) {
+    assert.equal(
+      await pathExists(path.join(root, 'bin', 'miniforge', 'etc', 'conda', hookRelativePath)),
+      true
+    )
+  }
+
+  const batHook = await fs.readFile(
+    path.join(root, 'bin', 'miniforge', 'etc', 'conda', 'activate.d', 'zz_pinokio_unset_ssl_cert_dir-win.bat'),
+    'utf8'
   )
+  assert.match(batHook, /set "SSL_CERT_DIR="/)
+  assert.match(batHook, /set "__CONDA_OPENSSL_CERT_DIR_SET="/)
+  assert.doesNotMatch(batHook, /SSL_CERT_FILE/)
+})
+
+test('Conda init writes SSL_CERT_DIR neutralizing hooks for legacy Miniconda roots', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-legacy-init-hooks-'))
+  await fs.mkdir(path.join(root, 'bin', 'miniconda', 'conda-meta'), { recursive: true })
+  const conda = createConda(createKernel(root))
+
+  await conda.init()
+
+  const batHookPath = path.join(
+    root,
+    'bin',
+    'miniconda',
+    'etc',
+    'conda',
+    'deactivate.d',
+    'zz_pinokio_unset_ssl_cert_dir-win.bat'
+  )
+  assert.equal(await pathExists(batHookPath), true)
+
+  const batHook = await fs.readFile(batHookPath, 'utf8')
+  assert.match(batHook, /set "SSL_CERT_DIR="/)
+  assert.match(batHook, /set "__CONDA_OPENSSL_CERT_DIR_SET="/)
+  assert.doesNotMatch(batHook, /SSL_CERT_FILE/)
 })
 
 test('Conda pins Python 3.10.20 consistently across platforms', async () => {
