@@ -6041,6 +6041,13 @@ class Server {
       if (version === this.version.pinokiod) {
         console.log("version up to date")
       } else if (!(await fse.pathExists(path.resolve(home, "bin/miniforge/conda-meta")))) {
+        // if miniconda => miniforge migration hasn't happened yet
+        if (!(await fse.pathExists(path.resolve(home, "bin/miniconda/conda-meta")))) {
+          // if miniconda folder does NOT exist (new user), set version
+          // if miniconda folder exists (existing user), don't set version yet
+          //    => version only set after miniconda => miniforge migration has happened
+          this.kernel.store.set("version", this.version.pinokiod)
+        }
         console.warn("[WARN] Managed home refresh deferred until Miniforge is installed")
       } else {
         // For every update, this gets triggered exactly once.
