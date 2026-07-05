@@ -2,6 +2,7 @@ const assert = require("node:assert/strict")
 const fs = require("node:fs/promises")
 const path = require("node:path")
 const test = require("node:test")
+const ejs = require("ejs")
 
 const root = path.resolve(__dirname, "..")
 
@@ -370,12 +371,77 @@ test("static guard: open without launching is not wired to launch requirement st
   assert.match(homeActionModal, /Open without launching/)
   assert.match(homeActionModal, /class='home-mode-command home-browse' data-src='<%= item\.view_url %>'/)
   assert.match(homeActionModal, /Open dev mode/)
+  assert.match(homeActionModal, /const homeActionsAppId = item && \(item\.uri \|\| item\.path \|\| item\.name\)/)
+  assert.match(homeActionModal, /pinokio_home_select: JSON\.stringify/)
+  assert.match(homeActionModal, /target: "env-settings"/)
+  assert.match(homeActionModal, /href='<%= homeActionsSettingsHref %>'/)
+  assert.match(homeActionModal, /Settings/)
   assert.doesNotMatch(homeActionModal, /home-actions-tabs|home-actions-tab|role='tab'|role='tabpanel'/)
   assert.doesNotMatch(homeActionModal, /Open files mode/)
   assert.doesNotMatch(homeActionModal, /launch.requirements|data-launch-requirements|frame-link/)
   assert.match(homeView, /if \(target\) \{[\s\S]*window\.PinokioHomeGuardNavigate\(src\)[\s\S]*location\.href = src/)
   assert.match(statusClient, /const status = data && data\.ok \? data\.status : null/)
   assert.doesNotMatch(statusClient, /saved requirement/)
+})
+
+test("home actions modal renders an app settings link", async () => {
+  const html = await ejs.renderFile(path.resolve(root, "server/views/partials/home_action_modal.ejs"), {
+    id: "home-actions-test",
+    item: {
+      icon: "",
+      name: "Test App",
+      filepath: "/tmp/pinokio/api/test app.git",
+      uri: "test app.git",
+      menu: [],
+      view_url: "/v/test%20app.git",
+      dev_url: "/p/test%20app.git/dev",
+      url: "/p/test%20app.git",
+      terminal_online_count: 0,
+      running: false
+    }
+  })
+
+  const hrefMatch = html.match(/href='([^']+)'/)
+  assert.ok(hrefMatch)
+  const href = new URL(hrefMatch[1], "http://127.0.0.1")
+  assert.equal(href.pathname, "/v/test%20app.git")
+  const payload = JSON.parse(href.searchParams.get("pinokio_home_select"))
+  assert.deepEqual(payload, {
+    target: "env-settings",
+    hrefAttr: "/env/api/test app.git?host=app",
+    textValue: "Settings"
+  })
+  assert.match(html, />\s*Settings\s*</)
+})
+
+test("home actions drawer background follows the home page surface", async () => {
+  const homeView = await fs.readFile(path.resolve(root, "server/views/index.ejs"), "utf8")
+
+  assert.match(homeView, /body\.is-home \{[\s\S]*--home-page-nav-bg: #ffffff;[\s\S]*background: #ffffff;/)
+  assert.match(homeView, /body\.dark\.is-home \{[\s\S]*--home-page-nav-bg: #1b1c1d;[\s\S]*background: #1b1c1d;/)
+  assert.match(homeView, /\.home-actions-dialog \{[\s\S]*background: var\(--home-page-nav-bg, #ffffff\);/)
+  assert.match(homeView, /body\.dark \.home-actions-dialog \{[\s\S]*background: var\(--home-page-nav-bg, #1b1c1d\);/)
+  assert.doesNotMatch(homeView, /body\.dark \.home-actions-dialog \{[\s\S]*background: rgba\(18, 20, 25, 0\.98\);/)
+})
+
+test("home run menu gives block labels valid padded layout", async () => {
+  const homeView = await fs.readFile(path.resolve(root, "server/views/index.ejs"), "utf8")
+  const html = await ejs.renderFile(path.resolve(root, "server/views/partials/home_run_menu.ejs"), {
+    app: {
+      view_url: "/v/test-app"
+    },
+    menu: [{
+      icon: "fa-regular fa-circle-xmark",
+      btn: '<i class="fa-regular fa-circle-xmark"></i><div><strong>Reset</strong><div>Revert to pre-install state</div></div>',
+      href: "reset.js"
+    }]
+  })
+
+  assert.match(html, /class='home-run-command has-block-label'/)
+  assert.match(html, /<div class='home-run-menu-label has-block-content'>/)
+  assert.doesNotMatch(html, /<span class='home-run-menu-label/)
+  assert.match(homeView, /\.home-run-command\.has-block-label,[\s\S]*\.home-run-menu-summary\.has-block-label \{[\s\S]*padding-top: 8px;[\s\S]*padding-bottom: 8px;/)
+  assert.match(homeView, /\.home-run-menu-label\.has-block-content \{[\s\S]*white-space: normal;/)
 })
 
 test("static guard: open without launching disables page-load script frame selection", async () => {

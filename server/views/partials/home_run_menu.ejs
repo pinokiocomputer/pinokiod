@@ -9,6 +9,7 @@ const stripHtml = (value) => String(value ?? "")
   .replace(/<[^>]*>/g, " ")
   .replace(/\s+/g, " ")
   .trim()
+const hasBlockContent = (value) => /<\s*(div|p|section|article|ul|ol|li|h[1-6])(?:\s|>)/i.test(String(value ?? ""))
 const buildHomeSelectionPayload = (menuItem, index) => {
   const dataFilepath = (menuItem.fs || menuItem.command) ? (menuItem.href || "") : ""
   const payload = {
@@ -49,9 +50,10 @@ const buildHomeSelectionUrl = (menuItem, index) => {
 %>
 <% menu.forEach((item, index) => { %>
   <% if (item && item.menu) { %>
+    <% const itemBtnHasBlock = hasBlockContent(item.btn) %>
     <details class='home-run-menu-group' open>
-      <summary class='home-run-menu-summary'>
-        <span class='home-run-menu-label'><%- item.btn %></span>
+      <summary class='home-run-menu-summary <%= itemBtnHasBlock ? "has-block-label" : "" %>'>
+        <div class='home-run-menu-label <%= itemBtnHasBlock ? "has-block-content" : "" %>'><%- item.btn %></div>
         <i class='fa-solid fa-chevron-down' aria-hidden='true'></i>
       </summary>
       <div class='home-run-menu-children'>
@@ -60,13 +62,14 @@ const buildHomeSelectionUrl = (menuItem, index) => {
     </details>
   <% } else if (item && item.btn) { %>
     <% const openUrl = buildHomeSelectionUrl(item, index) %>
+    <% const itemBtnHasBlock = hasBlockContent(item.btn) %>
     <div class='home-run-menu-row <%= item.running ? "is-running" : "" %>'>
       <a
-        class='home-run-command'
+        class='home-run-command <%= itemBtnHasBlock ? "has-block-label" : "" %>'
         href='<%= openUrl %>'
         <% if (item.confirm) { %>data-confirm="<%- escapeAttr(item.confirm) %>"<% } %>
       >
-        <span class='home-run-menu-label'><%- item.btn %></span>
+        <div class='home-run-menu-label <%= itemBtnHasBlock ? "has-block-content" : "" %>'><%- item.btn %></div>
         <% if (item.running) { %><span class='home-run-menu-status'>Running</span><% } %>
         <i class='fa-solid fa-chevron-right' aria-hidden='true'></i>
       </a>

@@ -1,3 +1,15 @@
+<%
+const homeActionsAppId = item && (item.uri || item.path || item.name) ? String(item.uri || item.path || item.name) : ""
+const homeActionsSettingsHref = homeActionsAppId
+  ? `/v/${encodeURIComponent(homeActionsAppId)}?${new URLSearchParams({
+    pinokio_home_select: JSON.stringify({
+      target: "env-settings",
+      hrefAttr: `/env/api/${homeActionsAppId}?host=app`,
+      textValue: "Settings"
+    })
+  }).toString()}`
+  : ""
+%>
 <dialog id='<%= id %>' class='home-actions-dialog' aria-labelledby='<%= id %>-title'>
   <div class='home-actions-shell'>
     <div class='home-actions-header'>
@@ -49,6 +61,12 @@
               <span class='home-actions-count'><%= item.terminal_online_count %> online</span>
             <% } %>
           </button>
+          <% if (homeActionsSettingsHref) { %>
+            <a class='home-mode-command' href='<%= homeActionsSettingsHref %>'>
+              <i class='fa-solid fa-gear' aria-hidden='true'></i>
+              <span>Settings</span>
+            </a>
+          <% } %>
           <button type='button' class='home-mode-command' data-filepath='<%= item.filepath %>'>
             <i class='fa-solid fa-folder-open' aria-hidden='true'></i>
             <span>Open in file explorer</span>
