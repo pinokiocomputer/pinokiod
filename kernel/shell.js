@@ -23,6 +23,7 @@ const ShellRunTemplate = require('./api/shell_run_template')
 const { PYTHON_INSTALL_SPEC } = require('./bin/conda-pins')
 const CondaRuntimeGuard = require('./shell_conda_runtime_guard')
 const home = os.homedir()
+const WINDOWS_CMD_CONDA_COMMAND_PATTERN = /(?:^|[&|()]\s*)@?\s*(?:call\s+)?(?:"[^"]*[\\/]conda(?:\.bat|\.exe)?"|(?:[a-z]:)?[^&|()\s"]*[\\/]conda(?:\.bat|\.exe)?|conda(?:\.bat|\.exe)?)\s+/i
 
 function normalizeComparablePath(filePath, platform) {
   const normalized = path.normalize(filePath)
@@ -335,6 +336,31 @@ class Shell {
     const name = (shellName || '').toLowerCase()
     return name.includes('powershell') || name.includes('pwsh')
   }
+  hasCondaCommand(message) {
+    if (Array.isArray(message)) {
+      return message.some((item) => this.hasCondaCommand(item))
+    }
+    if (message && message.constructor === Object) {
+      return this.hasCondaCommand(this.buildStructuredMessage(message))
+    }
+    return typeof message === "string" && WINDOWS_CMD_CONDA_COMMAND_PATTERN.test(message)
+  }
+  shouldSuppressCmdEchoForConda(params) {
+    return this.platform === "win32" &&
+      this.isCmdShell() &&
+      !(params && params.input) &&
+      this.hasCondaCommand(params && params.message)
+  }
+  prepareCommandExecution(params, command) {
+    if (!this.shouldSuppressCmdEchoForConda(params)) {
+      return { command }
+    }
+    return {
+      command,
+      preview: command,
+      quietCmd: true,
+    }
+  }
   isUnresolvedTemplate(value) {
     return typeof value === "string" && /^\{\{[\s\S]*\}\}$/.test(value)
   }
@@ -413,6 +439,10 @@ class Shell {
     this.decsyncBuffer = ''
     this.stateSync.reset()
     this.envArgsPreviewed = false
+    this.commandEchoPreview = null
+    this.commandEchoPreviewed = false
+    this.exec_cmd = null
+    this.quietCmdExecution = false
 
     /*
       params := {
@@ -1399,8 +1429,17 @@ class Shell {
   async exec(params) {
     this.parser = new ShellParser()
     this.emitEnvArgsPreview(params)
+    const originalParams = {
+      input: params && params.input,
+      message: params && params.message,
+    }
     params = await this.activate(params)
     this.cmd = this.build(params)
+    const preparedCommand = this.prepareCommandExecution(originalParams, this.cmd)
+    this.exec_cmd = preparedCommand.command
+    this.commandEchoPreview = preparedCommand.preview || null
+    this.commandEchoPreviewed = false
+    this.quietCmdExecution = !!preparedCommand.quietCmd
     let res = await new Promise((resolve, reject) => {
       this.resolve = resolve
       this.reject = reject
@@ -1420,7 +1459,10 @@ class Shell {
         if (!this.ptyProcess) {
           // ptyProcess doesn't exist => create
           this.done = false
-          this.ptyProcess = pty.spawn(this.shell, this.args, config)
+          const shellArgs = this.quietCmdExecution && this.isCmdShell()
+            ? this.args.concat(this.args.some((arg) => /^\/q$/i.test(arg)) ? [] : ["/Q"])
+            : this.args
+          this.ptyProcess = pty.spawn(this.shell, shellArgs, config)
           this.ptyProcess.onData((data) => {
             if (!this.monitor) {
               this.monitor = ""
@@ -1853,7 +1895,11 @@ ${cleaned}
             }
             if (this.ptyProcess) {
               this.stateSync.noteInput()
-              this.ptyProcess.write(`${this.cmd}${this.EOL}`)
+              if (this.commandEchoPreview && !this.commandEchoPreviewed) {
+                this.commandEchoPreviewed = true
+                this.queue.push(`${this.commandEchoPreview}${this.EOL}`)
+              }
+              this.ptyProcess.write(`${this.exec_cmd || this.cmd}${this.EOL}`)
 //              setTimeout(() => {
 //                this.ptyProcess.write('\x1B[?2004h');
 //              }, 500)

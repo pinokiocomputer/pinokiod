@@ -917,6 +917,113 @@ test('internal shell activation inspects only when shell.run guard option is set
   assert.equal(events.some((event) => event.type === 'notify'), true)
 })
 
+test('Windows cmd suppresses echo only for explicit conda shell.run commands', () => {
+  const shell = new Shell({ bracketedPasteSupport: {} })
+  shell.platform = 'win32'
+  shell.shell = 'cmd.exe'
+  const command = 'conda_hook & conda deactivate & conda activate base & conda install -y -c conda-forge ffmpeg'
+
+  assert.equal(shell.shouldSuppressCmdEchoForConda({
+    message: 'conda install -y -c conda-forge ffmpeg',
+  }), true)
+  assert.equal(shell.shouldSuppressCmdEchoForConda({
+    message: 'python main.py',
+  }), false)
+  assert.equal(shell.shouldSuppressCmdEchoForConda({
+    message: 'conda_hook',
+  }), false)
+  assert.equal(shell.shouldSuppressCmdEchoForConda({
+    input: true,
+    message: 'conda install -y -c conda-forge ffmpeg',
+  }), false)
+
+  const prepared = shell.prepareCommandExecution({
+    message: 'conda install -y -c conda-forge ffmpeg',
+  }, command)
+  assert.equal(prepared.preview, command)
+  assert.equal(prepared.command, command)
+  assert.equal(prepared.quietCmd, true)
+
+  assert.deepEqual(shell.prepareCommandExecution({
+    message: 'python main.py',
+  }, command), { command })
+})
+
+test('Windows cmd array shell.run marks only the conda launch quiet', async () => {
+  const { context, root } = createContext('win32')
+  const records = []
+  const originalPrompt = Shell.prototype.prompt
+  const originalExec = Shell.prototype.exec
+  Shell.prototype.prompt = async () => 'PINOKIO_PROMPT'
+  Shell.prototype.exec = async function (params) {
+    this.platform = 'win32'
+    this.shell = 'cmd.exe'
+    const originalParams = {
+      input: params && params.input,
+      message: params && params.message,
+    }
+    const activatedParams = await this.activate(params)
+    const command = this.build(activatedParams)
+    records.push({
+      message: originalParams.message,
+      prepared: this.prepareCommandExecution(originalParams, command),
+    })
+    return command
+  }
+
+  try {
+    const kernel = {
+      homedir: root,
+      platform: 'win32',
+      bracketedPasteSupport: { 'cmd.exe': false },
+      envs: {},
+      exists: async () => false,
+      which: () => null,
+      path: (...parts) => path.join(root, ...parts),
+      bin: {
+        envs: (env = {}) => env,
+        path: (...parts) => path.join(root, 'bin', ...parts),
+        activationCommands: () => [],
+      },
+      api: {
+        resolvePath: (_cwd, target) => target,
+        running: {},
+      },
+      git: {
+        repos: async () => [],
+        restoreNewReposForActiveSnapshot: async () => {},
+      },
+      template: {
+        render: (value) => value,
+      },
+    }
+    kernel.shell = new Shells(kernel)
+
+    await kernel.shell.run({
+      path: context.appPath,
+      message: [
+        'echo before',
+        'conda install -y -c conda-forge ffmpeg',
+        'python main.py',
+      ],
+    }, {}, () => {})
+
+    assert.deepEqual(records.map((record) => record.message), [
+      'echo before',
+      'conda install -y -c conda-forge ffmpeg',
+      'python main.py',
+    ])
+    assert.deepEqual(records.map((record) => !!record.prepared.quietCmd), [
+      false,
+      true,
+      false,
+    ])
+  } finally {
+    Shell.prototype.prompt = originalPrompt
+    Shell.prototype.exec = originalExec
+  }
+})
+
 test('rewrite warning is scoped to each user-visible shell flow', async () => {
   CondaRuntimeGuard.resetNoticeSessionsForTest()
   const { context, events, root } = createContext()
