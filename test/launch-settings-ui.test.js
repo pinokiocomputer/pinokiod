@@ -3,6 +3,7 @@ const fs = require("node:fs/promises")
 const path = require("node:path")
 const test = require("node:test")
 const ejs = require("ejs")
+const { JSDOM } = require("jsdom")
 
 const root = path.resolve(__dirname, "..")
 
@@ -456,6 +457,84 @@ test("static guard: open without launching disables page-load script frame selec
   assert.match(appView, /if \(!target && !automaticSelectionDisabled && persistedSelectionPayload\)/)
   assert.match(appView, /if \(!target && !automaticSelectionDisabled && followCurrentDefault\)/)
   assert.match(appView, /if \(!target && !automaticSelectionDisabled && preselected && preselected !== devTab\)/)
+})
+
+test("static guard: collapsed idle run page peeks without persisting sidebar state", async () => {
+  const appView = await fs.readFile(path.resolve(root, "server/views/app.ejs"), "utf8")
+
+  assert.match(appView, /const shouldAutoPeekOnIdle = <%- JSON\.stringify\(type === "run"\) %>/)
+  assert.match(appView, /const hasVisibleBrowserSurface = \(\) => \{[\s\S]*browserview\.querySelector\("iframe:not\(\.hidden\)"\)[\s\S]*browserview-network-status[\s\S]*data-launch-requirements-status/)
+  assert.match(appView, /if \(shouldAutoPeekOnIdle && initialCollapsed && !hasVisibleBrowserSurface\(\)\) \{[\s\S]*setPeeking\(true\)/)
+  assert.match(appView, /setCollapsed\(initialCollapsed, \{ persist: false \}\)/)
+  assert.match(appView, /aside\.addEventListener\("click", \(\) => \{[\s\S]*window\.setTimeout\(\(\) => setPeeking\(false\), 0\)/)
+})
+
+test("app sidebar auto-peeks on collapsed idle run page and dismisses after click", async () => {
+  const appView = await fs.readFile(path.resolve(root, "server/views/app.ejs"), "utf8")
+  const start = appView.indexOf('<script>\n(() => {\n  const appcanvas = document.querySelector(".appcanvas")')
+  const end = appView.indexOf('</script>\n<script src="/tab-idle-notifier.js"></script>', start)
+  assert.notEqual(start, -1)
+  assert.notEqual(end, -1)
+
+  const sidebarScript = appView
+    .slice(start + "<script>\n".length, end)
+    .replace(/<%- JSON\.stringify\(typeof name === "string" \? name : ""\) %>/g, '"test-app"')
+    .replace(/<%- JSON\.stringify\(type === "run"\) %>/g, "true")
+
+  const createDom = (browserSurface = "") => {
+    return new JSDOM(`<!doctype html>
+      <button id="sidebar-toggle"></button>
+      <div class="appcanvas vertical">
+        <button type="button" data-app-sidebar-peek-trigger></button>
+        <aside id="app-sidebar"><button type="button" id="sidebar-action">Start</button></aside>
+        <main class="browserview">${browserSurface}</main>
+      </div>
+      <div id="browserview-network-status" hidden></div>
+      <div data-launch-requirements-status hidden></div>`, {
+      url: "http://127.0.0.1:42000/v/test-app",
+      runScripts: "outside-only",
+      pretendToBeVisual: true,
+      beforeParse(window) {
+        window.matchMedia = () => ({
+          matches: true,
+          addEventListener() {},
+          removeEventListener() {}
+        })
+      }
+    })
+  }
+
+  const wait = (ms = 75) => new Promise((resolve) => setTimeout(resolve, ms))
+  const storageKey = "pinokio.sidebar-collapsed:test-app"
+
+  const dom = createDom()
+  dom.window.localStorage.setItem(storageKey, "1")
+  dom.window.eval(sidebarScript)
+  await wait()
+
+  const appcanvas = dom.window.document.querySelector(".appcanvas")
+  const aside = dom.window.document.getElementById("app-sidebar")
+  assert.equal(appcanvas.classList.contains("sidebar-collapsed"), true)
+  assert.equal(appcanvas.classList.contains("sidebar-peeking"), true)
+  assert.equal(aside.getAttribute("aria-hidden"), "false")
+  assert.equal(dom.window.localStorage.getItem(storageKey), "1")
+
+  aside.querySelector("#sidebar-action").dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }))
+  await wait(5)
+
+  assert.equal(appcanvas.classList.contains("sidebar-collapsed"), true)
+  assert.equal(appcanvas.classList.contains("sidebar-peeking"), false)
+  assert.equal(dom.window.localStorage.getItem(storageKey), "1")
+
+  const activeDom = createDom('<iframe src="about:blank"></iframe>')
+  activeDom.window.localStorage.setItem(storageKey, "1")
+  activeDom.window.eval(sidebarScript)
+  await wait()
+
+  const activeCanvas = activeDom.window.document.querySelector(".appcanvas")
+  assert.equal(activeCanvas.classList.contains("sidebar-collapsed"), true)
+  assert.equal(activeCanvas.classList.contains("sidebar-peeking"), false)
+  assert.equal(activeDom.window.localStorage.getItem(storageKey), "1")
 })
 
 test("static guard: home run command selection opens without launching before selecting command", async () => {

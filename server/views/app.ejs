@@ -16183,10 +16183,20 @@ const rerenderMenuSection = (container, html) => {
   }
 
   const desktopPeekMq = window.matchMedia("(min-width: 769px) and (hover: hover) and (pointer: fine)")
+  const shouldAutoPeekOnIdle = <%- JSON.stringify(type === "run") %>
   let peekCloseTimer = 0
 
   const isCollapsed = () => appcanvas.classList.contains("sidebar-collapsed")
   const isPeeking = () => appcanvas.classList.contains("sidebar-peeking")
+  const hasVisibleBrowserSurface = () => {
+    const browserview = document.querySelector("main.browserview")
+    if (!browserview) return false
+    if (browserview.querySelector("iframe:not(.hidden)")) return true
+    const networkStatus = document.getElementById("browserview-network-status")
+    if (networkStatus && !networkStatus.hidden) return true
+    const launchStatus = document.querySelector("[data-launch-requirements-status]")
+    return Boolean(launchStatus && !launchStatus.hidden)
+  }
   const syncSidebarVisibility = () => {
     const peeking = isPeeking()
     aside.setAttribute("aria-hidden", isCollapsed() && !peeking ? "true" : "false")
@@ -16243,6 +16253,11 @@ const rerenderMenuSection = (container, html) => {
   setCollapsed(initialCollapsed, { persist: false })
   requestAnimationFrame(() => {
     appcanvas.classList.add("sidebar-motion-ready")
+    requestAnimationFrame(() => {
+      if (shouldAutoPeekOnIdle && initialCollapsed && !hasVisibleBrowserSurface()) {
+        setPeeking(true)
+      }
+    })
   })
 
   toggle.addEventListener("click", (event) => {
@@ -16268,6 +16283,10 @@ const rerenderMenuSection = (container, html) => {
     })
     aside.addEventListener("pointerleave", closePeekSoon)
     aside.addEventListener("focusout", closePeekSoon)
+    aside.addEventListener("click", () => {
+      if (!isPeeking()) return
+      window.setTimeout(() => setPeeking(false), 0)
+    })
     document.addEventListener("pointerdown", (event) => {
       if (!isPeeking()) return
       const target = event.target
