@@ -492,6 +492,9 @@
         this.setStatus(error && error.message ? error.message : 'Privacy filtering failed.', true)
       } finally {
         this.setBusy(false)
+        if (this.files.length && this.filesEl && this.filesEl.children.length) {
+          this.renderFileList()
+        }
         this.updateCount()
       }
     }

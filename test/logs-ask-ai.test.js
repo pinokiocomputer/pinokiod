@@ -489,6 +489,10 @@ test("raw logs redaction sends reviewed top-level overrides when generating zip"
       document.getElementById("logs-top-redaction-count").textContent.includes("masked")
   }, "top-level redaction review")
 
+  await waitFor(() => document.getElementById("logs-top-redaction-status").textContent.includes("Report redacted"), "top-level redaction complete")
+  const fileModes = Array.from(document.querySelectorAll(".logs-top-redaction-mode"))
+  assert.equal(fileModes.length > 0, true)
+  assert.equal(fileModes.every((select) => select.disabled === false), true)
   assert.match(document.getElementById("logs-top-redaction-list").textContent, /private_key/)
 
   document.getElementById("logs-redaction-collapse").click()
