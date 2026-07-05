@@ -70,6 +70,173 @@ body.dark .app-header-identity {
     0 1px 2px rgba(2, 6, 23, 0.35);
   color: rgba(248, 250, 252, 0.94);
 }
+.app-header-info {
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  pointer-events: auto;
+}
+.app-header-info-trigger {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: min(260px, 32vw);
+  height: 22px;
+  padding: 0 4px;
+  margin: 0 -4px;
+  border-radius: 6px;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.app-header-info-trigger:hover,
+.app-header-info-trigger[aria-expanded="true"] {
+  background: rgba(15, 23, 42, 0.055);
+}
+body.dark .app-header-info-trigger:hover,
+body.dark .app-header-info-trigger[aria-expanded="true"] {
+  background: rgba(255, 255, 255, 0.07);
+}
+.app-header-info-trigger:focus-visible {
+  outline: 2px solid rgba(10, 132, 255, 0.55);
+  outline-offset: 4px;
+}
+.app-header-info-popover {
+  position: absolute;
+  top: calc(100% + 9px);
+  left: 0;
+  width: min(390px, calc(100vw - 24px));
+  padding: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 16px 42px rgba(15, 23, 42, 0.14);
+  color: #0f172a;
+  z-index: 10000020;
+  box-sizing: border-box;
+}
+body.dark .app-header-info-popover {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(20, 22, 28, 0.98);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.48);
+  color: rgba(248, 250, 252, 0.94);
+}
+.app-header-info-popover.hidden {
+  display: none;
+}
+.app-header-info-popover-head {
+  margin-bottom: 10px;
+  color: rgba(71, 85, 105, 0.72);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+body.dark .app-header-info-popover-head {
+  color: rgba(203, 213, 225, 0.7);
+}
+.app-header-info-popover-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+.app-header-info-popover-icon {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  display: block;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(248, 250, 252, 0.8);
+}
+body.dark .app-header-info-popover-icon {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.055);
+}
+.app-header-info-popover-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.app-header-info-popover-title {
+  color: rgba(15, 23, 42, 0.92);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+body.dark .app-header-info-popover-title {
+  color: rgba(248, 250, 252, 0.94);
+}
+.app-header-info-popover-description {
+  margin-top: 5px;
+  color: rgba(71, 85, 105, 0.82);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+body.dark .app-header-info-popover-description {
+  color: rgba(203, 213, 225, 0.78);
+}
+.app-header-info-popover-link,
+.app-header-info-popover-link--muted {
+  margin-top: 12px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: rgba(15, 23, 42, 0.035);
+  color: rgba(15, 23, 42, 0.88);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.2;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+.app-header-info-popover-link:hover {
+  background: rgba(15, 23, 42, 0.07);
+}
+.app-header-info-popover-link span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-header-info-popover-link:focus-visible {
+  outline: 2px solid rgba(10, 132, 255, 0.55);
+  outline-offset: 2px;
+}
+body.dark .app-header-info-popover-link,
+body.dark .app-header-info-popover-link--muted {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(248, 250, 252, 0.9);
+}
+body.dark .app-header-info-popover-link:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+.app-header-info-popover-link--muted {
+  justify-content: flex-start;
+  color: rgba(100, 116, 139, 0.78);
+}
+body.dark .app-header-info-popover-link--muted {
+  color: rgba(148, 163, 184, 0.86);
+}
 .app-header-identity-icon {
   width: 18px;
   height: 18px;
@@ -82,6 +249,9 @@ body.dark .app-header-identity {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.app-header-info-trigger .app-header-identity-title {
+  flex: 1 1 auto;
 }
 .app-header-identity-separator {
   width: 3px;
@@ -6699,11 +6869,34 @@ header.navheader h1 {
 	    border: 1px solid rgba(0,0,0,0.08);
 	    background: rgba(255, 255, 255, 0.78);
 	    box-sizing: border-box;
-	    overflow: hidden;
+	    overflow: visible;
 	  }
   body.dark .mobile-bottom-nav__identity {
     border-color: rgba(255,255,255,0.08);
     background: rgba(255,255,255,0.06);
+  }
+  .mobile-bottom-nav .app-header-info {
+    flex: 0 1 42%;
+    max-width: 42%;
+  }
+  .mobile-bottom-nav .app-header-info-trigger {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-height: 18px;
+    gap: 5px;
+    padding: 0;
+    margin: 0;
+  }
+  .mobile-bottom-nav .app-header-info-trigger:hover,
+  .mobile-bottom-nav .app-header-info-trigger[aria-expanded="true"] {
+    background: transparent;
+  }
+  .mobile-bottom-nav .app-header-info-popover {
+    top: auto;
+    bottom: calc(100% + 9px);
+    left: -46px;
+    width: min(390px, calc(100vw - 24px));
   }
   .mobile-bottom-nav__identity-icon {
     width: 16px;
@@ -6714,7 +6907,7 @@ header.navheader h1 {
   }
 	  .mobile-bottom-nav__identity-title {
 	    min-width: 0;
-	    max-width: 42%;
+	    max-width: 100%;
 	    overflow: hidden;
 	    text-overflow: ellipsis;
 	    white-space: nowrap;
@@ -7864,6 +8057,10 @@ body.dark .pinokio-custom-terminal-header {
 })()
 </script>
 </head>
+<%
+  const appInfoRemoteUrl = typeof launcher_remote_url === "string" ? launcher_remote_url : ""
+  const appInfoRemoteDisplayUrl = appInfoRemoteUrl.replace(/^https?:\/\//i, "")
+%>
 <body class='<%= [theme, "app-page"].filter(Boolean).join(" ") %>' data-platform="<%=platform%>" data-agent="<%=agent%>" data-view="<%=type%>">
 <header class='navheader grabbable'>
 <h1>
@@ -7893,10 +8090,32 @@ body.dark .pinokio-custom-terminal-header {
 </button>
 <div class='sep'></div>
 <div class='app-header-identity' title="<%=config.title || name%>">
-  <% if (config.icon) { %>
-    <img class='app-header-identity-icon' src="<%=config.icon%>" alt="" aria-hidden="true"/>
-  <% } %>
-  <div class='app-header-identity-title'><%=config.title || name%></div>
+  <div class="app-header-info" data-app-info-root>
+    <button type="button" class="app-header-info-trigger" data-app-header-info-trigger aria-haspopup="dialog" aria-expanded="false" aria-label="App information">
+      <% if (config.icon) { %>
+        <img class='app-header-identity-icon' src="<%=config.icon%>" alt="" aria-hidden="true"/>
+      <% } %>
+      <span class='app-header-identity-title'><%=config.title || name%></span>
+    </button>
+    <div class="app-header-info-popover hidden" data-app-header-info-popover role="dialog" aria-label="App information">
+      <div class="app-header-info-popover-head">Launcher</div>
+      <div class="app-header-info-popover-main">
+        <img class="app-header-info-popover-icon" src="<%=config.icon || '/pinokio-black.png'%>" alt="" aria-hidden="true"/>
+        <div class="app-header-info-popover-copy">
+          <div class="app-header-info-popover-title"><%=config.title || name%></div>
+          <div class="app-header-info-popover-description"><%=config.description || 'No description provided.'%></div>
+        </div>
+      </div>
+      <% if (appInfoRemoteUrl) { %>
+        <a class="app-header-info-popover-link" href="<%=appInfoRemoteUrl%>" title="<%=appInfoRemoteUrl%>" rel="noopener noreferrer" data-app-info-external-link>
+          <span><%=appInfoRemoteDisplayUrl%></span>
+          <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+        </a>
+      <% } else { %>
+        <div class="app-header-info-popover-link--muted">No browser-openable remote detected</div>
+      <% } %>
+    </div>
+  </div>
   <span class='app-header-identity-separator' aria-hidden="true"></span>
   <div class="resource-usage" data-resource-usage-root data-workspace="<%=name%>">
     <button type="button" class="resource-usage-trigger" data-resource-usage-trigger aria-haspopup="dialog" aria-expanded="false" aria-label="Resource usage">
@@ -8419,10 +8638,32 @@ body.dark .pinokio-custom-terminal-header {
       <img class='mobile-bottom-nav__logo' src="/pinokio-black.png" alt="" aria-hidden="true">
     </button>
     <div class='mobile-bottom-nav__identity' title="<%=config.title || name%>" aria-label="<%=config.title || name%>">
-      <% if (config.icon) { %>
-        <img class='mobile-bottom-nav__identity-icon' src="<%=config.icon%>" alt="" aria-hidden="true"/>
-      <% } %>
-      <span class='mobile-bottom-nav__identity-title'><%=config.title || name%></span>
+      <div class="app-header-info app-header-info--mobile" data-app-info-root>
+        <button type="button" class="app-header-info-trigger" data-app-header-info-trigger aria-haspopup="dialog" aria-expanded="false" aria-label="App information">
+          <% if (config.icon) { %>
+            <img class='mobile-bottom-nav__identity-icon' src="<%=config.icon%>" alt="" aria-hidden="true"/>
+          <% } %>
+          <span class='mobile-bottom-nav__identity-title'><%=config.title || name%></span>
+        </button>
+        <div class="app-header-info-popover hidden" data-app-header-info-popover role="dialog" aria-label="App information">
+          <div class="app-header-info-popover-head">Launcher</div>
+          <div class="app-header-info-popover-main">
+            <img class="app-header-info-popover-icon" src="<%=config.icon || '/pinokio-black.png'%>" alt="" aria-hidden="true"/>
+            <div class="app-header-info-popover-copy">
+              <div class="app-header-info-popover-title"><%=config.title || name%></div>
+              <div class="app-header-info-popover-description"><%=config.description || 'No description provided.'%></div>
+            </div>
+          </div>
+          <% if (appInfoRemoteUrl) { %>
+            <a class="app-header-info-popover-link" href="<%=appInfoRemoteUrl%>" title="<%=appInfoRemoteUrl%>" rel="noopener noreferrer" data-app-info-external-link>
+              <span><%=appInfoRemoteDisplayUrl%></span>
+              <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+            </a>
+          <% } else { %>
+            <div class="app-header-info-popover-link--muted">No browser-openable remote detected</div>
+          <% } %>
+        </div>
+      </div>
       <span class='mobile-bottom-nav__identity-separator' aria-hidden="true"></span>
       <div class="resource-usage" data-resource-usage-root data-resource-always-visible="true" data-workspace="<%=name%>">
         <button type="button" class="resource-usage-trigger" data-resource-usage-trigger aria-haspopup="dialog" aria-expanded="false" aria-label="Resource usage">
@@ -16149,6 +16390,78 @@ const rerenderMenuSection = (container, html) => {
   applyPreferences(preferences)
   fetchUsage()
   scheduleRefresh()
+})()
+</script>
+<script>
+(() => {
+  const appInfoRoots = Array.from(document.querySelectorAll("[data-app-info-root]"))
+  if (appInfoRoots.length === 0) {
+    return
+  }
+
+  const closeAppInfoPopovers = (exceptRoot = null) => {
+    appInfoRoots.forEach((root) => {
+      if (root === exceptRoot) return
+      const trigger = root.querySelector("[data-app-header-info-trigger]")
+      const popover = root.querySelector("[data-app-header-info-popover]")
+      if (trigger) trigger.setAttribute("aria-expanded", "false")
+      if (popover) popover.classList.add("hidden")
+    })
+  }
+
+  appInfoRoots.forEach((root) => {
+    const trigger = root.querySelector("[data-app-header-info-trigger]")
+    const popover = root.querySelector("[data-app-header-info-popover]")
+    if (!trigger || !popover) {
+      return
+    }
+    trigger.addEventListener("click", (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      const isOpen = !popover.classList.contains("hidden")
+      closeAppInfoPopovers(root)
+      popover.classList.toggle("hidden", isOpen)
+      trigger.setAttribute("aria-expanded", isOpen ? "false" : "true")
+    })
+    root.querySelectorAll("[data-app-info-external-link]").forEach((link) => {
+      link.addEventListener("click", (event) => {
+        const href = link.getAttribute("href") || ""
+        if (!href) {
+          return
+        }
+        event.preventDefault()
+        event.stopPropagation()
+        const agent = document.body.getAttribute("data-agent")
+        if (agent === "electron") {
+          window.open(href, "_blank", "browser")
+        } else {
+          window.open(href, "_blank")
+        }
+        closeAppInfoPopovers()
+      })
+    })
+  })
+
+  document.addEventListener("pointerdown", (event) => {
+    const target = event.target
+    if (target && target.closest && target.closest("[data-app-info-root]")) {
+      return
+    }
+    closeAppInfoPopovers()
+  }, true)
+  window.addEventListener("blur", () => {
+    window.setTimeout(() => {
+      const activeElement = document.activeElement
+      if (activeElement && activeElement.tagName === "IFRAME") {
+        closeAppInfoPopovers()
+      }
+    }, 0)
+  })
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeAppInfoPopovers()
+    }
+  })
 })()
 </script>
 <script>

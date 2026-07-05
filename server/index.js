@@ -1498,6 +1498,28 @@ class Server {
         community_url = ""
       }
     }
+    const buildGitRemoteWebUrl = (value) => {
+      const raw = typeof value === "string" ? value.trim() : ""
+      if (!raw) {
+        return ""
+      }
+      if (/^https?:\/\//i.test(raw)) {
+        return raw.replace(/\.git$/i, "")
+      }
+      const sshUrlMatch = raw.match(/^ssh:\/\/(?:[^@/]+@)?([^/]+)\/(.+?)(?:\.git)?$/i)
+      if (sshUrlMatch && sshUrlMatch[1] && sshUrlMatch[2]) {
+        return `https://${sshUrlMatch[1]}/${sshUrlMatch[2]}`
+      }
+      const scpMatch = raw.match(/^(?:[^@]+@)?([^:/]+):(.+?)(?:\.git)?$/)
+      if (scpMatch && scpMatch[1] && scpMatch[2]) {
+        return `https://${scpMatch[1]}/${scpMatch[2]}`
+      }
+      return ""
+    }
+    const launcherRemote = this.kernel.api && typeof this.kernel.api.parentGitURI === "function"
+      ? (this.kernel.api.parentGitURI(this.kernel.path("api", name)) || "")
+      : ""
+    const launcherRemoteUrl = buildGitRemoteWebUrl(launcherRemote)
 
     let editor_tab = `/pinokio/fileview/${encodeURIComponent(name)}`
     const tabsStorageKey = `${name}:${type}`
@@ -1593,6 +1615,7 @@ class Server {
       review_tab,
       files_tab,
       community_url,
+      launcher_remote_url: launcherRemoteUrl,
 //        paths,
       theme: this.theme,
       agent: req.agent,

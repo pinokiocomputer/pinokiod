@@ -537,6 +537,128 @@ test("app sidebar auto-peeks on collapsed idle run page and dismisses after clic
   assert.equal(activeDom.window.localStorage.getItem(storageKey), "1")
 })
 
+test("app identity popover exposes launcher metadata and remote browser link", async () => {
+  const appView = await fs.readFile(path.resolve(root, "server/views/app.ejs"), "utf8")
+  const server = await fs.readFile(path.resolve(root, "server/index.js"), "utf8")
+  const chromeStart = server.indexOf("  async chrome(req, res, type, options) {")
+  const existingCommunityGitConfigIndex = server.indexOf("const gitRemote = await git.getConfig", chromeStart)
+  const helperIndex = server.indexOf("const buildGitRemoteWebUrl = (value) =>", chromeStart)
+  const launcherRemoteIndex = server.indexOf("const launcherRemote =", chromeStart)
+  const renderPropIndex = server.indexOf("launcher_remote_url: launcherRemoteUrl", launcherRemoteIndex)
+
+  assert.ok(chromeStart >= 0)
+  assert.ok(existingCommunityGitConfigIndex > chromeStart)
+  assert.ok(helperIndex > existingCommunityGitConfigIndex)
+  assert.ok(helperIndex < launcherRemoteIndex)
+  assert.ok(renderPropIndex > launcherRemoteIndex)
+  assert.match(server, /kernel\.api\.parentGitURI\(this\.kernel\.path\("api", name\)\)/)
+  assert.match(server, /launcherRemoteUrl = buildGitRemoteWebUrl\(launcherRemote\)/)
+  assert.match(server, /launcher_remote_url: launcherRemoteUrl/)
+  assert.match(server, /const buildGitRemoteWebUrl = \(value\) =>/)
+  assert.match(server, /return `https:\/\/\$\{sshUrlMatch\[1\]\}\/\$\{sshUrlMatch\[2\]\}`/)
+  assert.match(server, /return `https:\/\/\$\{scpMatch\[1\]\}\/\$\{scpMatch\[2\]\}`/)
+  assert.match(appView, /data-app-info-root/)
+  assert.match(appView, /data-app-header-info-trigger/)
+  assert.match(appView, /data-app-header-info-popover/)
+  assert.match(appView, /width: min\(390px, calc\(100vw - 24px\)\);/)
+  assert.match(appView, /class="app-header-info-popover-icon" src="<%=config\.icon \|\| '\/pinokio-black\.png'%>"/)
+  assert.match(appView, /const appInfoRemoteUrl = typeof launcher_remote_url === "string" \? launcher_remote_url : ""/)
+  assert.ok(appView.includes('const appInfoRemoteDisplayUrl = appInfoRemoteUrl.replace(/^https?:\\/\\//i, "")'))
+  assert.match(appView, /href="<%=appInfoRemoteUrl%>" title="<%=appInfoRemoteUrl%>" rel="noopener noreferrer" data-app-info-external-link/)
+  assert.match(appView, /<span><%=appInfoRemoteDisplayUrl%><\/span>/)
+  assert.match(appView, /text-overflow: ellipsis/)
+  assert.match(appView, /white-space: nowrap/)
+  assert.match(appView, /window\.open\(href, "_blank"\)/)
+  assert.match(appView, /window\.open\(href, "_blank", "browser"\)/)
+  assert.match(appView, /No browser-openable remote detected/)
+  assert.match(appView, /\.mobile-bottom-nav__identity \{[\s\S]*overflow: visible;/)
+  assert.match(appView, /\.mobile-bottom-nav \.app-header-info-popover \{[\s\S]*bottom: calc\(100% \+ 9px\);[\s\S]*width: min\(390px, calc\(100vw - 24px\)\);/)
+  assert.match(appView, /\.mobile-bottom-nav \.resource-usage-popover \{[\s\S]*bottom: calc\(100% \+ 9px\);/)
+  assert.doesNotMatch(appView, /Open launcher remote/)
+  assert.doesNotMatch(appView, /fetch\("\/go"/)
+  assert.doesNotMatch(appView, /app-header-info-popover-link"[^>]*features="browser"/)
+  assert.doesNotMatch(appView, /appInfoGitHistoryUrl|hydrateAppInfoGithubUrl|buildAppInfoGithubUrl|launcher_github_url|Open launcher on GitHub|No GitHub remote detected/)
+
+  const start = appView.indexOf('<script>\n(() => {\n  const appInfoRoots = Array.from(document.querySelectorAll("[data-app-info-root]"))')
+  const end = appView.indexOf("</script>", start)
+  assert.notEqual(start, -1)
+  assert.notEqual(end, -1)
+  const appInfoScript = appView.slice(start + "<script>\n".length, end)
+  const dom = new JSDOM(`<!doctype html>
+    <body>
+      <div data-app-info-root>
+        <button type="button" data-app-header-info-trigger aria-expanded="false">Demo</button>
+        <div class="hidden" data-app-header-info-popover>
+          <a class="app-header-info-popover-link" href="https://gitlab.com/octocat/demo" title="https://gitlab.com/octocat/demo" data-app-info-external-link>gitlab.com/octocat/demo</a>
+        </div>
+      </div>
+      <iframe></iframe>
+    </body>`, {
+    url: "http://127.0.0.1:42000/v/demo",
+    runScripts: "outside-only",
+    pretendToBeVisual: true
+  })
+  const openedUrls = []
+  dom.window.open = (url, target, features) => {
+    openedUrls.push({ url, target, features })
+  }
+
+  dom.window.eval(appInfoScript)
+  const trigger = dom.window.document.querySelector("[data-app-header-info-trigger]")
+  const popover = dom.window.document.querySelector("[data-app-header-info-popover]")
+  const click = () => trigger.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true, cancelable: true }))
+
+  assert.equal(popover.classList.contains("hidden"), true)
+  assert.equal(trigger.getAttribute("aria-expanded"), "false")
+  const remoteLink = dom.window.document.querySelector(".app-header-info-popover-link")
+  assert.ok(remoteLink)
+  assert.equal(remoteLink.getAttribute("href"), "https://gitlab.com/octocat/demo")
+  assert.equal(remoteLink.getAttribute("title"), "https://gitlab.com/octocat/demo")
+  assert.equal(remoteLink.hasAttribute("target"), false)
+  assert.equal(remoteLink.hasAttribute("features"), false)
+  assert.equal(remoteLink.textContent.trim(), "gitlab.com/octocat/demo")
+
+  click()
+  assert.equal(popover.classList.contains("hidden"), false)
+  assert.equal(trigger.getAttribute("aria-expanded"), "true")
+  remoteLink.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true, cancelable: true }))
+  assert.equal(openedUrls.length, 1)
+  assert.deepEqual(openedUrls[0], {
+    url: "https://gitlab.com/octocat/demo",
+    target: "_blank",
+    features: undefined
+  })
+  assert.equal(popover.classList.contains("hidden"), true)
+  assert.equal(trigger.getAttribute("aria-expanded"), "false")
+
+  click()
+  assert.equal(popover.classList.contains("hidden"), false)
+  assert.equal(trigger.getAttribute("aria-expanded"), "true")
+
+  click()
+  assert.equal(popover.classList.contains("hidden"), true)
+  assert.equal(trigger.getAttribute("aria-expanded"), "false")
+
+  click()
+  dom.window.document.body.dispatchEvent(new dom.window.Event("pointerdown", { bubbles: true }))
+  assert.equal(popover.classList.contains("hidden"), true)
+  assert.equal(trigger.getAttribute("aria-expanded"), "false")
+
+  click()
+  dom.window.document.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }))
+  assert.equal(popover.classList.contains("hidden"), true)
+  assert.equal(trigger.getAttribute("aria-expanded"), "false")
+
+  dom.window.document.body.setAttribute("data-agent", "electron")
+  click()
+  remoteLink.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true, cancelable: true }))
+  assert.deepEqual(openedUrls[1], {
+    url: "https://gitlab.com/octocat/demo",
+    target: "_blank",
+    features: "browser"
+  })
+})
+
 test("static guard: home run command selection opens without launching before selecting command", async () => {
   const homeRunMenu = await fs.readFile(path.resolve(root, "server/views/partials/home_run_menu.ejs"), "utf8")
 
