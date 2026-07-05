@@ -387,10 +387,30 @@
       const name = file && file.name ? file.name : 'file'
       if (progress.type === 'runtime') {
         this.setStatus(`Loading privacy filter locally (${progress.device}/${progress.dtype}) for ${name}.`)
-      } else if (progress.type === 'download') {
+      } else if (progress.type === 'cache-check') {
+        this.setStatus(`Checking local privacy filter cache for ${name}.`)
+      } else if (progress.type === 'cache-install') {
+        this.setStatus('Installing privacy filter locally. This can take a few minutes on first run.')
+      } else if (progress.type === 'cache-install-progress') {
+        const totalFiles = Number(progress.totalFiles) || 0
+        const fileIndex = Number(progress.fileIndex) || 0
+        const fileCount = totalFiles > 0 && fileIndex > 0 ? ` (${Math.min(fileIndex, totalFiles)} / ${totalFiles} files)` : ''
+        if (progress.total) {
+          this.setStatus(`Installing privacy filter locally${fileCount}: ${humanBytes(progress.loaded)} / ${humanBytes(progress.total)}.`)
+        } else {
+          this.setStatus(`Installing privacy filter locally${fileCount}.`)
+        }
+      } else if (progress.type === 'cache-ready') {
+        const downloaded = Number(progress.downloaded) || 0
+        this.setStatus(downloaded > 0 ? 'Privacy filter installed locally.' : `Privacy filter loaded from local cache for ${name}.`)
+      } else if (progress.type === 'cache-fallback') {
+        this.setStatus(progress.message || `Local privacy filter cache unavailable. Loading remote fallback for ${name}.`)
+      } else if (progress.type === 'asset-loading') {
+        this.setStatus('Loading privacy filter asset.')
+      } else if (progress.type === 'asset-progress') {
         this.setStatus(progress.total
-          ? `Downloading privacy filter: ${humanBytes(progress.loaded)} / ${humanBytes(progress.total)}.`
-          : 'Downloading privacy filter.')
+          ? `Loading privacy filter: ${humanBytes(progress.loaded)} / ${humanBytes(progress.total)}.`
+          : 'Loading privacy filter.')
       } else if (progress.type === 'chunk') {
         const total = Number(progress.total) || 0
         const done = Number(progress.done) || 0

@@ -85,6 +85,7 @@ const { createTaskWorkspaceLinkService } = require("./lib/task_workspace_links")
 const { createContentValidationService } = require("./lib/content_validation")
 const { buildSecureRouterDebugSnapshot, createSecureRouterDebugStore } = require("./lib/secure_router_debug")
 const logRedaction = require("./lib/log_redaction")
+const privacyFilterCache = require("./lib/privacy_filter_cache")
 const AppRegistryService = require("./lib/app_registry")
 const AppLogService = require("./lib/app_logs")
 const AppLogReportService = require("./lib/app_log_report")
@@ -6401,6 +6402,12 @@ class Server {
         }
       });
       this.app.use('/files', serve2, serveIndex(this.kernel.homedir, {icons: true, hidden: true, theme: this.theme }))
+      this.app.use('/pinokio/privacy-filter/models', express.static(privacyFilterCache.cacheRoot(this.kernel), {
+        fallthrough: true,
+        index: false,
+        immutable: true,
+        maxAge: '1y'
+      }))
     } else {
       this.app.set("views", [
         path.resolve(__dirname, "views")
@@ -8414,6 +8421,24 @@ class Server {
         path: this.formatLogsRelativePath(descriptor.relativePath),
         entries
       })
+    }))
+    this.app.get("/pinokio/privacy-filter/status", ex(async (req, res) => {
+      const payload = await privacyFilterCache.status(this.kernel, {
+        dtype: req.query.dtype
+      })
+      res.set("Cache-Control", "no-store")
+      res.json(payload)
+    }))
+    this.app.post("/pinokio/privacy-filter/ensure", ex(async (req, res) => {
+      if (!privacyFilterCache.isInstallRequestAllowed(req)) {
+        res.status(403).json({ error: "Privacy filter cache install requires a same-origin request" })
+        return
+      }
+      const payload = await privacyFilterCache.ensure(this.kernel, {
+        dtype: req.query.dtype
+      })
+      res.set("Cache-Control", "no-store")
+      res.json(payload)
     }))
     this.app.get("/pinokio/logs/file", ex(logRedaction.createTopLevelLogFileHandler(this)))
     this.app.get("/api/logs/stream", ex(async (req, res) => {

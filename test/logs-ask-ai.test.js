@@ -258,6 +258,19 @@ async function createRawLogsDom(options = {}) {
           setTimeout(() => {
             const listener = this.listeners.get("message")
             if (listener) {
+              for (const progress of (options.workerProgress || [])) {
+                listener({
+                  data: {
+                    id: message.id,
+                    ...progress
+                  }
+                })
+              }
+            }
+          }, 0)
+          setTimeout(() => {
+            const listener = this.listeners.get("message")
+            if (listener) {
               listener({
                 data: {
                   type: "result",
@@ -268,7 +281,7 @@ async function createRawLogsDom(options = {}) {
                 }
               })
             }
-          }, 0)
+          }, options.workerResultDelayMs || 0)
         }
       }
       window.fetch = async (url, options = {}) => {
@@ -495,6 +508,48 @@ test("raw logs redaction sends reviewed top-level overrides when generating zip"
   assert.match(systemOverride.text, /\[private_key\]/)
   assert.equal(systemOverride.text.includes("/Users/alice"), false)
   assert.equal(systemOverride.text.includes("sk-proj-123456789012345678901234"), false)
+})
+
+test("raw logs redaction describes model asset progress as loading", async () => {
+  const { dom } = await createRawLogsDom({
+    workerResultDelayMs: 50,
+    workerProgress: [{
+      id: null,
+      type: "asset-progress",
+      loaded: 25,
+      total: 100
+    }]
+  })
+  const { document } = dom.window
+
+  document.getElementById("logs-redact-top-level").click()
+
+  await waitFor(() => /Loading privacy filter/.test(document.getElementById("logs-top-redaction-status").textContent), "privacy filter loading status")
+  assert.equal(/Downloading privacy filter/.test(document.getElementById("logs-top-redaction-status").textContent), false)
+})
+
+test("raw logs redaction shows privacy filter install progress", async () => {
+  const { dom } = await createRawLogsDom({
+    workerResultDelayMs: 50,
+    workerProgress: [{
+      id: null,
+      type: "cache-install-progress",
+      fileIndex: 5,
+      totalFiles: 5,
+      loaded: 512,
+      total: 1024
+    }]
+  })
+  const { document } = dom.window
+
+  document.getElementById("logs-redact-top-level").click()
+
+  await waitFor(() => {
+    const status = document.getElementById("logs-top-redaction-status").textContent
+    return /Installing privacy filter locally/.test(status) &&
+      /5 \/ 5 files/.test(status) &&
+      /512 B \/ 1\.0 KB/.test(status)
+  }, "privacy filter install progress status")
 })
 
 test("raw log report drawer opens with file choices before redaction", async () => {

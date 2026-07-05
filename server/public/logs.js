@@ -207,7 +207,15 @@
       return this.worker
     }
     handleMessage(message) {
-      if (message.type === 'download') {
+      if (!message.id && (
+        message.type === 'asset-loading' ||
+        message.type === 'asset-progress' ||
+        message.type === 'cache-check' ||
+        message.type === 'cache-install' ||
+        message.type === 'cache-install-progress' ||
+        message.type === 'cache-ready' ||
+        message.type === 'cache-fallback'
+      )) {
         for (const pending of this.pending.values()) {
           pending.onProgress(message)
         }
@@ -220,6 +228,16 @@
       if (message.type === 'chunk') {
         pending.onProgress(message)
       } else if (message.type === 'fallback') {
+        pending.onProgress(message)
+      } else if (
+        message.type === 'asset-loading' ||
+        message.type === 'asset-progress' ||
+        message.type === 'cache-check' ||
+        message.type === 'cache-install' ||
+        message.type === 'cache-install-progress' ||
+        message.type === 'cache-ready' ||
+        message.type === 'cache-fallback'
+      ) {
         pending.onProgress(message)
       } else if (message.type === 'result') {
         this.pending.delete(message.id)
@@ -2109,15 +2127,37 @@
         return
       }
       if (progress.type === 'runtime') {
-        this.setStatus(`Loading OpenAI Privacy Filter locally (${progress.device}/${progress.dtype}). First run downloads and caches the model.`)
+        this.setStatus(`Preparing OpenAI Privacy Filter locally (${progress.device}/${progress.dtype}).`)
+      } else if (progress.type === 'cache-check') {
+        this.setStatus('Checking local privacy filter cache.')
+      } else if (progress.type === 'cache-install') {
+        this.setStatus('Installing privacy filter locally. This can take a few minutes on first run.')
+      } else if (progress.type === 'cache-install-progress') {
+        const fileLabel = progress.file ? ` ${progress.file}` : ''
+        const totalFiles = Number(progress.totalFiles) || 0
+        const fileIndex = Number(progress.fileIndex) || 0
+        const fileCount = totalFiles > 0 && fileIndex > 0 ? ` (${Math.min(fileIndex, totalFiles)} / ${totalFiles} files)` : ''
+        if (progress.total) {
+          this.setStatus(`Installing privacy filter locally${fileCount}${fileLabel}: ${humanBytes(progress.loaded)} / ${humanBytes(progress.total)}.`)
+        } else {
+          this.setStatus(`Installing privacy filter locally${fileCount}${fileLabel}.`)
+        }
+      } else if (progress.type === 'cache-ready') {
+        const downloaded = Number(progress.downloaded) || 0
+        this.setStatus(downloaded > 0 ? 'Privacy filter installed locally.' : 'Privacy filter loaded from local cache.')
+      } else if (progress.type === 'cache-fallback') {
+        this.setStatus(progress.message || 'Local privacy filter cache unavailable. Loading remote fallback.')
       } else if (progress.type === 'fallback') {
         this.setStatus(progress.message || `Retrying privacy filtering locally with ${progress.device}/${progress.dtype}.`)
-      } else if (progress.type === 'download') {
+      } else if (progress.type === 'asset-loading') {
+        const fileLabel = progress.file ? ` ${progress.file}` : ''
+        this.setStatus(`Loading privacy filter asset${fileLabel}.`)
+      } else if (progress.type === 'asset-progress') {
         const fileLabel = progress.file ? ` ${progress.file}` : ''
         if (progress.total) {
-          this.setStatus(`Downloading privacy filter${fileLabel}: ${humanBytes(progress.loaded)} / ${humanBytes(progress.total)}. Cached for future reports.`)
+          this.setStatus(`Loading privacy filter${fileLabel}: ${humanBytes(progress.loaded)} / ${humanBytes(progress.total)}.`)
         } else {
-          this.setStatus(`Downloading privacy filter${fileLabel}. Cached for future reports.`)
+          this.setStatus(`Loading privacy filter${fileLabel}.`)
         }
       } else if (progress.type === 'chunk') {
         const total = Number(progress.total) || 0

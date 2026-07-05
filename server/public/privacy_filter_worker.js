@@ -1,5 +1,7 @@
 const TRANSFORMERS_URL = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0/+esm'
 const MODEL_ID = 'openai/privacy-filter'
+const MODEL_REVISION = '7ffa9a043d54d1be65afb281eddf0ffbe629385b'
+const LOCAL_MODEL_PATH = `/pinokio/privacy-filter/models/${MODEL_REVISION}/`
 const MAX_CHUNK_CHARS = 1800
 const CHUNK_OVERLAP_CHARS = 120
 const URL_COMPONENT_LABELS = new Set([
@@ -15,9 +17,50 @@ let pipelinePromise = null
 let pipelineKey = ''
 let activeDevice = 'webgpu'
 let activeDtype = 'q4f16'
+const localCachePromises = new Map()
 
 const post = (message) => {
   self.postMessage(message)
+}
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const cacheUrl = (pathname, params) => {
+  const url = new URL(pathname, self.location.origin)
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value != null && value !== '') {
+      url.searchParams.set(key, value)
+    }
+  })
+  return url.toString()
+}
+
+const fetchCacheStatus = async (dtype) => {
+  const response = await fetch(cacheUrl('/pinokio/privacy-filter/status', { dtype }), {
+    headers: { 'Accept': 'application/json' }
+  })
+  return response.ok ? response.json() : null
+}
+
+const postCacheInstallProgress = ({ id, device, dtype, status }) => {
+  const install = status && status.install
+  if (!install) {
+    return
+  }
+  post({
+    type: 'cache-install-progress',
+    id,
+    device,
+    dtype,
+    file: install.current_file || '',
+    fileIndex: Number(install.current_index) || 0,
+    doneFiles: Number(install.completed_files) || 0,
+    totalFiles: Number(install.total_files) || 0,
+    loaded: Number(install.current_loaded) || 0,
+    total: Number(install.current_total) || 0,
+    cachedFiles: Number(install.cached_files) || 0,
+    downloadedFiles: Number(install.downloaded_files) || 0
+  })
 }
 
 const normalizeLabel = (value) => {
@@ -272,8 +315,9 @@ const loadTransformers = async () => {
   if (!transformersPromise) {
     transformersPromise = import(TRANSFORMERS_URL).then((mod) => {
       if (mod.env) {
-        mod.env.allowLocalModels = false
+        mod.env.allowLocalModels = true
         mod.env.allowRemoteModels = true
+        mod.env.localModelPath = LOCAL_MODEL_PATH
         mod.env.useBrowserCache = true
         mod.env.useWasmCache = true
         mod.env.cacheKey = 'pinokio-privacy-filter-cache'
@@ -284,7 +328,93 @@ const loadTransformers = async () => {
   return transformersPromise
 }
 
-const getPipeline = async (device, dtype) => {
+const ensureLocalCache = async ({ id, device, dtype }) => {
+  const key = dtype || activeDtype
+  if (localCachePromises.has(key)) {
+    return localCachePromises.get(key)
+  }
+  const promise = (async () => {
+    post({ type: 'cache-check', id, device, dtype })
+    let status = null
+    try {
+      status = await fetchCacheStatus(dtype)
+    } catch (_) {}
+    if (status && status.ready) {
+      post({ type: 'cache-ready', id, device, dtype, downloaded: 0, cached: Array.isArray(status.files) ? status.files.length : 0 })
+      return true
+    }
+
+    post({
+      type: 'cache-install',
+      id,
+      device,
+      dtype,
+      missing: status && Array.isArray(status.missing) ? status.missing : [],
+      missingCount: status && Number.isFinite(status.missing_count) ? status.missing_count : 0
+    })
+    const ensurePromise = fetch(cacheUrl('/pinokio/privacy-filter/ensure', { dtype }), {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' }
+    }).then(async (ensureResponse) => {
+      if (!ensureResponse.ok) {
+        const message = await ensureResponse.text().catch(() => '')
+        throw new Error(message || `HTTP ${ensureResponse.status}`)
+      }
+      return ensureResponse.json()
+    })
+    const settledEnsure = ensurePromise.then(
+      (value) => ({ done: true, value }),
+      (error) => ({ done: true, error })
+    )
+
+    let payload = null
+    while (!payload) {
+      const result = await Promise.race([
+        settledEnsure,
+        delay(1000).then(() => ({ done: false }))
+      ])
+      if (result.done) {
+        if (result.error) {
+          throw result.error
+        }
+        payload = result.value
+        break
+      }
+      try {
+        status = await fetchCacheStatus(dtype)
+        if (status && status.installing) {
+          postCacheInstallProgress({ id, device, dtype, status })
+        }
+      } catch (_) {}
+    }
+    if (!payload || payload.ready !== true) {
+      throw new Error('Privacy filter cache is incomplete.')
+    }
+    post({
+      type: 'cache-ready',
+      id,
+      device,
+      dtype,
+      downloaded: Number(payload.downloaded) || 0,
+      cached: Number(payload.cached) || 0
+    })
+    return true
+  })().catch((error) => {
+    localCachePromises.delete(key)
+    post({
+      type: 'cache-fallback',
+      id,
+      device,
+      dtype,
+      message: `Local privacy filter cache unavailable. Loading from remote cache fallback. ${error && error.message ? error.message : ''}`.trim()
+    })
+    return false
+  })
+  localCachePromises.set(key, promise)
+  return promise
+}
+
+const getPipeline = async (id, device, dtype) => {
   const nextDevice = device || activeDevice
   const nextDtype = dtype || activeDtype
   const nextKey = `${nextDevice}:${nextDtype}`
@@ -298,14 +428,24 @@ const getPipeline = async (device, dtype) => {
     return pipeline('token-classification', MODEL_ID, {
       device: activeDevice,
       dtype: activeDtype,
+      revision: MODEL_REVISION,
       progress_callback: (progress) => {
-        if (progress && progress.status === 'progress') {
+        if (!progress || !progress.status) {
+          return
+        }
+        if (progress.status === 'download') {
           post({
-            type: 'download',
+            type: 'asset-loading',
+            file: progress.file || ''
+          })
+        } else if (progress.status === 'progress' || progress.status === 'progress_total') {
+          post({
+            type: 'asset-progress',
             file: progress.file || '',
             loaded: progress.loaded || 0,
             total: progress.total || 0,
-            progress: progress.progress || 0
+            progress: progress.progress || 0,
+            aggregate: progress.status === 'progress_total'
           })
         }
       }
@@ -340,7 +480,8 @@ const filterText = async ({ id, text, device, dtype }) => {
   let classifier = null
   let entities = []
   try {
-    classifier = await getPipeline(requestedDevice, requestedDtype)
+    await ensureLocalCache({ id, device: requestedDevice, dtype: requestedDtype })
+    classifier = await getPipeline(id, requestedDevice, requestedDtype)
     entities = await classifyChunks({ classifier, chunks, id })
   } catch (error) {
     if (requestedDevice === 'wasm') {
@@ -357,7 +498,8 @@ const filterText = async ({ id, text, device, dtype }) => {
       dtype: requestedDtype,
       message: 'WebGPU privacy filtering failed. Retrying locally with WASM.'
     })
-    classifier = await getPipeline(requestedDevice, requestedDtype)
+    await ensureLocalCache({ id, device: requestedDevice, dtype: requestedDtype })
+    classifier = await getPipeline(id, requestedDevice, requestedDtype)
     entities = await classifyChunks({ classifier, chunks, id })
   }
   const merged = mergeEntities(prepareMaskEntities(reportText, entities))
