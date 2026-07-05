@@ -2,6 +2,13 @@
   const TOP_LEVEL_REDACTION_MAX_FILE_BYTES = 2 * 1024 * 1024
   const TOP_LEVEL_REDACTION_EXTENSIONS = new Set(['.json', '.log', '.txt'])
   const CADDY_LOG_PATTERN = /^caddy(?:-.+)?\.log$/i
+  const TOP_LEVEL_REDACTION_MODES = [
+    { value: 'full', label: 'Redact full file' },
+    { value: 'tail-2000', label: 'Redact last 2000 lines', lines: 2000 },
+    { value: 'tail-1000', label: 'Redact last 1000 lines', lines: 1000 },
+    { value: 'tail-500', label: 'Redact last 500 lines', lines: 500 },
+    { value: 'exclude', label: 'Exclude from report' }
+  ]
 
   const humanBytes = (value) => {
     const units = ['B', 'KB', 'MB', 'GB']
@@ -30,6 +37,19 @@
       !CADDY_LOG_PATTERN.test(text) &&
       TOP_LEVEL_REDACTION_EXTENSIONS.has(extensionForPath(text))
     )
+  }
+
+  const modeConfig = (mode) => {
+    return TOP_LEVEL_REDACTION_MODES.find((candidate) => candidate.value === mode) || TOP_LEVEL_REDACTION_MODES[0]
+  }
+
+  const tailLinesForMode = (mode) => {
+    const config = modeConfig(mode)
+    return Number(config && config.lines) || 0
+  }
+
+  const defaultModeForFile = (file) => {
+    return file && file.oversized ? 'tail-2000' : 'full'
   }
 
   const TOP_LEVEL_REDACTION_PRIORITY = new Map([
@@ -62,8 +82,8 @@
 
   class LogsTopLevelRedactor {
     constructor(options) {
-      this.button = options.button
-      this.chip = options.chip
+      this.openButton = options.openButton || null
+      this.button = options.redactButton || options.button
       this.pane = options.pane
       this.collapseButton = options.collapseButton
       this.statusEl = options.statusEl
@@ -87,35 +107,44 @@
       this.hasRun = false
       this.isOpen = false
       this.isRunning = false
+      this.isPreparing = false
+      this.hasCustomFileChoices = false
+      if (this.openButton) {
+        this.openButton.addEventListener('click', () => this.prepare())
+      }
       if (this.button) {
         this.button.addEventListener('click', () => this.handleRedactClick())
-      }
-      if (this.chip) {
-        this.chip.addEventListener('click', () => this.setOpen(true))
       }
       if (this.collapseButton) {
         this.collapseButton.addEventListener('click', () => this.setOpen(false))
       }
       this.renderEmptyReview()
-      this.updateChip()
     }
     handleRedactClick() {
-      if (this.isRunning) {
-        return
-      }
-      if (this.hasRun && !this.isOpen) {
-        this.setOpen(true)
+      if (this.isRunning || this.isPreparing) {
         return
       }
       this.run()
+    }
+    clearPlan(message = 'File list refreshed. Generate log report to review files.') {
+      this.files = []
+      this.items = []
+      this.hasRun = false
+      this.selectedPath = ''
+      this.selectedItemId = null
+      this.activeFilter = 'all'
+      this.hasCustomFileChoices = false
+      this.renderEmptyReview('Run Redact report to mask sensitive items.')
+      this.updateCount()
+      this.setStatus(message)
     }
     setOpen(open) {
       this.isOpen = Boolean(open)
       if (this.pane) {
         this.pane.classList.toggle('hidden', !this.isOpen)
       }
-      if (this.chip) {
-        this.chip.setAttribute('aria-expanded', this.isOpen ? 'true' : 'false')
+      if (this.openButton) {
+        this.openButton.setAttribute('aria-expanded', this.isOpen ? 'true' : 'false')
       }
       if (this.isOpen && this.hasRun) {
         this.renderPreview()
@@ -132,7 +161,7 @@
       if (this.isRunning) {
         this.button.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>Redacting…</span>'
       } else {
-        this.button.innerHTML = '<i class="fa-solid fa-shield-halved"></i><span>Redact</span>'
+        this.button.innerHTML = '<i class="fa-solid fa-shield-halved"></i><span>Redact report</span>'
       }
     }
     setStatus(message, isError) {
@@ -146,7 +175,8 @@
         return
       }
       if (!this.hasRun && !this.isRunning) {
-        this.countEl.textContent = 'Not run'
+        const selected = this.files.filter((file) => file && file.mode !== 'exclude').length
+        this.countEl.textContent = this.files.length ? `${selected} selected · Not run` : 'Not run'
         return
       }
       const files = this.files.filter((file) => file.reviewed).length
@@ -155,24 +185,6 @@
       this.countEl.textContent = this.isRunning
         ? `${files} / ${total} files · ${enabled} masked`
         : `${files} file${files === 1 ? '' : 's'} · ${enabled} masked`
-    }
-    updateChip() {
-      if (!this.chip) {
-        return
-      }
-      const labelEl = this.chip.querySelector('span') || this.chip
-      if (!this.hasRun && !this.isRunning) {
-        this.chip.classList.add('hidden')
-        labelEl.textContent = 'Not run'
-        return
-      }
-      const files = this.files.filter((file) => file.reviewed).length
-      const total = this.files.length
-      const enabled = this.enabledRedactionCount()
-      labelEl.textContent = this.isRunning
-        ? `Redacting ${files}/${total} · ${enabled} item${enabled === 1 ? '' : 's'}`
-        : `Redacted ${files} file${files === 1 ? '' : 's'} · ${enabled} item${enabled === 1 ? '' : 's'}`
-      this.chip.classList.remove('hidden')
     }
     enabledRedactionCount() {
       return this.items.reduce((total, item) => total + (item && item.enabled ? 1 : 0), 0)
@@ -268,17 +280,87 @@
       const entries = (Array.isArray(payload && payload.entries) ? payload.entries : [])
         .filter((entry) => entry && entry.type !== 'directory' && isTopLevelRedactableLogPath(entry.path || entry.name))
         .sort(compareTopLevelRedactionEntries)
-      const oversized = entries.find((entry) => Number.isFinite(Number(entry.size)) && Number(entry.size) > TOP_LEVEL_REDACTION_MAX_FILE_BYTES)
-      if (oversized) {
-        const name = oversized.path || oversized.name || 'file'
-        throw new Error(`${name} is too large to redact in the browser (${humanBytes(Number(oversized.size))}).`)
-      }
       return entries
+    }
+    buildPlannedFile(entry) {
+      const pathValue = String(entry && (entry.path || entry.name) || '')
+      const name = String(entry && entry.name || pathValue)
+      const size = Number(entry && entry.size) || 0
+      const oversized = size > TOP_LEVEL_REDACTION_MAX_FILE_BYTES
+      return {
+        path: pathValue,
+        name,
+        size,
+        mode: oversized ? 'tail-2000' : 'full',
+        oversized,
+        reviewed: false,
+        items: [],
+        renderedItems: [],
+        text: ''
+      }
+    }
+    async prepare() {
+      if (this.isPreparing || this.isRunning) {
+        return
+      }
+      this.setOpen(true)
+      if (this.files.length) {
+        this.renderFileList()
+        this.renderReview()
+        this.updateCount()
+        this.setStatus(this.hasRun
+          ? 'Report redacted. Zip will use reviewed redactions.'
+          : (this.hasCustomFileChoices ? 'File choices changed. Generate zip will use these choices without redaction.' : 'Zip will include original logs unless you redact the report.'))
+        return
+      }
+      this.isPreparing = true
+      this.renderEmptyReview('Run Redact report to mask sensitive items.')
+      try {
+        this.setStatus('Finding top-level files…')
+        const entries = await this.fetchTopLevelEntries()
+        if (!entries.length) {
+          throw new Error('No top-level text log files are available for a report.')
+        }
+        this.files = entries.map((entry) => this.buildPlannedFile(entry))
+        this.items = []
+        this.hasRun = false
+        this.hasCustomFileChoices = false
+        this.selectedItemId = null
+        this.selectedPath = (this.files[0] || {}).path || ''
+        this.renderFileList()
+        this.renderReview()
+        this.updateCount()
+        this.setStatus('Zip will include original logs unless you redact the report.')
+      } catch (error) {
+        this.files = []
+        this.items = []
+        this.hasRun = false
+        this.selectedPath = ''
+        this.selectedItemId = null
+        this.renderEmptyReview('No report file plan is available.')
+        this.updateCount()
+        this.setStatus(error && error.message ? error.message : 'Failed to prepare log report.', true)
+      } finally {
+        this.isPreparing = false
+      }
     }
     async fetchFile(entry) {
       const pathValue = String(entry && (entry.path || entry.name) || '')
+      if (entry && entry.mode === 'exclude') {
+        return {
+          ...entry,
+          text: '',
+          reviewed: false,
+          items: [],
+          renderedItems: []
+        }
+      }
       const url = new URL('/pinokio/logs/file', window.location.origin)
       url.searchParams.set('path', pathValue)
+      const tailLines = tailLinesForMode(entry && entry.mode)
+      if (tailLines) {
+        url.searchParams.set('tail_lines', String(tailLines))
+      }
       const response = await fetch(url, { headers: { 'Accept': 'application/json' } })
       if (!response.ok) {
         const message = await response.text()
@@ -289,6 +371,9 @@
         path: payload.path || pathValue,
         name: payload.name || pathValue,
         size: Number(payload.size) || Number(entry && entry.size) || 0,
+        mode: entry && entry.mode ? entry.mode : 'full',
+        oversized: Boolean(entry && entry.oversized),
+        truncated: Boolean(payload.truncated),
         text: String(payload.text || ''),
         reviewed: false,
         items: [],
@@ -316,80 +401,78 @@
     }
     async run() {
       this.setOpen(true)
-      this.setBusy(true)
-      this.hasRun = false
-      this.files = []
-      this.items = []
-      this.selectedItemId = null
-      this.activeFilter = 'all'
-      this.updateCount()
-      this.updateChip()
-      this.renderEmptyReview('Preparing top-level files…')
       try {
-        this.setStatus('Finding top-level files…')
-        const entries = await this.fetchTopLevelEntries()
-        if (!entries.length) {
-          throw new Error('No top-level text log files are available for redaction.')
+        if (!this.files.length) {
+          await this.prepare()
         }
-        const files = []
-        for (let index = 0; index < entries.length; index += 1) {
-          const entry = entries[index]
-          this.setStatus(`Loading ${entry.path || entry.name}… ${index + 1} / ${entries.length}`)
-          const file = await this.fetchFile(entry)
-          files.push(file)
+        if (!this.files.length) {
+          return
         }
-        this.files = files
-        this.selectedPath = files[0] ? files[0].path : ''
-        this.renderFileList()
-        this.renderReview()
-        this.updateCount()
-        this.updateChip()
-        for (let index = 0; index < files.length; index += 1) {
-          const file = files[index]
-          this.setStatus(`Filtering ${file.name}… ${index + 1} / ${files.length}`)
-          const result = await this.privacyFilter.filter(file.text, (progress) => this.renderFilterProgress(file, progress))
-          file.items = this.normalizeItems(file, result)
-          file.reviewed = true
-          this.buildFileText(file)
-          this.items = files.flatMap((candidate) => candidate.items)
-          this.hasRun = true
-          if (!this.selectedPath || !this.files.find((candidate) => candidate.path === this.selectedPath && candidate.reviewed)) {
-            this.selectedPath = file.path
+        this.setBusy(true)
+        this.hasRun = false
+        this.items = []
+        this.selectedItemId = null
+        this.activeFilter = 'all'
+        this.files.forEach((file) => {
+          if (file) {
+            file.reviewed = false
+            file.text = ''
+            file.items = []
+            file.renderedItems = []
           }
-          if (!this.selectedItemId && file.items.length) {
-            this.selectedItemId = file.items[0].id
+        })
+        this.updateCount()
+        this.renderEmptyReview('Redacting selected files…')
+        const filesToRedact = this.files.filter(Boolean)
+        for (let index = 0; index < filesToRedact.length; index += 1) {
+          const planned = filesToRedact[index]
+          this.setStatus(`Loading ${planned.name}… ${index + 1} / ${filesToRedact.length}`)
+          const loaded = await this.fetchFile(planned)
+          Object.assign(planned, loaded)
+          if (planned.mode === 'exclude') {
+            planned.items = []
+          } else {
+            this.setStatus(`Filtering ${planned.name}… ${index + 1} / ${filesToRedact.length}`)
+            const result = await this.privacyFilter.filter(planned.text, (progress) => this.renderFilterProgress(planned, progress))
+            planned.items = this.normalizeItems(planned, result)
+          }
+          planned.reviewed = true
+          this.buildFileText(planned)
+          this.items = this.files.flatMap((candidate) => candidate ? candidate.items : [])
+          this.hasRun = this.files.some((candidate) => candidate && candidate.reviewed)
+          if (!this.selectedPath || !this.files.find((candidate) => candidate.path === this.selectedPath && candidate.reviewed)) {
+            this.selectedPath = planned.path
+          }
+          if (!this.selectedItemId && planned.items.length) {
+            this.selectedItemId = planned.items[0].id
           }
           this.renderFileList()
           this.renderReview()
           this.renderPreview()
           this.updateCount()
-          this.updateChip()
         }
-        this.items = files.flatMap((file) => file.items)
-        this.hasRun = true
-        this.selectedPath = this.selectedPath || (files[0] ? files[0].path : '')
+        this.items = this.files.flatMap((file) => file ? file.items : [])
+        this.hasRun = this.files.some((file) => file && file.reviewed)
+        const firstReviewed = this.files.find((file) => file && file.reviewed)
+        this.selectedPath = this.selectedPath || (firstReviewed ? firstReviewed.path : '')
         this.selectedItemId = this.items.length ? this.items[0].id : null
         this.renderFileList()
         this.renderReview()
         this.renderPreview()
         this.updateCount()
-        this.updateChip()
         const enabled = this.enabledRedactionCount()
-        this.setStatus(`Privacy filter finished. ${enabled} item${enabled === 1 ? '' : 's'} masked across ${files.length} top-level file${files.length === 1 ? '' : 's'}.`)
+        const reviewed = this.files.filter((file) => file && file.reviewed).length
+        this.setStatus(`Report redacted. ${enabled} item${enabled === 1 ? '' : 's'} masked across ${reviewed} file${reviewed === 1 ? '' : 's'}.`)
       } catch (error) {
-        this.files = []
         this.items = []
         this.hasRun = false
-        this.selectedPath = ''
         this.selectedItemId = null
         this.renderEmptyReview('No redaction review is available.')
         this.updateCount()
-        this.updateChip()
         this.setStatus(error && error.message ? error.message : 'Privacy filtering failed.', true)
       } finally {
         this.setBusy(false)
         this.updateCount()
-        this.updateChip()
       }
     }
     renderEmptyReview(message = 'Run Redact to review detected items.') {
@@ -413,11 +496,11 @@
       }
       this.filesEl.textContent = ''
       this.files.forEach((file) => {
-        const row = document.createElement('button')
-        row.type = 'button'
+        const row = document.createElement('div')
         row.className = 'logs-top-redaction-file'
         row.classList.toggle('is-active', file.path === this.selectedPath)
-        row.setAttribute('aria-label', `Preview redacted ${file.name}`)
+        row.classList.toggle('is-warning', Boolean(file.oversized))
+        row.setAttribute('aria-label', `Configure ${file.name}`)
         const text = document.createElement('span')
         text.className = 'logs-top-redaction-file-text'
         const name = document.createElement('span')
@@ -426,19 +509,66 @@
         const meta = document.createElement('span')
         meta.className = 'logs-top-redaction-file-meta'
         const count = file.items.reduce((total, item) => total + (item.enabled ? 1 : 0), 0)
-        meta.textContent = file.reviewed
-          ? `${humanBytes(file.size)} · ${count} masked`
-          : `${humanBytes(file.size)} · pending`
+        const config = modeConfig(file.mode)
+        meta.textContent = file.reviewed ? `${humanBytes(file.size)} · ${count} masked` : `${humanBytes(file.size)} · ${config.label}`
         text.appendChild(name)
         text.appendChild(meta)
         row.appendChild(text)
-        row.addEventListener('click', () => {
+        if (file.oversized) {
+          const badge = document.createElement('span')
+          badge.className = 'logs-top-redaction-file-badge'
+          badge.textContent = 'Too large'
+          row.appendChild(badge)
+        }
+        const select = document.createElement('select')
+        select.className = 'logs-top-redaction-mode'
+        select.setAttribute('aria-label', `Report handling for ${file.name}`)
+        const options = TOP_LEVEL_REDACTION_MODES.filter((option) => option.value !== 'full' || !file.oversized)
+        options.forEach((optionConfig) => {
+          const option = document.createElement('option')
+          option.value = optionConfig.value
+          option.textContent = optionConfig.label
+          select.appendChild(option)
+        })
+        select.value = file.mode
+        select.disabled = this.isRunning
+        select.addEventListener('change', (event) => {
+          this.setFileMode(file.path, event.target.value)
+        })
+        row.appendChild(select)
+        text.addEventListener('click', () => {
           this.selectedPath = file.path
           this.renderFileList()
           this.renderPreview()
         })
         this.filesEl.appendChild(row)
       })
+    }
+    setFileMode(pathValue, mode) {
+      const file = this.files.find((candidate) => candidate && candidate.path === pathValue)
+      if (!file) {
+        return
+      }
+      const allowedModes = TOP_LEVEL_REDACTION_MODES
+        .filter((option) => option.value !== 'full' || !file.oversized)
+        .map((option) => option.value)
+      file.mode = allowedModes.includes(mode) ? mode : (file.oversized ? 'tail-2000' : 'full')
+      this.hasCustomFileChoices = this.files.some((candidate) => {
+        return candidate && candidate.mode !== defaultModeForFile(candidate)
+      })
+      file.reviewed = false
+      file.text = ''
+      file.items = []
+      file.renderedItems = []
+      this.items = []
+      this.hasRun = false
+      this.selectedItemId = null
+      this.renderFileList()
+      this.renderReview()
+      this.updateCount()
+      this.setStatus(this.hasCustomFileChoices
+        ? 'File choices changed. Generate zip will use these choices without redaction.'
+        : 'Zip will include original logs unless you redact the report.')
     }
     renderReview() {
       const includedItems = this.items
@@ -470,7 +600,7 @@
       if (!visibleItems.length) {
         const empty = document.createElement('div')
         empty.className = 'logs-redaction-empty'
-        empty.textContent = this.hasRun ? 'No redactions match this filter.' : 'Run Redact to review detected items.'
+        empty.textContent = this.hasRun ? 'No redactions match this filter.' : 'Run Redact report to mask sensitive items.'
         this.listEl.appendChild(empty)
         return
       }
@@ -528,7 +658,6 @@
           this.renderReview()
           this.renderPreview()
           this.updateCount()
-          this.updateChip()
         })
         const toggleTrack = document.createElement('span')
         toggleTrack.className = 'logs-redaction-toggle-track'
@@ -649,19 +778,21 @@
       return true
     }
     getArchiveBlockMessage() {
-      return this.isRunning
-        ? 'Privacy filter is still reviewing top-level files. Generate zip after redaction finishes.'
-        : ''
+      if (this.isRunning) {
+        return 'Redaction is still running. Generate zip after redaction finishes.'
+      }
+      return ''
     }
     buildArchivePayload() {
       if (this.isRunning) {
         return null
       }
       if (!this.hasRun) {
-        return null
+        return this.buildConfiguredArchivePayload()
       }
       const overrides = this.files
         .filter((file) => file.reviewed && isTopLevelRedactableLogPath(file.path))
+        .filter((file) => file.mode !== 'exclude')
         .map((file) => {
           const text = this.buildFileText(file)
           return {
@@ -669,12 +800,55 @@
             text
           }
         })
-      if (!overrides.length) {
+      const exclusions = this.files
+        .filter((file) => file.reviewed && file.mode === 'exclude' && isTopLevelRedactableLogPath(file.path))
+        .map((file) => file.path)
+      if (!overrides.length && !exclusions.length) {
         return null
       }
-      return {
-        redacted_overrides: overrides
+      const payload = {}
+      if (overrides.length) {
+        payload.redacted_overrides = overrides
       }
+      if (exclusions.length) {
+        payload.excluded_paths = exclusions
+      }
+      payload.require_complete_overrides = true
+      return payload
+    }
+    async buildConfiguredArchivePayload() {
+      if (!this.hasCustomFileChoices) {
+        return null
+      }
+      const overrides = []
+      const exclusions = []
+      const files = this.files.filter((file) => file && isTopLevelRedactableLogPath(file.path))
+      for (const file of files) {
+        if (file.mode === 'exclude') {
+          exclusions.push(file.path)
+          continue
+        }
+        if (file.mode === defaultModeForFile(file)) {
+          continue
+        }
+        const loaded = await this.fetchFile(file)
+        overrides.push({
+          path: loaded.path,
+          text: loaded.text
+        })
+      }
+      if (!overrides.length && !exclusions.length) {
+        return null
+      }
+      const payload = {}
+      if (overrides.length) {
+        payload.redacted_overrides = overrides
+      }
+      if (exclusions.length) {
+        payload.excluded_paths = exclusions
+      }
+      payload.allow_partial_overrides = true
+      return payload
     }
   }
 
@@ -684,8 +858,8 @@
       return null
     }
     return new LogsTopLevelRedactor({
-      button,
-      chip: document.getElementById('logs-redaction-chip'),
+      openButton: document.getElementById('logs-open-log-report'),
+      redactButton: button,
       pane: document.getElementById('logs-top-redaction-pane'),
       collapseButton: document.getElementById('logs-redaction-collapse'),
       statusEl: document.getElementById('logs-top-redaction-status'),

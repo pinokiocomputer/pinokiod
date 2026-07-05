@@ -41,36 +41,39 @@
 <main>
   <div class='container <%= !logsError ? "logs-container" : "" %>'>
     <% if (!logsError) { %>
+    <% const showLogsPageHeader = Boolean(logsReportUrl || logsWorkspace || logsEmbedded); %>
     <section class="logs-page" id="logs-root" data-workspace="<%= logsWorkspace ? logsWorkspace : '' %>" data-report-url="<%= logsReportUrl || '' %>" data-initial-view="<%= logsInitialView || 'raw' %>" aria-label="Logs">
-      <div class="logs-page-header">
-        <div class="logs-page-header-main">
-          <% if (logsReportUrl) { %>
-            <div class="logs-page-switch">
-              <div class="logs-view-switch" role="tablist" aria-label="Log views">
-                <button type="button" class="logs-view-tab" data-logs-view="latest" role="tab" aria-controls="logs-latest-panel">Issue report</button>
-                <button type="button" class="logs-view-tab" data-logs-view="raw" role="tab" aria-controls="logs-raw-panel">Raw logs</button>
+      <% if (showLogsPageHeader) { %>
+        <div class="logs-page-header">
+          <div class="logs-page-header-main">
+            <% if (logsReportUrl) { %>
+              <div class="logs-page-switch">
+                <div class="logs-view-switch" role="tablist" aria-label="Log views">
+                  <button type="button" class="logs-view-tab" data-logs-view="latest" role="tab" aria-controls="logs-latest-panel">Issue report</button>
+                  <button type="button" class="logs-view-tab" data-logs-view="raw" role="tab" aria-controls="logs-raw-panel">Raw logs</button>
+                </div>
               </div>
-            </div>
-          <% } %>
-        </div>
-        <div class="logs-page-controls">
-          <div class="logs-action-group" data-logs-actions="latest">
-            <button type="button" class="logs-flat-button" id="logs-copy-report" disabled><i class="fa-solid fa-copy"></i><span>Copy</span></button>
-            <button type="button" class="logs-flat-button" id="logs-refresh-report"><i class="fa-solid fa-arrows-rotate"></i><span>Refresh</span></button>
-          </div>
-          <div class="logs-action-group" data-logs-actions="raw">
-            <% if (!logsWorkspace) { %>
-              <%- include('partials/logs_top_redaction_actions') %>
             <% } %>
-            <button type="button" class="logs-primary-button" id="logs-generate-archive"><i class="fa-solid fa-file-zipper"></i><span>Generate zip</span></button>
-            <a id="logs-download-archive" class="logs-secondary-button hidden" href="<%= typeof logsDownloadUrl !== 'undefined' ? logsDownloadUrl : '/pinokio/logs.zip' %>" download><i class="fa-solid fa-download"></i><span>Download</span></a>
-            <button type="button" class="logs-flat-button" id="logs-refresh-tree"><i class="fa-solid fa-arrows-rotate"></i><span>Refresh tree</span></button>
           </div>
-          <% if (logsEmbedded) { %>
-            <button type="button" class="logs-icon-button logs-close-button" id="logs-close-view" aria-label="Close logs" title="Close logs"><i class="fa-solid fa-xmark"></i></button>
-          <% } %>
+          <div class="logs-page-controls">
+            <div class="logs-action-group" data-logs-actions="latest">
+              <button type="button" class="logs-flat-button" id="logs-copy-report" disabled><i class="fa-solid fa-copy"></i><span>Copy</span></button>
+              <button type="button" class="logs-flat-button" id="logs-refresh-report"><i class="fa-solid fa-arrows-rotate"></i><span>Refresh</span></button>
+            </div>
+            <div class="logs-action-group" data-logs-actions="raw">
+              <% if (logsWorkspace) { %>
+                <button type="button" class="logs-primary-button" id="logs-generate-archive"><i class="fa-solid fa-file-zipper"></i><span>Generate zip</span></button>
+                <a id="logs-download-archive" class="logs-secondary-button hidden" href="<%= typeof logsDownloadUrl !== 'undefined' ? logsDownloadUrl : '/pinokio/logs.zip' %>" download><i class="fa-solid fa-download"></i><span>Download</span></a>
+                <button type="button" class="logs-flat-button" id="logs-refresh-tree"><i class="fa-solid fa-arrows-rotate"></i><span>Refresh tree</span></button>
+                <div class="logs-zip-status logs-header-zip-status" id="logs-zip-status" role="status" aria-live="polite"></div>
+              <% } %>
+            </div>
+            <% if (logsEmbedded) { %>
+              <button type="button" class="logs-icon-button logs-close-button" id="logs-close-view" aria-label="Close logs" title="Close logs"><i class="fa-solid fa-xmark"></i></button>
+            <% } %>
+          </div>
         </div>
-      </div>
+      <% } %>
 
       <section class="logs-latest-view" id="logs-latest-panel" data-logs-panel="latest" role="tabpanel">
         <div class="logs-latest-workspace">
@@ -161,8 +164,16 @@
               <h2>Files</h2>
               <div class="logs-tree-hint">Select a log file to stream.</div>
             </div>
-            <div class="logs-zip-status" id="logs-zip-status" role="status" aria-live="polite"></div>
           </div>
+          <% if (!logsWorkspace) { %>
+            <button type="button" class="logs-report-entry" id="logs-open-log-report" aria-controls="logs-top-redaction-pane" aria-expanded="false">
+              <span class="logs-report-entry-icon"><i class="fa-solid fa-file-shield"></i></span>
+              <span class="logs-report-entry-copy">
+                <span class="logs-report-entry-title">Generate log report</span>
+                <span class="logs-report-entry-subtitle">Review files before redacting</span>
+              </span>
+            </button>
+          <% } %>
           <div class="logs-tree-wrapper">
             <div class="logs-tree" id="logs-tree" role="tree" aria-label="Pinokio logs"></div>
           </div>

@@ -1,10 +1,13 @@
-<aside class="logs-top-redaction-pane hidden" id="logs-top-redaction-pane" aria-label="Top-level log redaction review">
+<aside class="logs-top-redaction-pane hidden" id="logs-top-redaction-pane" aria-label="Generate log report">
   <div class="logs-top-redaction-header">
     <div>
-      <p class="logs-latest-pane-eyebrow">Privacy filter</p>
-      <div class="logs-latest-pane-title">Top-level files</div>
+      <p class="logs-latest-pane-eyebrow">Log report</p>
+      <div class="logs-latest-pane-title">Generate log report</div>
     </div>
-    <button type="button" class="logs-icon-button" id="logs-redaction-collapse" aria-label="Collapse redaction review" title="Collapse redaction review"><i class="fa-solid fa-xmark"></i></button>
+    <div class="logs-top-redaction-header-actions">
+      <button type="button" class="logs-icon-button" id="logs-refresh-tree" aria-label="Refresh files" title="Refresh files"><i class="fa-solid fa-arrows-rotate"></i></button>
+      <button type="button" class="logs-icon-button" id="logs-redaction-collapse" aria-label="Close log report drawer" title="Close log report drawer"><i class="fa-solid fa-xmark"></i></button>
+    </div>
   </div>
   <div class="logs-review-content">
     <section class="logs-review-section" aria-label="Top-level file redaction status">
@@ -12,7 +15,7 @@
         <div class="logs-review-section-title">Reviewed files</div>
         <div class="logs-review-badge" id="logs-top-redaction-count">Not run</div>
       </div>
-      <div class="logs-report-status" id="logs-top-redaction-status" role="status" aria-live="polite">Run Redact to review top-level log files before generating a zip.</div>
+      <div class="logs-report-status" id="logs-top-redaction-status" role="status" aria-live="polite">Open this panel to choose files before redacting.</div>
       <div class="logs-top-redaction-files" id="logs-top-redaction-files"></div>
     </section>
     <section class="logs-review-section logs-review-section--redactions" aria-label="Top-level file redactions">
@@ -20,6 +23,13 @@
       <div class="logs-redaction-filters" id="logs-top-redaction-filters" aria-label="Filter top-level file redactions"></div>
       <div class="logs-redaction-list" id="logs-top-redaction-list"></div>
     </section>
-    <div class="logs-top-redaction-note">Generate zip will use reviewed browser redactions for top-level files.</div>
+    <footer class="logs-top-redaction-footer">
+      <div class="logs-top-redaction-actions">
+        <%- include('logs_top_redaction_actions') %>
+        <button type="button" class="logs-primary-button" id="logs-generate-archive"><i class="fa-solid fa-file-zipper"></i><span>Generate zip</span></button>
+        <a id="logs-download-archive" class="logs-secondary-button hidden" href="<%= typeof logsDownloadUrl !== 'undefined' ? logsDownloadUrl : '/pinokio/logs.zip' %>" download><i class="fa-solid fa-download"></i><span>Download</span></a>
+      </div>
+      <div class="logs-zip-status" id="logs-zip-status" role="status" aria-live="polite">Zip will include original logs unless you redact the report.</div>
+    </footer>
   </div>
 </aside>

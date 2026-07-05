@@ -333,7 +333,15 @@
       this.setStatus('Generating archive…')
       try {
         const request = { method: 'POST' }
-        const requestPayload = this.payloadProvider ? this.payloadProvider() : null
+        const requestPayload = this.payloadProvider ? await this.payloadProvider() : null
+        const requestedReviewedArchive = Boolean(
+          requestPayload &&
+          typeof requestPayload === 'object' &&
+          (
+            (Array.isArray(requestPayload.redacted_overrides) && requestPayload.redacted_overrides.length > 0) ||
+            (Array.isArray(requestPayload.excluded_paths) && requestPayload.excluded_paths.length > 0)
+          )
+        )
         if (requestPayload && typeof requestPayload === 'object' && Object.keys(requestPayload).length > 0) {
           request.headers = { 'Content-Type': 'application/json' }
           request.body = JSON.stringify(requestPayload)
@@ -347,9 +355,11 @@
         const downloadHref = responsePayload && responsePayload.download ? responsePayload.download : this.defaultDownloadHref
         this.updateDownloadLink(downloadHref)
         const overrideCount = Number(responsePayload && responsePayload.redacted_overrides) || 0
-        this.setStatus(overrideCount > 0
-          ? `Archive ready with ${overrideCount} reviewed file${overrideCount === 1 ? '' : 's'}.`
-          : 'Archive ready. Click download.')
+        const excludedCount = Number(responsePayload && responsePayload.excluded_paths) || 0
+        const handledCount = overrideCount + excludedCount
+        this.setStatus(requestedReviewedArchive || handledCount > 0
+          ? `Archive ready with ${handledCount} selected file${handledCount === 1 ? '' : 's'}${excludedCount ? `, ${excludedCount} excluded` : ''}.`
+          : 'Archive ready with original logs.')
       } catch (error) {
         this.setStatus(error.message || 'Failed to generate archive.', true)
       } finally {
@@ -2777,6 +2787,12 @@
           refreshBtn.classList.add('is-busy')
           try {
             await this.tree.refresh()
+            if (this.topRedactor) {
+              this.topRedactor.clearPlan('Files refreshed. Zip will include original logs unless you redact the report.')
+              if (this.topRedactor.isOpen) {
+                await this.topRedactor.prepare()
+              }
+            }
             this.viewer.setStatus('Tree refreshed.')
           } catch (error) {
             this.viewer.setStatus(error.message || 'Failed to refresh tree.')

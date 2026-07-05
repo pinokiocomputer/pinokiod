@@ -19,39 +19,6 @@ body.dark .logs-redact-button:focus-visible {
   border-color: rgba(96, 165, 250, 0.34);
   background: rgba(96, 165, 250, 0.14);
 }
-.logs-redaction-chip {
-  border: 1px solid rgba(28, 96, 186, 0.18);
-  border-radius: 999px;
-  min-height: 26px;
-  padding: 0 9px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background: rgba(28, 96, 186, 0.055);
-  color: #174a8b;
-  font-size: 10px;
-  line-height: 1;
-  font-weight: 760;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.logs-redaction-chip:hover,
-.logs-redaction-chip:focus-visible {
-  border-color: rgba(28, 96, 186, 0.32);
-  background: rgba(28, 96, 186, 0.1);
-  outline: none;
-}
-body.dark .logs-redaction-chip {
-  border-color: rgba(96, 165, 250, 0.2);
-  background: rgba(96, 165, 250, 0.08);
-  color: #bfdbfe;
-}
-body.dark .logs-redaction-chip:hover,
-body.dark .logs-redaction-chip:focus-visible {
-  border-color: rgba(96, 165, 250, 0.32);
-  background: rgba(96, 165, 250, 0.13);
-}
 body.dark .logs-report-status.is-error {
   color: #ff8373;
 }
@@ -81,18 +48,29 @@ body.dark .logs-report-status.is-error {
   justify-content: space-between;
   gap: 10px;
 }
+.logs-top-redaction-header-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.logs-top-redaction-header-actions .logs-icon-button.is-busy i {
+  animation: spin 1s linear infinite;
+}
 .logs-top-redaction-files {
   display: flex;
   flex-direction: column;
   gap: 6px;
   margin-top: 10px;
-  max-height: 176px;
+  max-height: 244px;
   overflow: auto;
 }
 .logs-top-redaction-file {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
   border: 1px solid transparent;
   border-radius: 7px;
   padding: 7px 8px;
@@ -100,6 +78,10 @@ body.dark .logs-report-status.is-error {
   color: inherit;
   cursor: pointer;
   text-align: left;
+}
+.logs-top-redaction-file.is-warning {
+  border-color: rgba(186, 133, 28, 0.2);
+  background: rgba(186, 133, 28, 0.055);
 }
 .logs-top-redaction-file:hover,
 .logs-top-redaction-file.is-active {
@@ -133,10 +115,76 @@ body.dark .logs-top-redaction-file {
   font-size: 10px;
   line-height: 1.2;
 }
-.logs-top-redaction-note {
+.logs-top-redaction-file-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 6px;
+  background: rgba(186, 133, 28, 0.11);
+  color: #7a5413;
+  font-size: 9px;
+  line-height: 1.2;
+  font-weight: 800;
+  white-space: nowrap;
+}
+body.dark .logs-top-redaction-file-badge {
+  background: rgba(245, 189, 75, 0.12);
+  color: #e1b261;
+}
+.logs-top-redaction-mode {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  min-height: 26px;
+  box-sizing: border-box;
+  border: 1px solid var(--logs-border);
+  border-radius: 6px;
+  padding: 0 7px;
+  background: var(--logs-bg);
+  color: var(--logs-text);
+  font-size: 10px;
+  font-weight: 700;
+}
+.logs-top-redaction-mode:focus-visible {
+  border-color: var(--logs-border-strong);
+  outline: none;
+}
+.logs-top-redaction-mode:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.logs-top-redaction-footer {
   flex: 0 0 auto;
+  min-width: 0;
   border-top: 1px solid var(--logs-border);
   padding: 10px 12px;
+  display: block;
+  overflow: hidden;
+}
+.logs-top-redaction-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  align-items: stretch;
+  min-width: 0;
+}
+.logs-top-redaction-actions .logs-primary-button,
+.logs-top-redaction-actions .logs-secondary-button,
+.logs-top-redaction-actions .logs-flat-button {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+.logs-top-redaction-actions #logs-download-archive {
+  grid-column: 1 / -1;
+}
+.logs-top-redaction-footer .logs-zip-status {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+  text-align: left;
   color: var(--logs-muted);
   font-size: 11px;
   line-height: 1.35;

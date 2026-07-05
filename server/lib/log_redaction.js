@@ -5,6 +5,7 @@ const { isBinaryFile } = require('isbinaryfile')
 const LOG_REDACTION_FILE_MAX_BYTES = 2 * 1024 * 1024
 const LOG_REDACTION_OVERRIDE_MAX_BYTES = 8 * 1024 * 1024
 const LOG_REDACTION_TEXT_EXTENSIONS = new Set(['.json', '.log', '.txt'])
+const LOG_REDACTION_TAIL_LINE_COUNTS = new Set([500, 1000, 2000])
 const CADDY_LOG_PATTERN = /^caddy(?:-.+)?\.log$/i
 
 function isTopLevelRedactableLogPath(relativePath = '') {
@@ -21,8 +22,84 @@ function isTopLevelRedactableLogPath(relativePath = '') {
   return LOG_REDACTION_TEXT_EXTENSIONS.has(path.extname(value).toLowerCase())
 }
 
+function normalizeTailLineCount(value) {
+  const parsed = Number.parseInt(String(value || ''), 10)
+  return LOG_REDACTION_TAIL_LINE_COUNTS.has(parsed) ? parsed : 0
+}
+
+async function readTailTextFile(filePath, stats, tailLines) {
+  const readBytes = Math.min(stats.size, LOG_REDACTION_FILE_MAX_BYTES - 2048)
+  const start = Math.max(0, stats.size - readBytes)
+  const buffer = Buffer.alloc(readBytes)
+  const handle = await fs.promises.open(filePath, 'r')
+  let bytesRead = 0
+  try {
+    const result = await handle.read(buffer, 0, readBytes, start)
+    bytesRead = result.bytesRead
+  } finally {
+    await handle.close()
+  }
+  let text = buffer.slice(0, bytesRead).toString('utf8')
+  if (start > 0) {
+    const firstNewline = text.indexOf('\n')
+    if (firstNewline >= 0) {
+      text = text.slice(firstNewline + 1)
+    }
+  }
+  const lines = text.split(/\r?\n/)
+  const selected = lines.length > tailLines ? lines.slice(-tailLines) : lines
+  const omittedLines = Math.max(0, lines.length - selected.length)
+  const prefix = start > 0 || omittedLines > 0
+    ? `[Older log content omitted by user. Showing the last ${tailLines.toLocaleString()} lines.]\n`
+    : ''
+  return {
+    text: `${prefix}${selected.join('\n')}`,
+    truncated: start > 0 || omittedLines > 0,
+    included_lines: selected.length
+  }
+}
+
+function clonePlainObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? { ...value }
+    : {}
+}
+
+function createRuntimeEnvSnapshot(kernel) {
+  const baseEnv = {
+    ...clonePlainObject(process.env),
+    ...clonePlainObject(kernel && kernel.envs)
+  }
+  if (kernel && kernel.bin && typeof kernel.bin.envs === 'function') {
+    try {
+      return clonePlainObject(kernel.bin.envs(baseEnv))
+    } catch (_) {}
+  }
+  return baseEnv
+}
+
+function createFallbackStateSnapshot(kernel) {
+  const env = createRuntimeEnvSnapshot(kernel)
+  if (Object.keys(env).length === 0) {
+    return null
+  }
+  return {
+    state: 'snapshot',
+    id: 'runtime-environment',
+    group: 'system',
+    env,
+    path: kernel && kernel.homedir,
+    cmd: 'pinokio environment snapshot',
+    done: true,
+    ready: true
+  }
+}
+
 function createCurrentLogSnapshot(kernel, version) {
-  const states = kernel.shell.shells.map((s) => {
+  const liveShells = kernel && kernel.shell && Array.isArray(kernel.shell.shells)
+    ? kernel.shell.shells
+    : []
+  const states = liveShells.map((s) => {
     return {
       state: s.state,
       id: s.id,
@@ -34,6 +111,12 @@ function createCurrentLogSnapshot(kernel, version) {
       ready: s.ready,
     }
   })
+  if (states.length === 0) {
+    const fallbackState = createFallbackStateSnapshot(kernel)
+    if (fallbackState) {
+      states.push(fallbackState)
+    }
+  }
 
   const info = {
     platform: kernel.platform,
@@ -104,12 +187,45 @@ function normalizeLogRedactionOverrides(body = {}) {
   return overrides
 }
 
-async function assertCompleteLogRedactionOverrides(exportRoot, overrides = []) {
+function normalizeLogRedactionExclusions(body = {}) {
+  if (!body || !Object.prototype.hasOwnProperty.call(body, 'excluded_paths')) {
+    return []
+  }
+  const source = body.excluded_paths
+  if (!Array.isArray(source)) {
+    throw new Error('excluded_paths must be an array')
+  }
+  const exclusions = []
+  const seen = new Set()
+  for (const candidate of source) {
+    const relativePath = typeof candidate === 'string' ? candidate.trim() : ''
+    if (!isTopLevelRedactableLogPath(relativePath)) {
+      throw new Error(`Invalid excluded path: ${relativePath || '(empty)'}`)
+    }
+    if (seen.has(relativePath)) {
+      throw new Error(`Duplicate excluded path: ${relativePath}`)
+    }
+    seen.add(relativePath)
+    exclusions.push(relativePath)
+  }
+  return exclusions
+}
+
+async function assertCompleteLogRedactionOverrides(exportRoot, overrides = [], exclusions = [], options = {}) {
   const overridePaths = new Set((Array.isArray(overrides) ? overrides : []).map((override) => override && override.path).filter(Boolean))
+  const excludedPaths = new Set(Array.isArray(exclusions) ? exclusions.filter(Boolean) : [])
+  for (const excludedPath of excludedPaths) {
+    if (overridePaths.has(excludedPath)) {
+      throw new Error(`File cannot be both redacted and excluded: ${excludedPath}`)
+    }
+  }
+  if (options && options.requireComplete === false) {
+    return
+  }
   const missing = []
   const entries = await fs.promises.readdir(exportRoot, { withFileTypes: true })
   for (const entry of entries) {
-    if (entry.isFile() && isTopLevelRedactableLogPath(entry.name) && !overridePaths.has(entry.name)) {
+    if (entry.isFile() && isTopLevelRedactableLogPath(entry.name) && !overridePaths.has(entry.name) && !excludedPaths.has(entry.name)) {
       missing.push(entry.name)
     }
   }
@@ -117,6 +233,35 @@ async function assertCompleteLogRedactionOverrides(exportRoot, overrides = []) {
     missing.sort((a, b) => a.localeCompare(b))
     throw new Error(`Missing redaction override for top-level file${missing.length === 1 ? '' : 's'}: ${missing.join(', ')}`)
   }
+}
+
+async function applyLogRedactionExclusions(exportRoot, exclusions = []) {
+  if (!Array.isArray(exclusions) || exclusions.length === 0) {
+    return 0
+  }
+  let removed = 0
+  for (const relativePath of exclusions) {
+    if (!isTopLevelRedactableLogPath(relativePath)) {
+      throw new Error(`Invalid excluded path: ${relativePath || '(empty)'}`)
+    }
+    const target = path.resolve(exportRoot, relativePath)
+    const relative = path.relative(exportRoot, target)
+    if (!relative || relative.startsWith('..') || path.isAbsolute(relative) || relative.includes(path.sep)) {
+      throw new Error(`Invalid excluded path: ${relativePath}`)
+    }
+    let stats
+    try {
+      stats = await fs.promises.stat(target)
+    } catch (_) {
+      throw new Error(`Excluded path target not found: ${relativePath}`)
+    }
+    if (!stats.isFile()) {
+      throw new Error(`Excluded path target is not a file: ${relativePath}`)
+    }
+    await fs.promises.rm(target, { force: true })
+    removed += 1
+  }
+  return removed
 }
 
 async function applyLogRedactionOverrides(exportRoot, overrides = []) {
@@ -215,6 +360,7 @@ function createTopLevelLogFileHandler(server) {
       res.status(400).json({ error: 'Only top-level text log files can be read for redaction' })
       return
     }
+    const tailLines = normalizeTailLineCount(req.query.tail_lines || req.query.lines)
     let stats
     try {
       stats = await fs.promises.stat(descriptor.absolutePath)
@@ -226,7 +372,7 @@ function createTopLevelLogFileHandler(server) {
       res.status(400).json({ error: 'Path is not a file' })
       return
     }
-    if (stats.size > LOG_REDACTION_FILE_MAX_BYTES) {
+    if (stats.size > LOG_REDACTION_FILE_MAX_BYTES && !tailLines) {
       res.status(413).json({
         error: 'File is too large to redact in the browser',
         size: stats.size,
@@ -242,8 +388,14 @@ function createTopLevelLogFileHandler(server) {
       }
     } catch (_) {}
     let text
+    let tail = null
     try {
-      text = await fs.promises.readFile(descriptor.absolutePath, 'utf8')
+      if (tailLines) {
+        tail = await readTailTextFile(descriptor.absolutePath, stats, tailLines)
+        text = tail.text
+      } else {
+        text = await fs.promises.readFile(descriptor.absolutePath, 'utf8')
+      }
     } catch (error) {
       res.status(500).json({ error: 'Failed to read file', detail: error.message })
       return
@@ -254,6 +406,9 @@ function createTopLevelLogFileHandler(server) {
       name: path.basename(relativePath),
       size: stats.size,
       modified: stats.mtime,
+      tail_lines: tailLines || null,
+      truncated: tail ? tail.truncated : false,
+      included_lines: tail ? tail.included_lines : null,
       text
     })
   }
@@ -262,10 +417,13 @@ function createTopLevelLogFileHandler(server) {
 module.exports = {
   LOG_REDACTION_FILE_MAX_BYTES,
   isTopLevelRedactableLogPath,
+  normalizeTailLineCount,
   createCurrentLogSnapshot,
   writeCurrentLogSnapshot,
   normalizeLogRedactionOverrides,
+  normalizeLogRedactionExclusions,
   assertCompleteLogRedactionOverrides,
+  applyLogRedactionExclusions,
   applyLogRedactionOverrides,
   createLogRedactionBodyParser,
   createLogRedactionBodyParsers,

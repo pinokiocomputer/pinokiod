@@ -81,9 +81,31 @@ test("log redaction overrides apply only safe top-level text files", async (t) =
   assert.deepEqual(logRedaction.normalizeLogRedactionOverrides({
     redactedOverrides: [{ path: "system.json", text: "ignored" }]
   }), [])
+
+  assert.deepEqual(logRedaction.normalizeLogRedactionExclusions({
+    excluded_paths: ["system.json"]
+  }), ["system.json"])
+
+  assert.throws(() => {
+    logRedaction.normalizeLogRedactionExclusions({
+      excluded_paths: ["shell/run.log"]
+    })
+  }, /Invalid excluded path/)
+
+  assert.throws(() => {
+    logRedaction.normalizeLogRedactionExclusions({
+      excluded_paths: ["caddy.log"]
+    })
+  }, /Invalid excluded path/)
+
+  assert.throws(() => {
+    logRedaction.normalizeLogRedactionExclusions({
+      excluded_paths: ["system.json", "system.json"]
+    })
+  }, /Duplicate excluded path/)
 })
 
-test("reviewed log archives require every top-level redactable file override", async (t) => {
+test("reviewed log archives require every top-level redactable file handled", async (t) => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "pinokio-log-redaction-complete-"))
   t.after(() => fs.rm(root, { recursive: true, force: true }))
 
@@ -99,10 +121,19 @@ test("reviewed log archives require every top-level redactable file override", a
     text: '{"home":"[private_path]"}'
   }]), /Missing redaction override/)
 
-  await logRedaction.assertCompleteLogRedactionOverrides(root, [
+  const overrides = [{ path: "system.json", text: '{"home":"[private_path]"}' }]
+  const exclusions = ["stdout.txt"]
+  await logRedaction.assertCompleteLogRedactionOverrides(root, overrides, exclusions)
+  await assert.rejects(() => logRedaction.assertCompleteLogRedactionOverrides(root, [], exclusions), /Missing redaction override/)
+  await logRedaction.assertCompleteLogRedactionOverrides(root, [], exclusions, { requireComplete: false })
+  await assert.rejects(() => logRedaction.assertCompleteLogRedactionOverrides(root, [
     { path: "system.json", text: '{"home":"[private_path]"}' },
     { path: "stdout.txt", text: "raw" }
-  ])
+  ], exclusions), /both redacted and excluded/)
+
+  const removed = await logRedaction.applyLogRedactionExclusions(root, exclusions)
+  assert.equal(removed, 1)
+  await assert.rejects(() => fs.stat(path.join(root, "stdout.txt")), /ENOENT/)
 })
 
 test("current log snapshot writes top-level state and system files", async (t) => {
@@ -117,6 +148,7 @@ test("current log snapshot writes top-level state and system files", async (t) =
     arch: "arm64",
     api: { running: { app: true } },
     homedir: "/Users/alice",
+    envs: { PATH: "/usr/bin", PINOKIO_HOME: "/Users/alice/pinokio" },
     vars: { PINOKIO_HOME: "/Users/alice/pinokio" },
     memory: { total: 1 },
     procs: [{ pid: 1 }],
@@ -154,4 +186,54 @@ test("current log snapshot writes top-level state and system files", async (t) =
     done: false,
     ready: true
   }])
+})
+
+test("writeCurrentLogSnapshot includes env when no live shells exist", async (t) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "pinokio-log-snapshot-empty-shells-"))
+  t.after(() => fs.rm(root, { recursive: true, force: true }))
+  const previousOpenAiKey = process.env.OPENAI_API_KEY
+  process.env.OPENAI_API_KEY = "sk-test-openai-key"
+  t.after(() => {
+    if (typeof previousOpenAiKey === "undefined") {
+      delete process.env.OPENAI_API_KEY
+    } else {
+      process.env.OPENAI_API_KEY = previousOpenAiKey
+    }
+  })
+
+  const kernel = {
+    path(relativePath) {
+      return path.join(root, relativePath)
+    },
+    platform: "darwin",
+    arch: "arm64",
+    api: { running: {} },
+    homedir: "/Users/alice",
+    envs: { CONDARC: "/Users/alice/pinokio/condarc", PATH: "/usr/bin" },
+    vars: {},
+    memory: {},
+    procs: [],
+    gpu: null,
+    gpus: [],
+    sysinfo: {},
+    shell: { shells: [] },
+    bin: {
+      envs(env) {
+        return {
+          PATH: env.PATH,
+          CONDARC: env.CONDARC,
+          OPENAI_API_KEY: env.OPENAI_API_KEY
+        }
+      }
+    }
+  }
+
+  await logRedaction.writeCurrentLogSnapshot(kernel, "9.9.9")
+
+  const state = JSON.parse(await fs.readFile(path.join(root, "logs", "state.json"), "utf8"))
+  assert.equal(Array.isArray(state), true)
+  assert.equal(state.length, 1)
+  assert.equal(state[0].state, "snapshot")
+  assert.equal(state[0].id, "runtime-environment")
+  assert.deepEqual(state[0].env, { PATH: "/usr/bin", CONDARC: "/Users/alice/pinokio/condarc", OPENAI_API_KEY: "sk-test-openai-key" })
 })

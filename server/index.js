@@ -15991,12 +15991,21 @@ class Server {
         }
         return
       }
-      const redactionOverridesRequested = Boolean(req.body && Object.prototype.hasOwnProperty.call(req.body, 'redacted_overrides'))
+      const reviewedArchiveRequested = Boolean(req.body && (
+        Object.prototype.hasOwnProperty.call(req.body, 'redacted_overrides') ||
+        Object.prototype.hasOwnProperty.call(req.body, 'excluded_paths')
+      ))
+      const allowPartialOverrides = Boolean(req.body && (
+        req.body.allow_partial_overrides === true ||
+        req.body.allow_partial_overrides === 'true'
+      ))
       let redactionOverrides = []
+      let redactionExclusions = []
       try {
         redactionOverrides = logRedaction.normalizeLogRedactionOverrides(req.body || {})
+        redactionExclusions = logRedaction.normalizeLogRedactionExclusions(req.body || {})
       } catch (error) {
-        res.status(400).json({ error: error && error.message ? error.message : 'Invalid redaction overrides' })
+        res.status(400).json({ error: error && error.message ? error.message : 'Invalid redaction request' })
         return
       }
 
@@ -16014,22 +16023,26 @@ class Server {
 
       let folder = this.kernel.path("exported_logs")
       let zipPath = this.kernel.path("logs.zip")
-      if (redactionOverridesRequested) {
+      if (reviewedArchiveRequested) {
         await fs.promises.rm(zipPath, { force: true }).catch(() => {})
       }
       let appliedRedactionOverrides = 0
+      let appliedRedactionExclusions = 0
       try {
-        if (redactionOverridesRequested) {
-          await logRedaction.assertCompleteLogRedactionOverrides(folder, redactionOverrides)
+        if (reviewedArchiveRequested) {
+          await logRedaction.assertCompleteLogRedactionOverrides(folder, redactionOverrides, redactionExclusions, {
+            requireComplete: !allowPartialOverrides
+          })
         }
+        appliedRedactionExclusions = await logRedaction.applyLogRedactionExclusions(folder, redactionExclusions)
         appliedRedactionOverrides = await logRedaction.applyLogRedactionOverrides(folder, redactionOverrides)
       } catch (error) {
-        res.status(400).json({ error: error && error.message ? error.message : 'Failed to apply redaction overrides' })
+        res.status(400).json({ error: error && error.message ? error.message : 'Failed to apply redaction request' })
         return
       }
       await fs.promises.rm(zipPath, { force: true }).catch(() => {})
       await compressing.zip.compressDir(folder, zipPath)
-      res.json({ success: true, download: '/pinokio/logs.zip', redacted_overrides: appliedRedactionOverrides })
+      res.json({ success: true, download: '/pinokio/logs.zip', redacted_overrides: appliedRedactionOverrides, excluded_paths: appliedRedactionExclusions })
     }))
     this.app.get("/pinokio/version", ex(async (req, res) => {
       let version = this.version

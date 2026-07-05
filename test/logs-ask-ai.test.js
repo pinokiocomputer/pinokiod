@@ -163,16 +163,8 @@ function createRawLogsHtml(topRedactionScript, script) {
     <html>
       <body>
         <section id="logs-root">
-          <div class="logs-page-header">
-            <div data-logs-actions="raw">
-              <button id="logs-redact-top-level" type="button">Redact</button>
-              <button id="logs-redaction-chip" type="button" class="hidden"><span>Not run</span></button>
-              <button id="logs-generate-archive" type="button">Generate zip</button>
-              <a id="logs-download-archive"></a>
-              <div id="logs-zip-status"></div>
-            </div>
-          </div>
           <section id="logs-raw-panel">
+            <button id="logs-open-log-report" type="button" aria-expanded="false">Generate log report</button>
             <div id="logs-tree"></div>
             <div id="logs-viewer-output"></div>
             <div id="logs-viewer-status"></div>
@@ -186,6 +178,11 @@ function createRawLogsHtml(topRedactionScript, script) {
               <div id="logs-top-redaction-files"></div>
               <div id="logs-top-redaction-filters"></div>
               <div id="logs-top-redaction-list"></div>
+              <button id="logs-refresh-tree" type="button">Refresh files</button>
+              <button id="logs-redact-top-level" type="button">Redact report</button>
+              <button id="logs-generate-archive" type="button">Generate zip</button>
+              <a id="logs-download-archive"></a>
+              <div id="logs-zip-status"></div>
             </aside>
           </section>
           <section id="logs-latest-panel"></section>
@@ -203,11 +200,12 @@ function createRawLogsHtml(topRedactionScript, script) {
     </html>`
 }
 
-async function createRawLogsDom() {
+async function createRawLogsDom(options = {}) {
   const script = await fs.readFile(logsScriptPath, "utf8")
   const topRedactionScript = await fs.readFile(logsTopRedactionScriptPath, "utf8")
   const archiveRequests = []
-  const files = {
+  const fileRequests = []
+  const files = options.files || {
     "system.json": '{ "home": "/Users/alice", "token": "sk-proj-123456789012345678901234" }',
     "stdout.txt": 'Started from /Users/alice/pinokio with token sk-proj-abcdefghijklmnopqrstuvwx',
     "caddy.log": '127.0.0.1 request token sk-proj-caddyshouldnotbesent',
@@ -288,11 +286,19 @@ async function createRawLogsDom() {
         }
         if (parsed.pathname === "/pinokio/logs/file") {
           const filePath = parsed.searchParams.get("path")
+          const tailLines = parsed.searchParams.get("tail_lines")
+          fileRequests.push({ path: filePath, tail_lines: tailLines })
+          let text = files[filePath] || ""
+          if (tailLines) {
+            text = text.split(/\r?\n/).slice(-Number(tailLines)).join("\n")
+          }
           return jsonResponse({
             path: filePath,
             name: filePath,
             size: Buffer.byteLength(files[filePath] || ""),
-            text: files[filePath] || ""
+            text,
+            tail_lines: tailLines || null,
+            truncated: Boolean(tailLines)
           })
         }
         if (parsed.pathname === "/pinokio/log") {
@@ -301,7 +307,8 @@ async function createRawLogsDom() {
           return jsonResponse({
             success: true,
             download: "/pinokio/logs.zip",
-            redacted_overrides: Array.isArray(body.redacted_overrides) ? body.redacted_overrides.length : 0
+            redacted_overrides: Array.isArray(body.redacted_overrides) ? body.redacted_overrides.length : 0,
+            excluded_paths: Array.isArray(body.excluded_paths) ? body.excluded_paths.length : 0
           })
         }
         return jsonResponse({})
@@ -311,7 +318,7 @@ async function createRawLogsDom() {
 
   const { window } = dom
   await new Promise((resolve) => window.addEventListener("DOMContentLoaded", resolve, { once: true }))
-  return { dom, archiveRequests }
+  return { dom, archiveRequests, fileRequests }
 }
 
 async function waitFor(predicate, message = "condition") {
@@ -462,12 +469,11 @@ test("raw logs redaction sends reviewed top-level overrides when generating zip"
   const { document } = dom.window
 
   document.getElementById("logs-redact-top-level").click()
-  assert.equal(document.getElementById("logs-generate-archive").disabled, true)
 
   await waitFor(() => {
     return !document.getElementById("logs-top-redaction-pane").classList.contains("hidden") &&
       document.getElementById("logs-viewer-output").textContent.includes("[private_path]") &&
-      document.getElementById("logs-redaction-chip").textContent.includes("Redacted")
+      document.getElementById("logs-top-redaction-count").textContent.includes("masked")
   }, "top-level redaction review")
 
   assert.match(document.getElementById("logs-top-redaction-list").textContent, /private_key/)
@@ -478,7 +484,8 @@ test("raw logs redaction sends reviewed top-level overrides when generating zip"
   document.getElementById("logs-generate-archive").click()
 
   await waitFor(() => archiveRequests.length === 1, "archive request")
-  await waitFor(() => /reviewed files/.test(document.getElementById("logs-zip-status").textContent), "archive ready status")
+  await waitFor(() => /selected files/.test(document.getElementById("logs-zip-status").textContent), "archive ready status")
+  assert.equal(archiveRequests[0].require_complete_overrides, true)
   const overrides = archiveRequests[0].redacted_overrides
   assert.equal(Array.isArray(overrides), true)
   assert.deepEqual(overrides.map((entry) => entry.path).sort(), ["stdout.txt", "system.json"])
@@ -488,4 +495,137 @@ test("raw logs redaction sends reviewed top-level overrides when generating zip"
   assert.match(systemOverride.text, /\[private_key\]/)
   assert.equal(systemOverride.text.includes("/Users/alice"), false)
   assert.equal(systemOverride.text.includes("sk-proj-123456789012345678901234"), false)
+})
+
+test("raw log report drawer opens with file choices before redaction", async () => {
+  const { dom, archiveRequests } = await createRawLogsDom()
+  const { document } = dom.window
+
+  document.getElementById("logs-open-log-report").click()
+
+  await waitFor(() => {
+    return !document.getElementById("logs-top-redaction-pane").classList.contains("hidden") &&
+      document.getElementById("logs-top-redaction-files").textContent.includes("system.json") &&
+      document.getElementById("logs-top-redaction-files").textContent.includes("stdout.txt")
+  }, "pre-redaction file plan")
+
+  assert.match(document.getElementById("logs-top-redaction-status").textContent, /original logs/)
+  assert.match(document.getElementById("logs-top-redaction-count").textContent, /2 selected/)
+  assert.match(document.getElementById("logs-top-redaction-list").textContent, /Run Redact report/)
+  assert.equal(document.getElementById("logs-top-redaction-files").textContent.includes("caddy.log"), false)
+  assert.equal(document.getElementById("logs-generate-archive").disabled, false)
+  assert.equal(archiveRequests.length, 0)
+
+  document.getElementById("logs-generate-archive").click()
+
+  await waitFor(() => archiveRequests.length === 1, "unredacted archive request")
+  assert.deepEqual(archiveRequests[0], {})
+  await waitFor(() => /original logs/.test(document.getElementById("logs-zip-status").textContent), "original archive status")
+})
+
+test("raw log report applies excluded files before redaction", async () => {
+  const systemLog = Array.from({ length: 600 }, (_, index) => `system line ${index}`).join("\n")
+  const { dom, archiveRequests, fileRequests } = await createRawLogsDom({
+    files: {
+      "system.json": systemLog,
+      "state.json": JSON.stringify([{
+        state: "snapshot",
+        id: "runtime-environment",
+        group: "system",
+        env: { PATH: "/usr/bin", PINOKIO_HOME: "/Users/alice/pinokio" },
+        path: "/Users/alice/pinokio",
+        cmd: "pinokio environment snapshot",
+        done: true,
+        ready: true
+      }], null, 2),
+      "stdout.txt": 'Started from /Users/alice/pinokio'
+    }
+  })
+  const { document, Event } = dom.window
+
+  document.getElementById("logs-open-log-report").click()
+
+  await waitFor(() => {
+    return document.getElementById("logs-top-redaction-files").textContent.includes("state.json")
+  }, "pre-redaction file choices")
+
+  const stateMode = document.querySelector('select[aria-label="Report handling for state.json"]')
+  assert.ok(stateMode)
+  stateMode.value = "exclude"
+  stateMode.dispatchEvent(new Event("change", { bubbles: true }))
+  const systemMode = document.querySelector('select[aria-label="Report handling for system.json"]')
+  assert.ok(systemMode)
+  systemMode.value = "tail-500"
+  systemMode.dispatchEvent(new Event("change", { bubbles: true }))
+
+  document.getElementById("logs-generate-archive").click()
+
+  await waitFor(() => archiveRequests.length === 1, "configured archive request")
+  assert.equal(archiveRequests[0].allow_partial_overrides, true)
+  assert.deepEqual(archiveRequests[0].excluded_paths, ["state.json"])
+  assert.deepEqual(archiveRequests[0].redacted_overrides.map((entry) => entry.path), ["system.json"])
+  const systemRequest = fileRequests.find((request) => request.path === "system.json")
+  assert.ok(systemRequest)
+  assert.equal(systemRequest.tail_lines, "500")
+  const systemOverride = archiveRequests[0].redacted_overrides.find((entry) => entry.path === "system.json")
+  assert.match(systemOverride.text, /system line 599/)
+  assert.equal(systemOverride.text.includes("system line 0"), false)
+  assert.equal(JSON.stringify(archiveRequests[0]).includes("state.json excluded"), false)
+})
+
+test("raw log report uses tail mode for oversized top-level files", async () => {
+  const filler = "x".repeat(1100)
+  const bigStdout = [
+    ...Array.from({ length: 2100 }, (_, index) => `line ${index} ${filler}`),
+    "tail token sk-proj-tailtoken1234567890 from /Users/alice/pinokio"
+  ].join("\n")
+  const { dom, fileRequests } = await createRawLogsDom({
+    files: {
+      "system.json": '{ "home": "/Users/alice" }',
+      "stdout.txt": bigStdout,
+      "fatal.json": '{"error":"none"}'
+    }
+  })
+  const { document } = dom.window
+
+  document.getElementById("logs-open-log-report").click()
+
+  await waitFor(() => {
+    return document.getElementById("logs-top-redaction-files").textContent.includes("Too large") &&
+      document.getElementById("logs-top-redaction-files").textContent.includes("Redact last 2000 lines")
+  }, "oversized tail file choice")
+
+  document.getElementById("logs-redact-top-level").click()
+
+  await waitFor(() => document.getElementById("logs-top-redaction-list").textContent.includes("private_key"), "tail redaction review")
+  const stdoutRequest = fileRequests.find((request) => request.path === "stdout.txt")
+  assert.ok(stdoutRequest)
+  assert.equal(stdoutRequest.tail_lines, "2000")
+})
+
+test("raw log report excludes selected files from reviewed zip", async () => {
+  const { dom, archiveRequests } = await createRawLogsDom()
+  const { document, Event } = dom.window
+
+  document.getElementById("logs-open-log-report").click()
+
+  await waitFor(() => {
+    return document.getElementById("logs-top-redaction-files").textContent.includes("stdout.txt")
+  }, "pre-redaction file choices")
+
+  const stdoutMode = document.querySelector('select[aria-label="Report handling for stdout.txt"]')
+  assert.ok(stdoutMode)
+  stdoutMode.value = "exclude"
+  stdoutMode.dispatchEvent(new Event("change", { bubbles: true }))
+
+  document.getElementById("logs-redact-top-level").click()
+
+  await waitFor(() => document.getElementById("logs-top-redaction-status").textContent.includes("Report redacted"), "redaction complete")
+  document.getElementById("logs-generate-archive").click()
+
+  await waitFor(() => archiveRequests.length === 1, "archive request")
+  assert.equal(archiveRequests[0].require_complete_overrides, true)
+  assert.deepEqual(archiveRequests[0].excluded_paths, ["stdout.txt"])
+  assert.deepEqual(archiveRequests[0].redacted_overrides.map((entry) => entry.path), ["system.json"])
+  assert.equal(JSON.stringify(archiveRequests[0]).includes("stdout.txt excluded"), false)
 })
