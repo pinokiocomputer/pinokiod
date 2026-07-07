@@ -999,6 +999,9 @@ body.dark .home-server-popover__qr-close:focus-visible {
   const render = (data) => {
     const status = data && data.status ? data.status : "off"
     setStatus(status)
+    document.dispatchEvent(new CustomEvent("pinokio:home-server-status", {
+      detail: { status, payload: data || { status } }
+    }))
     if (!panel) {
       return
     }

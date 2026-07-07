@@ -21,9 +21,29 @@ test('main sidebar moves Home Server under Configure', async () => {
   assert.ok(configureIndex < homeServerIndex)
   assert.ok(homeServerIndex < autolaunchIndex)
   assert.match(source, /href="\/network"[\s\S]*Home Server/)
+  assert.match(source, /data-main-sidebar-home-server-tab/)
+  assert.match(source, /data-main-sidebar-home-server-status/)
+  assert.match(source, /fetch\("\/info\/home-server", \{ cache: "no-store" \}\)/)
+  assert.match(source, /status === "on" \? "on" : "off"/)
   assert.doesNotMatch(source, /aria-label="Computer"/)
   assert.doesNotMatch(source, />This machine</)
   assert.doesNotMatch(source, />Local network</)
+})
+
+test('main sidebar styles the Home Server ON/OFF badge in the tab status column', async () => {
+  const style = await fs.readFile(path.resolve(__dirname, '..', 'server', 'public', 'style.css'), 'utf8')
+  const badgeRule = style.match(/\.main-sidebar \.main-sidebar-status-badge \{[\s\S]*?\n\}/)?.[0] || ''
+  const darkBadgeRule = style.match(/body\.dark \.main-sidebar \.main-sidebar-status-badge \{[\s\S]*?\n\}/)?.[0] || ''
+
+  assert.match(style, /\.main-sidebar \.main-sidebar-status-badge \{/)
+  assert.match(style, /grid-column:\s*3/)
+  assert.match(style, /\.main-sidebar \.main-sidebar-status-badge\[hidden\]/)
+  assert.match(style, /\.main-sidebar \.main-sidebar-status-badge\[data-state="on"\]/)
+  assert.match(style, /body\.dark \.main-sidebar \.main-sidebar-status-badge\[data-state="on"\]/)
+  assert.match(badgeRule, /background:\s*rgba\(15,\s*23,\s*42,\s*0\.07\)/)
+  assert.match(darkBadgeRule, /background:\s*rgba\(255,\s*255,\s*255,\s*0\.08\)/)
+  assert.doesNotMatch(`${badgeRule}\n${darkBadgeRule}`, /rgba\(207,\s*69,\s*69,\s*0\.12\)/)
+  assert.doesNotMatch(`${badgeRule}\n${darkBadgeRule}`, /#fca5a5/)
 })
 
 test('main sidebar no longer renders peer rows or phone access modal', async () => {

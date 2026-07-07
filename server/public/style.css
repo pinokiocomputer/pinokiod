@@ -1530,6 +1530,40 @@ body.main-sidebar-page aside.main-sidebar .tab.selected .main-sidebar-action-ico
   white-space: nowrap;
   word-wrap: normal !important;
 }
+.main-sidebar .main-sidebar-status-badge {
+  grid-column: 3;
+  justify-self: end;
+  min-width: 28px;
+  height: 15px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.07);
+  color: rgba(31, 41, 55, 0.6);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.main-sidebar .main-sidebar-status-badge[hidden] {
+  display: none !important;
+}
+.main-sidebar .main-sidebar-status-badge[data-state="on"] {
+  background: rgba(45, 180, 92, 0.14);
+  color: #247a43;
+}
+body.dark .main-sidebar .main-sidebar-status-badge {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(229, 231, 235, 0.68);
+}
+body.dark .main-sidebar .main-sidebar-status-badge[data-state="on"] {
+  background: rgba(74, 222, 128, 0.14);
+  color: #86efac;
+}
 .main-sidebar .tab.submenu {
   padding-left: 14px !important;
 }

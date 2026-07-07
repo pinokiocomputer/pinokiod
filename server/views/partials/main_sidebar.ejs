@@ -35,7 +35,7 @@
 
     <div class='main-sidebar-section' aria-label="Configure">
       <div class="main-sidebar-section-title">Configure</div>
-      <a href="/network" class="tab <%= sidebarSelected === 'network' ? 'selected' : '' %>"><i class="fa-solid fa-wifi"></i><div class='caption'>Home Server</div></a>
+      <a href="/network" class="tab <%= sidebarSelected === 'network' ? 'selected' : '' %>" data-main-sidebar-home-server-tab><i class="fa-solid fa-wifi"></i><div class='caption'>Home Server</div><span class="main-sidebar-status-badge" data-main-sidebar-home-server-status aria-hidden="true" hidden></span></a>
       <a class="tab <%= sidebarSelected === 'autolaunch' ? 'selected' : '' %>" href="/autolaunch"><i class="fa-solid fa-power-off"></i><div class='caption'>Autolaunch</div></a>
       <a href="/connect" class="tab <%= sidebarSelected === 'connect' ? 'selected' : '' %>"><i class="fa-solid fa-plug"></i><div class='caption'>Login</div></a>
       <a class="tab <%= sidebarSelected === 'settings' ? 'selected' : '' %>" href="/home?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
@@ -49,6 +49,51 @@
     const headerToggle = document.getElementById("minimize-header");
     const sidebar = document.getElementById("main-sidebar");
     const peekTrigger = document.querySelector("[data-main-sidebar-peek-trigger]");
+
+    const initHomeServerStatusBadge = () => {
+      if (!sidebar || window.__pinokioMainSidebarHomeServerStatusInit) return;
+      const homeServerTab = sidebar.querySelector("[data-main-sidebar-home-server-tab]");
+      const homeServerBadge = sidebar.querySelector("[data-main-sidebar-home-server-status]");
+      if (!homeServerTab || !homeServerBadge) return;
+
+      window.__pinokioMainSidebarHomeServerStatusInit = true;
+
+      const renderHomeServerStatus = (data) => {
+        const status = data && data.status ? String(data.status) : "off";
+        const badgeState = status === "on" ? "on" : "off";
+        const label = badgeState === "on" ? "ON" : "OFF";
+        homeServerBadge.textContent = label;
+        homeServerBadge.hidden = false;
+        homeServerBadge.dataset.state = badgeState;
+        homeServerTab.dataset.homeServerStatus = badgeState;
+        homeServerTab.setAttribute("aria-label", `Home Server, ${label}`);
+        homeServerTab.setAttribute("title", `Home Server ${label}`);
+      };
+
+      document.addEventListener("pinokio:home-server-status", (event) => {
+        const detail = event && event.detail ? event.detail : {};
+        renderHomeServerStatus(detail.payload || detail);
+      });
+
+      fetch("/info/home-server", { cache: "no-store" })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Home Server status failed: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(renderHomeServerStatus)
+        .catch(() => {
+          homeServerBadge.hidden = true;
+          delete homeServerBadge.dataset.state;
+          delete homeServerTab.dataset.homeServerStatus;
+          homeServerTab.removeAttribute("aria-label");
+          homeServerTab.removeAttribute("title");
+        });
+    };
+
+    initHomeServerStatusBadge();
+
     if (body && sidebar && headerToggle && !headerToggle.dataset.mainSidebarHeaderToggle) {
       headerToggle.dataset.mainSidebarHeaderToggle = "true";
       headerToggle.classList.add("sidebar-toggle", "main-sidebar-header-toggle");
