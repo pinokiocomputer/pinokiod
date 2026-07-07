@@ -190,6 +190,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   <h1>
     <a class='home' href="/home"><img class='icon' src="/pinokio-black.png"></a>
     <%=filepath%>
+    <div class='flexible'></div>
+    <%- include('partials/home_server_popover') %>
   </h1>
   <div class='runner'>
     <div id='save' class='btn disabled'>
@@ -198,6 +200,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> Open in File Explorer</button>
   </div>
   </header>
+  <%- include('partials/home_server_popover_assets') %>
   <div class='containers'>
     <main>
       <div id='editor'><%=content%></div>

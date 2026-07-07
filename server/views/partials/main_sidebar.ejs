@@ -1,35 +1,5 @@
 <%
   const sidebarSelected = (typeof selected !== "undefined" && selected) ? String(selected) : "";
-  const sidebarList = (typeof list !== "undefined" && Array.isArray(list)) ? list : [];
-  const sidebarCurrentHost = (typeof current_host !== "undefined" && current_host) ? current_host : "";
-  const sidebarSelectedNetName = (typeof selectedNetName !== "undefined" && selectedNetName) ? String(selectedNetName) : "";
-  const sidebarShowPeerAccess = typeof showPeerAccess === "boolean" ? showPeerAccess : true;
-  const sidebarPeerSourcePoints = Array.isArray(typeof peer_access_points !== "undefined" ? peer_access_points : null) ? peer_access_points : [];
-  const sidebarPeerAccessPoints = sidebarPeerSourcePoints
-    .filter((point) => point && point.url)
-    .map((point) => {
-      const url = String(point.url);
-      return {
-        url,
-        qr: point.qr ? String(point.qr) : `/qr?data=${encodeURIComponent(url)}&s=4&m=0`,
-        scope_label: point.scope_label ? String(point.scope_label) : "",
-      };
-    });
-  const sidebarPeerAccessRouterInstalled = typeof peer_access_router_installed === "boolean" ? peer_access_router_installed : true;
-  if (
-    sidebarPeerAccessPoints.length === 0 &&
-    typeof peer_qr !== "undefined" && peer_qr &&
-    typeof peer_url !== "undefined" && peer_url
-  ) {
-    sidebarPeerAccessPoints.push({
-      url: String(peer_url),
-      qr: String(peer_qr),
-      scope_label: "",
-    });
-  }
-  const sidebarShowPhoneAccess = sidebarShowPeerAccess && sidebarPeerAccessPoints.length > 0;
-  const sidebarPhoneAccessNeedsSetup = sidebarShowPhoneAccess && !sidebarPeerAccessRouterInstalled;
-  const brands = { win32: "windows", darwin: "apple", linux: "Linux" };
 %>
 <button type="button" class="main-sidebar-mobile-toggle" data-main-sidebar-toggle aria-label="Open navigation" aria-expanded="false">
   <i class="fa-solid fa-bars" aria-hidden="true"></i>
@@ -53,23 +23,6 @@
       </button>
     </div>
 
-    <div class='main-sidebar-section' aria-label="Computer">
-      <div class="main-sidebar-section-title">Computer</div>
-      <a href="/home" class="tab <%= sidebarSelected === 'home' ? 'selected' : '' %>"><i class='fas fa-laptop-code'></i><div class='caption'>This machine</div></a>
-      <a href="/network" class="tab <%= sidebarSelected === 'network' ? 'selected' : '' %>"><i class="fa-solid fa-wifi"></i><div class='caption'>Local network</div></a>
-      <% if (sidebarList.length > 0) { %>
-        <% sidebarList.forEach(({ host, name, platform }) => { %>
-          <% const selectedNet = sidebarSelectedNetName && String(name || "") === sidebarSelectedNetName; %>
-          <a href="/net/<%=name%>" class="submenu tab <%= selectedNet ? 'selected' : '' %>"><i class="fa-brands fa-<%=brands[platform]%>"></i><div class='caption'><%=name%> (<%=sidebarCurrentHost === host ? 'this machine' : host%>)</div></a>
-        <% }) %>
-      <% } %>
-      <% if (sidebarShowPhoneAccess) { %>
-        <button type="button" class="tab main-sidebar-phone-trigger" data-peer-access-open aria-haspopup="dialog" aria-controls="main-sidebar-peer-dialog" aria-expanded="false">
-          <i class="fa-solid fa-mobile-screen-button"></i><div class='caption'>Phone</div>
-        </button>
-      <% } %>
-    </div>
-
     <div class='main-sidebar-section' aria-label="Manage">
       <div class="main-sidebar-section-title">Manage</div>
       <a class="tab <%= sidebarSelected === 'checkpoints' ? 'selected' : '' %>" href="/checkpoints"><i class="fa-solid fa-clock-rotate-left"></i><div class='caption'>Checkpoints</div></a>
@@ -82,74 +35,13 @@
 
     <div class='main-sidebar-section' aria-label="Configure">
       <div class="main-sidebar-section-title">Configure</div>
+      <a href="/network" class="tab <%= sidebarSelected === 'network' ? 'selected' : '' %>"><i class="fa-solid fa-wifi"></i><div class='caption'>Home Server</div></a>
       <a class="tab <%= sidebarSelected === 'autolaunch' ? 'selected' : '' %>" href="/autolaunch"><i class="fa-solid fa-power-off"></i><div class='caption'>Autolaunch</div></a>
       <a href="/connect" class="tab <%= sidebarSelected === 'connect' ? 'selected' : '' %>"><i class="fa-solid fa-plug"></i><div class='caption'>Login</div></a>
       <a class="tab <%= sidebarSelected === 'settings' ? 'selected' : '' %>" href="/home?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
     </div>
   </nav>
 </aside>
-<% if (sidebarShowPhoneAccess) { %>
-  <div class="main-sidebar-peer-dialog" data-peer-access-modal hidden>
-    <button type="button" class="main-sidebar-peer-dialog-backdrop" data-peer-access-close aria-label="Close phone popup" tabindex="-1"></button>
-    <section class="main-sidebar-peer-dialog-surface" id="main-sidebar-peer-dialog" role="dialog" aria-modal="true" aria-labelledby="main-sidebar-peer-dialog-title">
-      <div class="main-sidebar-peer-dialog-header">
-        <div class="main-sidebar-peer-dialog-icon" aria-hidden="true">
-          <i class="fa-solid fa-mobile-screen-button"></i>
-        </div>
-        <div class="main-sidebar-peer-dialog-heading">
-          <div class="main-sidebar-peer-dialog-title" id="main-sidebar-peer-dialog-title"><%= sidebarPhoneAccessNeedsSetup ? 'Set up local access' : 'Open from another device' %></div>
-          <div class="main-sidebar-peer-dialog-subtitle"><%= sidebarPhoneAccessNeedsSetup ? 'Same network only' : 'Same Wi-Fi/LAN only' %></div>
-        </div>
-        <button type="button" class="main-sidebar-peer-dialog-close" data-peer-access-close aria-label="Close phone popup">
-          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-        </button>
-      </div>
-      <% if (!sidebarPhoneAccessNeedsSetup && sidebarPeerAccessPoints.length > 1) { %>
-        <div class="main-sidebar-peer-dialog-tabs" role="tablist" aria-label="Phone connection options">
-          <% sidebarPeerAccessPoints.forEach((point, index) => { %>
-            <% const tabLabel = point.scope_label || `Option ${index + 1}`; %>
-            <button type="button" class="main-sidebar-peer-dialog-tab <%= index === 0 ? 'is-active' : '' %>" data-peer-access-tab data-peer-access-index="<%= index %>" role="tab" aria-selected="<%= index === 0 ? 'true' : 'false' %>" aria-controls="main-sidebar-peer-panel-<%= index %>" tabindex="<%= index === 0 ? '0' : '-1' %>"><%= tabLabel %></button>
-          <% }) %>
-        </div>
-      <% } %>
-      <div class="main-sidebar-peer-dialog-body">
-        <% if (sidebarPhoneAccessNeedsSetup) { %>
-          <div class="main-sidebar-peer-setup">
-            <p class="main-sidebar-peer-setup-copy">To open Pinokio from another device on this network, set up local access first.</p>
-            <div class="main-sidebar-peer-setup-actions">
-              <a class="main-sidebar-peer-setup-primary" href="/setup/network" data-peer-access-setup>
-                Set up local access
-              </a>
-              <button type="button" class="main-sidebar-peer-setup-secondary" data-peer-access-close>
-                Cancel
-              </button>
-            </div>
-          </div>
-        <% } else { %>
-          <% sidebarPeerAccessPoints.forEach((point, index) => { %>
-            <div class="main-sidebar-peer-dialog-panel <%= index === 0 ? 'is-active' : '' %>" id="main-sidebar-peer-panel-<%= index %>" data-peer-access-panel data-peer-access-index="<%= index %>" role="tabpanel" <%= index === 0 ? '' : 'hidden' %>>
-              <a class="main-sidebar-peer-qr-link" href="<%= point.url %>" target="_blank" rel="noreferrer">
-                <img class="main-sidebar-peer-qr-image" src="<%= point.qr %>" alt="QR code for <%= point.url %>"/>
-              </a>
-              <div class="main-sidebar-peer-caption">
-                Scan with a device on the same local network
-              </div>
-              <div class="main-sidebar-peer-local-note">
-                This link is not public and will not work outside this network.
-              </div>
-              <div class="main-sidebar-peer-url-row">
-                <a class="main-sidebar-peer-url" href="<%= point.url %>" target="_blank" rel="noreferrer"><%= point.url %></a>
-                <button type="button" class="main-sidebar-peer-copy" data-peer-access-copy data-peer-access-url="<%= point.url %>" aria-label="Copy phone URL" title="Copy URL">
-                  <i class="fa-regular fa-copy" aria-hidden="true"></i>
-                </button>
-              </div>
-            </div>
-          <% }) %>
-        <% } %>
-      </div>
-    </section>
-  </div>
-<% } %>
 <script>
   (() => {
     const body = document.body;
@@ -303,118 +195,6 @@
         isCollapsed,
         isPeeking
       };
-    }
-
-    if (window.__pinokioPeerAccessModalInit) return;
-    window.__pinokioPeerAccessModalInit = true;
-
-    const peerAccessTrigger = document.querySelector("[data-peer-access-open]");
-    const peerAccessModal = document.querySelector("[data-peer-access-modal]");
-    if (body && peerAccessTrigger && peerAccessModal) {
-      const peerAccessCloseButtons = peerAccessModal.querySelectorAll("[data-peer-access-close]");
-      const peerAccessTabs = peerAccessModal.querySelectorAll("[data-peer-access-tab]");
-      const peerAccessPanels = peerAccessModal.querySelectorAll("[data-peer-access-panel]");
-      const peerAccessCopyButtons = peerAccessModal.querySelectorAll("[data-peer-access-copy]");
-      const peerAccessSetupLinks = peerAccessModal.querySelectorAll("[data-peer-access-setup]");
-      const peerAccessFocusTarget = peerAccessModal.querySelector(".main-sidebar-peer-dialog-close");
-
-      const setPeerAccessOpen = (open) => {
-        const nextOpen = !!open;
-        peerAccessModal.hidden = !nextOpen;
-        body.classList.toggle("main-sidebar-peer-dialog-open", nextOpen);
-        peerAccessTrigger.setAttribute("aria-expanded", nextOpen ? "true" : "false");
-        if (nextOpen) {
-          window.requestAnimationFrame(() => {
-            if (peerAccessFocusTarget && typeof peerAccessFocusTarget.focus === "function") {
-              peerAccessFocusTarget.focus();
-            }
-          });
-        } else if (typeof peerAccessTrigger.focus === "function") {
-          peerAccessTrigger.focus();
-        }
-      };
-
-      const setPeerAccessPanel = (index) => {
-        const activeIndex = String(index);
-        peerAccessTabs.forEach((tab) => {
-          const active = tab.dataset.peerAccessIndex === activeIndex;
-          tab.classList.toggle("is-active", active);
-          tab.setAttribute("aria-selected", active ? "true" : "false");
-          tab.setAttribute("tabindex", active ? "0" : "-1");
-        });
-        peerAccessPanels.forEach((panel) => {
-          const active = panel.dataset.peerAccessIndex === activeIndex;
-          panel.hidden = !active;
-          panel.classList.toggle("is-active", active);
-        });
-      };
-
-      const copyText = async (text) => {
-        if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
-          await navigator.clipboard.writeText(text);
-          return;
-        }
-        const textarea = document.createElement("textarea");
-        textarea.value = text;
-        textarea.setAttribute("readonly", "");
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand("copy");
-        textarea.remove();
-      };
-
-      peerAccessTrigger.addEventListener("click", () => {
-        setPeerAccessOpen(peerAccessModal.hidden);
-      });
-
-      peerAccessCloseButtons.forEach((button) => {
-        button.addEventListener("click", () => setPeerAccessOpen(false));
-      });
-
-      peerAccessTabs.forEach((tab) => {
-        tab.addEventListener("click", () => setPeerAccessPanel(tab.dataset.peerAccessIndex || "0"));
-      });
-
-      peerAccessSetupLinks.forEach((link) => {
-        link.addEventListener("click", (event) => {
-          event.preventDefault();
-          const currentPath = `${window.location.pathname}${window.location.search}`;
-          window.location.href = `/setup/network?callback=${encodeURIComponent(currentPath || "/")}`;
-        });
-      });
-
-      peerAccessCopyButtons.forEach((button) => {
-        button.addEventListener("click", async () => {
-          const url = button.dataset.peerAccessUrl || "";
-          if (!url) return;
-          try {
-            await copyText(url);
-            const icon = button.querySelector("i");
-            button.setAttribute("aria-label", "Copied phone URL");
-            button.setAttribute("title", "Copied");
-            if (icon) {
-              icon.classList.remove("fa-regular", "fa-copy");
-              icon.classList.add("fa-solid", "fa-check");
-            }
-            window.setTimeout(() => {
-              button.setAttribute("aria-label", "Copy phone URL");
-              button.setAttribute("title", "Copy URL");
-              if (icon) {
-                icon.classList.remove("fa-solid", "fa-check");
-                icon.classList.add("fa-regular", "fa-copy");
-              }
-            }, 1200);
-          } catch (_) {}
-        });
-      });
-
-      document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && !peerAccessModal.hidden) {
-          setPeerAccessOpen(false);
-        }
-      });
     }
 
     if (window.__pinokioMainSidebarMobileInit) return;

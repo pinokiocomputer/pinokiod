@@ -9,6 +9,8 @@ const homeActionsSettingsHref = homeActionsAppId
     })
   }).toString()}`
   : ""
+const homeActionsShareReadyUrl = item && typeof item.ready_url === "string" ? item.ready_url : ""
+const homeActionsShareExternalReadyUrls = item && Array.isArray(item.external_ready_urls) ? item.external_ready_urls : []
 %>
 <dialog id='<%= id %>' class='home-actions-dialog' aria-labelledby='<%= id %>-title'>
   <div class='home-actions-shell'>
@@ -43,6 +45,26 @@ const homeActionsSettingsHref = homeActionsAppId
           <div class='home-actions-section-title' id='<%= id %>-run-title'>Run</div>
           <div class='home-run-menu-list'>
             <%- include('./home_run_menu', { menu: item.menu, app: item }) %>
+          </div>
+        </section>
+      <% } %>
+
+      <% if (item.running) { %>
+        <section class='home-actions-section' aria-labelledby='<%= id %>-share-title'>
+          <div class='home-actions-section-title' id='<%= id %>-share-title'>Share</div>
+          <div class='home-actions-command-list'>
+            <button
+              type='button'
+              class='home-mode-command home-share-app'
+              data-app-id='<%= homeActionsAppId %>'
+              data-app-name='<%= item.name %>'
+              data-app-ready-url='<%= homeActionsShareReadyUrl %>'
+              data-app-external-ready-urls='<%= JSON.stringify(homeActionsShareExternalReadyUrls) %>'
+            >
+              <i class='fa-solid fa-wifi' aria-hidden='true'></i>
+              <span>Open on another device</span>
+              <span class='home-actions-count'>Home Server</span>
+            </button>
           </div>
         </section>
       <% } %>

@@ -5,27 +5,37 @@ const test = require('node:test')
 
 const sidebarFile = path.resolve(__dirname, '..', 'server', 'views', 'partials', 'main_sidebar.ejs')
 
-test('main sidebar renders local network peers before phone access', async () => {
+test('main sidebar moves Home Server under Configure', async () => {
   const source = await fs.readFile(sidebarFile, 'utf8')
 
-  const localNetworkIndex = source.indexOf('Local network')
-  const peerListIndex = source.indexOf('sidebarList.forEach')
-  const phoneIndex = source.indexOf('main-sidebar-phone-trigger')
+  const manageIndex = source.indexOf('aria-label="Manage"')
+  const configureIndex = source.indexOf('aria-label="Configure"')
+  const homeServerIndex = source.indexOf('Home Server')
+  const autolaunchIndex = source.indexOf('Autolaunch')
 
-  assert.notEqual(localNetworkIndex, -1)
-  assert.notEqual(peerListIndex, -1)
-  assert.notEqual(phoneIndex, -1)
-  assert.ok(localNetworkIndex < peerListIndex)
-  assert.ok(peerListIndex < phoneIndex)
+  assert.notEqual(manageIndex, -1)
+  assert.notEqual(configureIndex, -1)
+  assert.notEqual(homeServerIndex, -1)
+  assert.notEqual(autolaunchIndex, -1)
+  assert.ok(manageIndex < configureIndex)
+  assert.ok(configureIndex < homeServerIndex)
+  assert.ok(homeServerIndex < autolaunchIndex)
+  assert.match(source, /href="\/network"[\s\S]*Home Server/)
+  assert.doesNotMatch(source, /aria-label="Computer"/)
+  assert.doesNotMatch(source, />This machine</)
+  assert.doesNotMatch(source, />Local network</)
 })
 
-test('main sidebar gates phone QR behind local access setup', async () => {
+test('main sidebar no longer renders peer rows or phone access modal', async () => {
   const source = await fs.readFile(sidebarFile, 'utf8')
+  const style = await fs.readFile(path.resolve(__dirname, '..', 'server', 'public', 'style.css'), 'utf8')
 
-  assert.match(source, /peer_access_router_installed/)
-  assert.match(source, /sidebarPhoneAccessNeedsSetup/)
-  assert.match(source, /Set up local access/)
-  assert.match(source, /\/setup\/network\?callback=/)
-  assert.match(source, /Scan with a device on the same local network/)
-  assert.match(source, /This link is not public and will not work outside this network/)
+  assert.doesNotMatch(source, /sidebarList\.forEach/)
+  assert.doesNotMatch(source, /href="\/net\//)
+  assert.doesNotMatch(source, /main-sidebar-phone-trigger/)
+  assert.doesNotMatch(source, /data-peer-access-open/)
+  assert.doesNotMatch(source, /data-peer-access-modal/)
+  assert.doesNotMatch(source, /sidebarPhoneAccessNeedsSetup/)
+  assert.doesNotMatch(source, /peer_access_router_installed/)
+  assert.doesNotMatch(style, /main-sidebar-peer/)
 })

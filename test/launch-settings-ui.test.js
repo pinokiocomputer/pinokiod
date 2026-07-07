@@ -4,6 +4,7 @@ const path = require("node:path")
 const test = require("node:test")
 const ejs = require("ejs")
 const { JSDOM } = require("jsdom")
+const Server = require("../server")
 
 const root = path.resolve(__dirname, "..")
 
@@ -413,6 +414,387 @@ test("home actions modal renders an app settings link", async () => {
     textValue: "Settings"
   })
   assert.match(html, />\s*Settings\s*</)
+})
+
+test("home exposes Home Server app sharing from row and action drawer", async () => {
+  const homeView = await fs.readFile(path.resolve(root, "server/views/index.ejs"), "utf8")
+  const homeActionModal = await fs.readFile(path.resolve(root, "server/views/partials/home_action_modal.ejs"), "utf8")
+  const server = await fs.readFile(path.resolve(root, "server/index.js"), "utf8")
+
+  assert.match(server, /ready_url: readyUrl/)
+  assert.match(server, /external_ready_urls: externalReadyUrls/)
+  assert.match(server, /this\.appRegistry\.buildExternalReadyUrls\(readyUrl\)/)
+  assert.match(server, /findHomeShareReadyUrlFromMenu\(menu = \[\]\)/)
+  assert.match(server, /readyUrl = this\.findHomeShareReadyUrlFromMenu\(x\.menu\)/)
+  assert.match(homeView, /class='btn home-icon-btn open-app-share-modal'/)
+  assert.match(homeView, /fa-solid fa-wifi/)
+  assert.match(homeView, /data-app-id="<%= item\.uri %>"/)
+  assert.match(homeView, /data-app-external-ready-urls="<%= JSON\.stringify\(runningShareExternalReadyUrls\) %>"/)
+  assert.match(homeView, /const requestHomeAppShareStatus = async \(appId = ""\) =>/)
+  assert.match(homeView, /fetch\(`\/apps\/status\/\$\{encodeURIComponent\(normalizedAppId\)\}`/)
+  assert.match(homeView, /updateHomeShareButtonStatus\(button, appStatus\)/)
+  assert.match(homeView, /const requestHomeNetworkSharingStatus = async \(\) =>/)
+  assert.match(homeView, /fetch\("\/info\/network-sharing", \{ cache: "no-store" \}\)/)
+  assert.match(homeView, /const homeShareTitleHtml = \(label\) =>/)
+  assert.match(homeView, /home-app-share-modal__title-icon/)
+  assert.match(homeView, /home-app-share-modal__title-meta/)
+  assert.match(homeView, /home-app-share-modal__scan-card/)
+  assert.match(homeView, /home-app-share-modal__share-card/)
+  assert.match(homeView, /Scan to open/)
+  assert.match(homeView, /title: homeShareTitleHtml\(title\)/)
+  assert.match(homeView, /Install Home Server support/)
+  assert.match(homeView, /Turn on Home Server/)
+  assert.match(homeView, /Home Server support is installed but turned off/)
+  assert.match(homeView, /Open Home Server settings/)
+  assert.doesNotMatch(homeView, /Same-Wi-Fi/)
+  assert.doesNotMatch(homeView, /Network module/)
+  assert.doesNotMatch(homeView, /local routing service/)
+  assert.match(homeActionModal, /class='home-mode-command home-share-app'/)
+  assert.match(homeActionModal, /data-app-id='<%= homeActionsAppId %>'/)
+  assert.match(homeActionModal, />Open on another device</)
+  assert.match(homeActionModal, />Home Server</)
+})
+
+test("home actions modal renders Home Server app sharing data for running apps", async () => {
+  const html = await ejs.renderFile(path.resolve(root, "server/views/partials/home_action_modal.ejs"), {
+    id: "home-actions-share-test",
+    item: {
+      icon: "",
+      name: "Test App",
+      filepath: "/tmp/pinokio/api/test app.git",
+      uri: "test app.git",
+      menu: [],
+      view_url: "/v/test%20app.git",
+      dev_url: "/p/test%20app.git/dev",
+      url: "/p/test%20app.git",
+      terminal_online_count: 0,
+      running: true,
+      ready_url: "http://127.0.0.1:42004",
+      external_ready_urls: [{ url: "http://192.168.86.229:42111", transport: "ip", scope: "lan" }]
+    }
+  })
+
+  const dom = new JSDOM(html)
+  const button = dom.window.document.querySelector(".home-share-app")
+  assert.ok(button)
+  assert.equal(button.getAttribute("data-app-id"), "test app.git")
+  assert.equal(button.getAttribute("data-app-name"), "Test App")
+  assert.equal(button.getAttribute("data-app-ready-url"), "http://127.0.0.1:42004")
+  assert.deepEqual(JSON.parse(button.getAttribute("data-app-external-ready-urls")), [
+    { url: "http://192.168.86.229:42111", transport: "ip", scope: "lan" }
+  ])
+})
+
+test("home app sharing falls back to loopback Web UI menu targets", () => {
+  const server = Object.create(Server.prototype)
+  server.appRegistry = {
+    isLoopbackHostname(hostname) {
+      return hostname === "localhost" || hostname === "0.0.0.0" || hostname === "::1" || hostname.startsWith("127.")
+    }
+  }
+
+  assert.equal(server.findHomeShareReadyUrlFromMenu([
+    { btn: "Terminal", href: "/api/cropper.git/start.js" },
+    { btn: "Open Web UI", target: "@http://127.0.0.1:42004", href: "http://127.0.0.1:42004" }
+  ]), "http://127.0.0.1:42004/")
+  assert.equal(server.findHomeShareReadyUrlFromMenu([
+    { btn: "Docs", href: "https://example.com" }
+  ]), "")
+})
+
+test("global home server popover exposes machine and app sharing from the navbar", async () => {
+  const server = await fs.readFile(path.resolve(root, "server/index.js"), "utf8")
+  const popover = await fs.readFile(path.resolve(root, "server/views/partials/home_server_popover.ejs"), "utf8")
+  const assets = await fs.readFile(path.resolve(root, "server/views/partials/home_server_popover_assets.ejs"), "utf8")
+  const homeView = await fs.readFile(path.resolve(root, "server/views/index.ejs"), "utf8")
+  const appView = await fs.readFile(path.resolve(root, "server/views/app.ejs"), "utf8")
+  const networkView = await fs.readFile(path.resolve(root, "server/views/network.ejs"), "utf8")
+  const netView = await fs.readFile(path.resolve(root, "server/views/net.ejs"), "utf8")
+  const sharedNav = await fs.readFile(path.resolve(root, "server/views/partials/app_navheader.ejs"), "utf8")
+  const exploreView = await fs.readFile(path.resolve(root, "server/views/explore.ejs"), "utf8")
+  const settingsView = await fs.readFile(path.resolve(root, "server/views/settings.ejs"), "utf8")
+  const terminalView = await fs.readFile(path.resolve(root, "server/views/terminal.ejs"), "utf8")
+  const normalHeaderViews = await Promise.all([
+    "create.ejs",
+    "keys.ejs",
+    "env_editor.ejs",
+    "task.ejs",
+    "general_editor.ejs",
+    "editor.ejs",
+    "shell.ejs",
+    "pro.ejs"
+  ].map(async (file) => [file, await fs.readFile(path.resolve(root, "server/views", file), "utf8")]))
+
+  assert.match(server, /async getNetworkSharingStatus\(\)/)
+  assert.match(server, /if \(running\) \{\s*installed = true\s*\}/)
+  assert.match(server, /this\.app\.get\("\/info\/home-server"/)
+  assert.match(server, /buildHomeServerShellUrl\(peerInfo\)/)
+  assert.match(server, /collectHomeServerMachines\(peerInfo\)/)
+  assert.match(server, /collectHomeServerApps\(\)/)
+  assert.match(server, /collectHomeServerRoutes\(peerInfo, apps, \[shellUrl\]\)/)
+  assert.match(server, /status === "on" \? await this\.collectHomeServerApps\(\) : \[\]/)
+  assert.match(server, /status === "on" \? this\.collectHomeServerRoutes\(peerInfo, apps, \[shellUrl\]\) : \[\]/)
+  assert.match(server, /machines/)
+  assert.match(server, /routes/)
+  assert.match(popover, /data-home-server-popover/)
+  assert.match(popover, /data-home-server-trigger/)
+  assert.match(popover, /data-home-server-panel/)
+  assert.match(assets, /right: 0;/)
+  assert.match(assets, /width: 420px;/)
+  assert.match(assets, /max-height: calc\(100vh - 90px\);/)
+  assert.match(assets, /data-home-server-open="true"/)
+  assert.match(assets, /body\.dark \.home-server-popover__pill \{/)
+  assert.match(assets, /body\.dark \.home-server-popover__pill\.is-on/)
+  assert.match(assets, /body\.dark \.home-server-popover__switch \{/)
+  assert.match(assets, /home-server-popover__switch\[aria-checked="true"\]:disabled/)
+  assert.match(assets, /body\.dark \.home-server-popover__footer-note/)
+  assert.match(assets, /body\.dark \.home-server-popover__warning \{/)
+  assert.match(assets, /body\.dark \.home-server-popover__spinner \{/)
+  assert.doesNotMatch(assets, /data-home-server-status="on"] \.home-server-popover__trigger/)
+  assert.match(assets, /fetch\("\/info\/home-server", \{ cache: "no-store" \}\)/)
+  assert.match(assets, /const shouldPollState = \(data\) =>/)
+  assert.match(assets, /return !app\.url \|\| \(state && state !== "ready"\)/)
+  assert.match(assets, /refreshPolling\(payload\)/)
+  assert.match(assets, /closePanel[\s\S]*stopPolling\(\)/)
+  assert.match(assets, /document\.addEventListener\("pointerdown"[\s\S]*true\)/)
+  assert.match(assets, /document\.addEventListener\("click"[\s\S]*true\)/)
+  assert.match(assets, /const isEmbeddedFrame = \(element\) =>/)
+  assert.match(assets, /tagName === "IFRAME" \|\| tagName === "WEBVIEW"/)
+  assert.match(assets, /const closeIfFrameFocused = \(\) =>/)
+  assert.match(assets, /document\.addEventListener\("focusin"[\s\S]*isEmbeddedFrame\(event\.target\)[\s\S]*true\)/)
+  assert.match(assets, /window\.addEventListener\("blur"[\s\S]*closeIfFrameFocused/)
+  assert.match(assets, /data-home-server-switch/)
+  assert.match(assets, /const switchChecked = status === "on" \|\| status === "starting"/)
+  assert.match(assets, /Use this computer as a Home Server/)
+  assert.match(assets, /open Pinokio and running app Web UIs from phones, tablets, and other computers/)
+  assert.match(assets, /Turning on Home Server/)
+  assert.match(assets, /Preparing Pinokio and running app Web UIs for phones, tablets, and other computers/)
+  assert.match(assets, /Links will appear here when Home Server is ready/)
+  assert.match(assets, /Preparing Home Server link/)
+  assert.match(assets, /could not turn on Home Server/)
+  assert.doesNotMatch(assets, /Creating local routes/)
+  assert.doesNotMatch(assets, /Creating home-network route/)
+  assert.doesNotMatch(assets, /local network routes/)
+  assert.doesNotMatch(assets, /network router/)
+  assert.match(assets, /fetch\("\/network", \{/)
+  assert.match(assets, /PINOKIO_NETWORK_ACTIVE: active \? "1" : "0"/)
+  assert.match(assets, /PINOKIO_HTTPS_ACTIVE: active \? "1" : "0"/)
+  assert.match(assets, /fetch\("\/restart", \{ method: "post" \}\)/)
+  assert.match(assets, /Home Server support is not installed/)
+  assert.match(assets, /Install Home Server support/)
+  assert.match(assets, /Network settings/)
+  assert.match(assets, /home-server-popover__footer-row/)
+  assert.match(assets, /No running app Web UIs yet/)
+  assert.match(assets, /home-server-popover__app-row is-shell[\s\S]{0,300}home-server-popover__app-dot/)
+  assert.doesNotMatch(assets, /home-server-popover__app-row is-shell[\s\S]{0,300}fa-solid fa-wifi/)
+  assert.match(assets, /Other local services/)
+  assert.match(assets, /routesHtml\(data\.routes\)/)
+  assert.match(assets, /home-server-popover__app-row is-route[\s\S]{0,220}home-server-popover__app-dot/)
+  assert.doesNotMatch(assets, /home-server-popover__app-icon/)
+  assert.match(assets, /Available machines/)
+  assert.match(assets, /home-server-popover__machine-link/)
+  assert.match(assets, /data-home-server-qr/)
+  assert.match(assets, /data-home-server-qr-preview/)
+  assert.match(assets, /showQrPreview\(/)
+  assert.doesNotMatch(assets, /href="\$\{escapeHtml\(qrUrl\)\}"[\s\S]*Show QR code/)
+  assert.match(assets, /target="_blank" rel="noreferrer" title="\$\{escapeHtml\(url\)\}"/)
+  assert.match(assets, /View routes/)
+  assert.match(assets, /Only devices on this local network can open these links\./)
+  assert.match(homeView, /partials\/home_server_popover/)
+  assert.match(homeView, /partials\/home_server_popover_assets/)
+  assert.match(appView, /partials\/home_server_popover/)
+  assert.match(appView, /partials\/home_server_popover_assets/)
+  assert.match(networkView, /partials\/home_server_popover/)
+  assert.match(networkView, /partials\/home_server_popover_assets/)
+  assert.match(netView, /partials\/home_server_popover/)
+  assert.match(netView, /partials\/home_server_popover_assets/)
+  assert.match(sharedNav, /include\('home_server_popover'\)/)
+  assert.match(sharedNav, /include\('home_server_popover_assets'\)/)
+  assert.match(exploreView, /partials\/home_server_popover/)
+  assert.match(exploreView, /partials\/home_server_popover_assets/)
+  assert.match(settingsView, /partials\/home_server_popover/)
+  assert.match(settingsView, /partials\/home_server_popover_assets/)
+  assert.match(terminalView, /partials\/home_server_popover/)
+  assert.match(terminalView, /partials\/home_server_popover_assets/)
+  for (const [file, source] of normalHeaderViews) {
+    assert.match(source, /partials\/home_server_popover/, `${file} includes the Home Server popover`)
+    assert.match(source, /partials\/home_server_popover_assets/, `${file} includes the Home Server popover assets`)
+  }
+  assert.doesNotMatch(appView, /open-app-share-modal/)
+})
+
+test("navbar URL picker is hidden without removing URL dropdown behavior", async () => {
+  const styles = await fs.readFile(path.resolve(root, "server/public/urldropdown.css"), "utf8")
+  const script = await fs.readFile(path.resolve(root, "server/public/urldropdown.js"), "utf8")
+
+  assert.match(styles, /header\.navheader \.urlbar\s*\{\s*pointer-events: none;\s*visibility: hidden;\s*\}/)
+  assert.match(styles, /header\.navheader #mobile-link-button\s*\{\s*display: none !important;\s*\}/)
+  assert.match(script, /function initUrlDropdown\(config = \{\}\)/)
+  assert.match(script, /ensureFallbackInput/)
+  assert.match(script, /fetchApps\(\)/)
+  assert.match(script, /fetchProcesses\(\)/)
+  assert.match(script, /showMobileModal/)
+})
+
+test("app navbar stays on one line when app identity and Home Server controls are present", async () => {
+  const appView = await fs.readFile(path.resolve(root, "server/views/app.ejs"), "utf8")
+
+  assert.match(appView, /body\.app-page > header\.navheader h1\s*\{[\s\S]*box-sizing:\s*border-box;[\s\S]*flex-wrap:\s*nowrap;/)
+  assert.match(appView, /body\.app-page > header\.navheader h1 > \.home,[\s\S]*body\.app-page > header\.navheader h1 > \.home-server-popover\s*\{[\s\S]*flex:\s*0 0 auto;/)
+  assert.match(appView, /body\.app-page header\.navheader h1 > \.flexible\s*\{[\s\S]*flex:\s*0 0 0;[\s\S]*margin-left:\s*auto;/)
+  assert.match(appView, /\.app-header-identity\s*\{[\s\S]*flex:\s*1 1 auto;[\s\S]*max-width:\s*none;/)
+  assert.doesNotMatch(appView, /nav-action-label\s*\{[^}]*display:\s*none;/)
+  assert.match(appView, /@media only screen and \(max-width: 1180px\)\s*\{[\s\S]*\.resource-chip--vram[\s\S]*display:\s*none !important;/)
+})
+
+test("download page header does not show browser chrome controls", async () => {
+  const downloadView = await fs.readFile(path.resolve(root, "server/views/download.ejs"), "utf8")
+
+  assert.match(downloadView, /<header class='grabbable'>[\s\S]*<a class='home' href="\/home">[\s\S]*<div class='flexible'><\/div>[\s\S]*<\/header>/)
+  assert.doesNotMatch(downloadView, /id=['"]minimize-header['"]/)
+  assert.doesNotMatch(downloadView, /pinokio-explore-nav-button/)
+  assert.doesNotMatch(downloadView, /id=['"]back['"]/)
+  assert.doesNotMatch(downloadView, /id=['"]forward['"]/)
+  assert.doesNotMatch(downloadView, /id=['"]refresh-page['"]/)
+  assert.doesNotMatch(downloadView, /id=['"]screenshot['"]/)
+  assert.doesNotMatch(downloadView, /id=['"]inspector['"]/)
+  assert.doesNotMatch(downloadView, /href="\/columns"/)
+  assert.doesNotMatch(downloadView, /href="\/rows"/)
+  assert.doesNotMatch(downloadView, /id=['"]new-window['"]/)
+})
+
+test("home server dropdown exposes router-discovered non-Pinokio routes separately", () => {
+  const server = Object.create(Server.prototype)
+  const routes = server.collectHomeServerRoutes({
+    router_info: [
+      {
+        name: "node",
+        title: "Pinokio",
+        port: "42000",
+        external_hosts: [{ url: "192.168.86.229:42003", scope: "lan", interface: "en0" }]
+      },
+      {
+        name: "node",
+        title: "theDAW",
+        port: "5173",
+        external_hosts: [{ url: "192.168.86.229:42015", scope: "lan", interface: "en0" }]
+      },
+      {
+        name: "python",
+        port: "8600",
+        external_hosts: [{ url: "192.168.86.229:42016", scope: "lan", interface: "en0" }]
+      },
+      {
+        name: "chrome-headless-shell",
+        port: "58738",
+        external_ip: "192.168.86.229:42030"
+      }
+    ]
+  }, [{
+    name: "theDAW",
+    url: "http://192.168.86.229:42015/",
+    external_ready_urls: [{ url: "http://192.168.86.229:42015/" }]
+  }], ["http://192.168.86.229:42003"])
+
+  assert.deepEqual(routes, [
+    {
+      name: "chrome-headless-shell",
+      port: "58738",
+      url: "http://192.168.86.229:42030",
+      urls: [{ url: "http://192.168.86.229:42030", scope: "lan", interface: "" }],
+      state: "ready"
+    },
+    {
+      name: "python",
+      port: "8600",
+      url: "http://192.168.86.229:42016",
+      urls: [{ url: "http://192.168.86.229:42016", scope: "lan", interface: "en0" }],
+      state: "ready"
+    }
+  ])
+})
+
+test("network page merges current machine route inventory without redirecting away", async () => {
+  const server = await fs.readFile(path.resolve(root, "server/index.js"), "utf8")
+  const networkView = await fs.readFile(path.resolve(root, "server/views/network.ejs"), "utf8")
+
+  assert.match(server, /res\.render\("network", \{[\s\S]*selected_name: this\.kernel\.peer\.name/)
+  assert.match(server, /res\.render\("network", \{[\s\S]*routeCount/)
+  assert.match(server, /res\.render\("network", \{[\s\S]*allow_dns_creation/)
+  assert.match(networkView, /<h1 class='task-title'>Home Server<\/h1>/)
+  assert.match(networkView, /partials\/net_summary/)
+  assert.match(networkView, /This machine routes/)
+  assert.match(networkView, /partials\/net_route_list/)
+  assert.match(networkView, /data-net-routes-endpoint="\/net\/<%= encodeURIComponent\(selected_name\) %>\/routes"/)
+  assert.match(networkView, /const netRoutesEndpoint = routeListEl/)
+  assert.match(networkView, /fetch\(netRoutesEndpoint, \{ cache: "no-store" \}\)/)
+  assert.match(networkView, /class='dns-modal'/)
+  assert.match(networkView, /event\.target\.closest\('\.get-dns-btn'\)/)
+  assert.doesNotMatch(networkView, /location\.href = "\/net\/" \+ res\.peer_name/)
+  assert.match(networkView, /location\.href = "\/network"/)
+})
+
+test("home server machine rows use peer shell URLs as primary destinations", () => {
+  const server = Object.create(Server.prototype)
+  server.port = 42000
+  server.kernel = {
+    peer: {
+      active: true,
+      host: "192.168.86.229",
+      info: {
+        "192.168.86.229": {
+          active: true,
+          host: "192.168.86.229",
+          name: "p229",
+          platform: "darwin",
+          port_mapping: { "42000": 42003 },
+          router_info: []
+        },
+        "192.168.86.120": {
+          active: true,
+          host: "192.168.86.120",
+          name: "studio",
+          platform: "darwin",
+          port_mapping: { "42000": 42009 },
+          router_info: [{ external_router: ["studio.localhost"] }],
+          installed: [{ name: "cropper" }],
+          rewrite_mapping: { web: {} }
+        },
+        "192.168.86.121": {
+          active: true,
+          host: "192.168.86.121",
+          name: "offline-route",
+          platform: "linux",
+          port_mapping: {},
+          router_info: []
+        }
+      }
+    }
+  }
+
+  const rows = server.collectHomeServerMachines({ host: "192.168.86.229" })
+
+  assert.equal(rows.length, 2)
+  assert.deepEqual(rows[0], {
+    name: "studio",
+    host: "192.168.86.120",
+    platform: "darwin",
+    url: "http://192.168.86.120:42009",
+    available: true,
+    current: false,
+    route_url: "/net/studio",
+    route_count: 3
+  })
+  assert.equal(rows[1].name, "offline-route")
+  assert.equal(rows[1].url, null)
+  assert.equal(rows[1].available, false)
+  assert.equal(rows[1].route_url, "/net/offline-route")
+
+  server.port = 43000
+  assert.equal(server.buildHomeServerShellUrl({
+    host: "192.168.86.229",
+    port_mapping: { "42000": 42003 }
+  }), "")
 })
 
 test("home actions drawer background follows the home page surface", async () => {

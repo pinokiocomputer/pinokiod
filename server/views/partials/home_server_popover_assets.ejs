@@ -1,0 +1,1262 @@
+<style>
+.home-server-popover {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.home-server-popover__trigger {
+  position: relative;
+  width: 40px;
+  height: 30px;
+  min-width: 40px;
+  min-height: 30px;
+  padding: 0;
+  border-radius: 9px;
+  box-sizing: border-box;
+}
+.home-server-popover__trigger:hover,
+.home-server-popover__trigger:focus-visible,
+.home-server-popover[data-home-server-open="true"] .home-server-popover__trigger {
+  background: rgba(15, 23, 42, 0.055);
+}
+.home-server-popover__wifi {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+}
+.home-server-popover__wifi-slash {
+  position: absolute;
+  width: 25px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  transform: rotate(-45deg);
+  opacity: 0;
+}
+.home-server-popover__wifi-dot {
+  position: absolute;
+  top: -4px;
+  right: -5px;
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid var(--home-page-nav-bg, #fff);
+  border-radius: 999px;
+  background: #9aa1ad;
+  opacity: 0;
+}
+.home-server-popover[data-home-server-status="on"] .home-server-popover__wifi-dot {
+  background: #2db45c;
+  opacity: 1;
+}
+.home-server-popover[data-home-server-status="starting"] .home-server-popover__wifi-dot {
+  background: #d98b1f;
+  opacity: 1;
+}
+.home-server-popover[data-home-server-status="setup"] .home-server-popover__wifi-dot,
+.home-server-popover[data-home-server-status="error"] .home-server-popover__wifi-dot {
+  background: #cf4545;
+  opacity: 1;
+}
+.home-server-popover[data-home-server-status="off"] .home-server-popover__wifi-slash,
+.home-server-popover[data-home-server-status="setup"] .home-server-popover__wifi-slash,
+.home-server-popover[data-home-server-status="error"] .home-server-popover__wifi-slash {
+  opacity: 1;
+}
+.home-server-popover__panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 20000;
+  box-sizing: border-box;
+  width: 420px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 90px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  min-height: 96px;
+  padding: 14px 16px;
+  border: 1px solid rgba(15, 23, 42, 0.13);
+  border-radius: 14px;
+  background: rgba(252, 253, 255, 0.98);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.14);
+  color: #111827;
+  font-size: 14px;
+  line-height: 1.4;
+  -webkit-app-region: no-drag;
+}
+.home-server-popover__qr-preview {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border-radius: inherit;
+  background: #fcfdff;
+  color: #111827;
+}
+.home-server-popover__qr-preview[hidden] {
+  display: none;
+}
+.home-server-popover__qr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.home-server-popover__qr-title {
+  min-width: 0;
+  overflow: hidden;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 720;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-server-popover__qr-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 7px;
+  background: rgba(248, 250, 252, 0.8);
+  color: rgba(15, 23, 42, 0.68);
+  cursor: pointer;
+}
+.home-server-popover__qr-close:hover,
+.home-server-popover__qr-close:focus-visible {
+  background: rgba(15, 23, 42, 0.055);
+  outline: none;
+}
+.home-server-popover__qr-body {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+.home-server-popover__qr-image {
+  width: min(238px, 72vw);
+  height: min(238px, 72vw);
+  image-rendering: pixelated;
+}
+.home-server-popover__qr-url {
+  min-width: 0;
+  overflow: hidden;
+  padding: 8px 10px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 7px;
+  background: rgba(248, 250, 252, 0.8);
+  color: rgba(15, 23, 42, 0.62);
+  font-size: 12px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-server-popover__panel[hidden] {
+  display: none;
+}
+.home-server-popover__loading {
+  color: rgba(15, 23, 42, 0.62);
+}
+.home-server-popover__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+.home-server-popover__title {
+  margin: 0;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 750;
+  line-height: 1.18;
+}
+.home-server-popover__statusline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+  min-width: 0;
+}
+.home-server-popover__pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 19px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  color: rgba(15, 23, 42, 0.62);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.home-server-popover__pill.is-on {
+  background: rgba(45, 180, 92, 0.14);
+  color: #247a43;
+}
+.home-server-popover__pill.is-starting {
+  background: rgba(217, 139, 31, 0.14);
+  color: #965c0d;
+}
+.home-server-popover__pill.is-setup,
+.home-server-popover__pill.is-error {
+  background: rgba(207, 69, 69, 0.13);
+  color: #a83636;
+}
+.home-server-popover__subtitle {
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(15, 23, 42, 0.62);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-server-popover__switch {
+  width: 48px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #d5dae2;
+  cursor: pointer;
+}
+.home-server-popover__switch:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+.home-server-popover__switch[aria-checked="true"]:disabled {
+  opacity: 0.92;
+}
+.home-server-popover__switch-thumb {
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin: 3px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.16);
+  transition: transform 140ms ease;
+}
+.home-server-popover__switch[aria-checked="true"] {
+  background: #087cff;
+}
+.home-server-popover__switch[aria-checked="true"] .home-server-popover__switch-thumb {
+  transform: translateX(20px);
+}
+.home-server-popover__divider {
+  height: 1px;
+  margin: 10px 0;
+  background: rgba(15, 23, 42, 0.1);
+}
+.home-server-popover__section-label {
+  margin-bottom: 4px;
+  color: rgba(15, 23, 42, 0.62);
+  font-size: 12px;
+  font-weight: 650;
+}
+.home-server-popover__icon-actions {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.home-server-popover__icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 7px;
+  background: rgba(248, 250, 252, 0.92);
+  color: rgba(15, 23, 42, 0.68);
+  text-decoration: none;
+  cursor: pointer;
+}
+.home-server-popover__icon-button:hover,
+.home-server-popover__icon-button:focus-visible,
+.home-server-popover__footer-row:hover,
+.home-server-popover__footer-row:focus-visible {
+  border-color: rgba(15, 23, 42, 0.18);
+  color: #111827;
+}
+.home-server-popover__app-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.home-server-popover__app-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 42px;
+}
+.home-server-popover__app-main {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  min-width: 0;
+}
+.home-server-popover__app-dot {
+  width: 8px;
+  height: 8px;
+  margin: 6px 0 0 3px;
+  border-radius: 999px;
+  background: #2db45c;
+}
+.home-server-popover__app-row.is-pending .home-server-popover__app-dot,
+.home-server-popover__app-row.is-starting .home-server-popover__app-dot {
+  background: #d98b1f;
+}
+.home-server-popover__app-name {
+  min-width: 0;
+  overflow: hidden;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 680;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-server-popover__app-url {
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(15, 23, 42, 0.58);
+  font-size: 12px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-server-popover__machine-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.home-server-popover__machine-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 40px;
+}
+.home-server-popover__machine-link,
+.home-server-popover__machine-unavailable {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  min-width: 0;
+  padding: 5px 6px;
+  border-radius: 7px;
+  color: inherit;
+  text-decoration: none;
+}
+.home-server-popover__machine-link:hover,
+.home-server-popover__machine-link:focus-visible {
+  background: rgba(15, 23, 42, 0.055);
+  outline: none;
+}
+.home-server-popover__machine-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  color: rgba(15, 23, 42, 0.54);
+}
+.home-server-popover__machine-name {
+  min-width: 0;
+  overflow: hidden;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 680;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-server-popover__machine-url {
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(15, 23, 42, 0.55);
+  font-size: 11px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-server-popover__machine-unavailable {
+  color: rgba(15, 23, 42, 0.5);
+}
+.home-server-popover__machine-unavailable .home-server-popover__machine-name {
+  color: rgba(15, 23, 42, 0.64);
+}
+.home-server-popover__empty,
+.home-server-popover__callout {
+  padding: 10px 12px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.9);
+}
+.home-server-popover__empty-title,
+.home-server-popover__callout-title {
+  color: #111827;
+  font-size: 13px;
+  font-weight: 720;
+}
+.home-server-popover__empty-copy,
+.home-server-popover__callout-copy {
+  margin-top: 4px;
+  color: rgba(15, 23, 42, 0.62);
+  font-size: 12px;
+}
+.home-server-popover__callout {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+.home-server-popover__callout-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: rgba(15, 23, 42, 0.58);
+}
+.home-server-popover__warning {
+  padding: 15px 17px;
+  border: 1px solid rgba(217, 139, 31, 0.28);
+  border-radius: 10px;
+  background: rgba(217, 139, 31, 0.1);
+  color: #7f4f0d;
+  font-size: 13px;
+}
+.home-server-popover__warning.is-error {
+  border-color: rgba(207, 69, 69, 0.28);
+  background: rgba(207, 69, 69, 0.1);
+  color: #8f3434;
+}
+.home-server-popover__spinner {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(217, 139, 31, 0.18);
+  border-top-color: #d98b1f;
+  border-radius: 999px;
+  animation: home-server-popover-spin 850ms linear infinite;
+}
+@keyframes home-server-popover-spin {
+  to { transform: rotate(360deg); }
+}
+.home-server-popover__starting {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  margin: 4px 0 22px;
+}
+.home-server-popover__footer {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+}
+.home-server-popover__footer-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 7px;
+  background: rgba(248, 250, 252, 0.8);
+  color: #111827;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+}
+.home-server-popover__footer-row:hover,
+.home-server-popover__footer-row:focus-visible {
+  background: rgba(15, 23, 42, 0.055);
+  outline: none;
+}
+.home-server-popover__footer-row.is-primary {
+  justify-content: center;
+  border-color: #202738;
+  background: #202738;
+  color: #fff;
+}
+.home-server-popover__footer-note {
+  min-width: 0;
+  color: rgba(15, 23, 42, 0.48);
+  font-size: 11px;
+  line-height: 1.25;
+}
+body.dark .home-server-popover__wifi-dot {
+  border-color: var(--home-page-nav-bg, #1b1c1d);
+}
+body.dark .home-server-popover__panel {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(30, 31, 34, 0.98);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.3);
+  color: rgba(239, 242, 247, 0.92);
+}
+body.dark .home-server-popover__trigger:hover,
+body.dark .home-server-popover__trigger:focus-visible,
+body.dark .home-server-popover[data-home-server-open="true"] .home-server-popover__trigger {
+  background: rgba(255, 255, 255, 0.08);
+}
+body.dark .home-server-popover__qr-preview {
+  background: #1e1f22;
+  color: rgba(239, 242, 247, 0.92);
+}
+body.dark .home-server-popover__title,
+body.dark .home-server-popover__qr-title,
+body.dark .home-server-popover__app-name,
+body.dark .home-server-popover__machine-name,
+body.dark .home-server-popover__empty-title,
+body.dark .home-server-popover__callout-title,
+body.dark .home-server-popover__footer-row {
+  color: rgba(239, 242, 247, 0.94);
+}
+body.dark .home-server-popover__subtitle,
+body.dark .home-server-popover__section-label,
+body.dark .home-server-popover__empty-copy,
+body.dark .home-server-popover__callout-copy,
+body.dark .home-server-popover__app-url,
+body.dark .home-server-popover__machine-url,
+body.dark .home-server-popover__qr-url,
+body.dark .home-server-popover__loading,
+body.dark .home-server-popover__footer-note {
+  color: rgba(239, 242, 247, 0.6);
+}
+body.dark .home-server-popover__pill {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(239, 242, 247, 0.72);
+}
+body.dark .home-server-popover__pill.is-on {
+  background: rgba(45, 180, 92, 0.2);
+  color: #8fe0ad;
+}
+body.dark .home-server-popover__pill.is-starting {
+  background: rgba(217, 139, 31, 0.22);
+  color: #f0bd6a;
+}
+body.dark .home-server-popover__pill.is-setup,
+body.dark .home-server-popover__pill.is-error {
+  background: rgba(207, 69, 69, 0.22);
+  color: #f2a0a0;
+}
+body.dark .home-server-popover__switch {
+  background: rgba(255, 255, 255, 0.2);
+}
+body.dark .home-server-popover__switch[aria-checked="true"] {
+  background: #087cff;
+}
+body.dark .home-server-popover__switch-thumb {
+  background: #f7f8fb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.34);
+}
+body.dark .home-server-popover__callout-icon {
+  color: rgba(239, 242, 247, 0.58);
+}
+body.dark .home-server-popover__warning {
+  border-color: rgba(240, 189, 106, 0.34);
+  background: rgba(217, 139, 31, 0.14);
+  color: #f0bd6a;
+}
+body.dark .home-server-popover__warning.is-error {
+  border-color: rgba(242, 160, 160, 0.34);
+  background: rgba(207, 69, 69, 0.14);
+  color: #f2a0a0;
+}
+body.dark .home-server-popover__spinner {
+  border-color: rgba(240, 189, 106, 0.22);
+  border-top-color: #f0bd6a;
+}
+body.dark .home-server-popover__machine-icon,
+body.dark .home-server-popover__machine-unavailable {
+  color: rgba(239, 242, 247, 0.55);
+}
+body.dark .home-server-popover__machine-link:hover,
+body.dark .home-server-popover__machine-link:focus-visible {
+  background: rgba(255, 255, 255, 0.055);
+}
+body.dark .home-server-popover__divider,
+body.dark .home-server-popover__footer {
+  border-color: rgba(255, 255, 255, 0.09);
+}
+body.dark .home-server-popover__divider {
+  background: rgba(255, 255, 255, 0.09);
+}
+body.dark .home-server-popover__icon-button,
+body.dark .home-server-popover__qr-close,
+body.dark .home-server-popover__qr-url,
+body.dark .home-server-popover__empty,
+body.dark .home-server-popover__callout,
+body.dark .home-server-popover__footer-row,
+body.dark .home-server-popover__footer-row.is-primary {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+}
+body.dark .home-server-popover__icon-button {
+  color: rgba(239, 242, 247, 0.72);
+}
+body.dark .home-server-popover__icon-button:hover,
+body.dark .home-server-popover__icon-button:focus-visible {
+  color: rgba(239, 242, 247, 0.94);
+}
+body.dark .home-server-popover__footer-row:hover,
+body.dark .home-server-popover__footer-row:focus-visible,
+body.dark .home-server-popover__qr-close:hover,
+body.dark .home-server-popover__qr-close:focus-visible {
+  background: rgba(255, 255, 255, 0.055);
+}
+@media (max-width: 760px) {
+  .home-server-popover__panel {
+    position: fixed;
+    top: 64px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+}
+</style>
+<script>
+(function () {
+  const root = document.querySelector("[data-home-server-popover]")
+  if (!root || root.dataset.homeServerReady === "1") {
+    return
+  }
+  root.dataset.homeServerReady = "1"
+  const trigger = root.querySelector("[data-home-server-trigger]")
+  const panel = root.querySelector("[data-home-server-panel]")
+  let payload = null
+  let pollTimer = null
+  const setTriggerHintEnabled = (enabled) => {
+    if (!trigger) {
+      return
+    }
+    if (enabled) {
+      if (trigger.dataset.homeServerTitle) {
+        trigger.setAttribute("title", trigger.dataset.homeServerTitle)
+      }
+      if (trigger._tippy && typeof trigger._tippy.enable === "function") {
+        trigger._tippy.enable()
+      }
+    } else {
+      if (!trigger.dataset.homeServerTitle) {
+        trigger.dataset.homeServerTitle = trigger.getAttribute("title") || "Home Server"
+      }
+      trigger.removeAttribute("title")
+      if (trigger._tippy) {
+        if (typeof trigger._tippy.hide === "function") {
+          trigger._tippy.hide()
+        }
+        if (typeof trigger._tippy.disable === "function") {
+          trigger._tippy.disable()
+        }
+      }
+    }
+  }
+
+  const escapeHtml = (value) => String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+
+  const currentCallback = () => {
+    const currentPath = `${window.location.pathname}${window.location.search}`
+    return encodeURIComponent(currentPath || "/home")
+  }
+  const setupHref = () => `/setup/network?callback=${currentCallback()}`
+  const statusLabel = (status) => {
+    if (status === "on") return ["On", "Available on this network"]
+    if (status === "starting") return ["Starting", "Turning on Home Server"]
+    if (status === "setup") return ["Setup", "Home Server support is not installed"]
+    if (status === "error") return ["Error", "Could not start Home Server"]
+    return ["Off", "Not sharing this computer"]
+  }
+  const setStatus = (status) => {
+    root.dataset.homeServerStatus = status || "off"
+  }
+  const removeQrPreview = () => {
+    const existing = panel ? panel.querySelector("[data-home-server-qr-preview]") : null
+    if (existing) {
+      existing.remove()
+    }
+  }
+  const showQrPreview = (url, sourceButton = null) => {
+    if (!panel || !url) {
+      return
+    }
+    removeQrPreview()
+    const safeUrl = escapeHtml(url)
+    const qrUrl = `/qr?data=${encodeURIComponent(url)}&s=7&m=0`
+    panel.insertAdjacentHTML("beforeend", `
+      <div class="home-server-popover__qr-preview" data-home-server-qr-preview role="dialog" aria-label="QR code">
+        <div class="home-server-popover__qr-header">
+          <div class="home-server-popover__qr-title">Scan QR code</div>
+          <button type="button" class="home-server-popover__qr-close" data-home-server-qr-close aria-label="Close QR code">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="home-server-popover__qr-body">
+          <img class="home-server-popover__qr-image" src="${escapeHtml(qrUrl)}" alt="QR code for ${safeUrl}">
+        </div>
+        <div class="home-server-popover__qr-url" title="${safeUrl}">${safeUrl}</div>
+      </div>`)
+    const preview = panel.querySelector("[data-home-server-qr-preview]")
+    if (preview && sourceButton) {
+      preview.dataset.returnFocus = "true"
+      root._homeServerQrReturnFocus = sourceButton
+    }
+    const closeButton = panel.querySelector("[data-home-server-qr-close]")
+    if (closeButton && typeof closeButton.focus === "function") {
+      closeButton.focus()
+    }
+  }
+  const actionButtons = (url, options = {}) => {
+    const includeOpen = options.open !== false
+    const safeUrl = escapeHtml(url)
+    return `
+      <div class="home-server-popover__icon-actions">
+        <button type="button" class="home-server-popover__icon-button" data-home-server-copy="${safeUrl}" title="Copy link" aria-label="Copy link">
+          <i class="fa-regular fa-copy" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="home-server-popover__icon-button" data-home-server-qr="${safeUrl}" title="Show QR code" aria-label="Show QR code">
+          <i class="fa-solid fa-qrcode" aria-hidden="true"></i>
+        </button>
+        ${includeOpen ? `<a class="home-server-popover__icon-button" href="${safeUrl}" target="_blank" rel="noreferrer" title="Open" aria-label="Open">
+          <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+        </a>` : ""}
+      </div>`
+  }
+  const platformIcon = (platform) => {
+    if (platform === "darwin") return "fa-brands fa-apple"
+    if (platform === "win32") return "fa-brands fa-windows"
+    if (platform === "linux") return "fa-brands fa-linux"
+    return "fa-solid fa-computer"
+  }
+  const machineActions = (machine) => {
+    const url = typeof machine.url === "string" ? machine.url : ""
+    const routeUrl = typeof machine.route_url === "string" ? machine.route_url : ""
+    const pieces = []
+    if (url) {
+      const safeUrl = escapeHtml(url)
+      pieces.push(`
+        <button type="button" class="home-server-popover__icon-button" data-home-server-copy="${safeUrl}" title="Copy link" aria-label="Copy link">
+          <i class="fa-regular fa-copy" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="home-server-popover__icon-button" data-home-server-qr="${safeUrl}" title="Show QR code" aria-label="Show QR code">
+          <i class="fa-solid fa-qrcode" aria-hidden="true"></i>
+        </button>`)
+    }
+    if (routeUrl) {
+      pieces.push(`
+        <a class="home-server-popover__icon-button" href="${escapeHtml(routeUrl)}" title="Routes" aria-label="View routes">
+          <i class="fa-solid fa-route" aria-hidden="true"></i>
+        </a>`)
+    }
+    return pieces.length > 0
+      ? `<div class="home-server-popover__icon-actions">${pieces.join("")}</div>`
+      : ""
+  }
+  const shellHtml = (shell) => {
+    if (!shell || !shell.url) {
+      return ""
+    }
+    const safeUrl = escapeHtml(shell.url)
+    return `
+      <div class="home-server-popover__section">
+        <div class="home-server-popover__section-label">This computer</div>
+        <div class="home-server-popover__app-row is-shell">
+          <div class="home-server-popover__app-main">
+            <span class="home-server-popover__app-dot" aria-hidden="true"></span>
+            <div>
+              <div class="home-server-popover__app-name">${escapeHtml(shell.name || "Pinokio")}</div>
+              <div class="home-server-popover__app-url" title="${safeUrl}">${safeUrl}</div>
+            </div>
+          </div>
+          ${actionButtons(shell.url, { open: false })}
+        </div>
+      </div>`
+  }
+  const appsHtml = (apps) => {
+    const rows = Array.isArray(apps) ? apps : []
+    if (rows.length === 0) {
+      return `
+        <div class="home-server-popover__section">
+          <div class="home-server-popover__section-label">Running apps</div>
+          <div class="home-server-popover__empty">
+            <div class="home-server-popover__empty-title">No running app Web UIs yet</div>
+            <div class="home-server-popover__empty-copy">Start an app and its home-network link appears here.</div>
+          </div>
+        </div>`
+    }
+    const rendered = rows.map((app) => {
+      const name = escapeHtml(app.name || app.id || "App")
+      const url = typeof app.url === "string" && app.url ? app.url : ""
+      const state = app.state === "ready" ? "ready" : (app.state || "pending")
+      const label = url || (state === "starting" ? "Waiting for a Web UI URL..." : "Preparing Home Server link...")
+      return `
+        <div class="home-server-popover__app-row is-${escapeHtml(state)}">
+          <div class="home-server-popover__app-main">
+            <span class="home-server-popover__app-dot" aria-hidden="true"></span>
+            <div>
+              <div class="home-server-popover__app-name" title="${name}">${name}</div>
+              <div class="home-server-popover__app-url" title="${escapeHtml(label)}">${escapeHtml(label)}</div>
+            </div>
+          </div>
+          ${url ? actionButtons(url) : ""}
+        </div>`
+    }).join("")
+    return `
+      <div class="home-server-popover__section">
+        <div class="home-server-popover__section-label">Running apps</div>
+        <div class="home-server-popover__app-list">${rendered}</div>
+      </div>`
+  }
+  const routesHtml = (routes) => {
+    const rows = Array.isArray(routes) ? routes : []
+    if (rows.length === 0) {
+      return ""
+    }
+    const rendered = rows.map((route) => {
+      const name = escapeHtml(route.name || "Route")
+      const url = typeof route.url === "string" && route.url ? route.url : ""
+      if (!url) {
+        return ""
+      }
+      const safeUrl = escapeHtml(url)
+      return `
+        <div class="home-server-popover__app-row is-route">
+          <div class="home-server-popover__app-main">
+            <span class="home-server-popover__app-dot" aria-hidden="true"></span>
+            <div>
+              <div class="home-server-popover__app-name" title="${name}">${name}</div>
+              <div class="home-server-popover__app-url" title="${safeUrl}">${safeUrl}</div>
+            </div>
+          </div>
+          ${actionButtons(url)}
+        </div>`
+    }).filter(Boolean).join("")
+    if (!rendered) {
+      return ""
+    }
+    return `
+      <div class="home-server-popover__section">
+        <div class="home-server-popover__section-label">Other local services</div>
+        <div class="home-server-popover__app-list">${rendered}</div>
+      </div>`
+  }
+  const machinesHtml = (machines) => {
+    const rows = Array.isArray(machines) ? machines : []
+    if (rows.length === 0) {
+      return `
+        <div class="home-server-popover__section">
+          <div class="home-server-popover__section-label">Available machines</div>
+          <div class="home-server-popover__empty">
+            <div class="home-server-popover__empty-title">No other Pinokio machines found</div>
+            <div class="home-server-popover__empty-copy">Other machines appear here when Home Server is on there too.</div>
+          </div>
+        </div>`
+    }
+    const rendered = rows.map((machine) => {
+      const name = escapeHtml(machine.name || machine.host || "Pinokio")
+      const host = escapeHtml(machine.host || "")
+      const url = typeof machine.url === "string" && machine.url ? machine.url : ""
+      const detail = url || "Home Server address unavailable"
+      const icon = platformIcon(machine.platform || "")
+      const main = url
+        ? `<a class="home-server-popover__machine-link" href="${escapeHtml(url)}" target="_blank" rel="noreferrer" title="${escapeHtml(url)}">
+            <span class="home-server-popover__machine-icon"><i class="${escapeHtml(icon)}" aria-hidden="true"></i></span>
+            <span>
+              <span class="home-server-popover__machine-name">${name}</span>
+              <span class="home-server-popover__machine-url">${escapeHtml(detail)}</span>
+            </span>
+          </a>`
+        : `<div class="home-server-popover__machine-unavailable" title="${host}">
+            <span class="home-server-popover__machine-icon"><i class="${escapeHtml(icon)}" aria-hidden="true"></i></span>
+            <span>
+              <span class="home-server-popover__machine-name">${name}</span>
+              <span class="home-server-popover__machine-url">${escapeHtml(detail)}</span>
+            </span>
+          </div>`
+      return `
+        <div class="home-server-popover__machine-row" data-home-server-machine>
+          ${main}
+          ${machineActions(machine)}
+        </div>`
+    }).join("")
+    return `
+      <div class="home-server-popover__section">
+        <div class="home-server-popover__section-label">Available machines</div>
+        <div class="home-server-popover__machine-list">${rendered}</div>
+      </div>`
+  }
+  const footerHtml = ({ primaryHref = "", primaryLabel = "", retry = false, note = true } = {}) => {
+    const primary = retry
+      ? `<button type="button" class="home-server-popover__footer-row is-primary" data-home-server-retry>Retry</button>`
+      : primaryHref
+        ? `<a class="home-server-popover__footer-row is-primary" href="${escapeHtml(primaryHref)}">${escapeHtml(primaryLabel)}</a>`
+        : ""
+    return `
+      <div class="home-server-popover__footer">
+        ${primary}
+        ${note ? `<div class="home-server-popover__footer-note">Only devices on this local network can open these links.</div>` : ""}
+        <a class="home-server-popover__footer-row" href="/network">
+          <span>Network settings</span>
+          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </a>
+      </div>`
+  }
+  const renderHeader = (data) => {
+    const status = data && data.status ? data.status : "off"
+    const [label, subtitle] = statusLabel(status)
+    const switchChecked = status === "on" || status === "starting"
+    const switchDisabled = status === "starting" || status === "setup"
+    return `
+      <div class="home-server-popover__header">
+        <div>
+          <h2 class="home-server-popover__title">Home Server</h2>
+          <div class="home-server-popover__statusline">
+            <span class="home-server-popover__pill is-${escapeHtml(status)}">${escapeHtml(label)}</span>
+            <span class="home-server-popover__subtitle">${escapeHtml(subtitle)}</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="home-server-popover__switch"
+          role="switch"
+          aria-label="${switchChecked ? "Turn off Home Server" : "Turn on Home Server"}"
+          aria-checked="${switchChecked ? "true" : "false"}"
+          ${switchDisabled ? "disabled" : ""}
+          data-home-server-switch
+        >
+          <span class="home-server-popover__switch-thumb" aria-hidden="true"></span>
+        </button>
+      </div>
+      <div class="home-server-popover__divider"></div>`
+  }
+  const renderOn = (data) => {
+    const routeSection = routesHtml(data.routes)
+    return `
+      ${renderHeader(data)}
+      ${shellHtml(data.shell)}
+      <div class="home-server-popover__divider"></div>
+      ${appsHtml(data.apps)}
+      ${routeSection ? `<div class="home-server-popover__divider"></div>${routeSection}` : ""}
+      <div class="home-server-popover__divider"></div>
+      ${machinesHtml(data.machines)}
+      ${footerHtml()}`
+  }
+  const renderOff = (data) => `
+    ${renderHeader(data)}
+    <div class="home-server-popover__callout">
+      <div class="home-server-popover__callout-icon"><i class="fa-solid fa-wifi" aria-hidden="true"></i></div>
+      <div>
+        <div class="home-server-popover__callout-title">Use this computer as a Home Server</div>
+        <div class="home-server-popover__callout-copy">Turn it on to open Pinokio and running app Web UIs from phones, tablets, and other computers on this network.</div>
+      </div>
+    </div>
+    ${footerHtml({ note: false })}`
+  const renderStarting = (data) => `
+    ${renderHeader(data)}
+    <div class="home-server-popover__starting">
+      <span class="home-server-popover__spinner" aria-hidden="true"></span>
+      <div>
+        <div class="home-server-popover__callout-title">Turning on Home Server...</div>
+        <div class="home-server-popover__callout-copy">Preparing Pinokio and running app Web UIs for phones, tablets, and other computers on this network.</div>
+      </div>
+    </div>
+    <div class="home-server-popover__warning">Links will appear here when Home Server is ready.</div>
+    ${footerHtml({ note: false })}`
+  const renderSetup = (data) => `
+    ${renderHeader(data)}
+    <div class="home-server-popover__empty">
+      <div class="home-server-popover__empty-title">Install Home Server support</div>
+      <div class="home-server-popover__empty-copy">Pinokio needs its local networking component before it can share this computer on your home network.</div>
+    </div>
+    ${footerHtml({ primaryHref: setupHref(), primaryLabel: "Install Home Server support", note: false })}`
+  const renderError = (message) => `
+    ${renderHeader({ status: "error" })}
+    <div class="home-server-popover__warning is-error">${escapeHtml(message || "Pinokio could not turn on Home Server. Your apps are still running locally on this computer.")}</div>
+    ${footerHtml({ retry: true, note: false })}`
+  const render = (data) => {
+    const status = data && data.status ? data.status : "off"
+    setStatus(status)
+    if (!panel) {
+      return
+    }
+    if (status === "on") {
+      panel.innerHTML = renderOn(data)
+    } else if (status === "starting") {
+      panel.innerHTML = renderStarting(data)
+    } else if (status === "setup") {
+      panel.innerHTML = renderSetup(data)
+    } else {
+      panel.innerHTML = renderOff(data)
+    }
+    root._homeServerQrReturnFocus = null
+  }
+  const fetchState = async () => {
+    const response = await fetch("/info/home-server", { cache: "no-store" })
+    if (!response.ok) {
+      throw new Error(`Home Server status failed: ${response.status}`)
+    }
+    payload = await response.json()
+    render(payload)
+    return payload
+  }
+  const stopPolling = () => {
+    if (pollTimer) {
+      clearInterval(pollTimer)
+      pollTimer = null
+    }
+  }
+  const panelIsOpen = () => {
+    return !!(panel && !panel.hidden)
+  }
+  const shouldPollState = (data) => {
+    if (!panelIsOpen()) {
+      return false
+    }
+    const status = data && data.status ? data.status : "off"
+    if (status === "starting") {
+      return true
+    }
+    if (status !== "on") {
+      return false
+    }
+    const apps = Array.isArray(data.apps) ? data.apps : []
+    return apps.some((app) => {
+      if (!app || typeof app !== "object") {
+        return false
+      }
+      const state = app.state || ""
+      return !app.url || (state && state !== "ready")
+    })
+  }
+  const startPolling = () => {
+    stopPolling()
+    let attempts = 0
+    pollTimer = setInterval(async () => {
+      if (!panelIsOpen()) {
+        stopPolling()
+        return
+      }
+      attempts += 1
+      try {
+        const next = await fetchState()
+        if (!shouldPollState(next) || attempts >= 60) {
+          stopPolling()
+        }
+      } catch (_) {
+        if (attempts >= 60) {
+          stopPolling()
+          setStatus("error")
+          panel.innerHTML = renderError()
+        }
+      }
+    }, 1500)
+  }
+  const refreshPolling = (data) => {
+    if (shouldPollState(data)) {
+      startPolling()
+    } else {
+      stopPolling()
+    }
+  }
+  const setHomeServerActive = async (active) => {
+    stopPolling()
+    const optimistic = active
+      ? { ...(payload || {}), status: "starting", installed: true, active: true, running: false }
+      : { ...(payload || {}), status: "off", installed: true, active: false, running: false, shell: null, apps: [] }
+    render(optimistic)
+    try {
+      const response = await fetch("/network", {
+        method: "post",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          PINOKIO_NETWORK_ACTIVE: active ? "1" : "0",
+          PINOKIO_HTTPS_ACTIVE: active ? "1" : "0"
+        })
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Network settings could not be saved.")
+      }
+      await fetch("/restart", { method: "post" }).catch(() => null)
+      if (active) {
+        startPolling()
+      } else {
+        setTimeout(() => fetchState().catch(() => null), 1200)
+      }
+    } catch (err) {
+      setStatus("error")
+      panel.innerHTML = renderError(err && err.message ? err.message : "")
+    }
+  }
+  const openPanel = async () => {
+    if (!panel || !trigger) {
+      return
+    }
+    panel.hidden = false
+    root.dataset.homeServerOpen = "true"
+    trigger.setAttribute("aria-expanded", "true")
+    setTriggerHintEnabled(false)
+    if (!payload) {
+      panel.innerHTML = `<div class="home-server-popover__loading">Checking Home Server...</div>`
+    }
+    try {
+      await fetchState()
+      refreshPolling(payload)
+    } catch (err) {
+      setStatus("error")
+      panel.innerHTML = renderError(err && err.message ? err.message : "")
+    }
+  }
+  const closePanel = () => {
+    if (!panel || !trigger) {
+      return
+    }
+    panel.hidden = true
+    removeQrPreview()
+    root._homeServerQrReturnFocus = null
+    root.dataset.homeServerOpen = "false"
+    trigger.setAttribute("aria-expanded", "false")
+    setTriggerHintEnabled(true)
+    stopPolling()
+  }
+  trigger && trigger.addEventListener("click", (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (panel && panel.hidden) {
+      openPanel()
+    } else {
+      closePanel()
+    }
+  })
+  root.addEventListener("click", async (event) => {
+    const switchButton = event.target.closest("[data-home-server-switch]")
+    if (switchButton) {
+      event.preventDefault()
+      event.stopPropagation()
+      if (switchButton.disabled) {
+        return
+      }
+      if (payload && payload.status === "setup") {
+        window.location.href = setupHref()
+        return
+      }
+      await setHomeServerActive(!(payload && payload.status === "on"))
+      return
+    }
+    const copyButton = event.target.closest("[data-home-server-copy]")
+    if (copyButton) {
+      event.preventDefault()
+      event.stopPropagation()
+      const url = copyButton.getAttribute("data-home-server-copy") || ""
+      try {
+        await navigator.clipboard.writeText(url)
+      } catch (_) {
+        const input = document.createElement("input")
+        input.value = url
+        document.body.appendChild(input)
+        input.select()
+        document.execCommand("copy")
+        input.remove()
+      }
+      copyButton.classList.add("is-copied")
+      setTimeout(() => copyButton.classList.remove("is-copied"), 900)
+      return
+    }
+    const qrButton = event.target.closest("[data-home-server-qr]")
+    if (qrButton) {
+      event.preventDefault()
+      event.stopPropagation()
+      showQrPreview(qrButton.getAttribute("data-home-server-qr") || "", qrButton)
+      return
+    }
+    const qrCloseButton = event.target.closest("[data-home-server-qr-close]")
+    if (qrCloseButton) {
+      event.preventDefault()
+      event.stopPropagation()
+      removeQrPreview()
+      const focusTarget = root._homeServerQrReturnFocus
+      root._homeServerQrReturnFocus = null
+      if (focusTarget && typeof focusTarget.focus === "function" && document.contains(focusTarget)) {
+        focusTarget.focus()
+      }
+      return
+    }
+    const retryButton = event.target.closest("[data-home-server-retry]")
+    if (retryButton) {
+      event.preventDefault()
+      event.stopPropagation()
+      await setHomeServerActive(true)
+    }
+  })
+  const clickedOutside = (event) => {
+    if (!panel || panel.hidden) {
+      return false
+    }
+    return !root.contains(event.target)
+  }
+  const isEmbeddedFrame = (element) => {
+    if (!element || element === document.body || element === document.documentElement) {
+      return false
+    }
+    const tagName = element.tagName ? element.tagName.toUpperCase() : ""
+    return tagName === "IFRAME" || tagName === "WEBVIEW"
+  }
+  const closeIfFrameFocused = () => {
+    if (!panel || panel.hidden) {
+      return
+    }
+    if (isEmbeddedFrame(document.activeElement)) {
+      closePanel()
+    }
+  }
+  document.addEventListener("pointerdown", (event) => {
+    if (clickedOutside(event)) {
+      closePanel()
+    }
+  }, true)
+  document.addEventListener("click", (event) => {
+    if (clickedOutside(event)) {
+      closePanel()
+    }
+  }, true)
+  document.addEventListener("focusin", (event) => {
+    if (!root.contains(event.target) && isEmbeddedFrame(event.target)) {
+      closePanel()
+    }
+  }, true)
+  window.addEventListener("blur", () => {
+    window.setTimeout(closeIfFrameFocused, 0)
+  })
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closePanel()
+    }
+  })
+  fetchState().catch(() => {
+    setStatus("off")
+  })
+})()
+</script>

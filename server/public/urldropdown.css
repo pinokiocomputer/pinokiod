@@ -1568,6 +1568,13 @@ body.dark .urlbar input[type=url] {
 .mobile-link-button {
   display: none;
 }
+header.navheader .urlbar {
+  pointer-events: none;
+  visibility: hidden;
+}
+header.navheader #mobile-link-button {
+  display: none !important;
+}
 .url-modal-overlay {
   background: rgba(15, 23, 42, 0.4);
   -webkit-backdrop-filter: blur(12px);

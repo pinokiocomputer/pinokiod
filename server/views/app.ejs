@@ -70,9 +70,22 @@ body.dark .app-header-identity {
     0 1px 2px rgba(2, 6, 23, 0.35);
   color: rgba(248, 250, 252, 0.94);
 }
+body.app-page > header.navheader h1 {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex-wrap: nowrap;
+}
+body.app-page > header.navheader h1 > .home,
+body.app-page > header.navheader h1 > .btn2,
+body.app-page > header.navheader h1 > .sep,
+body.app-page > header.navheader h1 > .home-server-popover {
+  flex: 0 0 auto;
+}
 .app-header-info {
   position: relative;
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-width: 0;
   display: inline-flex;
   align-items: center;
@@ -87,7 +100,8 @@ body.dark .app-header-identity {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  max-width: min(260px, 32vw);
+  width: 100%;
+  max-width: none;
   height: 22px;
   padding: 0 4px;
   margin: 0 -4px;
@@ -266,6 +280,7 @@ body.dark .app-header-identity-separator {
 body.app-page header.navheader h1 > .flexible {
   flex: 0 0 0;
   min-width: 0;
+  margin-left: auto;
 }
 body.app-page header.navheader .nav-labeled-action {
   width: auto;
@@ -309,9 +324,17 @@ body.app-page header.navheader .nav-labeled-action:focus-visible {
   background: var(--pinokio-sidebar-tab-active-bg);
   color: var(--pinokio-sidebar-tab-active-color);
 }
+@media only screen and (max-width: 1180px) {
+  body.app-page header.navheader .app-header-identity-separator,
+  body.app-page header.navheader .resource-chip--cpu,
+  body.app-page header.navheader .resource-chip--ram,
+  body.app-page header.navheader .resource-chip--vram {
+    display: none !important;
+  }
+}
 .resource-usage {
   position: relative;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   min-width: 0;
   display: inline-flex;
   align-items: center;
@@ -327,6 +350,8 @@ body.app-page header.navheader .nav-labeled-action:focus-visible {
   gap: 8px;
   height: 22px;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   padding: 0 7px;
   margin: 0;
   border-radius: 999px;
@@ -8180,6 +8205,7 @@ body.dark .pinokio-custom-terminal-header {
   <span class="nav-action-label">Feed</span>
 </button>
 <% } %>
+<%- include('partials/home_server_popover') %>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
@@ -8194,6 +8220,7 @@ body.dark .pinokio-custom-terminal-header {
 </button>
 </h1>
 </header>
+<%- include('partials/home_server_popover_assets') %>
 <div class='appcanvas vertical <%=type === "browse" ? "dev-workspace" : ""%>' data-page-error="<%= error ? '1' : '0' %>">
   <% if (type !== 'files') { %>
   <button type='button' class='app-sidebar-peek-trigger' data-app-sidebar-peek-trigger aria-label='Show app navigation' aria-controls='app-sidebar' aria-expanded='false'></button>

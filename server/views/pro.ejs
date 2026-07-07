@@ -204,8 +204,15 @@ body.dark #status-window b {
       </div>
       <div id='status-window'></div>
       <div id='progress-window' class='hidden'><div id='progress-bar'></div></div>
+      <% if (target === "_top") { %>
+        <div class='flexible'></div>
+        <%- include('partials/home_server_popover') %>
+      <% } %>
     </h1>
   </header>
+  <% if (target === "_top") { %>
+    <%- include('partials/home_server_popover_assets') %>
+  <% } %>
   <div class='terminal-container'>
     <div id='terminal'></div>
   </div>

@@ -1007,6 +1007,8 @@ const reloadMemory = async () => {
       <a class='path' href="<%=path.path%>"><%-path.name%></a>
     <% } %>
   <% }) %>
+  <div class='flexible'></div>
+  <%- include('partials/home_server_popover') %>
   </h1>
   <% if (false) { %>
   <a class='gitremote' data-filepath="<%=filepath%>"><%=filepath%></a>
@@ -1032,6 +1034,7 @@ const reloadMemory = async () => {
     </div>
   <% } %>
   </header>
+  <%- include('partials/home_server_popover_assets') %>
   <% if (requirements_pending) { %>
     <div class='requirements'>
       <div class='content'>

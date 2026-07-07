@@ -524,6 +524,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             <a class='home-button home' href="/home"><i class='fa-solid fa-home'></i></a>
           <% } %>
           <div class='flexible'></div>
+          <%- include('partials/home_server_popover') %>
           <div class='nav-btns'>
             <a class='btn' href="<%=editorpath%>"><i class="fa-solid fa-pen-to-square"></i> Edit file</a>
             <button class='btn' id='open-fs' data-filepath="<%=filepath%>"><i class="fa-solid fa-eye"></i> Open in File Explorer</button>
@@ -533,6 +534,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           </div>
         </h1>
       </header>
+      <%- include('partials/home_server_popover_assets') %>
     <% } %>
     <div id='editor' class='<%=init ? "hidden" : ""%>'>
       <% items.forEach((item) => { %>

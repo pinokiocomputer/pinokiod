@@ -197,12 +197,14 @@ body.dark .context-menu-wrapper {
   text-transform: none;
   transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
 }
-.home-app-line .menu-btns > .open-actions-modal {
+.home-app-line .menu-btns > .open-actions-modal,
+.home-app-line .menu-btns > .open-app-share-modal {
   width: 28px;
   min-width: 28px;
   padding: 0 !important;
 }
-.home-app-line .menu-btns > .open-actions-modal i {
+.home-app-line .menu-btns > .open-actions-modal i,
+.home-app-line .menu-btns > .open-app-share-modal i {
   width: 14px;
   font-size: 13px;
 }
@@ -859,6 +861,291 @@ body.dark .menu-btns .home-icon-btn:focus-visible {
 body.dark .menu-btns .toggle-star.is-starred {
   color: #ffcc66 !important;
 }
+.home-app-share-swal.swal2-popup {
+  width: min(620px, calc(100vw - 32px));
+  padding: 0;
+  border-radius: 10px;
+}
+.home-app-share-swal .swal2-close {
+  width: 34px;
+  height: 34px;
+  margin: 16px 16px 0 0;
+  border-radius: 8px;
+  color: rgba(15, 23, 42, 0.48);
+  font-size: 28px;
+  line-height: 34px;
+  transition: background-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+.home-app-share-swal .swal2-close:hover,
+.home-app-share-swal .swal2-close:focus-visible {
+  background: rgba(15, 23, 42, 0.055);
+  color: rgba(15, 23, 42, 0.74);
+  box-shadow: none;
+}
+body.dark .home-app-share-swal .swal2-close {
+  color: rgba(226, 232, 240, 0.5);
+}
+body.dark .home-app-share-swal .swal2-close:hover,
+body.dark .home-app-share-swal .swal2-close:focus-visible {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(226, 232, 240, 0.78);
+}
+.home-app-share-swal .swal2-title {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 11px;
+  margin: 0;
+  padding: 30px 64px 0 30px;
+  text-align: left;
+  font-size: 21px;
+  line-height: 1.22;
+}
+.home-app-share-swal .swal2-html-container {
+  margin: 0;
+  padding: 20px 30px 30px;
+  overflow: visible;
+  text-align: left;
+}
+.home-app-share-modal__title-icon {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 7px;
+  background: rgba(248, 250, 252, 0.74);
+  color: rgba(15, 23, 42, 0.72);
+  font-size: 14px;
+  line-height: 1;
+}
+.home-app-share-modal__title-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.home-app-share-modal__title-text {
+  min-width: 0;
+}
+.home-app-share-modal__title-meta {
+  width: fit-content;
+  padding: 2px 7px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.035);
+  color: rgba(15, 23, 42, 0.56);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+body.dark .home-app-share-modal__title-icon {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(226, 232, 240, 0.78);
+}
+body.dark .home-app-share-modal__title-meta {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(226, 232, 240, 0.58);
+}
+.home-app-share-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+.home-app-share-modal__intro {
+  color: rgba(15, 23, 42, 0.68);
+  font-size: 13px;
+  line-height: 1.45;
+}
+body.dark .home-app-share-modal__intro {
+  color: rgba(226, 232, 240, 0.7);
+}
+.home-app-share-modal__scan-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.72);
+}
+body.dark .home-app-share-modal__scan-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.045);
+}
+.home-app-share-modal__scan-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.home-app-share-modal__eyebrow {
+  color: rgba(15, 23, 42, 0.88);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+body.dark .home-app-share-modal__eyebrow {
+  color: rgba(226, 232, 240, 0.9);
+}
+.home-app-share-modal__qr {
+  display: flex;
+  width: 178px;
+  height: 178px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 8px;
+  background: #ffffff;
+}
+.home-app-share-modal__qr img {
+  width: 154px;
+  height: 154px;
+  image-rendering: pixelated;
+}
+.home-app-share-modal__share-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.62);
+}
+body.dark .home-app-share-modal__share-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.035);
+}
+.home-app-share-modal__url {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 7px;
+  background: rgba(248, 250, 252, 0.82);
+  color: rgba(15, 23, 42, 0.78);
+  font-size: 12px;
+}
+body.dark .home-app-share-modal__url {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(226, 232, 240, 0.78);
+}
+.home-app-share-modal__url span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-app-share-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.home-app-share-modal__action {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 13px;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 7px;
+  background: rgba(248, 250, 252, 0.72);
+  color: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+.home-app-share-modal__action.is-primary {
+  border-color: var(--pinokio-chrome-primary-bg, #252b3a);
+  background: var(--pinokio-chrome-primary-bg, #252b3a);
+  color: #ffffff;
+}
+.home-app-share-modal__action:hover,
+.home-app-share-modal__action:focus-visible {
+  border-color: rgba(15, 23, 42, 0.16);
+  background: rgba(248, 250, 252, 0.95);
+}
+.home-app-share-modal__action.is-primary:hover,
+.home-app-share-modal__action.is-primary:focus-visible {
+  background: rgba(15, 23, 42, 0.9);
+}
+body.dark .home-app-share-modal__action {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.045);
+}
+body.dark .home-app-share-modal__action.is-primary {
+  border-color: rgba(248, 250, 252, 0.92);
+  background: rgba(248, 250, 252, 0.92);
+  color: rgba(15, 23, 42, 0.94);
+}
+body.dark .home-app-share-modal__action:hover,
+body.dark .home-app-share-modal__action:focus-visible {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.075);
+}
+body.dark .home-app-share-modal__action.is-primary:hover,
+body.dark .home-app-share-modal__action.is-primary:focus-visible {
+  background: rgba(248, 250, 252, 0.84);
+}
+.home-app-share-modal__note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(15, 23, 42, 0.54);
+  font-size: 12px;
+  line-height: 1.4;
+}
+body.dark .home-app-share-modal__note {
+  color: rgba(226, 232, 240, 0.58);
+}
+.home-app-share-modal__setup-card {
+  padding: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.72);
+}
+body.dark .home-app-share-modal__setup-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.045);
+}
+@media (max-width: 560px) {
+  .home-app-share-swal.swal2-popup {
+    width: calc(100vw - 24px);
+  }
+  .home-app-share-swal .swal2-title {
+    padding: 24px 56px 0 22px;
+  }
+  .home-app-share-swal .swal2-html-container {
+    padding: 18px 22px 24px;
+  }
+  .home-app-share-modal__scan-card {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+  .home-app-share-modal__scan-copy {
+    align-items: center;
+  }
+  .home-app-share-modal__qr {
+    width: 166px;
+    height: 166px;
+  }
+  .home-app-share-modal__qr img {
+    width: 144px;
+    height: 144px;
+  }
+}
 .home-actions-dialog {
   width: min(760px, calc(100vw - 32px));
   max-height: min(680px, calc(100vh - 32px));
@@ -1445,6 +1732,7 @@ body.dark aside .current.selected {
     <div class='url-dropdown' id='url-dropdown'></div>
   </div>
 </form>
+<%- include('partials/home_server_popover') %>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
@@ -1487,6 +1775,7 @@ body.dark aside .current.selected {
 </div>
 <% } %>
 </header>
+<%- include('partials/home_server_popover_assets') %>
 <main>
 <div id='terminal' class='hidden'></div>
 <div class='container'>
@@ -1546,6 +1835,20 @@ body.dark aside .current.selected {
                 </button>
                 <button class='btn open-menu open-actions-modal' type='button' data-dialog-id="home-actions-running-<%=index%>" aria-haspopup="dialog" aria-expanded="false" title="Open actions panel" aria-label="Open actions panel">
                   <i class="fa-solid fa-list-ul" aria-hidden="true"></i>
+                </button>
+                <% const runningShareReadyUrl = typeof item.ready_url === "string" ? item.ready_url : "" %>
+                <% const runningShareExternalReadyUrls = Array.isArray(item.external_ready_urls) ? item.external_ready_urls : [] %>
+                <button
+                  class='btn home-icon-btn open-app-share-modal'
+                  type='button'
+                  data-app-id="<%= item.uri %>"
+                  data-app-name="<%= item.name %>"
+                  data-app-ready-url="<%= runningShareReadyUrl %>"
+                  data-app-external-ready-urls="<%= JSON.stringify(runningShareExternalReadyUrls) %>"
+                  title="Open on another device"
+                  aria-label="Open <%= item.name %> on another device"
+                >
+                  <i class="fa-solid fa-wifi" aria-hidden="true"></i>
                 </button>
                 <% const autolaunchRunningScript = !!(item.autolaunch_starting && item.autolaunch_script && item.running_scripts && item.running_scripts.some((s) => { const scriptName = s && (s.name || s.script_path || s.path || ""); return scriptName === item.autolaunch_script || String(scriptName).endsWith(`/${item.autolaunch_script}`) })) %>
                 <% if (item.autolaunch_starting && !autolaunchRunningScript) { %>
@@ -3058,6 +3361,228 @@ const showHomeStarToast = () => {
     `
   })
 }
+const escapeHomeShareHtml = (value = "") => {
+  return String(value || "").replace(/[&<>"']/g, (char) => {
+    return ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[char] || char
+  })
+}
+const copyHomeShareText = async (text) => {
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+    await navigator.clipboard.writeText(text)
+    return
+  }
+  const textarea = document.createElement("textarea")
+  textarea.value = text
+  textarea.setAttribute("readonly", "")
+  textarea.style.position = "fixed"
+  textarea.style.opacity = "0"
+  document.body.appendChild(textarea)
+  textarea.select()
+  document.execCommand("copy")
+  textarea.remove()
+}
+const parseHomeShareExternalUrls = (raw = "") => {
+  try {
+    const parsed = JSON.parse(raw || "[]")
+    return Array.isArray(parsed) ? parsed.filter((item) => item && typeof item.url === "string" && item.url.trim()) : []
+  } catch (_) {
+    return []
+  }
+}
+const requestHomeAppShareStatus = async (appId = "") => {
+  const normalizedAppId = String(appId || "").trim()
+  if (!normalizedAppId) {
+    return null
+  }
+  try {
+    const response = await fetch(`/apps/status/${encodeURIComponent(normalizedAppId)}`, { cache: "no-store" })
+    if (!response.ok) {
+      return null
+    }
+    return await response.json()
+  } catch (_) {
+    return null
+  }
+}
+const updateHomeShareButtonStatus = (button, status) => {
+  if (!button || !status || typeof status !== "object") {
+    return
+  }
+  if (typeof status.ready_url === "string") {
+    button.setAttribute("data-app-ready-url", status.ready_url)
+  }
+  if (Array.isArray(status.external_ready_urls)) {
+    button.setAttribute("data-app-external-ready-urls", JSON.stringify(status.external_ready_urls))
+  }
+  if (typeof status.title === "string" && status.title.trim()) {
+    button.setAttribute("data-app-name", status.title.trim())
+  }
+}
+const requestHomeNetworkSharingStatus = async () => {
+  try {
+    const response = await fetch("/info/network-sharing", { cache: "no-store" })
+    if (!response.ok) {
+      return null
+    }
+    return await response.json()
+  } catch (_) {
+    return null
+  }
+}
+const homeShareSetupUrl = () => {
+  const currentPath = `${window.location.pathname}${window.location.search}`
+  return `/setup/network?callback=${encodeURIComponent(currentPath || "/home")}`
+}
+const homeShareActionHtml = (href, label, primary = true) => {
+  return `<a class="home-app-share-modal__action${primary ? " is-primary" : ""}" href="${escapeHomeShareHtml(href)}">${escapeHomeShareHtml(label)}</a>`
+}
+const homeShareTitleHtml = (label) => {
+  return `<span class="home-app-share-modal__title-icon" aria-hidden="true"><i class="fa-solid fa-wifi"></i></span><span class="home-app-share-modal__title-copy"><span class="home-app-share-modal__title-text">${escapeHomeShareHtml(label)}</span><span class="home-app-share-modal__title-meta">Home Server</span></span>`
+}
+const renderHomeShareAvailableHtml = ({ appName, wifiUrl }) => {
+  const safeUrl = escapeHomeShareHtml(wifiUrl)
+  const qr = `/qr?data=${encodeURIComponent(wifiUrl)}&s=4&m=0`
+  return `
+    <div class="home-app-share-modal">
+      <div class="home-app-share-modal__scan-card">
+        <div class="home-app-share-modal__scan-copy">
+          <div class="home-app-share-modal__eyebrow">Scan to open</div>
+          <div class="home-app-share-modal__intro">Use a phone, tablet, or another computer on this network.</div>
+        </div>
+        <div class="home-app-share-modal__qr">
+          <img src="${escapeHomeShareHtml(qr)}" alt="QR code for ${escapeHomeShareHtml(appName)} Home Server link">
+        </div>
+      </div>
+      <div class="home-app-share-modal__share-card">
+        <div class="home-app-share-modal__url">
+          <i class="fa-solid fa-wifi" aria-hidden="true"></i>
+          <span>${safeUrl}</span>
+        </div>
+        <div class="home-app-share-modal__actions">
+          <button type="button" class="home-app-share-modal__action is-primary" data-home-share-copy="${safeUrl}">
+            <i class="fa-regular fa-copy" aria-hidden="true"></i>
+            <span>Copy link</span>
+          </button>
+          <a class="home-app-share-modal__action" href="${safeUrl}" target="_blank" rel="noreferrer">
+            <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+            <span>Open</span>
+          </a>
+        </div>
+      </div>
+      <div class="home-app-share-modal__note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Only devices on this local network can open this link.</span></div>
+    </div>`
+}
+const renderHomeShareSetupHtml = ({ detail, actions }) => {
+  return `
+    <div class="home-app-share-modal">
+      <div class="home-app-share-modal__setup-card">
+        <div class="home-app-share-modal__intro">${escapeHomeShareHtml(detail)}</div>
+      </div>
+      <div class="home-app-share-modal__actions">${actions.join("")}</div>
+    </div>`
+}
+const showHomeAppShareModal = async (button) => {
+  if (!button) {
+    return
+  }
+  const appId = button.getAttribute("data-app-id") || ""
+  let appName = button.getAttribute("data-app-name") || "This app"
+  let readyUrl = button.getAttribute("data-app-ready-url") || ""
+  let externalUrls = parseHomeShareExternalUrls(button.getAttribute("data-app-external-ready-urls") || "")
+  const status = await requestHomeNetworkSharingStatus()
+  const appStatus = await requestHomeAppShareStatus(appId)
+  if (appStatus) {
+    updateHomeShareButtonStatus(button, appStatus)
+    if (typeof appStatus.title === "string" && appStatus.title.trim()) {
+      appName = appStatus.title.trim()
+    }
+    if (typeof appStatus.ready_url === "string") {
+      readyUrl = appStatus.ready_url
+    }
+    if (Array.isArray(appStatus.external_ready_urls)) {
+      externalUrls = appStatus.external_ready_urls.filter((item) => item && typeof item.url === "string" && item.url.trim())
+    }
+  }
+  const wifiUrl = externalUrls.length > 0 ? externalUrls[0].url : ""
+  let title = `Open ${appName} on another device`
+  let html
+  if (status && status.installed === false) {
+    title = "Install Home Server support"
+    html = renderHomeShareSetupHtml({
+      detail: "Pinokio needs its local networking component before it can share app Web UIs on your home network.",
+      actions: [homeShareActionHtml(homeShareSetupUrl(), "Install Home Server support")]
+    })
+  } else if (status && status.active === false) {
+    title = "Turn on Home Server"
+    html = renderHomeShareSetupHtml({
+      detail: "Home Server support is installed but turned off. Turn it on to open running app Web UIs from phones, tablets, and other computers on this network.",
+      actions: [homeShareActionHtml("/network", "Open Home Server settings")]
+    })
+  } else if (status && status.running === false) {
+    title = "Home Server is starting"
+    html = renderHomeShareSetupHtml({
+      detail: "Pinokio is preparing home-network links for app Web UIs. Open Home Server settings to check it.",
+      actions: [homeShareActionHtml("/network", "Open Home Server settings")]
+    })
+  } else if (wifiUrl) {
+    html = renderHomeShareAvailableHtml({ appName, wifiUrl })
+  } else if (readyUrl) {
+    title = "Home Server link is not ready yet"
+    html = renderHomeShareSetupHtml({
+      detail: `${appName} is running locally, but its Home Server link is not ready yet.`,
+      actions: [
+        `<button type="button" class="home-app-share-modal__action is-primary" data-home-share-retry>Retry</button>`,
+        homeShareActionHtml("/network", "Open Home Server settings", false)
+      ]
+    })
+  } else {
+    title = "No Web UI address yet"
+    html = renderHomeShareSetupHtml({
+      detail: `${appName} is running, but Pinokio has not found a Web UI URL to open from another device yet.`,
+      actions: [`<button type="button" class="home-app-share-modal__action is-primary" data-home-share-retry>Retry</button>`]
+    })
+  }
+  await Swal.fire({
+    title: homeShareTitleHtml(title),
+    html,
+    showConfirmButton: false,
+    showCloseButton: true,
+    customClass: {
+      popup: "home-app-share-swal"
+    },
+    didOpen: (popup) => {
+      const copyButton = popup.querySelector("[data-home-share-copy]")
+      if (copyButton) {
+        copyButton.addEventListener("click", async () => {
+          const url = copyButton.getAttribute("data-home-share-copy") || ""
+          if (!url) {
+            return
+          }
+          try {
+            await copyHomeShareText(url)
+            copyButton.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i><span>Copied</span>'
+            window.setTimeout(() => {
+              copyButton.innerHTML = '<i class="fa-regular fa-copy" aria-hidden="true"></i><span>Copy link</span>'
+            }, 1200)
+          } catch (_) {}
+        })
+      }
+      const retryButton = popup.querySelector("[data-home-share-retry]")
+      if (retryButton) {
+        retryButton.addEventListener("click", () => {
+          Swal.close()
+          window.setTimeout(() => showHomeAppShareModal(button), 80)
+        })
+      }
+    }
+  })
+}
 document.addEventListener("click", async (e) => {
   let target
   if (e.target.classList.contains("open-actions-modal")) {
@@ -3069,6 +3594,18 @@ document.addEventListener("click", async (e) => {
     e.preventDefault()
     e.stopPropagation()
     openHomeActionsDialog(target)
+    return
+  }
+  if (e.target.classList.contains("open-app-share-modal") || e.target.classList.contains("home-share-app")) {
+    target = e.target
+  } else {
+    target = e.target.closest(".open-app-share-modal, .home-share-app")
+  }
+  if (target) {
+    e.preventDefault()
+    e.stopPropagation()
+    closeContextMenuForNode(target)
+    await showHomeAppShareModal(target)
     return
   }
   if (e.target.classList.contains("home-actions-close")) {

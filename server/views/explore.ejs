@@ -159,6 +159,7 @@ body.dark .explore-url {
 <button class='btn2' id='screenshot' data-tippy-content="screen capture"><i class="fa-solid fa-camera"></i></button>
 <button class='btn2' id='inspector' data-tippy-content="X-ray mode"><i class="fa-solid fa-eye"></i></button>
 <input id="explore-url" class="explore-url" type="url" readonly spellcheck="false" value="">
+<%- include('partials/home_server_popover') %>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
@@ -173,6 +174,7 @@ body.dark .explore-url {
 </button>
 </h1>
 </header>
+<%- include('partials/home_server_popover_assets') %>
 <main>
 <% if (theme === "dark") { %>
   <iframe name="<%=schema%>" src="<%=discover_dark%>" <%=agent === "electron" ? "no-referrer" : ""%> allow="fullscreen *;" allowfullscreen></iframe>

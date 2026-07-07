@@ -348,6 +348,7 @@ iframe {
     <div class='url-dropdown' id='url-dropdown'></div>
   </div>
 </form>
+<%- include('partials/home_server_popover') %>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
@@ -362,6 +363,7 @@ iframe {
 </button>
 </h1>
 </header>
+<%- include('partials/home_server_popover_assets') %>
 <iframe class='mainframe' src="<%=src%>" allow="fullscreen *;" allowfullscreen></iframe>
 <script src="/urldropdown.js"></script>
 <script>

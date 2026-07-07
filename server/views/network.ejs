@@ -1079,14 +1079,14 @@ body.network-page .container {
   margin: 0;
 }
 body.network-page .network-config-section {
-  padding-top: 18px;
+  padding-top: 12px;
   border-top: 0;
 }
 body.network-page .network-config-head {
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--task-border);
+  margin-bottom: 10px;
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 body.network-page .config {
   margin: 0;
@@ -1098,13 +1098,13 @@ body.network-page .config-header {
 }
 body.network-page .config-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: minmax(0, 420px);
+  gap: 8px;
   padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
-  align-items: stretch;
+  align-items: center;
 }
 body.network-page .config-row {
   padding: 0;
@@ -1168,18 +1168,23 @@ body.network-page .switcher input:checked + .slider {
 }
 body.network-page #network_name {
   display: grid;
-  gap: 8px;
+  grid-template-columns: auto minmax(180px, 320px);
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
 }
 body.network-page .network-name {
   display: block;
 }
 body.network-page .network-name input[type=text] {
-  width: 100%;
+  width: 320px;
+  max-width: 100%;
   min-width: 0;
-  min-height: 38px;
-  padding: 7px 12px;
+  min-height: 34px;
+  padding: 6px 11px;
   border: 1px solid var(--task-border-strong);
-  border-radius: 9px;
+  border-radius: 8px;
   background: color-mix(in srgb, var(--task-panel) 92%, var(--task-soft));
   color: var(--task-text);
   box-sizing: border-box;
@@ -1191,14 +1196,14 @@ body.network-page #network_name .label {
   margin-bottom: 0;
 }
 body.network-page .advanced {
-  margin-top: 14px;
+  margin-top: 8px;
   justify-content: flex-start;
 }
 body.network-page .troubleshoot,
 body.dark.network-page .troubleshoot {
   color: var(--task-muted);
   padding: 0;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
 }
 body.network-page .troubleshoot .link-label {
@@ -1215,33 +1220,97 @@ body.network-page .loading {
   background: transparent;
   color: var(--task-muted);
 }
+body.network-page .net-summary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  color: var(--task-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+body.network-page .net-summary-item + .net-summary-item {
+  padding-left: 10px;
+  border-left: 1px solid var(--task-border);
+}
+body.network-page .net-summary strong {
+  color: var(--task-text);
+}
+body.network-page .network-routes-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--task-border);
+}
+body.network-page .net-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+body.network-page .net-toolbar {
+  flex: 0 0 auto;
+  padding: 0;
+}
+body.network-page .net-search-field {
+  width: 260px;
+  min-height: 34px;
+  padding: 0 10px;
+  gap: 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  border: 1px solid var(--task-border-strong);
+  box-shadow: none;
+}
+body.network-page .net-search-field .task-library-search-input {
+  min-height: 0;
+  height: 32px;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  color: var(--task-text);
+}
+body.network-page .net-search-field .task-library-search-input:focus {
+  outline: 0;
+  box-shadow: none;
+}
 body.network-page .running-apps {
   display: grid;
-  gap: 14px;
+  gap: 0;
 }
 body.network-page .line {
-  padding: 18px 20px;
-  border: 1px solid var(--task-border);
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  box-sizing: border-box;
+  padding: 11px 14px;
+  border-top: 1px solid var(--task-border);
+  border-radius: 6px;
+  background: transparent;
+  transition: background-color 120ms ease-out;
+}
+body.network-page .line:hover,
+body.network-page .line.selected {
+  background: color-mix(in srgb, var(--task-soft) 34%, transparent);
 }
 body.network-page .line.align-top h3 {
   margin: 0;
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 9px;
   align-items: start;
+  font-size: inherit;
 }
 body.network-page .placeholder-icon,
 body.network-page .line img {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--task-accent) 12%, transparent);
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--task-accent);
+  color: var(--task-muted);
+  font-size: 11px;
 }
 body.network-page .line img {
   object-fit: cover;
@@ -1249,66 +1318,299 @@ body.network-page .line img {
 }
 body.network-page .line .col {
   min-width: 0;
+  padding-left: 0;
+  display: grid;
+  grid-template-columns: minmax(160px, 240px) minmax(0, 1fr);
+  gap: 4px 18px;
+  align-items: start;
 }
 body.network-page .line .title {
   display: flex;
   align-items: center;
   gap: 8px;
   color: var(--task-text);
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
+  line-height: 1.25;
+  margin: 0;
+  min-width: 0;
 }
 body.network-page .line .title i {
-  font-size: 10px;
+  flex: 0 0 auto;
+  font-size: 8px;
   color: color-mix(in srgb, #84cc16 75%, var(--task-panel));
 }
+body.network-page .line .title span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+body.network-page .line .description {
+  grid-column: 1;
+  margin: 2px 0 0;
+  padding: 0;
+  color: var(--task-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+body.network-page .line .grid-3,
+body.network-page .line .grid-1,
+body.network-page .line .launch-btns {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+}
 body.network-page .grid-3 {
-  padding: 10px 0 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) repeat(2, minmax(0, 1fr));
+  padding: 4px 0 0;
   gap: 14px;
+  background: none !important;
+  margin-top: 0;
 }
-body.network-page .grid-3 .section {
-  border: 1px solid var(--task-border);
-  border-radius: 14px;
-  padding: 14px;
-  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+body.network-page .grid-1 {
+  padding: 0;
+  background: none !important;
+  margin-top: 0;
 }
-body.network-page .grid-3 .section h2 {
-  margin: 0 0 10px;
-  font-size: 13px;
+body.network-page .line .grid-3 .section,
+body.network-page .line .grid-1 .section {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: none;
+  min-height: 0;
+}
+body.network-page .line .grid-3 .section:first-child,
+body.network-page .line .grid-1 .section:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+body.network-page .line .grid-3 .section:last-child,
+body.network-page .line .grid-1 .section:last-child {
+  padding-right: 0;
+}
+body.network-page .grid-3 .section h2,
+body.network-page .grid-1 .section h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 5px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--task-text);
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+body.network-page .grid-3 .section h2 i,
+body.network-page .grid-1 .section h2 i {
+  width: 14px;
+  color: var(--task-muted);
+  text-align: center;
 }
 body.network-page .net {
-  margin: 0 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  width: fit-content;
+  margin: 0 0 4px;
   padding: 0;
   border: 0;
   color: var(--task-muted);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 body.dark.network-page .net {
   color: var(--task-muted);
 }
+body.network-page .net:hover,
+body.dark.network-page .net:hover {
+  color: var(--task-text);
+}
+body.network-page .access-point-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+body.network-page .access-point-list li {
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+body.network-page .access-point-list .net {
+  margin: 0;
+  display: inline-flex;
+}
 body.network-page .get-dns-btn,
 body.network-page .btn,
 body.network-page .proxy a {
-  border-radius: 12px;
+  border-radius: 6px;
 }
 body.network-page .get-dns-btn {
-  margin-top: 10px;
-  max-width: none;
-  background: color-mix(in srgb, var(--task-panel) 94%, var(--task-soft));
+  margin-top: 6px;
+  max-width: fit-content;
+  background: transparent;
   border: 1px solid var(--task-border);
   color: var(--task-text);
+  padding: 0 10px;
+  min-height: 30px;
+  font-weight: 650;
+  width: auto;
 }
 body.network-page .badge,
 body.dark.network-page .badge {
-  background: color-mix(in srgb, var(--task-accent) 18%, transparent);
-  color: var(--task-accent);
+  min-height: 18px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--task-accent) 22%, var(--task-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--task-accent) 10%, var(--task-panel));
+  color: color-mix(in srgb, var(--task-accent) 62%, var(--task-text));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+body.network-page .dns-modal-popup,
+body.network-page .dns-progress-popup {
+  width: min(560px, calc(100vw - 32px)) !important;
+  padding: 18px !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--task-border) !important;
+  background: var(--task-panel) !important;
+  color: var(--task-text) !important;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.16) !important;
+}
+body.dark.network-page .dns-modal-popup,
+body.dark.network-page .dns-progress-popup {
+  background: #1b1c1d !important;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.42) !important;
+}
+body.network-page .dns-modal-popup .swal2-title,
+body.network-page .dns-progress-popup .swal2-title {
+  margin: 0 0 12px !important;
+  font-size: 18px !important;
+  line-height: 1.25 !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  color: var(--task-text) !important;
+  text-align: left !important;
+}
+body.network-page .dns-modal-popup .swal2-html-container,
+body.network-page .dns-progress-popup .swal2-html-container {
+  margin: 0 !important;
+  padding: 0 !important;
+  color: var(--task-text) !important;
+  text-align: left !important;
+}
+body.network-page .dns-modal-popup .swal2-actions,
+body.network-page .dns-progress-popup .swal2-actions {
+  gap: 8px !important;
+  justify-content: flex-end !important;
+  margin-top: 16px !important;
+}
+body.network-page .dns-modal-popup .swal2-confirm.swal2-styled,
+body.network-page .dns-progress-popup .swal2-confirm.swal2-styled,
+body.network-page .dns-modal-popup .swal2-cancel.swal2-styled,
+body.network-page .dns-progress-popup .swal2-cancel.swal2-styled {
+  min-height: 32px !important;
+  padding: 0 12px !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+body.network-page .dns-modal-popup .swal2-confirm.swal2-styled,
+body.network-page .dns-progress-popup .swal2-confirm.swal2-styled {
+  background: color-mix(in srgb, var(--task-panel) 78%, var(--task-accent)) !important;
+  border: 1px solid color-mix(in srgb, var(--task-panel) 72%, var(--task-accent)) !important;
+  color: var(--task-accent) !important;
+}
+body.network-page .dns-modal-popup .swal2-cancel.swal2-styled,
+body.network-page .dns-progress-popup .swal2-cancel.swal2-styled {
+  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft)) !important;
+  border: 1px solid var(--task-border) !important;
+  color: var(--task-text) !important;
+}
+body.network-page .dns-modal .address-section {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+body.network-page .dns-modal .address-section input {
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid var(--task-border-strong);
+  background: color-mix(in srgb, var(--task-panel) 98%, white);
+  color: var(--task-text);
+  font-size: 13px;
+  box-sizing: border-box;
+}
+body.dark.network-page .dns-modal .address-section input {
+  background: color-mix(in srgb, var(--task-panel) 95%, black);
+}
+body.network-page .dns-modal .address-result,
+body.network-page .dns-modal-terminal-container {
+  border: 1px solid var(--task-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--task-panel) 96%, var(--task-soft));
+}
+body.network-page .dns-modal .address-result {
+  min-height: 52px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--task-text);
+}
+body.network-page .dns-modal .address-result i {
+  color: var(--task-muted);
+  flex: 0 0 auto;
+}
+body.network-page .dns-progress-modal {
+  margin-top: 0;
+}
+body.network-page .dns-modal-terminal-container {
+  width: 100%;
+  height: 300px;
+  overflow: hidden;
+}
+body.network-page .dns-modal-terminal-container .xterm .xterm-viewport {
+  width: initial !important;
 }
 @media only screen and (max-width: 820px) {
   body.network-page .task-shell-header,
   body.network-page .task-shell-body {
     padding-left: 18px;
     padding-right: 18px;
+  }
+  body.network-page .net-summary {
+    justify-content: flex-start;
+  }
+  body.network-page .net-section-head {
+    align-items: flex-start;
+  }
+  body.network-page .line .col {
+    grid-template-columns: 1fr;
+  }
+  body.network-page .line .grid-3,
+  body.network-page .line .grid-1,
+  body.network-page .line .launch-btns {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  body.network-page .grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding-top: 6px;
   }
   body.network-page .config-save-btn {
     width: auto;
@@ -1324,17 +1626,51 @@ body.dark.network-page .badge {
   body.network-page .network-config-head {
     align-items: flex-start;
   }
+  body.network-page .config-body,
+  body.network-page #network_name {
+    width: 100%;
+  }
+  body.network-page #network_name {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  body.network-page .network-name input[type=text] {
+    width: 100%;
+  }
   body.network-page .config-toggle-actions {
     gap: 10px;
   }
+  body.network-page .net-section-head {
+    flex-direction: column;
+    gap: 10px;
+  }
+  body.network-page .net-toolbar,
+  body.network-page .net-search-field {
+    width: 100%;
+  }
   body.network-page .line.align-top h3 {
-    grid-template-columns: 1fr;
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+  body.network-page .line .title {
+    margin-bottom: 2px;
   }
   body.network-page .item-icon {
     margin-bottom: 2px;
   }
   body.network-page .grid-3 {
     grid-template-columns: 1fr;
+  }
+  body.network-page .line .grid-3 .section,
+  body.network-page .line .grid-1 .section {
+    border-left: 0;
+    padding: 0;
+  }
+  body.network-page .dns-modal .address-section {
+    grid-template-columns: 1fr;
+  }
+  body.network-page .dns-modal .address-result {
+    align-items: flex-start;
+    flex-direction: column;
   }
   body.network-page .network-name {
     display: block;
@@ -1349,6 +1685,13 @@ body.dark.network-page .badge {
 <script src="/tippy-bundle.umd.min.js"></script>
 <script src="/hotkeys.min.js"></script>
 <script src="/sweetalert2.js"></script>
+<script src="/xterm.js"></script>
+<script src="/xterm-inline-bridge.js"></script>
+<script src="/xterm-addon-fit.js"></script>
+<script src="/xterm-addon-web-links.js"></script>
+<script src="/xterm-theme.js"></script>
+<script src="/Socket.js"></script>
+<script src="/install.js"></script>
 <script src="/common.js"></script>
 <script src="/opener.js"></script>
 <script src="/nav.js"></script>
@@ -1385,6 +1728,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class='url-dropdown' id='url-dropdown'></div>
   </div>
 </form>
+<%- include('partials/home_server_popover') %>
 <a class='btn2' href="/columns" data-tippy-content="split into 2 columns">
   <div><i class="fa-solid fa-table-columns"></i></div>
 </a>
@@ -1400,13 +1744,17 @@ document.addEventListener('DOMContentLoaded', function() {
 </button>
 </h1>
 </header>
+<%- include('partials/home_server_popover_assets') %>
 <main>
   <div class='task-container'>
   <section class='task-shell network-shell'>
     <header class='task-shell-header'>
       <div class='task-shell-header-main'>
-        <h1 class='task-title'>Network settings</h1>
-        <p class='task-description'>Instantly add HTTPS, CORS, and peer sharing for apps on your local network.</p>
+        <h1 class='task-title'>Home Server</h1>
+        <p class='task-description'>Share this Pinokio and running app Web UIs on your home network.</p>
+      </div>
+      <div class='task-header-actions net-summary'>
+        <%- include('partials/net_summary') %>
       </div>
     </header>
     <div class='task-shell-body network-shell-body'>
@@ -1451,60 +1799,505 @@ document.addEventListener('DOMContentLoaded', function() {
       <i class="fa-solid fa-circle-notch fa-spin"></i> Stand by. Do not close this window..
     </div>
   </section>
-  <div class='container'>
-    <div class='running-apps'>
-      <% if (requirements_pending || peer_active && processes.length === 0) { %>
-        <div class='loader'>
-        <i class="fa-solid fa-circle-notch fa-spin"></i>
-        </div>
-      <% } %>
-      <!--
-      <% static_routes.forEach((route, index) => { %>
-        <div class='line align-top' data-index="<%=processes.length+index%>" data-name="<%=route.name%>" data-title="<%=route.name%>" data-description="<%=route.internal_router.join(' ')%>">
-          <h3>
-            <div class='item-icon'>
-              <div class='placeholder-icon'>
-                <i class="fa-solid fa-clock-rotate-left"></i>
-              </div>
-            </div>
-            <div class='col'>
-              <div class='title'><i class="fa-solid fa-circle"></i><span><%=route.name%></span></div>
-              <div class='grid-3'>
-                <div class='section'>
-                  <% route.internal_router.forEach((domain) => { %>
-                    <% if (domain.endsWith(".localhost")) { %>
-                      <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
-                    <% } else { %>
-                      <a class='net' target="_blank" href="http://<%=domain%>">http://<%=domain%></a>
-                    <% } %>
-                  <% }) %>
-                </div>
-                <div class='section'>
-                  <% if (route.external_ip) { %>
-                    <a class='net' target="_blank" href="http://<%=route.external_ip%>">http://<%=route.external_ip%></a>
-                  <% } %>
-                </div>
-                <div class='section'>
-                  <% route.external_router.forEach((domain) => { %>
-                    <a class='net' target="_blank" href="https://<%=domain%>">https://<%=domain%></a>
-                  <% }) %>
-                </div>
-              </div>
-            </div>
-          </h3>
-        </div>
-      <% }) %>
-      -->
+  <section class='task-section network-routes-section net-routes-section' aria-label='This machine routes'>
+    <div class='task-section-head net-section-head'>
+      <div>
+        <h2 class='task-section-title'>This machine routes</h2>
+        <p class='task-section-subcopy'>Open local, LAN, and peer URLs for apps running here.</p>
+      </div>
+      <form class='search net-toolbar' role='search'>
+        <label class='task-library-search-field net-search-field'>
+          <i class='fa-solid fa-magnifying-glass' aria-hidden='true'></i>
+          <input type='search' class="task-library-search-input flexible" placeholder='Search routes' autocomplete='off'>
+        </label>
+      </form>
     </div>
-  </div>
+    <div class='container'>
+      <div
+        class='running-apps net-route-list'
+        data-net-routes-active="<%= peer_active && !requirements_pending ? 'true' : 'false' %>"
+        data-net-routes-endpoint="/net/<%= encodeURIComponent(selected_name) %>/routes"
+      >
+        <% if (requirements_pending) { %>
+          <div class='loader'>
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+          </div>
+        <% } else if (!peer_active) { %>
+          <div class='task-empty-state'>
+            <p class='task-empty-copy'>Home Server is off. Turn it on above to create home-network routes.</p>
+          </div>
+        <% } else { %>
+          <%- include('partials/net_route_list') %>
+        <% } %>
+      </div>
+    </div>
+  </section>
   </div>
     </div>
   </section>
   </div>
+  <template id='dns-modal-template'>
+    <div class='dns-modal'>
+      <div class='address-section'>
+        <input type='text' placeholder='domain name' id='dns-modal-name'>
+        <input type='number' placeholder='port number' id='dns-modal-port' min='1'>
+      </div>
+      <div class='address-result' id='dns-modal-result'>
+        <div>https://[NAME].localhost</div>
+        <i class='fa-solid fa-arrow-right'></i>
+        <div>http://localhost:[PORT]</div>
+      </div>
+    </div>
+  </template>
   <%- include('partials/main_sidebar', { selected: 'network' }) %>
 </main>
 <script>
 let interval
+const dnsCwd = "<%- typeof cwd !== 'undefined' ? JSON.stringify(cwd).slice(1, -1) : '' %>"
+const dnsModalTemplate = document.querySelector('#dns-modal-template')
+const peerName = "<%= peer && peer.name ? peer.name : '' %>".trim().toLowerCase()
+const allowDnsCreation = <%= allow_dns_creation ? 'true' : 'false' %>
+let dnsModalActive = false
+let dnsSocketInstance = null
+let dnsResizeObserver = null
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+const normalizeHost = (value) => {
+  if (!value) return null
+  let str = String(value).trim().toLowerCase()
+  if (!str) return null
+  str = str.replace(/^https?:\/\//, '')
+  const host = str.split('/')[0]
+  return host || null
+}
+const waitForDnsPropagation = async (dnsName, { timeout = 20000, interval = 1000 } = {}) => {
+  const base = (dnsName || '').trim().toLowerCase()
+  if (!base) return false
+  const targets = new Set()
+  const pushTarget = (val) => {
+    const host = normalizeHost(val)
+    if (host) targets.add(host)
+  }
+  pushTarget(`${base}.localhost`)
+  if (peerName) {
+    pushTarget(`${base}.${peerName}.localhost`)
+  }
+  const deadline = Date.now() + timeout
+  while (Date.now() < deadline) {
+    try {
+      const info = await fetch('/pinokio/peer', { headers: { 'cache-control': 'no-cache' } }).then((res) => {
+        if (!res.ok) throw new Error('peer info unavailable')
+        return res.json()
+      })
+      const advertisedHosts = new Set()
+      const addHost = (value) => {
+        const host = normalizeHost(value)
+        if (host) advertisedHosts.add(host)
+      }
+      if (info && Array.isArray(info.router_info)) {
+        info.router_info.forEach((proc) => {
+          ;(proc.internal_router || []).forEach(addHost)
+          ;(proc.external_router || []).forEach(addHost)
+        })
+      }
+      if (info && info.router) {
+        Object.values(info.router).forEach((list) => {
+          if (Array.isArray(list)) {
+            list.forEach(addHost)
+          }
+        })
+      }
+      if (Array.from(targets).some((host) => advertisedHosts.has(host))) {
+        return true
+      }
+    } catch (err) {
+      console.warn('router poll failed', err)
+    }
+    await delay(interval)
+  }
+  return false
+}
+const renderDnsPreview = (popup, name, port) => {
+  const preview = popup.querySelector('#dns-modal-result')
+  if (!preview) return
+  const safeName = (name && name.length > 0) ? name : '[NAME]'
+  const safePort = (port && port.length > 0) ? port : '[PORT]'
+  preview.innerHTML = ''
+  const left = document.createElement('div')
+  left.textContent = `https://${safeName}.localhost`
+  const icon = document.createElement('i')
+  icon.className = 'fa-solid fa-arrow-right'
+  const right = document.createElement('div')
+  right.textContent = `http://localhost:${safePort}`
+  preview.append(left, icon, right)
+}
+const promptForDnsMapping = async ({ port, name }) => {
+  if (!dnsModalTemplate) {
+    alert('DNS modal unavailable')
+    return null
+  }
+  const result = await Swal.fire({
+    title: 'Get .localhost domain',
+    html: dnsModalTemplate.innerHTML,
+    confirmButtonText: 'Create domain',
+    customClass: {
+      popup: 'dns-modal-popup'
+    },
+    didOpen: () => {
+      dnsModalActive = true
+      const popup = Swal.getPopup()
+      const nameInput = popup.querySelector('#dns-modal-name')
+      const portInput = popup.querySelector('#dns-modal-port')
+      if (nameInput) nameInput.value = name || ''
+      if (portInput) portInput.value = port || ''
+      const updatePreview = () => {
+        renderDnsPreview(popup, nameInput ? nameInput.value.trim() : '', portInput ? portInput.value.trim() : '')
+      }
+      nameInput && nameInput.addEventListener('input', updatePreview)
+      portInput && portInput.addEventListener('input', updatePreview)
+      updatePreview()
+      if (nameInput) {
+        setTimeout(() => nameInput.focus(), 50)
+      }
+    },
+    willClose: () => {
+      dnsModalActive = false
+    },
+    preConfirm: () => {
+      const popup = Swal.getPopup()
+      const nameInput = popup.querySelector('#dns-modal-name')
+      const portInput = popup.querySelector('#dns-modal-port')
+      const dnsName = nameInput ? nameInput.value.trim() : ''
+      const dnsPort = portInput ? portInput.value.trim() : ''
+      if (!dnsName) {
+        Swal.showValidationMessage('Enter a domain name')
+        return false
+      }
+      if (!dnsPort) {
+        Swal.showValidationMessage('Enter a port number')
+        return false
+      }
+      if (!/^\d+$/.test(dnsPort)) {
+        Swal.showValidationMessage('Port must be numeric')
+        return false
+      }
+      return { dnsName, dnsPort }
+    }
+  })
+  return result.isConfirmed ? result.value : null
+}
+const createDnsTerminal = async (container) => {
+  if (!container) {
+    throw new Error('Terminal container missing')
+  }
+  if (typeof Terminal === 'undefined') {
+    throw new Error('Terminal unavailable')
+  }
+  let config = {
+    scrollback: 9999999,
+    fontSize: 12,
+    fontFamily: 'monospace',
+    theme: document.body.classList.contains('dark') ? xtermTheme.FrontEndDelight : xtermTheme.Tomorrow,
+  }
+  try {
+    const res = await fetch('/xterm_config').then((r) => r.json())
+    if (res && res.config) {
+      config = res.config
+    }
+  } catch (err) {
+    console.warn('Failed to load xterm config', err)
+  }
+  const term = new Terminal(config)
+  const fitAddon = new FitAddon.FitAddon()
+  term.loadAddon(fitAddon)
+  if (typeof WebLinksAddon !== 'undefined' && WebLinksAddon.WebLinksAddon) {
+    <% if (agent === "electron") { %>
+      term.loadAddon(new WebLinksAddon.WebLinksAddon((event, uri) => {
+        window.open(uri, "_blank", "browser")
+      }))
+    <% } else { %>
+      term.loadAddon(new WebLinksAddon.WebLinksAddon())
+    <% } %>
+  }
+  container.innerHTML = ''
+  term.open(container)
+  fitAddon.fit()
+  if (window.PinokioTouch && typeof window.PinokioTouch.bindTerminalFocus === 'function') {
+    window.PinokioTouch.bindTerminalFocus(term, container)
+  }
+  const observer = new ResizeObserver(() => {
+    try {
+      fitAddon.fit()
+    } catch (_) {}
+  })
+  observer.observe(container)
+  return { term, observer }
+}
+const showDnsError = (message) => {
+  Swal.close()
+  Swal.fire('Domain error', message, 'error')
+}
+const startDnsCreationSocket = (term, dnsName, dnsPort) => {
+  if (dnsSocketInstance && typeof dnsSocketInstance.close === 'function') {
+    try { dnsSocketInstance.close() } catch (_) {}
+  }
+  const socket = new Socket()
+  dnsSocketInstance = socket
+  const write = (text) => {
+    if (text && text !== '\u0007') {
+      term.write(text)
+    }
+  }
+  socket.run({
+    id: 'kernel.proto.create',
+    method: 'kernel.proto.create',
+    cwd: dnsCwd,
+    client: {
+      cols: term.cols,
+      rows: term.rows,
+    },
+    params: {
+      name: dnsName,
+      startType: 'new',
+      projectType: 'dns',
+      dnsPort,
+    },
+  }, (packet) => {
+    if (packet.type === 'stream') {
+      if (packet.data && packet.data.raw) {
+        write(packet.data.raw)
+      } else if (packet.data && packet.data.json) {
+        write(JSON.stringify(packet.data.json).replace(/\n/g, '\r\n'))
+        write('\r\n')
+      } else if (packet.data && packet.data.json2) {
+        write(JSON.stringify(packet.data.json2, null, 2).replace(/\n/g, '\r\n'))
+        write('\r\n')
+      }
+    } else if (packet.type === 'result') {
+      if (packet.data && packet.data.error) {
+        write(`\r\n${packet.data.error}\r\n`)
+        showDnsError(packet.data.error)
+      } else {
+        write('\r\nDomain created. Waiting for router to update...\r\n')
+        const hostname = `${dnsName}.localhost`
+        waitForDnsPropagation(dnsName)
+          .then((ready) => {
+            write(ready ? `Router detected ${hostname}. Reloading...\r\n` : 'Router update took longer than expected. Reloading anyway...\r\n')
+          })
+          .catch((err) => {
+            console.warn('dns propagation wait failed', err)
+            write('Unable to confirm router update. Reloading...\r\n')
+          })
+          .finally(() => {
+            setTimeout(() => {
+              window.location.reload()
+            }, 500)
+          })
+      }
+    } else if (packet.type === 'error') {
+      const message = (packet.data && (packet.data.error || packet.data.message)) || 'Unknown error'
+      write(`\r\n${message}\r\n`)
+      showDnsError(message)
+    }
+  }).then(() => {
+    dnsSocketInstance = null
+  }).catch((err) => {
+    console.error('DNS creation failed', err)
+    showDnsError(err.message || 'Unable to create domain')
+  })
+}
+const runDnsCreation = ({ dnsName, dnsPort }) => {
+  Swal.fire({
+    title: 'Creating domain',
+    html: `<div class='dns-progress-modal'><div class='dns-modal-terminal-container'></div></div>`,
+    showConfirmButton: false,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    customClass: {
+      popup: 'dns-progress-popup'
+    },
+    didOpen: async () => {
+      dnsModalActive = true
+      try {
+        const popup = Swal.getPopup()
+        const container = popup.querySelector('.dns-modal-terminal-container')
+        const { term, observer } = await createDnsTerminal(container)
+        dnsResizeObserver = observer
+        startDnsCreationSocket(term, dnsName, dnsPort)
+      } catch (err) {
+        console.error('Failed to initialize DNS terminal', err)
+        showDnsError(err.message || 'Unable to start terminal')
+      }
+    },
+    willClose: () => {
+      if (dnsSocketInstance && typeof dnsSocketInstance.close === 'function') {
+        try { dnsSocketInstance.close() } catch (_) {}
+        dnsSocketInstance = null
+      }
+      if (dnsResizeObserver) {
+        try { dnsResizeObserver.disconnect() } catch (_) {}
+        dnsResizeObserver = null
+      }
+      dnsModalActive = false
+    }
+  })
+}
+document.addEventListener('click', async (event) => {
+  if (!allowDnsCreation) return
+  const trigger = event.target.closest('.get-dns-btn')
+  if (!trigger) return
+  event.preventDefault()
+  const response = await promptForDnsMapping({
+    port: trigger.getAttribute('data-port') || '',
+    name: trigger.getAttribute('data-default-dns') || '',
+  })
+  if (response) {
+    runDnsCreation(response)
+  }
+})
+
+let routeSearchList = []
+const routeSearchInput = () => document.querySelector(".net-toolbar input[type=search]")
+const rebuildNetRouteSearchIndex = () => {
+  routeSearchList = []
+  document.querySelectorAll(".line[data-index]").forEach((el) => {
+    const titleEl = el.querySelector(".title span, .title")
+    const routeEls = [...el.querySelectorAll(".net")]
+    const routes = routeEls.map((node) => (node.textContent || '').trim()).filter(Boolean)
+    const haystack = [
+      el.getAttribute("data-name") || '',
+      titleEl ? titleEl.textContent || '' : '',
+      el.getAttribute("data-description") || '',
+      ...routes
+    ].join(' ').toLowerCase()
+    routeSearchList.push({
+      index: parseInt(el.getAttribute("data-index")),
+      haystack
+    })
+  })
+  filteredCount = routeSearchList.length
+  filteredBtnsCount = 0
+}
+const normalizeSearchValue = (value) => {
+  return String(value || '').toLowerCase().trim().replace(/\s+/g, ' ')
+}
+const searchRoutes = (items, value) => {
+  const query = normalizeSearchValue(value)
+  if (!query) {
+    return items.map((item) => ({ item }))
+  }
+  const terms = query.split(' ').filter(Boolean)
+  return items
+    .filter((item) => {
+      const haystack = normalizeSearchValue(item.haystack)
+      return terms.every((term) => haystack.includes(term))
+    })
+    .map((item) => ({ item }))
+}
+let selectedIndex = -1
+let selectedBtnIndex = 0
+let filteredCount = 0
+let filteredBtnsCount = 0
+const renderSearch = () => {
+  const target = routeSearchInput()
+  if (!target) return
+  const result = target.value.trim().length === 0
+    ? routeSearchList.map((item) => ({ item }))
+    : searchRoutes(routeSearchList, target.value)
+  document.querySelectorAll(".line[data-index]").forEach((el) => {
+    el.classList.add("hidden")
+    el.classList.remove("selected")
+  })
+  filteredCount = result.length
+  result.forEach((selector, index) => {
+    const el = document.querySelector(".line[data-index='" + selector.item.index + "']")
+    if (!el) return
+    el.classList.remove("hidden")
+    const btns = el.querySelectorAll(".btns a")
+    if (index === selectedIndex) {
+      el.classList.add("selected")
+      filteredBtnsCount = btns.length
+      btns.forEach((btn, btnIndex) => {
+        btn.classList.toggle("selected", selectedBtnIndex === btnIndex)
+      })
+    } else {
+      btns.forEach((btn) => btn.classList.remove("selected"))
+    }
+  })
+}
+rebuildNetRouteSearchIndex()
+renderSearch()
+const netRouteInput = routeSearchInput()
+if (netRouteInput) {
+  netRouteInput.addEventListener("input", (e) => {
+    selectedIndex = 0
+    selectedBtnIndex = 0
+    renderSearch()
+    const p = e.target.value && e.target.value.trim().length > 0
+      ? location.pathname + "?selected=" + encodeURIComponent(e.target.value)
+      : location.pathname
+    window.history.pushState({ path: p }, '', p)
+  })
+  const params = new URLSearchParams(location.search)
+  const selected = params.get("selected")
+  if (selected) {
+    netRouteInput.value = selected
+    netRouteInput.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }))
+  }
+}
+const routeListEl = document.querySelector(".net-route-list")
+const netRoutesEndpoint = routeListEl ? routeListEl.getAttribute("data-net-routes-endpoint") : ""
+let netRoutesFingerprint = null
+let netRoutesInFlight = false
+const netRoutesActive = () => {
+  return routeListEl && routeListEl.getAttribute("data-net-routes-active") === "true"
+}
+const applyNetRouteFragment = (payload) => {
+  const routesEl = document.querySelector(".net-route-list")
+  const summaryEl = document.querySelector(".net-summary")
+  if (!routesEl || !summaryEl) return
+  const searchInput = routeSearchInput()
+  const searchHadFocus = searchInput && document.activeElement === searchInput
+  const scrollX = window.scrollX
+  const scrollY = window.scrollY
+  summaryEl.innerHTML = payload.summary_html || ''
+  routesEl.innerHTML = payload.routes_html || ''
+  selectedIndex = -1
+  selectedBtnIndex = 0
+  rebuildNetRouteSearchIndex()
+  renderSearch()
+  if (searchHadFocus && searchInput) {
+    searchInput.focus()
+  }
+  window.scrollTo(scrollX, scrollY)
+}
+const refreshNetRouteFragment = async () => {
+  if (!netRoutesEndpoint || !netRoutesActive() || dnsModalActive || netRoutesInFlight) return
+  netRoutesInFlight = true
+  try {
+    const response = await fetch(netRoutesEndpoint, { cache: "no-store" })
+    const payload = await response.json()
+    if (!payload || !payload.success || !payload.fingerprint) {
+      return
+    }
+    if (netRoutesFingerprint === null) {
+      netRoutesFingerprint = payload.fingerprint
+      return
+    }
+    if (payload.fingerprint !== netRoutesFingerprint) {
+      netRoutesFingerprint = payload.fingerprint
+      applyNetRouteFragment(payload)
+    }
+  } catch (error) {
+    console.warn("net route refresh failed", error)
+  } finally {
+    netRoutesInFlight = false
+  }
+}
+if (netRoutesActive()) {
+  refreshNetRouteFragment()
+  setInterval(refreshNetRouteFragment, 2000)
+}
 document.querySelector("#reset-label").addEventListener("click", async (e) => {
   e.preventDefault()
   e.stopPropagation()
@@ -1538,7 +2331,7 @@ document.querySelector("#reset-label").addEventListener("click", async (e) => {
             clearInterval(i2)
             if (res.peer_name) {
               console.log("> 1")
-              location.href = "/net/" + res.peer_name
+              location.href = "/network"
             } else {
               console.log("> 2")
               location.reload()
@@ -1702,7 +2495,7 @@ document.querySelector("main").addEventListener("click", async (e) => {
             clearInterval(i3)
             if (res.peer_name) {
               console.log("> 1")
-              location.href = "/net/" + res.peer_name
+              location.href = "/network"
             } else {
               console.log("> 2")
               location.reload()

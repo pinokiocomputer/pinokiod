@@ -737,6 +737,336 @@ class Server {
     }
     return mem
   }
+  normalizeHomeShareCandidate(value) {
+    if (typeof value !== "string") {
+      return ""
+    }
+    let candidate = value.trim()
+    if (!candidate) {
+      return ""
+    }
+    if (candidate.startsWith("@")) {
+      candidate = candidate.slice(1).trim()
+    }
+    if (!candidate) {
+      return ""
+    }
+    let parsed
+    try {
+      parsed = new URL(candidate)
+    } catch (_) {
+      return ""
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return ""
+    }
+    const hostname = (parsed.hostname || "").trim().toLowerCase()
+    const isLoopback = this.appRegistry && typeof this.appRegistry.isLoopbackHostname === "function"
+      ? this.appRegistry.isLoopbackHostname(hostname)
+      : LOOPBACK_HOSTS.has(hostname)
+    if (!isLoopback || !parsed.port) {
+      return ""
+    }
+    return parsed.toString()
+  }
+  findHomeShareReadyUrlFromMenu(menu = []) {
+    const stack = Array.isArray(menu) ? menu.slice() : []
+    while (stack.length > 0) {
+      const item = stack.shift()
+      if (!item || typeof item !== "object") {
+        continue
+      }
+      if (Array.isArray(item.menu)) {
+        stack.unshift(...item.menu)
+      }
+      for (const key of ["target_full", "target", "href"]) {
+        const candidate = this.normalizeHomeShareCandidate(item[key])
+        if (candidate) {
+          return candidate
+        }
+      }
+    }
+    return ""
+  }
+  async getNetworkSharingStatus() {
+    const https_active = !!(this.kernel.peer && this.kernel.peer.https_active)
+    let installed = false
+    let running = false
+    try {
+      if (this.kernel && typeof this.kernel.network_installed === "function") {
+        installed = !!(await this.kernel.network_installed())
+      } else {
+        const caddy = this.kernel.bin && this.kernel.bin.mod ? this.kernel.bin.mod.caddy : null
+        if (caddy && typeof caddy.installed === "function") {
+          installed = !!(await caddy.installed())
+        }
+      }
+    } catch (err) {
+      try {
+        const caddy = this.kernel.bin && this.kernel.bin.mod ? this.kernel.bin.mod.caddy : null
+        if (caddy && typeof caddy.installed === "function") {
+          installed = !!(await caddy.installed())
+        }
+      } catch (_) {
+        installed = false
+      }
+    }
+    try {
+      await axios.get("http://127.0.0.1:2019/config/", { timeout: 750 })
+      running = true
+    } catch (err) {
+      running = false
+    }
+    if (running) {
+      installed = true
+    }
+    return {
+      active: https_active,
+      installed,
+      running,
+      available: https_active && installed
+    }
+  }
+  homeServerStatusFromNetwork(networkStatus) {
+    if (!networkStatus || networkStatus.installed === false) {
+      return "setup"
+    }
+    if (!networkStatus.active) {
+      return "off"
+    }
+    if (!networkStatus.running) {
+      return "starting"
+    }
+    return "on"
+  }
+  buildHomeServerShellUrl(peerInfo) {
+    if (!peerInfo || typeof peerInfo !== "object") {
+      return ""
+    }
+    const host = typeof peerInfo.host === "string" && peerInfo.host.trim()
+      ? peerInfo.host.trim()
+      : Array.isArray(peerInfo.host_candidates)
+        ? ((peerInfo.host_candidates.find((candidate) => candidate && candidate.shareable && candidate.address) || {}).address || "")
+        : ""
+    const portMapping = peerInfo.port_mapping && typeof peerInfo.port_mapping === "object" ? peerInfo.port_mapping : {}
+    const mappedPort = portMapping[String(this.port)] || null
+    if (!host || !mappedPort) {
+      return ""
+    }
+    return `http://${host}:${mappedPort}`
+  }
+  collectHomeServerMachines(currentPeerInfo = null) {
+    const machines = []
+    const peers = this.getPeers()
+    const currentHost = currentPeerInfo && currentPeerInfo.host
+      ? String(currentPeerInfo.host)
+      : (this.kernel.peer && this.kernel.peer.host ? String(this.kernel.peer.host) : "")
+    const seen = new Set()
+    for (const peer of peers) {
+      if (!peer || !peer.host) {
+        continue
+      }
+      const host = String(peer.host)
+      if (currentHost && host === currentHost) {
+        continue
+      }
+      const name = peer.name ? String(peer.name) : host
+      const key = `${host}:${name}`
+      if (seen.has(key)) {
+        continue
+      }
+      seen.add(key)
+      const routerInfo = Array.isArray(peer.router_info)
+        ? peer.router_info
+        : (Array.isArray(peer.processes) ? peer.processes : [])
+      const installed = Array.isArray(peer.installed) ? peer.installed : []
+      const rewriteMapping = peer.rewrite_mapping && typeof peer.rewrite_mapping === "object"
+        ? peer.rewrite_mapping
+        : {}
+      const url = this.buildHomeServerShellUrl(peer)
+      machines.push({
+        name,
+        host,
+        platform: peer.platform ? String(peer.platform) : "",
+        url: url || null,
+        available: !!url,
+        current: false,
+        route_url: `/net/${encodeURIComponent(name)}`,
+        route_count: routerInfo.length + installed.length + Object.keys(rewriteMapping).length
+      })
+    }
+    return machines
+  }
+  normalizeHomeServerRouteUrl(value) {
+    const raw = typeof value === "string" ? value.trim() : ""
+    if (!raw) {
+      return ""
+    }
+    const withProtocol = /^https?:\/\//i.test(raw) ? raw : `http://${raw}`
+    try {
+      const parsed = new URL(withProtocol)
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return ""
+      }
+      parsed.hash = ""
+      return parsed.toString().replace(/\/$/, "")
+    } catch (_) {
+      return ""
+    }
+  }
+  homeServerRouteKey(value) {
+    const normalized = this.normalizeHomeServerRouteUrl(value)
+    if (!normalized) {
+      return ""
+    }
+    try {
+      const parsed = new URL(normalized)
+      const pathname = parsed.pathname.replace(/\/+$/, "")
+      return `${parsed.protocol}//${parsed.host}${pathname}`.toLowerCase()
+    } catch (_) {
+      return normalized.toLowerCase().replace(/\/+$/, "")
+    }
+  }
+  collectHomeServerRoutes(currentPeerInfo = null, apps = [], excludedUrls = []) {
+    const peerInfo = currentPeerInfo || (
+      this.kernel && this.kernel.peer && this.kernel.peer.info && this.kernel.peer.host
+        ? this.kernel.peer.info[this.kernel.peer.host]
+        : null
+    )
+    const routerInfo = peerInfo && Array.isArray(peerInfo.router_info) ? peerInfo.router_info : []
+    const appUrlKeys = new Set()
+    for (const excludedUrl of Array.isArray(excludedUrls) ? excludedUrls : []) {
+      const excludedKey = this.homeServerRouteKey(excludedUrl)
+      if (excludedKey) {
+        appUrlKeys.add(excludedKey)
+      }
+    }
+    for (const app of Array.isArray(apps) ? apps : []) {
+      const appUrl = app && typeof app.url === "string" ? app.url : ""
+      const appKey = this.homeServerRouteKey(appUrl)
+      if (appKey) {
+        appUrlKeys.add(appKey)
+      }
+      const externalUrls = app && Array.isArray(app.external_ready_urls) ? app.external_ready_urls : []
+      for (const point of externalUrls) {
+        const pointUrl = point && typeof point.url === "string" ? point.url : ""
+        const pointKey = this.homeServerRouteKey(pointUrl)
+        if (pointKey) {
+          appUrlKeys.add(pointKey)
+        }
+      }
+    }
+
+    const seen = new Set()
+    const routes = []
+    for (const item of routerInfo) {
+      if (!item || typeof item !== "object") {
+        continue
+      }
+      const candidates = []
+      if (Array.isArray(item.external_hosts)) {
+        for (const hostEntry of item.external_hosts) {
+          if (!hostEntry || !hostEntry.url) {
+            continue
+          }
+          candidates.push({
+            url: hostEntry.url,
+            scope: hostEntry.scope || "",
+            interface: hostEntry.interface || ""
+          })
+        }
+      }
+      if (candidates.length === 0 && item.external_ip) {
+        candidates.push({ url: item.external_ip, scope: "lan", interface: "" })
+      }
+
+      const urls = []
+      for (const candidate of candidates) {
+        const url = this.normalizeHomeServerRouteUrl(candidate.url)
+        const key = this.homeServerRouteKey(url)
+        if (!url || !key || appUrlKeys.has(key) || seen.has(key)) {
+          continue
+        }
+        seen.add(key)
+        urls.push({
+          url,
+          scope: candidate.scope || "",
+          interface: candidate.interface || ""
+        })
+      }
+      if (urls.length === 0) {
+        continue
+      }
+      const fallbackName = item.port ? `Port ${item.port}` : "Route"
+      routes.push({
+        name: item.title || item.name || fallbackName,
+        port: item.port || "",
+        url: urls[0].url,
+        urls,
+        state: "ready"
+      })
+    }
+    routes.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")))
+    return routes
+  }
+  async collectHomeServerApps() {
+    const apps = []
+    if (!this.kernel || !this.kernel.api || typeof this.kernel.api.listApps !== "function") {
+      return apps
+    }
+    let entries = []
+    try {
+      entries = await this.kernel.api.listApps()
+    } catch (_) {
+      entries = []
+    }
+    for (const entry of entries) {
+      const appId = entry && (entry.id || entry.name) ? String(entry.id || entry.name) : ""
+      if (!appId) {
+        continue
+      }
+      const appRoot = this.kernel.path("api", appId)
+      let runtime = null
+      try {
+        runtime = this.appRegistry && typeof this.appRegistry.collectAppRuntime === "function"
+          ? this.appRegistry.collectAppRuntime(appRoot)
+          : null
+      } catch (_) {
+        runtime = null
+      }
+      if (!runtime || !runtime.running) {
+        continue
+      }
+      let readyUrl = typeof runtime.ready_url === "string" ? runtime.ready_url : ""
+      if (!readyUrl && entry.meta && Array.isArray(entry.meta.menu)) {
+        readyUrl = this.findHomeShareReadyUrlFromMenu(entry.meta.menu)
+      }
+      let externalReadyUrls = []
+      if (readyUrl && this.appRegistry && typeof this.appRegistry.buildExternalReadyUrls === "function") {
+        try {
+          externalReadyUrls = this.appRegistry.buildExternalReadyUrls(readyUrl)
+        } catch (_) {
+          externalReadyUrls = []
+        }
+      }
+      apps.push({
+        id: appId,
+        name: (entry.title || entry.name || appId),
+        icon: entry.icon || "/pinokio-black.png",
+        ready_url: readyUrl,
+        url: externalReadyUrls.length > 0 ? externalReadyUrls[0].url : "",
+        external_ready_urls: externalReadyUrls,
+        state: externalReadyUrls.length > 0 ? "ready" : (readyUrl ? "pending" : "starting")
+      })
+    }
+    apps.sort((a, b) => {
+      if (a.state !== b.state) {
+        return a.state === "ready" ? -1 : 1
+      }
+      return String(a.name || "").localeCompare(String(b.name || ""))
+    })
+    return apps
+  }
   getItems(items, meta, p, preferenceMap = null) {
     const preferences = preferenceMap instanceof Map ? preferenceMap : null
     return items.map((x) => {
@@ -787,6 +1117,27 @@ class Server {
       let dev_url = browser_url + "/dev"
       let review_url = browser_url + "/review"
       let files_url = browser_url + "/files"
+      let readyUrl = ""
+      let externalReadyUrls = []
+      if (meta && this.appRegistry && typeof this.appRegistry.collectAppRuntime === "function") {
+        try {
+          const appRoot = this.kernel.path("api", x.name)
+          const runtime = this.appRegistry.collectAppRuntime(appRoot)
+          readyUrl = runtime && typeof runtime.ready_url === "string" ? runtime.ready_url : ""
+          if (readyUrl && typeof this.appRegistry.buildExternalReadyUrls === "function") {
+            externalReadyUrls = this.appRegistry.buildExternalReadyUrls(readyUrl)
+          }
+        } catch (_) {
+          readyUrl = ""
+          externalReadyUrls = []
+        }
+      }
+      if (!readyUrl) {
+        readyUrl = this.findHomeShareReadyUrlFromMenu(x.menu)
+        if (readyUrl && this.appRegistry && typeof this.appRegistry.buildExternalReadyUrls === "function") {
+          externalReadyUrls = this.appRegistry.buildExternalReadyUrls(readyUrl)
+        }
+      }
 
       let dns = this.kernel.pinokio_configs[x.name].dns
       let routes = dns["@"]
@@ -831,6 +1182,8 @@ class Server {
         view_url,
         review_url,
         files_url,
+        ready_url: readyUrl,
+        external_ready_urls: externalReadyUrls,
         starred: Boolean(preference && preference.starred),
         starred_at: preference && preference.starred_at ? preference.starred_at : null,
         last_launch_at: preference && preference.last_launch_at ? preference.last_launch_at : null,
@@ -13825,7 +14178,7 @@ class Server {
       })
     }))
     this.app.get("/network", ex(async (req, res) => {
-      let protocol = req.get('X-Forwarded-Proto')
+      let protocol = req.get('X-Forwarded-Proto') || "http"
       let { requirements, install_required, requirements_pending, error } = await this.kernel.bin.check({
         bin: this.kernel.bin.preset("network"),
       })
@@ -13925,11 +14278,14 @@ class Server {
 
       let current_urls = await this.current_urls(req.originalUrl.slice(1))
       let current_peer = this.kernel.peer.info ? this.kernel.peer.info[this.kernel.peer.host] : null
-      let host = null
-      if (current_peer) {
+      let host = this.kernel.peer.host
+      if (current_peer && current_peer.host) {
         host = current_peer.host
       }
-      let peer = current_peer
+      let peer = current_peer || {
+        host,
+        name: this.kernel.peer.name
+      }
 
       let processes = []
       try {
@@ -13959,19 +14315,32 @@ class Server {
 
       let list = this.getPeers()
       let installed = this.kernel.peer.info && this.kernel.peer.info[host] ? this.kernel.peer.info[host].installed : []
+      let serverless_mapping = this.kernel.peer.info && this.kernel.peer.info[host] ? this.kernel.peer.info[host].rewrite_mapping : {}
+      let serverless = Object.keys(serverless_mapping || {}).map((name) => {
+        return serverless_mapping[name]
+      })
 
       let static_routes = Object.keys(this.kernel.router.rewrite_mapping).map((key) => {
         return this.kernel.router.rewrite_mapping[key]
       })
+      const showStaticRoutes = false
+      const visibleStaticRoutes = showStaticRoutes ? static_routes : []
+      const routeCount = processes.length + visibleStaticRoutes.length
+      const allow_dns_creation = !!current_peer
       const peerAccess = await this.composePeerAccessPayload()
       res.render("network", {
         static_routes,
+        visibleStaticRoutes,
+        showStaticRoutes,
+        routeCount,
         host,
+        peer,
         favicons,
         titles,
         descriptions,
         processes,
         installed,
+        serverless,
         error: null,
 
 
@@ -13984,6 +14353,7 @@ class Server {
         current_host: this.kernel.peer.host,
         peers,
         list,
+        selected_name: this.kernel.peer.name,
         name: this.kernel.peer.name,
         https_active: this.kernel.router.active,
         peer_active: this.kernel.peer.active,
@@ -13999,7 +14369,10 @@ class Server {
         proxy: home_proxy,
         localhost: `http://localhost:${this.port}`,
         icon,
-        apps
+        apps,
+        cwd: this.kernel.path("api"),
+        protocol,
+        allow_dns_creation,
       })
     }))
     this.app.get("/getlog", ex(async (req, res) => {
@@ -15744,28 +16117,34 @@ class Server {
     }))
     this.app.get("/info/network-sharing", ex(async (req, res) => {
       res.set("Cache-Control", "no-store")
-      const https_active = !!(this.kernel.peer && this.kernel.peer.https_active)
-      let installed = false
-      let running = false
+      res.json(await this.getNetworkSharingStatus())
+    }))
+    this.app.get("/info/home-server", ex(async (req, res) => {
+      res.set("Cache-Control", "no-store")
+      const network = await this.getNetworkSharingStatus()
+      const status = this.homeServerStatusFromNetwork(network)
+      let peerInfo = null
       try {
-        const caddy = this.kernel.bin && this.kernel.bin.mod ? this.kernel.bin.mod.caddy : null
-        if (caddy && typeof caddy.installed === "function") {
-          installed = !!(await caddy.installed())
-        }
-      } catch (err) {
-        installed = false
+        peerInfo = await this.kernel.peer.current_host()
+      } catch (_) {
+        peerInfo = null
       }
-      try {
-        await axios.get("http://127.0.0.1:2019/config/", { timeout: 750 })
-        running = true
-      } catch (err) {
-        running = false
-      }
+      const shellUrl = status === "on" ? this.buildHomeServerShellUrl(peerInfo) : ""
+      const apps = status === "on" ? await this.collectHomeServerApps() : []
+      const routes = status === "on" ? this.collectHomeServerRoutes(peerInfo, apps, [shellUrl]) : []
+      const machines = status === "on" ? this.collectHomeServerMachines(peerInfo) : []
       res.json({
-        active: https_active,
-        installed,
-        running,
-        available: https_active && installed
+        status,
+        ...network,
+        machine: peerInfo && peerInfo.name ? peerInfo.name : (this.kernel.peer && this.kernel.peer.name ? this.kernel.peer.name : ""),
+        host: peerInfo && peerInfo.host ? peerInfo.host : "",
+        shell: shellUrl ? {
+          name: "Pinokio",
+          url: shellUrl
+        } : null,
+        apps,
+        routes,
+        machines
       })
     }))
     this.app.get("/qr", ex(async (req, res) => {
