@@ -643,8 +643,23 @@ test("app navbar stays on one line when app identity and Home Server controls ar
   assert.match(appView, /body\.app-page > header\.navheader h1 > \.home,[\s\S]*body\.app-page > header\.navheader h1 > \.home-server-popover\s*\{[\s\S]*flex:\s*0 0 auto;/)
   assert.match(appView, /body\.app-page header\.navheader h1 > \.flexible\s*\{[\s\S]*flex:\s*0 0 0;[\s\S]*margin-left:\s*auto;/)
   assert.match(appView, /\.app-header-identity\s*\{[\s\S]*flex:\s*1 1 auto;[\s\S]*max-width:\s*none;/)
+  assert.match(appView, /\.app-header-info\s*\{[\s\S]*flex:\s*0 1 auto;/)
+  const identityTriggerStart = appView.indexOf(".app-header-info-trigger {")
+  const identityTriggerEnd = appView.indexOf("\n}", identityTriggerStart)
+  const identityTriggerRule = identityTriggerStart >= 0 && identityTriggerEnd > identityTriggerStart
+    ? appView.slice(identityTriggerStart, identityTriggerEnd)
+    : ""
+  assert.match(identityTriggerRule, /max-width:\s*min\(260px, 32vw\);/)
+  assert.doesNotMatch(identityTriggerRule, /width:\s*100%;/)
+  assert.doesNotMatch(identityTriggerRule, /max-width:\s*none;/)
   assert.doesNotMatch(appView, /nav-action-label\s*\{[^}]*display:\s*none;/)
-  assert.match(appView, /@media only screen and \(max-width: 1180px\)\s*\{[\s\S]*\.resource-chip--vram[\s\S]*display:\s*none !important;/)
+  const compactRuleStart = appView.indexOf("@media only screen and (max-width: 1180px)")
+  const compactRuleEnd = appView.indexOf(".resource-usage {", compactRuleStart)
+  const compactHeaderRule = compactRuleStart >= 0 && compactRuleEnd > compactRuleStart
+    ? appView.slice(compactRuleStart, compactRuleEnd)
+    : ""
+  assert.match(compactHeaderRule, /body\.app-page header\.navheader \.resource-usage-trigger\s*\{[\s\S]*gap:\s*4px;[\s\S]*padding:\s*0 3px;/)
+  assert.doesNotMatch(compactHeaderRule, /\.resource-chip--(?:cpu|ram|vram)[\s\S]*display:\s*none !important;/)
 })
 
 test("download page header does not show browser chrome controls", async () => {
@@ -970,7 +985,30 @@ test("app identity popover exposes launcher metadata and remote browser link", a
   assert.match(appView, /window\.open\(href, "_blank"\)/)
   assert.match(appView, /window\.open\(href, "_blank", "browser"\)/)
   assert.match(appView, /No browser-openable remote detected/)
-  assert.match(appView, /\.mobile-bottom-nav__identity \{[\s\S]*overflow: visible;/)
+  const cssRule = (selector) => {
+    const start = appView.indexOf(`${selector} {`)
+    if (start < 0) return ""
+    const tail = appView.slice(start)
+    const end = tail.match(/\n\s*\}/)
+    return end ? tail.slice(0, end.index + end[0].length) : ""
+  }
+  const mobileIdentityRule = cssRule(".mobile-bottom-nav__identity")
+  const mobileInfoRule = cssRule(".mobile-bottom-nav .app-header-info")
+  const mobileInfoTriggerRule = cssRule(".mobile-bottom-nav .app-header-info-trigger")
+  const mobileResourceRule = cssRule(".mobile-bottom-nav .resource-usage")
+  const mobileResourceTriggerRule = cssRule(".mobile-bottom-nav .resource-usage-trigger")
+  assert.match(mobileIdentityRule, /justify-content:\s*center;/)
+  assert.match(mobileIdentityRule, /overflow:\s*visible;/)
+  assert.doesNotMatch(mobileIdentityRule, /justify-content:\s*flex-start;/)
+  assert.match(mobileInfoRule, /flex:\s*0 1 auto;/)
+  assert.match(mobileInfoRule, /max-width:\s*min\(260px, 42%\);/)
+  assert.match(mobileInfoTriggerRule, /width:\s*auto;/)
+  assert.doesNotMatch(mobileInfoTriggerRule, /(^|\n)\s*width:\s*100%;/)
+  assert.match(mobileResourceRule, /flex:\s*0 1 auto;/)
+  assert.match(mobileResourceRule, /max-width:\s*100%;/)
+  assert.match(mobileResourceTriggerRule, /width:\s*auto;/)
+  assert.match(mobileResourceTriggerRule, /justify-content:\s*center;/)
+  assert.doesNotMatch(mobileResourceTriggerRule, /justify-content:\s*flex-start;/)
   assert.match(appView, /\.mobile-bottom-nav \.app-header-info-popover \{[\s\S]*bottom: calc\(100% \+ 9px\);[\s\S]*width: min\(390px, calc\(100vw - 24px\)\);/)
   assert.match(appView, /\.mobile-bottom-nav \.resource-usage-popover \{[\s\S]*bottom: calc\(100% \+ 9px\);/)
   assert.doesNotMatch(appView, /Open launcher remote/)

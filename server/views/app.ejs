@@ -85,7 +85,7 @@ body.app-page > header.navheader h1 > .home-server-popover {
 }
 .app-header-info {
   position: relative;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   display: inline-flex;
   align-items: center;
@@ -100,8 +100,7 @@ body.app-page > header.navheader h1 > .home-server-popover {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  width: 100%;
-  max-width: none;
+  max-width: min(260px, 32vw);
   height: 22px;
   padding: 0 4px;
   margin: 0 -4px;
@@ -325,11 +324,20 @@ body.app-page header.navheader .nav-labeled-action:focus-visible {
   color: var(--pinokio-sidebar-tab-active-color);
 }
 @media only screen and (max-width: 1180px) {
-  body.app-page header.navheader .app-header-identity-separator,
-  body.app-page header.navheader .resource-chip--cpu,
-  body.app-page header.navheader .resource-chip--ram,
-  body.app-page header.navheader .resource-chip--vram {
-    display: none !important;
+  body.app-page header.navheader .app-header-identity {
+    gap: 5px;
+    padding: 0 9px;
+    margin-right: 6px;
+  }
+  body.app-page header.navheader .app-header-info-trigger {
+    gap: 6px;
+  }
+  body.app-page header.navheader .resource-usage-trigger {
+    gap: 4px;
+    padding: 0 3px;
+  }
+  body.app-page header.navheader .resource-chip {
+    font-size: 10px;
   }
 }
 .resource-usage {
@@ -6884,10 +6892,10 @@ header.navheader h1 {
 	    min-width: 0;
 	    display: flex;
 	    align-items: center;
-	    justify-content: flex-start;
+	    justify-content: center;
 	    align-content: center;
 	    flex-wrap: wrap;
-	    gap: 2px 5px;
+	    gap: 2px 8px;
 	    min-height: 38px;
 	    padding: 2px 9px;
 	    border-radius: 999px;
@@ -6901,11 +6909,11 @@ header.navheader h1 {
     background: rgba(255,255,255,0.06);
   }
   .mobile-bottom-nav .app-header-info {
-    flex: 0 1 42%;
-    max-width: 42%;
+    flex: 0 1 auto;
+    max-width: min(260px, 42%);
   }
   .mobile-bottom-nav .app-header-info-trigger {
-    width: 100%;
+    width: auto;
     max-width: 100%;
     height: auto;
     min-height: 18px;
@@ -6976,14 +6984,15 @@ header.navheader h1 {
     display: none;
   }
 	  .mobile-bottom-nav .resource-usage {
-	    flex: 1 1 120px;
-	    max-width: none;
+	    flex: 0 1 auto;
+	    max-width: 100%;
 	  }
 	  .mobile-bottom-nav .resource-usage-trigger {
-	    width: 100%;
+	    width: auto;
+	    max-width: 100%;
 	    height: auto;
 	    min-height: 0;
-	    justify-content: flex-start;
+	    justify-content: center;
 	    align-content: center;
 	    flex-wrap: wrap;
 	    gap: 2px 5px;
