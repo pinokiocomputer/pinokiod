@@ -848,7 +848,7 @@ test("static guard: collapsed idle run page peeks without persisting sidebar sta
   assert.match(appView, /const hasVisibleBrowserSurface = \(\) => \{[\s\S]*browserview\.querySelector\("iframe:not\(\.hidden\)"\)[\s\S]*browserview-network-status[\s\S]*data-launch-requirements-status/)
   assert.match(appView, /if \(shouldAutoPeekOnIdle && initialCollapsed && !hasVisibleBrowserSurface\(\)\) \{[\s\S]*setPeeking\(true\)/)
   assert.match(appView, /setCollapsed\(initialCollapsed, \{ persist: false \}\)/)
-  assert.match(appView, /aside\.addEventListener\("click", \(\) => \{[\s\S]*window\.setTimeout\(\(\) => setPeeking\(false\), 0\)/)
+  assert.match(appView, /aside\.addEventListener\("click", \(event\) => \{[\s\S]*target\.closest\("\.reveal, \.revealer, \[data-app-autolaunch-button\]"\)[\s\S]*window\.setTimeout\(\(\) => setPeeking\(false\), 0\)/)
 })
 
 test("app sidebar auto-peeks on collapsed idle run page and dismisses after click", async () => {
@@ -868,7 +868,12 @@ test("app sidebar auto-peeks on collapsed idle run page and dismisses after clic
       <button id="sidebar-toggle"></button>
       <div class="appcanvas vertical">
         <button type="button" data-app-sidebar-peek-trigger></button>
-        <aside id="app-sidebar"><button type="button" id="sidebar-action">Start</button></aside>
+        <aside id="app-sidebar">
+          <button type="button" class="reveal" id="sidebar-reveal">Downloads</button>
+          <button type="button" class="revealer" id="sidebar-revealer">Changes</button>
+          <button type="button" data-app-autolaunch-button id="sidebar-autolaunch">Autolaunch</button>
+          <button type="button" id="sidebar-action">Start</button>
+        </aside>
         <main class="browserview">${browserSurface}</main>
       </div>
       <div id="browserview-network-status" hidden></div>
@@ -900,6 +905,18 @@ test("app sidebar auto-peeks on collapsed idle run page and dismisses after clic
   assert.equal(appcanvas.classList.contains("sidebar-peeking"), true)
   assert.equal(aside.getAttribute("aria-hidden"), "false")
   assert.equal(dom.window.localStorage.getItem(storageKey), "1")
+
+  aside.querySelector("#sidebar-reveal").dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }))
+  await wait(5)
+  assert.equal(appcanvas.classList.contains("sidebar-peeking"), true)
+
+  aside.querySelector("#sidebar-revealer").dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }))
+  await wait(5)
+  assert.equal(appcanvas.classList.contains("sidebar-peeking"), true)
+
+  aside.querySelector("#sidebar-autolaunch").dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }))
+  await wait(5)
+  assert.equal(appcanvas.classList.contains("sidebar-peeking"), true)
 
   aside.querySelector("#sidebar-action").dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }))
   await wait(5)

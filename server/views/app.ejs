@@ -16623,8 +16623,10 @@ const rerenderMenuSection = (container, html) => {
     })
     aside.addEventListener("pointerleave", closePeekSoon)
     aside.addEventListener("focusout", closePeekSoon)
-    aside.addEventListener("click", () => {
+    aside.addEventListener("click", (event) => {
       if (!isPeeking()) return
+      const target = event.target
+      if (target && target.closest && target.closest(".reveal, .revealer, [data-app-autolaunch-button]")) return
       window.setTimeout(() => setPeeking(false), 0)
     })
     document.addEventListener("pointerdown", (event) => {
