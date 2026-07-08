@@ -1433,6 +1433,17 @@ body.main-sidebar-page main > .task-container {
   margin-top: 8px;
   padding-top: 0;
 }
+.main-sidebar .main-sidebar-section-connect {
+  margin-top: auto;
+  padding-top: 10px;
+}
+.main-sidebar .main-sidebar-section-connect::before {
+  content: "";
+  display: block;
+  height: 1px;
+  margin-bottom: 10px;
+  background: var(--pinokio-sidebar-separator);
+}
 .main-sidebar-section-title {
   min-height: 20px;
   display: flex;

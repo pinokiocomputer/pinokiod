@@ -40,6 +40,12 @@
       <a href="/connect" class="tab <%= sidebarSelected === 'connect' ? 'selected' : '' %>"><i class="fa-solid fa-plug"></i><div class='caption'>Login</div></a>
       <a class="tab <%= sidebarSelected === 'settings' ? 'selected' : '' %>" href="/home?mode=settings"><i class="fa-solid fa-gear"></i><div class='caption'>Settings</div></a>
     </div>
+
+    <div class='main-sidebar-section main-sidebar-section-connect' aria-label="Community links">
+      <a class="tab" href="https://x.com/cocktailpeanut" target="_blank" rel="noopener noreferrer" data-main-sidebar-browser-link><i class="fa-brands fa-x-twitter"></i><div class='caption'>Updates</div></a>
+      <a class="tab" href="https://discord.gg/TQdNwadtE4" target="_blank" rel="noopener noreferrer" data-main-sidebar-browser-link><i class="fa-brands fa-discord"></i><div class='caption'>Discord</div></a>
+      <a class="tab" href="https://pinokiocomputer.substack.com" target="_blank" rel="noopener noreferrer" data-main-sidebar-browser-link><i class="fa-solid fa-newspaper"></i><div class='caption'>Newsletter</div></a>
+    </div>
   </nav>
 </aside>
 <script>
@@ -49,6 +55,23 @@
     const headerToggle = document.getElementById("minimize-header");
     const sidebar = document.getElementById("main-sidebar");
     const peekTrigger = document.querySelector("[data-main-sidebar-peek-trigger]");
+
+    if (sidebar) {
+      sidebar.querySelectorAll("[data-main-sidebar-browser-link]").forEach((link) => {
+        link.addEventListener("click", (event) => {
+          const href = link.getAttribute("href") || "";
+          if (!href) return;
+          event.preventDefault();
+          event.stopPropagation();
+          const agent = document.body ? document.body.getAttribute("data-agent") : null;
+          if (agent === "electron") {
+            window.open(href, "_blank", "browser");
+          } else {
+            window.open(href, "_blank");
+          }
+        });
+      });
+    }
 
     const initHomeServerStatusBadge = () => {
       if (!sidebar || window.__pinokioMainSidebarHomeServerStatusInit) return;
