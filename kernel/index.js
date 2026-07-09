@@ -276,14 +276,17 @@ class Kernel {
       ]
     }
     if (config) {
-      if (config.dns) {
+      const configuredDns = config.dns
+      config = {
+        ...config,
+        dns: configuredDns ? { ...configuredDns } : dns
+      }
+      if (configuredDns) {
         for(let key in config.dns) {
           if (config.dns[key]) {
             config.dns[key] = config.dns[key].concat(dns[key])
           }
         }
-      } else {
-        config.dns = dns
       }
     } else {
       config = {

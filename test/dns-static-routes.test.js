@@ -144,3 +144,42 @@ test('dns keeps dynamic local and port routes without adding a static folder rou
   ])
   assert.equal(harness.buildStaticRoutes()['dynamic-app'], undefined)
 })
+
+test('dns derives routes without mutating a frozen launcher config', async (t) => {
+  const harness = await createDnsHarness()
+  t.after(async () => {
+    await fs.rm(harness.root, { recursive: true, force: true })
+  })
+
+  const config = Object.freeze({ title: 'Frozen app' })
+  await harness.addApp('frozen-app', { script: config })
+
+  await harness.kernel.dns({ path: path.join(harness.apiRoot, 'frozen-app') })
+
+  assert.equal(Object.hasOwn(config, 'dns'), false)
+  assert.equal(harness.kernel.pinokio_configs['frozen-app'].title, 'Frozen app')
+  assert.deepEqual(harness.kernel.pinokio_configs['frozen-app'].dns['@'], [
+    '$local.url@start',
+  ])
+})
+
+test('dns derives routes from a frozen dns map', async (t) => {
+  const harness = await createDnsHarness()
+  t.after(async () => {
+    await fs.rm(harness.root, { recursive: true, force: true })
+  })
+
+  const configuredRoutes = Object.freeze([':7860'])
+  const configuredDns = Object.freeze({ '@': configuredRoutes })
+  const config = Object.freeze({ dns: configuredDns })
+  await harness.addApp('frozen-dns-app', { script: config })
+
+  await harness.kernel.dns({ path: path.join(harness.apiRoot, 'frozen-dns-app') })
+
+  assert.equal(config.dns, configuredDns)
+  assert.deepEqual(configuredRoutes, [':7860'])
+  assert.deepEqual(harness.kernel.pinokio_configs['frozen-dns-app'].dns['@'], [
+    ':7860',
+    '$local.url@start',
+  ])
+})

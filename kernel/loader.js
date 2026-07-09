@@ -57,6 +57,14 @@ class Loader {
     try { config = require(filepath) } catch (e) {
       console.log("> load", e, filepath)
     }
+    if (
+      config &&
+      typeof config === "object" &&
+      Object.prototype.hasOwnProperty.call(config, "default") &&
+      (config.__esModule === true || config[Symbol.toStringTag] === "Module")
+    ) {
+      config = config.default
+    }
     try {
       // if the required module is a class, return the instantiated object
       return new config();
