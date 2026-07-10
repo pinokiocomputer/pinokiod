@@ -1546,15 +1546,11 @@ class Server {
   github_login_params() {
     const doneMarker = "PINOKIO_GITHUB_LOGIN_DONE"
     const delimiter = this.kernel.platform === "win32" ? " && " : " ; "
-    const verifyCommand = this.kernel.platform === "win32"
-      ? "powershell.exe -NoProfile -Command \"$env:GIT_TERMINAL_PROMPT='0'; $env:GCM_INTERACTIVE='never'; @('protocol=https','host=github.com','') | git credential fill > $null; exit $LASTEXITCODE\""
-      : "printf 'protocol=https\\nhost=github.com\\n\\n' | GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=never git credential fill >/dev/null"
     const doneCommand = this.kernel.platform === "win32"
       ? "echo P^INOKIO_GITHUB_LOGIN_DONE"
       : "(GCM_DONE=INOKIO_GITHUB_LOGIN_DONE; printf 'P%s\\n' \"$GCM_DONE\")"
     const loginCommand = [
       "git credential-manager github login --device --force",
-      verifyCommand,
       doneCommand
     ].join(" && ")
 
