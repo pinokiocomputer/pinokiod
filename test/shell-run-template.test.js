@@ -197,6 +197,48 @@ test('Shell.init_env keeps Windows Hugging Face symlink defaults scoped to win32
   assert.equal(winShell.env.HF_HUB_DISABLE_SYMLINKS_WARNING, '1')
 })
 
+test('Shell.init_env gives Windows uv a valid managed certificate directory without overriding apps', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-shell-ssl-win-'))
+  const managedSslDir = path.join(root, 'bin', 'miniforge', 'Library', 'ssl')
+  const managedCertFile = path.join(managedSslDir, 'cacert.pem')
+  await fs.mkdir(path.join(root, 'api'), { recursive: true })
+  await fs.mkdir(managedSslDir, { recursive: true })
+  await fs.writeFile(path.join(root, 'ENVIRONMENT'), 'PINOKIO_TEST_ENV=1\n')
+  await fs.writeFile(managedCertFile, 'test certificate bundle\n')
+
+  const defaultShell = createShell(createKernel(root))
+  defaultShell.platform = 'win32'
+  await defaultShell.init_env({
+    path: process.cwd(),
+    env: {}
+  })
+  assert.equal(defaultShell.env.SSL_CERT_FILE, managedCertFile)
+  assert.equal(defaultShell.env.SSL_CERT_DIR, managedSslDir)
+
+  const customCertFile = path.join(root, 'custom', 'certs.pem')
+  const customCertDir = path.join(root, 'custom', 'certs')
+  const overrideShell = createShell(createKernel(root))
+  overrideShell.platform = 'win32'
+  await overrideShell.init_env({
+    path: process.cwd(),
+    env: {
+      SSL_CERT_FILE: customCertFile,
+      SSL_CERT_DIR: customCertDir
+    }
+  })
+  assert.equal(overrideShell.env.SSL_CERT_FILE, customCertFile)
+  assert.equal(overrideShell.env.SSL_CERT_DIR, customCertDir)
+
+  const darwinShell = createShell(createKernel(root))
+  darwinShell.platform = 'darwin'
+  await darwinShell.init_env({
+    path: process.cwd(),
+    env: {}
+  })
+  assert.equal(darwinShell.env.SSL_CERT_FILE, undefined)
+  assert.equal(darwinShell.env.SSL_CERT_DIR, undefined)
+})
+
 test('redactEnvArgs summarizes protected argv env values', () => {
   const redacted = ShellRunTemplate.redactEnvArgs({
     PINOKIO_ARG_0: 'line one\nline two',

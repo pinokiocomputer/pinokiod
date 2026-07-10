@@ -8,6 +8,7 @@ const Util = require('../util')
 const ADMIN_READY_TIMEOUT_MS = 30000
 const ADMIN_START_TIMEOUT_MS = 5000
 const ADMIN_POLL_INTERVAL_MS = 250
+const ADMIN_STOP_TIMEOUT_MS = 5000
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -28,6 +29,35 @@ class Caddy {
 //      console.log(e.message)
       return false
     }
+  }
+  async waitForStopped(timeout = ADMIN_STOP_TIMEOUT_MS, interval = ADMIN_POLL_INTERVAL_MS) {
+    const started = Date.now()
+    while ((Date.now() - started) < timeout) {
+      if (!(await this.running())) {
+        return true
+      }
+      await sleep(interval)
+    }
+    return !(await this.running())
+  }
+  async stop() {
+    if (!(await this.running())) {
+      return false
+    }
+    try {
+      await axios.post('http://127.0.0.1:2019/stop', null, {
+        timeout: ADMIN_STOP_TIMEOUT_MS
+      })
+    } catch (error) {
+      if (await this.running()) {
+        throw error
+      }
+    }
+    const stopped = await this.waitForStopped()
+    if (!stopped) {
+      throw new Error("Pinokio could not stop Caddy before replacing the managed Conda runtime.")
+    }
+    return true
   }
   async start() {
     // if peer.https_active is true,

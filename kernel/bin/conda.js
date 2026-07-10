@@ -1,5 +1,4 @@
 const fs = require('fs')
-const path = require('path')
 const { glob } = require('glob')
 const semver = require('semver')
 const { buildCondaListFromMeta, managedCondaRuns } = require('./conda-meta')
@@ -7,6 +6,7 @@ const {
   CONDA_PIN_VERSION,
   PYTHON_INSTALL_SPEC,
   WINDOWS_PYTHON_SSL_FIX_SPEC,
+  isExpectedCondaPinned,
   isExpectedPythonPinned,
 } = require('./conda-pins')
 
@@ -14,61 +14,6 @@ const MINIFORGE_RELEASE = "26.3.2-3"
 const MINIFORGE_BASE_URL = `https://github.com/conda-forge/miniforge/releases/download/${MINIFORGE_RELEASE}`
 const CONDA_ROOT_DIR = "miniforge"
 const LEGACY_CONDA_ROOT_DIR = "miniconda"
-const WINDOWS_OPENSSL_HOOKS = {
-  activate: {
-    "openssl_activate-win.bat": [
-      "@echo off",
-      'if "%SSL_CERT_FILE%"=="" (',
-      '    set "SSL_CERT_FILE=%CONDA_PREFIX%\\Library\\ssl\\cacert.pem"',
-      '    set "__CONDA_OPENSSL_CERT_FILE_SET=1"',
-      ")",
-      "",
-    ].join("\r\n"),
-    "openssl_activate-win.ps1": [
-      "if (-not $Env:SSL_CERT_FILE) {",
-      '    $Env:SSL_CERT_FILE = "$Env:CONDA_PREFIX\\Library\\ssl\\cacert.pem"',
-      '    $Env:__CONDA_OPENSSL_CERT_FILE_SET = "1"',
-      "}",
-      "",
-    ].join("\r\n"),
-    "openssl_activate-win.sh": [
-      'if [[ "${SSL_CERT_FILE:-}" == "" ]]; then',
-      '    export SSL_CERT_FILE="${CONDA_PREFIX}\\\\Library\\\\ssl\\\\cacert.pem"',
-      '    export __CONDA_OPENSSL_CERT_FILE_SET="1"',
-      "fi",
-      "",
-    ].join("\n"),
-  },
-  deactivate: {
-    "openssl_deactivate-win.bat": [
-      "@echo off",
-      'if "%__CONDA_OPENSSL_CERT_FILE_SET%" == "1" (',
-      "    set SSL_CERT_FILE=",
-      "    set __CONDA_OPENSSL_CERT_FILE_SET=",
-      ")",
-      "",
-    ].join("\r\n"),
-    "openssl_deactivate-win.ps1": [
-      'if ($Env:__CONDA_OPENSSL_CERT_FILE_SET -eq "1") {',
-      "    Remove-Item -Path Env:\\SSL_CERT_FILE",
-      "    Remove-Item -Path Env:\\__CONDA_OPENSSL_CERT_FILE_SET",
-      "}",
-      "",
-    ].join("\r\n"),
-    "openssl_deactivate-win.sh": [
-      'if [[ "${__CONDA_OPENSSL_CERT_FILE_SET:-}" == "1" ]]; then',
-      "    unset SSL_CERT_FILE",
-      "    unset __CONDA_OPENSSL_CERT_FILE_SET",
-      "fi",
-      "",
-    ].join("\n"),
-  },
-}
-const LEGACY_SSL_CERT_DIR_HOOK_FILES = [
-  "zz_pinokio_unset_ssl_cert_dir-win.bat",
-  "zz_pinokio_unset_ssl_cert_dir-win.ps1",
-  "zz_pinokio_unset_ssl_cert_dir-win.sh",
-]
 
 class Conda {
   description = "Pinokio uses Conda to install various useful programs in an isolated manner."
@@ -124,43 +69,6 @@ class Conda {
     }
     return base
   }
-  async ensureWindowsOpenSslHooks() {
-    if (this.kernel.platform !== "win32") {
-      return
-    }
-    const condaRootDirs = []
-    for (const rootDir of [CONDA_ROOT_DIR, LEGACY_CONDA_ROOT_DIR]) {
-      if (await this.kernel.exists(`bin/${rootDir}/conda-meta`)) {
-        condaRootDirs.push(rootDir)
-      }
-    }
-    if (condaRootDirs.length === 0) {
-      return
-    }
-    for (const rootDir of condaRootDirs) {
-      const activateDir = this.kernel.bin.path(`${rootDir}/etc/conda/activate.d`)
-      const deactivateDir = this.kernel.bin.path(`${rootDir}/etc/conda/deactivate.d`)
-      for (const hookDir of [activateDir, deactivateDir]) {
-        for (const filename of LEGACY_SSL_CERT_DIR_HOOK_FILES) {
-          await fs.promises.rm(path.resolve(hookDir, filename), { force: true }).catch(() => {})
-        }
-      }
-      for (const [filename, content] of Object.entries(WINDOWS_OPENSSL_HOOKS.activate)) {
-        const hookPath = path.resolve(activateDir, filename)
-        const exists = await fs.promises.access(hookPath).then(() => true).catch(() => false)
-        if (exists) {
-          await fs.promises.writeFile(hookPath, content)
-        }
-      }
-      for (const [filename, content] of Object.entries(WINDOWS_OPENSSL_HOOKS.deactivate)) {
-        const hookPath = path.resolve(deactivateDir, filename)
-        const exists = await fs.promises.access(hookPath).then(() => true).catch(() => false)
-        if (exists) {
-          await fs.promises.writeFile(hookPath, content)
-        }
-      }
-    }
-  }
   async init() {
     if (this.kernel.homedir) {
         console.log("condarc init")
@@ -182,7 +90,6 @@ report_errors: false`)
         await fs.promises.writeFile(this.kernel.path(`bin/${CONDA_ROOT_DIR}/conda-meta/pinned`), this.pinnedPackages())
         await this.ensureCompatibilityAlias()
       }
-      await this.ensureWindowsOpenSslHooks()
     }
   }
   async check() {
@@ -205,7 +112,7 @@ report_errors: false`)
           conda_versions[name] = version
           conda_builds[name] = build
           if (name === "conda") {
-            conda_check.conda = true
+            conda_check.conda = isExpectedCondaPinned(version)
           }
           // check conda-libmamba-solver is up to date
           // sometimes it just fails silently so need to check
@@ -263,6 +170,16 @@ report_errors: false`)
     ondata({ raw: `downloading installer: ${installer_url}...\r\n` })
     await this.kernel.bin.download(installer_url, installer, ondata)
 
+    const caddy = this.kernel.bin.mod && this.kernel.bin.mod.caddy
+    let caddyWasRunning = false
+    if (caddy && typeof caddy.running === "function") {
+      caddyWasRunning = await caddy.running()
+    }
+    if (caddyWasRunning) {
+      ondata({ raw: `stopping Home Server before replacing Miniforge...\r\n` })
+      await caddy.stop()
+    }
+
     legacy_path_exists = await this.kernel.exists(`bin/${LEGACY_CONDA_ROOT_DIR}`)
     if (legacy_path_exists) {
       console.log("Removing legacy install path...", legacy_path)
@@ -295,8 +212,12 @@ report_errors: false`)
       await fs.promises.writeFile(this.kernel.path(`bin/${CONDA_ROOT_DIR}/conda-meta/pinned`), this.pinnedPackages())
     }
 
+    const dependencies = new Set(Array.isArray(req.dependencies) ? req.dependencies : [])
+    if (caddyWasRunning) {
+      dependencies.add("caddy")
+    }
     let mods = this.kernel.bin.mods.filter((m) => {
-      return req.dependencies.includes(m.name)
+      return dependencies.has(m.name)
     }).map((m) => {
       if (m.mod.cmd) {
         return m.mod.cmd()
@@ -307,6 +228,7 @@ report_errors: false`)
     console.log("Conda dependencies to install", { mods })
 
     let condaPackages = [
+      `"conda=${CONDA_PIN_VERSION}"`,
       this.kernel.platform === "win32" ? `"${WINDOWS_PYTHON_SSL_FIX_SPEC}"` : `"${PYTHON_INSTALL_SPEC}"`,
       `"conda-libmamba-solver>=25.4.0"`,
     ]
@@ -330,10 +252,13 @@ report_errors: false`)
         this.kernel.bin.path(CONDA_ROOT_DIR, "python3.exe"),
       )
     }
-    await this.ensureWindowsOpenSslHooks()
     await this.ensureCompatibilityAlias()
     ondata({ raw: `Install finished\r\n` })
     await this.kernel.bin.rm(installer, ondata)
+    if (caddyWasRunning) {
+      ondata({ raw: `restarting Home Server after replacing Miniforge...\r\n` })
+      await caddy.start()
+    }
   }
   async removeInstallPath(target) {
     try {

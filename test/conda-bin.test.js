@@ -5,10 +5,13 @@ const os = require('node:os')
 const path = require('node:path')
 const test = require('node:test')
 
+const Bin = require('../kernel/bin')
 const Conda = require('../kernel/bin/conda')
 const {
+  CONDA_PIN_VERSION,
   PYTHON_INSTALL_SPEC,
   WINDOWS_PYTHON_SSL_FIX_SPEC,
+  isExpectedCondaPinned,
   isExpectedPythonPinned,
 } = require('../kernel/bin/conda-pins')
 
@@ -41,8 +44,8 @@ async function writeCondaMeta(root, name, version, build = 'py_0') {
   )
 }
 
-async function writeHealthyCondaMeta(root, platform = 'win32') {
-  await writeCondaMeta(root, 'conda', '26.3.2', 'py310')
+async function writeHealthyCondaMeta(root, platform = 'win32', condaVersion = CONDA_PIN_VERSION) {
+  await writeCondaMeta(root, 'conda', condaVersion, 'py310')
   await writeCondaMeta(root, 'conda-libmamba-solver', '25.4.0', 'pyhd3eb1b0_0')
   await writeCondaMeta(root, 'python', '3.10.20', platform === 'win32' ? 'h4de0772_1_cpython' : 'cpython')
 }
@@ -78,86 +81,17 @@ function createConda(kernel) {
   return conda
 }
 
-const EXPECTED_WINDOWS_OPENSSL_HOOKS = {
-  [path.join('activate.d', 'openssl_activate-win.bat')]: [
-    '@echo off',
-    'if "%SSL_CERT_FILE%"=="" (',
-    '    set "SSL_CERT_FILE=%CONDA_PREFIX%\\Library\\ssl\\cacert.pem"',
-    '    set "__CONDA_OPENSSL_CERT_FILE_SET=1"',
-    ')',
-    '',
-  ].join('\r\n'),
-  [path.join('activate.d', 'openssl_activate-win.ps1')]: [
-    'if (-not $Env:SSL_CERT_FILE) {',
-    '    $Env:SSL_CERT_FILE = "$Env:CONDA_PREFIX\\Library\\ssl\\cacert.pem"',
-    '    $Env:__CONDA_OPENSSL_CERT_FILE_SET = "1"',
-    '}',
-    '',
-  ].join('\r\n'),
-  [path.join('activate.d', 'openssl_activate-win.sh')]: [
-    'if [[ "${SSL_CERT_FILE:-}" == "" ]]; then',
-    '    export SSL_CERT_FILE="${CONDA_PREFIX}\\\\Library\\\\ssl\\\\cacert.pem"',
-    '    export __CONDA_OPENSSL_CERT_FILE_SET="1"',
-    'fi',
-    '',
-  ].join('\n'),
-  [path.join('deactivate.d', 'openssl_deactivate-win.bat')]: [
-    '@echo off',
-    'if "%__CONDA_OPENSSL_CERT_FILE_SET%" == "1" (',
-    '    set SSL_CERT_FILE=',
-    '    set __CONDA_OPENSSL_CERT_FILE_SET=',
-    ')',
-    '',
-  ].join('\r\n'),
-  [path.join('deactivate.d', 'openssl_deactivate-win.ps1')]: [
-    'if ($Env:__CONDA_OPENSSL_CERT_FILE_SET -eq "1") {',
-    '    Remove-Item -Path Env:\\SSL_CERT_FILE',
-    '    Remove-Item -Path Env:\\__CONDA_OPENSSL_CERT_FILE_SET',
-    '}',
-    '',
-  ].join('\r\n'),
-  [path.join('deactivate.d', 'openssl_deactivate-win.sh')]: [
-    'if [[ "${__CONDA_OPENSSL_CERT_FILE_SET:-}" == "1" ]]; then',
-    '    unset SSL_CERT_FILE',
-    '    unset __CONDA_OPENSSL_CERT_FILE_SET',
-    'fi',
-    '',
-  ].join('\n'),
-}
-
-async function seedWindowsOpenSslHooks(root, condaRootName) {
-  const condaHookRoot = path.join(root, 'bin', condaRootName, 'etc', 'conda')
-  for (const hookRelativePath of Object.keys(EXPECTED_WINDOWS_OPENSSL_HOOKS)) {
-    const hookPath = path.join(condaHookRoot, hookRelativePath)
-    await fs.mkdir(path.dirname(hookPath), { recursive: true })
-    await fs.writeFile(hookPath, 'upstream hook with SSL_CERT_DIR\n')
+function createBin(root, platform = 'win32') {
+  const kernel = {
+    homedir: root,
+    platform,
+    path: (...parts) => path.join(root, ...parts),
   }
-  for (const hookDirName of ['activate.d', 'deactivate.d']) {
-    for (const filename of [
-      'zz_pinokio_unset_ssl_cert_dir-win.bat',
-      'zz_pinokio_unset_ssl_cert_dir-win.ps1',
-      'zz_pinokio_unset_ssl_cert_dir-win.sh',
-    ]) {
-      await fs.writeFile(path.join(condaHookRoot, hookDirName, filename), 'legacy hook\n')
-    }
-  }
-}
-
-async function assertWindowsOpenSslHooksPatched(root, condaRootName) {
-  const condaHookRoot = path.join(root, 'bin', condaRootName, 'etc', 'conda')
-  for (const [hookRelativePath, expectedContent] of Object.entries(EXPECTED_WINDOWS_OPENSSL_HOOKS)) {
-    const hookPath = path.join(condaHookRoot, hookRelativePath)
-    assert.equal(await fs.readFile(hookPath, 'utf8'), expectedContent)
-  }
-  for (const hookDirName of ['activate.d', 'deactivate.d']) {
-    for (const filename of [
-      'zz_pinokio_unset_ssl_cert_dir-win.bat',
-      'zz_pinokio_unset_ssl_cert_dir-win.ps1',
-      'zz_pinokio_unset_ssl_cert_dir-win.sh',
-    ]) {
-      assert.equal(await pathExists(path.join(condaHookRoot, hookDirName, filename)), false)
-    }
-  }
+  const bin = new Bin(kernel)
+  bin.platform = platform
+  bin.installed = {}
+  kernel.bin = bin
+  return bin
 }
 
 test('Conda uses Miniforge assets and writes conda-forge-only config', async () => {
@@ -181,31 +115,13 @@ test('Conda uses Miniforge assets and writes conda-forge-only config', async () 
   assert.equal(await pathExists(path.join(root, 'bin', 'miniforge')), false)
 })
 
-test('Conda init patches Windows OpenSSL hooks and removes legacy SSL_CERT_DIR hooks', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-openssl-hooks-'))
-  await fs.mkdir(path.join(root, 'bin', 'miniforge', 'conda-meta'), { recursive: true })
-  await seedWindowsOpenSslHooks(root, 'miniforge')
-  const conda = createConda(createKernel(root))
-
-  await conda.init()
-
-  await assertWindowsOpenSslHooksPatched(root, 'miniforge')
-})
-
-test('Conda init patches Windows OpenSSL hooks for legacy Miniconda roots', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-legacy-openssl-hooks-'))
-  await fs.mkdir(path.join(root, 'bin', 'miniconda', 'conda-meta'), { recursive: true })
-  await seedWindowsOpenSslHooks(root, 'miniconda')
-  const conda = createConda(createKernel(root))
-
-  await conda.init()
-
-  await assertWindowsOpenSslHooksPatched(root, 'miniconda')
-})
-
-test('Conda pins Python 3.10.20 consistently across platforms', async () => {
+test('Conda pins the managed Conda and Python versions consistently', async () => {
+  assert.equal(CONDA_PIN_VERSION, '26.5.3')
   assert.equal(PYTHON_INSTALL_SPEC, 'python=3.10.20')
   assert.equal(WINDOWS_PYTHON_SSL_FIX_SPEC, 'python=3.10.20=*_1_cpython')
+
+  assert.equal(isExpectedCondaPinned('26.5.3'), true)
+  assert.equal(isExpectedCondaPinned('26.3.2'), false)
 
   assert.equal(isExpectedPythonPinned('darwin', '3.10.20', 'cpython'), true)
   assert.equal(isExpectedPythonPinned('linux', '3.10.20', 'cpython'), true)
@@ -213,6 +129,47 @@ test('Conda pins Python 3.10.20 consistently across platforms', async () => {
   assert.equal(isExpectedPythonPinned('darwin', '3.11.0', 'cpython'), false)
   assert.equal(isExpectedPythonPinned('win32', '3.10.20', 'h4de0772_0_cpython'), false)
   assert.equal(isExpectedPythonPinned('win32', '3.10.20', 'h4de0772_1_cpython'), true)
+})
+
+test('Conda init writes the current Conda pin into an existing runtime', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-pin-init-'))
+  await createMiniforge(root)
+  await fs.mkdir(path.join(root, 'bin', 'miniforge', 'conda-meta'), { recursive: true })
+
+  await createConda(createKernel(root, 'darwin')).init()
+
+  assert.equal(
+    await fs.readFile(path.join(root, 'bin', 'miniforge', 'conda-meta', 'pinned'), 'utf8'),
+    'conda ==26.5.3'
+  )
+})
+
+test('Conda init leaves Windows OpenSSL activation hooks untouched', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-hooks-untouched-'))
+  const hookRoot = path.join(root, 'bin', 'miniforge', 'etc', 'conda')
+  const hookFiles = [
+    path.join('activate.d', 'openssl_activate-win.bat'),
+    path.join('activate.d', 'openssl_activate-win.ps1'),
+    path.join('activate.d', 'openssl_activate-win.sh'),
+    path.join('deactivate.d', 'openssl_deactivate-win.bat'),
+    path.join('deactivate.d', 'openssl_deactivate-win.ps1'),
+    path.join('deactivate.d', 'openssl_deactivate-win.sh'),
+  ]
+  await fs.mkdir(path.join(root, 'bin', 'miniforge', 'conda-meta'), { recursive: true })
+  for (const relativePath of hookFiles) {
+    const hookPath = path.join(hookRoot, relativePath)
+    await fs.mkdir(path.dirname(hookPath), { recursive: true })
+    await fs.writeFile(hookPath, `upstream ${relativePath}\n`)
+  }
+
+  await createConda(createKernel(root, 'win32')).init()
+
+  for (const relativePath of hookFiles) {
+    assert.equal(
+      await fs.readFile(path.join(hookRoot, relativePath), 'utf8'),
+      `upstream ${relativePath}\n`
+    )
+  }
 })
 
 test('Conda install requests the Python 3.10.20 pin on macOS/Linux', async () => {
@@ -237,7 +194,11 @@ test('Conda install requests the Python 3.10.20 pin on macOS/Linux', async () =>
   assert.ok(condaInstall)
   assert.equal(
     condaInstall.message[1],
-    'conda install -y --override-channels -c conda-forge "python=3.10.20" "conda-libmamba-solver>=25.4.0"'
+    'conda install -y --override-channels -c conda-forge "conda=26.5.3" "python=3.10.20" "conda-libmamba-solver>=25.4.0"'
+  )
+  assert.equal(
+    await fs.readFile(path.join(root, 'bin', 'miniforge', 'conda-meta', 'pinned'), 'utf8'),
+    'conda ==26.5.3'
   )
 })
 
@@ -265,8 +226,94 @@ test('Conda install keeps the Windows Python 3.10.20 SSL-fixed build pin', async
   assert.ok(condaInstall)
   assert.equal(
     condaInstall.message[1],
-    'conda install -y --override-channels -c conda-forge "python=3.10.20=*_1_cpython" "conda-libmamba-solver>=25.4.0"'
+    'conda install -y --override-channels -c conda-forge "conda=26.5.3" "python=3.10.20=*_1_cpython" "conda-libmamba-solver>=25.4.0"'
   )
+})
+
+test('Conda install replaces the stale runtime and rebuilds declared Conda modules', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-full-reset-'))
+  const staleRoot = await createMiniforge(root)
+  const staleMarker = path.join(staleRoot, 'stale-runtime.txt')
+  await fs.writeFile(staleMarker, 'remove me\n')
+  const kernel = createKernel(root, 'darwin')
+  const calls = []
+
+  kernel.bin.mods = [
+    { name: 'uv', mod: { cmd: () => 'uv=0.11.23' } },
+    { name: 'node', mod: { cmd: () => 'nodejs=22.21.1 pnpm' } },
+  ]
+  kernel.bin.download = async () => {}
+  kernel.bin.rm = async () => {}
+  kernel.bin.exec = async (payload) => {
+    calls.push(payload)
+    if (payload && payload.conda && payload.conda.skip) {
+      await fs.mkdir(path.join(root, 'bin', 'miniforge', 'conda-meta'), { recursive: true })
+    }
+  }
+
+  await createConda(kernel)._install({ dependencies: ['uv', 'node'] }, () => {})
+
+  assert.equal(await pathExists(staleMarker), false)
+  const condaInstall = calls.find((call) => Array.isArray(call.message))
+  assert.ok(condaInstall)
+  assert.equal(
+    condaInstall.message[1],
+    'conda install -y --override-channels -c conda-forge "conda=26.5.3" "python=3.10.20" "conda-libmamba-solver>=25.4.0" uv=0.11.23 nodejs=22.21.1 pnpm'
+  )
+})
+
+test('Conda replacement stops, preserves, and restarts a running managed Caddy', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-caddy-lifecycle-'))
+  await createMiniforge(root)
+  const kernel = createKernel(root, 'win32')
+  const events = []
+  let caddyRunning = true
+  let condaInstall
+
+  const caddy = {
+    cmd: () => 'caddy=2.9.1',
+    running: async () => caddyRunning,
+    stop: async () => {
+      events.push('caddy-stop')
+      caddyRunning = false
+    },
+    start: async () => {
+      events.push('caddy-start')
+      caddyRunning = true
+    },
+  }
+  kernel.bin.installed.conda = new Set(['caddy'])
+  kernel.bin.mod = { caddy }
+  kernel.bin.mods = [{ name: 'caddy', mod: caddy }]
+  kernel.bin.download = async () => events.push('download')
+  kernel.bin.rm = async () => events.push('installer-cleanup')
+  kernel.bin.exec = async (payload) => {
+    if (payload && payload.conda && payload.conda.skip) {
+      events.push('bootstrap')
+      const miniforge = path.join(root, 'bin', 'miniforge')
+      await fs.mkdir(path.join(miniforge, 'conda-meta'), { recursive: true })
+      await fs.writeFile(path.join(miniforge, 'python.exe'), 'fake python\n')
+      return
+    }
+    events.push('conda-install')
+    condaInstall = payload
+  }
+
+  const conda = createConda(kernel)
+  const removeInstallPath = conda.removeInstallPath.bind(conda)
+  conda.removeInstallPath = async (target) => {
+    assert.equal(caddyRunning, false)
+    events.push('remove-miniforge')
+    await removeInstallPath(target)
+  }
+
+  await conda._install({ dependencies: [] }, () => {})
+
+  assert.ok(events.indexOf('caddy-stop') < events.indexOf('remove-miniforge'))
+  assert.ok(events.indexOf('remove-miniforge') < events.indexOf('bootstrap'))
+  assert.ok(events.indexOf('conda-install') < events.indexOf('caddy-start'))
+  assert.match(condaInstall.message[1], / caddy=2\.9\.1$/)
+  assert.equal(caddyRunning, true)
 })
 
 test('Conda install replaces legacy miniconda with a compatibility alias to miniforge', async () => {
@@ -331,6 +378,14 @@ test('Conda check rejects metadata-only Windows installs', async () => {
   assert.equal(await createConda(createKernel(root, 'win32')).check(), false)
 })
 
+test('Conda check rejects a runnable runtime with the previous Conda version', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-version-stale-'))
+  await writeHealthyCondaMeta(root, 'win32', '26.3.2')
+  await writeFakeManagedConda(root, 'win32')
+
+  assert.equal(await createConda(createKernel(root, 'win32')).check(), false)
+})
+
 test('Conda check accepts a runnable managed Windows conda executable', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-smoke-runnable-'))
   await writeHealthyCondaMeta(root, 'win32')
@@ -339,9 +394,29 @@ test('Conda check accepts a runnable managed Windows conda executable', async ()
   assert.equal(await createConda(createKernel(root, 'win32')).check(), true)
 })
 
+test('Bin readiness rejects the previous Conda version and accepts the pinned version', async () => {
+  const staleRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-bin-conda-version-stale-'))
+  await writeHealthyCondaMeta(staleRoot, 'win32', '26.3.2')
+  await writeFakeManagedConda(staleRoot, 'win32')
+  const staleBin = createBin(staleRoot, 'win32')
+
+  await staleBin.tryList()
+  assert.equal(staleBin.correct_conda, false)
+
+  const currentRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-bin-conda-version-current-'))
+  await writeHealthyCondaMeta(currentRoot, 'win32')
+  await writeFakeManagedConda(currentRoot, 'win32')
+  const currentBin = createBin(currentRoot, 'win32')
+
+  await currentBin.tryList()
+  assert.equal(currentBin.correct_conda, true)
+})
+
 test('Conda install keeps the old runtime when the replacement installer download fails', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-download-fails-'))
-  const miniconda = await createLegacyMiniconda(root)
+  const miniforge = await createMiniforge(root)
+  const oldRuntimeFile = path.join(miniforge, 'old-runtime.txt')
+  await fs.writeFile(oldRuntimeFile, 'keep me\n')
   const kernel = createKernel(root)
 
   kernel.bin.download = async () => {
@@ -352,8 +427,29 @@ test('Conda install keeps the old runtime when the replacement installer downloa
     createConda(kernel)._install({ dependencies: [] }, () => {}),
     /download failed/
   )
-  assert.equal(await pathExists(miniconda), true)
-  assert.equal(await pathExists(path.join(root, 'bin', 'miniforge')), false)
+  assert.equal(await pathExists(oldRuntimeFile), true)
+})
+
+test('Conda install propagates bootstrap failure after replacing the runtime', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-bootstrap-fails-'))
+  await createMiniforge(root)
+  const kernel = createKernel(root, 'darwin')
+
+  kernel.bin.mods = []
+  kernel.bin.download = async () => {}
+  kernel.bin.rm = async () => {}
+  kernel.bin.exec = async (payload) => {
+    if (payload && payload.conda && payload.conda.skip) {
+      await fs.mkdir(path.join(root, 'bin', 'miniforge', 'conda-meta'), { recursive: true })
+      return
+    }
+    throw new Error('bootstrap failed')
+  }
+
+  await assert.rejects(
+    createConda(kernel)._install({ dependencies: [] }, () => {}),
+    /bootstrap failed/
+  )
 })
 
 test('Conda install reports manual recovery when the old runtime cannot be removed', async () => {

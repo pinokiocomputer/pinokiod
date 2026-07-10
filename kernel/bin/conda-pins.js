@@ -1,9 +1,11 @@
 const semver = require('semver')
 
-const CONDA_PIN_VERSION = "26.3.2"
+const CONDA_PIN_VERSION = "26.5.3"
 const PYTHON_PIN_VERSION = "3.10.20"
 const PYTHON_INSTALL_SPEC = `python=${PYTHON_PIN_VERSION}`
 const WINDOWS_PYTHON_SSL_FIX_SPEC = `${PYTHON_INSTALL_SPEC}=*_1_cpython`
+
+const isExpectedCondaPinned = (version) => String(version) === CONDA_PIN_VERSION
 
 const condaBuildNumber = (build) => {
   const chunks = String(build || "").split("_").reverse()
@@ -30,5 +32,6 @@ module.exports = {
   CONDA_PIN_VERSION,
   PYTHON_INSTALL_SPEC,
   WINDOWS_PYTHON_SSL_FIX_SPEC,
+  isExpectedCondaPinned,
   isExpectedPythonPinned,
 }

@@ -23,6 +23,7 @@ const Cuda = require("./cuda")
 const Torch = require("./torch")
 const { buildCondaListFromMeta, managedCondaRuns } = require('./conda-meta')
 const {
+  isExpectedCondaPinned,
   isExpectedPythonPinned,
 } = require('./conda-pins')
 const { glob } = require('glob')
@@ -391,7 +392,7 @@ class Bin {
             conda_versions[name] = version
             conda_builds[name] = build
             if (name === "conda") {
-              conda_check.conda = true
+              conda_check.conda = isExpectedCondaPinned(version)
             }
             if (name === "conda-libmamba-solver") {
               let coerced = semver.coerce(version)
@@ -447,9 +448,6 @@ class Bin {
         if (this.installed.conda.size > 0) {
           break 
         }
-      }
-      if (this.mod && this.mod.conda && this.mod.conda.ensureWindowsOpenSslHooks) {
-        await this.mod.conda.ensureWindowsOpenSslHooks()
       }
     }
 

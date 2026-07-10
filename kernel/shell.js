@@ -294,6 +294,14 @@ class Shell {
     setDefaultEnvValue(this.env, "HF_TOKEN_PATH", path.resolve(this.kernel.homedir, "cache", "HF_AUTH", "token"))
 
     if (this.platform === "win32") {
+      const managedSslDir = path.resolve(this.kernel.homedir, "bin", "miniforge", "Library", "ssl")
+      const managedCertFile = path.resolve(managedSslDir, "cacert.pem")
+      const managedCertFileExists = await fs.promises.access(managedCertFile).then(() => true).catch(() => false)
+      if (managedCertFileExists) {
+        setDefaultEnvValue(this.env, "SSL_CERT_FILE", managedCertFile)
+        setDefaultEnvValue(this.env, "SSL_CERT_DIR", managedSslDir)
+      }
+
       // Hugging Face file symlinks regularly fail on non-admin Windows setups.
       // Default to no-symlink cache mode unless the user/app explicitly overrides it.
       setDefaultEnvValue(this.env, "HF_HUB_DISABLE_SYMLINKS", "1")
