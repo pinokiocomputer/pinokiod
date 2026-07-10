@@ -172,6 +172,39 @@ test('Shell.init_env disables Hugging Face hub update checks by default without 
   assert.equal(overrideShell.env.HF_TOKEN_PATH, path.join(root, 'custom', 'hf-token'))
 })
 
+test('Shell.init_env preserves an app HF_HOME without changing the shared token default', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-shell-hf-app-env-'))
+  const appDir = path.join(root, 'api', 'demo')
+  const scriptPath = path.join(appDir, 'start.js')
+  await fs.mkdir(appDir, { recursive: true })
+  await fs.writeFile(scriptPath, '')
+  await fs.writeFile(path.join(appDir, 'ENVIRONMENT'), 'HF_HOME=./cache/huggingface\n')
+
+  const shell = createShell(createKernel(root))
+  await shell.init_env({
+    path: appDir,
+    $parent: { path: scriptPath },
+    env: {}
+  })
+
+  assert.equal(shell.env.HF_HOME, path.join(appDir, 'cache', 'huggingface'))
+  assert.equal(shell.env.HF_TOKEN_PATH, path.join(root, 'cache', 'HF_AUTH', 'token'))
+
+  await fs.writeFile(
+    path.join(appDir, 'ENVIRONMENT'),
+    'HF_HOME=./cache/huggingface\nHF_TOKEN_PATH=./auth/token\n'
+  )
+  const overrideShell = createShell(createKernel(root))
+  await overrideShell.init_env({
+    path: appDir,
+    $parent: { path: scriptPath },
+    env: {}
+  })
+
+  assert.equal(overrideShell.env.HF_HOME, path.join(appDir, 'cache', 'huggingface'))
+  assert.equal(overrideShell.env.HF_TOKEN_PATH, path.join(appDir, 'auth', 'token'))
+})
+
 test('Shell.init_env keeps Windows Hugging Face symlink defaults scoped to win32', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-shell-hf-win-'))
   await fs.mkdir(path.join(root, 'api'), { recursive: true })

@@ -168,6 +168,13 @@ class HF {
     }
     await this.htmlModal.close(this.modalRequest(req, this.modalId(req)), ondata, kernel)
   }
+  authContext(req = {}, params = {}) {
+    return {
+      parentPath: req.parent && req.parent.path,
+      cwd: req.cwd,
+      env: params.env,
+    }
+  }
   async cancelLogin(connect, params) {
     if (connect && typeof connect.cancelLogin === "function") {
       await connect.cancelLogin("huggingface", params || {})
@@ -201,9 +208,10 @@ class HF {
     const shouldWait = params.wait !== false
     const timeout = positiveNumber(params.timeout, 120000)
     const interval = positiveNumber(params.interval, 2000)
+    const authContext = this.authContext(req, params)
 
     if (!force) {
-      const existing = await connect.keys("huggingface")
+      const existing = await connect.keys("huggingface", authContext)
       if (existing && existing.access_token) {
         return {
           status: "success",
@@ -216,7 +224,7 @@ class HF {
     if (typeof connect.login !== "function") {
       throw new Error("Hugging Face connect login is not available")
     }
-    const response = await connect.login("huggingface", params)
+    const response = await connect.login("huggingface", params, authContext)
     if (!response || response.status === "error") {
       return response
     }
@@ -262,7 +270,7 @@ class HF {
 
     const startedAt = Date.now()
     while (Date.now() - startedAt < timeout) {
-      const keys = await connect.keys("huggingface")
+      const keys = await connect.keys("huggingface", authContext)
       if (keys && keys.access_token) {
         if (useModal) {
           await this.closeLoginModal(req, ondata, kernel)
@@ -293,7 +301,8 @@ class HF {
   */
   async logout(req, ondata, kernel) {
     const connect = this.connect(kernel, "logout")
-    await connect.logout("huggingface", req.params || {})
+    const params = req.params || {}
+    await connect.logout("huggingface", params, this.authContext(req, params))
     return { status: "success" }
   }
   /*

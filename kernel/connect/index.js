@@ -24,12 +24,12 @@ class Connect {
       return null
     }
   }
-  async login(provider, req) {
-    let res = await this.clients[provider].login(req)
+  async login(provider, params, context) {
+    let res = await this.clients[provider].login(params, context)
     return res
   }
-  async logout(provider, req) {
-    let res = await this.clients[provider].logout(req)
+  async logout(provider, params, context) {
+    let res = await this.clients[provider].logout(params, context)
     return res
   }
   async cancelLogin(provider, req) {
@@ -38,8 +38,8 @@ class Connect {
     }
     return null
   }
-  async keys(provider) {
-    let res = await this.clients[provider].keys()
+  async keys(provider, context) {
+    let res = await this.clients[provider].keys(context)
     return res
   }
   async connected(provider, options) {

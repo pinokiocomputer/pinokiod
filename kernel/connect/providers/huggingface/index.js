@@ -18,30 +18,55 @@ class Huggingface {
   defaultTokenPath() {
     return this.kernel.path("cache", "HF_AUTH", "token")
   }
-  async authEnv() {
-    let systemEnv = {}
-    try {
-      systemEnv = await Environment.get(this.kernel.homedir, this.kernel)
-    } catch (_) {
-      systemEnv = {}
+  requestCwd(context = {}) {
+    if (context.cwd) {
+      return path.resolve(context.cwd)
     }
-    const env = Object.assign({}, process.env, systemEnv)
+    if (context.parentPath) {
+      return path.dirname(path.resolve(context.parentPath))
+    }
+    return this.kernel.homedir
+  }
+  async repairTokenPath(tokenPath) {
+    try {
+      const stat = await fs.promises.lstat(tokenPath)
+      if (stat.isDirectory()) {
+        await fs.promises.rm(tokenPath, { recursive: true, force: true })
+      }
+    } catch (error) {
+      if (!error || error.code !== "ENOENT") {
+        throw error
+      }
+    }
+    await fs.promises.mkdir(path.dirname(tokenPath), { recursive: true })
+  }
+  async authEnv(context = {}) {
+    let env
+    if (context.parentPath) {
+      env = await Environment.get2(context.parentPath, this.kernel)
+    } else {
+      let systemEnv = {}
+      try {
+        systemEnv = await Environment.get(this.kernel.homedir, this.kernel)
+      } catch (_) {
+        systemEnv = {}
+      }
+      env = Object.assign({}, process.env, systemEnv)
+    }
+    if (context.env && typeof context.env === "object") {
+      env = Object.assign(env, context.env)
+    }
     if (!env.HF_TOKEN_PATH) {
       env.HF_TOKEN_PATH = this.defaultTokenPath()
+    } else if (!path.isAbsolute(env.HF_TOKEN_PATH)) {
+      env.HF_TOKEN_PATH = path.resolve(this.requestCwd(context), env.HF_TOKEN_PATH)
     }
     if (!env.HF_HUB_DISABLE_UPDATE_CHECK) {
       env.HF_HUB_DISABLE_UPDATE_CHECK = "1"
     }
     delete env.HF_TOKEN
     delete env.HUGGING_FACE_HUB_TOKEN
-    try {
-      await fs.promises.rmdir(env.HF_TOKEN_PATH)
-    } catch (error) {
-      if (!error || !["ENOENT", "ENOTDIR"].includes(error.code)) {
-        throw new Error(`Hugging Face token path must be a file: ${env.HF_TOKEN_PATH}`)
-      }
-    }
-    await fs.promises.mkdir(path.dirname(env.HF_TOKEN_PATH), { recursive: true }).catch(() => {})
+    await this.repairTokenPath(env.HF_TOKEN_PATH)
     return env
   }
   hfPath() {
@@ -59,11 +84,11 @@ class Huggingface {
     }
     return candidates[0]
   }
-  async runHf(args, options = {}) {
-    const env = await this.authEnv()
+  async runHf(args, options = {}, context = {}) {
+    const env = await this.authEnv(context)
     return new Promise((resolve, reject) => {
       execFile(this.hfPath(), args, {
-        cwd: this.kernel.homedir,
+        cwd: this.requestCwd(context),
         env,
         timeout: Number.isFinite(options.timeout) ? options.timeout : undefined,
         maxBuffer: 1024 * 1024,
@@ -122,11 +147,18 @@ class Huggingface {
       expires_in: expiresMatch ? Number(expiresMatch[1]) : null,
     }
   }
-  async login() {
+  async login(_params = {}, context = {}) {
+    const env = await this.authEnv(context)
     if (this.loginSession && this.loginSession.status === "pending") {
+      if (this.loginSession.tokenPath !== env.HF_TOKEN_PATH) {
+        return {
+          status: "error",
+          error: `A Hugging Face login is already pending for ${this.loginSession.tokenPath}`,
+          token_path: env.HF_TOKEN_PATH,
+        }
+      }
       return this.serializeLoginSession(this.loginSession)
     }
-    const env = await this.authEnv()
     const session = {
       status: "pending",
       login: null,
@@ -156,7 +188,7 @@ class Huggingface {
       }
     }
     const child = spawn(this.hfPath(), ["auth", "login", "--format", "agent", "--force"], {
-      cwd: this.kernel.homedir,
+      cwd: this.requestCwd(context),
       env,
       windowsHide: false,
     })
@@ -192,12 +224,15 @@ class Huggingface {
     }
     return this.serializeLoginSession(session)
   }
-  async keys() {
+  async keys(context = {}) {
     if (this.loginSession && this.loginSession.status === "pending") {
-      return this.serializeLoginSession(this.loginSession)
+      const env = await this.authEnv(context)
+      if (this.loginSession.tokenPath === env.HF_TOKEN_PATH) {
+        return this.serializeLoginSession(this.loginSession)
+      }
     }
     try {
-      const { stdout, env } = await this.runHf(["auth", "token", "--format", "quiet"])
+      const { stdout, env } = await this.runHf(["auth", "token", "--format", "quiet"], {}, context)
       const access_token = stripAnsi(stdout).trim().split(/\r?\n/).find(Boolean)
       if (!access_token) {
         return null
@@ -235,12 +270,12 @@ class Huggingface {
     await this.config.profile.cache(response, connectPath).catch(() => {})
     return this.config.profile.render(response)
   }
-  async destroy() {
+  async destroy(context = {}) {
     if (this.loginSession && this.loginSession.child && this.loginSession.status === "pending") {
       this.loginSession.child.kill()
     }
     this.loginSession = null
-    await this.runHf(["auth", "logout"]).catch(() => {})
+    await this.runHf(["auth", "logout"], {}, context).catch(() => {})
     await fs.promises.rm(this.kernel.path("connect", "huggingface"), { recursive: true, force: true }).catch(() => {})
   }
   async cancelLogin() {
@@ -257,8 +292,8 @@ class Huggingface {
       this.loginSession = null
     }
   }
-  async logout() {
-    await this.destroy()
+  async logout(_params = {}, context = {}) {
+    await this.destroy(context)
   }
 }
 

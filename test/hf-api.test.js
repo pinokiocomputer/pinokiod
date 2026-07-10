@@ -17,12 +17,14 @@ test('hf.login shows a modal, waits for the user to open Hugging Face, then clos
   const originalOpenURI = Util.openURI
   const originalClipboard = Util.clipboard
   let keyReads = 0
+  const keyContexts = []
   const loginCalls = []
   const waitCalls = []
   const kernel = {
     connect: {
-      async keys(provider) {
+      async keys(provider, context) {
         assert.equal(provider, 'huggingface')
+        keyContexts.push(context)
         keyReads += 1
         if (keyReads < 3) {
           return null
@@ -32,8 +34,8 @@ test('hf.login shows a modal, waits for the user to open Hugging Face, then clos
           token_path: '/tmp/pinokio/hf-token'
         }
       },
-      async login(provider, params) {
-        loginCalls.push({ provider, params })
+      async login(provider, params, context) {
+        loginCalls.push({ provider, params, context })
         return {
           status: 'pending',
           login,
@@ -58,15 +60,28 @@ test('hf.login shows a modal, waits for the user to open Hugging Face, then clos
   }
 
   try {
-    const result = await hf.login({
+    const request = {
       parent: { id: 'test-script', path: '/pinokio/api/test/hf-login.js' },
       params: {
         timeout: 100,
         interval: 1
       }
-    }, (stream, type) => packets.push({ type, stream }), kernel)
+    }
+    const result = await hf.login(request, (stream, type) => packets.push({ type, stream }), kernel)
 
-    assert.deepEqual(loginCalls, [{ provider: 'huggingface', params: { timeout: 100, interval: 1 } }])
+    const authContext = {
+      parentPath: '/pinokio/api/test/hf-login.js',
+      cwd: undefined,
+      env: undefined
+    }
+    assert.deepEqual(loginCalls, [{
+      provider: 'huggingface',
+      params: request.params,
+      context: authContext
+    }])
+    assert.equal(loginCalls[0].params, request.params)
+    assert.equal(keyContexts.length, 3)
+    assert.equal(keyContexts.every((context) => context === loginCalls[0].context), true)
     assert.deepEqual(waitCalls, ['/pinokio/api/test/hf-login.js'])
     assert.deepEqual(actions, [{
       type: 'clipboard',
@@ -185,9 +200,14 @@ test('hf.login can use the non-modal browser fallback when modal is disabled', a
         assert.equal(provider, 'huggingface')
         return null
       },
-      async login(provider, params) {
+      async login(provider, params, context) {
         assert.equal(provider, 'huggingface')
         assert.deepEqual(params, { modal: false, wait: false })
+        assert.deepEqual(context, {
+          parentPath: undefined,
+          cwd: undefined,
+          env: undefined
+        })
         return {
           status: 'pending',
           login,
@@ -396,8 +416,8 @@ test('hf.logout delegates to the Hugging Face connect provider and returns succe
   const calls = []
   const kernel = {
     connect: {
-      async logout(provider, params) {
-        calls.push({ method: 'logout', provider, params })
+      async logout(provider, params, context) {
+        calls.push({ method: 'logout', provider, params, context })
       }
     }
   }
@@ -405,7 +425,16 @@ test('hf.logout delegates to the Hugging Face connect provider and returns succe
   const result = await hf.logout(req, () => {}, kernel)
 
   assert.deepEqual(result, { status: 'success' })
-  assert.deepEqual(calls, [{ method: 'logout', provider: 'huggingface', params: req.params }])
+  assert.deepEqual(calls, [{
+    method: 'logout',
+    provider: 'huggingface',
+    params: req.params,
+    context: {
+      parentPath: undefined,
+      cwd: undefined,
+      env: undefined
+    }
+  }])
 })
 
 test('hf.upload runs hf upload through shell.run with Hugging Face CLI args', async () => {
