@@ -818,56 +818,31 @@ body.dark .profile td {
         <% } else { %>
           <div class='connect-service-list'>
       <% items.forEach((item) => { %>
-        <% if (item.profile) { %>
-          <a href="<%=item.url%>" class="connect-service-card connect-service-card-connected">
-            <div class='connect-service-head'>
-              <div class='connect-service-icon'>
-                <% if (item.image) { %>
-                  <img class="connect-service-icon-image" src="<%=item.image%>" alt="">
-                <% } else if (item.icon) { %>
-                  <i class="<%=item.icon%>"></i>
-                <% } else if (item.emoji) { %>
-                  <span><%=item.emoji%></span>
-                <% } else { %>
-                  <i class="fa-solid fa-plug"></i>
-                <% } %>
-              </div>
-              <div class='connect-service-copy'>
-                <div class='connect-service-title-row'>
-                  <h2 class='connect-service-title'><%=item.title%></h2>
-                  <span class='connect-service-status'>Connected</span>
-                </div>
-                <div class='connect-service-description'><%- item.description %></div>
-              </div>
-              <div class='connect-service-open' aria-hidden='true'>
-                <i class="fa-solid fa-chevron-right"></i>
-              </div>
+        <a href="<%=item.url%>" class="connect-service-card" data-connect-provider="<%=item.name%>">
+          <div class='connect-service-head'>
+            <div class='connect-service-icon'>
+              <% if (item.image) { %>
+                <img class="connect-service-icon-image" src="<%=item.image%>" alt="">
+              <% } else if (item.icon) { %>
+                <i class="<%=item.icon%>"></i>
+              <% } else if (item.emoji) { %>
+                <span><%=item.emoji%></span>
+              <% } else { %>
+                <i class="fa-solid fa-plug"></i>
+              <% } %>
             </div>
-          </a>
-        <% } else { %>
-          <a href="<%=item.url%>" class="connect-service-card">
-            <div class='connect-service-head'>
-              <div class='connect-service-icon'>
-                <% if (item.image) { %>
-                  <img class="connect-service-icon-image" src="<%=item.image%>" alt="">
-                <% } else if (item.icon) { %>
-                  <i class="<%=item.icon%>"></i>
-                <% } else if (item.emoji) { %>
-                  <span><%=item.emoji%></span>
-                <% } else { %>
-                  <i class="fa-solid fa-plug"></i>
-                <% } %>
-              </div>
-              <div class='connect-service-copy'>
+            <div class='connect-service-copy'>
+              <div class='connect-service-title-row'>
                 <h2 class='connect-service-title'><%=item.title%></h2>
-                <div class="connect-service-description"><%=item.description%></div>
+                <span class='connect-service-status' data-connect-status aria-live="polite">Checking...</span>
               </div>
-              <div class="connect-service-open" aria-hidden='true'>
-                <i class="fa-solid fa-chevron-right"></i>
-              </div>
+              <div class="connect-service-description" data-connect-description><%=item.description%></div>
             </div>
-          </a>
-        <% } %>
+            <div class="connect-service-open" aria-hidden='true'>
+              <i class="fa-solid fa-chevron-right"></i>
+            </div>
+          </div>
+        </a>
       <% }) %>
           </div>
         <% } %>
@@ -878,5 +853,50 @@ body.dark .profile td {
 <%- include('partials/main_sidebar', { selected: 'connect' }) %>
 </main>
 <%- include('partials/app_common_scripts') %>
+<script>
+  (() => {
+    const cards = document.querySelectorAll("[data-connect-provider]")
+    cards.forEach((card) => {
+      const provider = card.dataset.connectProvider
+      const status = card.querySelector("[data-connect-status]")
+      const description = card.querySelector("[data-connect-description]")
+      const title = card.querySelector(".connect-service-title")
+      const controller = new AbortController()
+      const timer = window.setTimeout(() => controller.abort(), 4000)
+
+      fetch(`/connect/status/${encodeURIComponent(provider)}`, {
+        cache: "no-store",
+        headers: { "Accept": "application/json" },
+        signal: controller.signal
+      }).then((response) => {
+        if (!response.ok) {
+          throw new Error(`Status request failed: ${response.status}`)
+        }
+        return response.json()
+      }).then((result) => {
+        const connected = Boolean(result && result.connected)
+        if (!connected) {
+          if (status) {
+            status.hidden = true
+          }
+          return
+        }
+        if (status) {
+          status.textContent = "Connected"
+          status.hidden = false
+        }
+        if (description && title) {
+          description.textContent = `Connected with ${title.textContent}`
+        }
+      }).catch(() => {
+        if (status) {
+          status.hidden = true
+        }
+      }).finally(() => {
+        window.clearTimeout(timer)
+      })
+    })
+  })()
+</script>
 </body>
 </html>

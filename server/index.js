@@ -28,6 +28,7 @@ const system = require('systeminformation')
 const serveIndex = require('./serveIndex')
 const registerFileRoutes = require('./routes/files')
 const registerAppRoutes = require('./routes/apps')
+const registerConnectRoutes = require('./routes/connect')
 const ServerAutolaunch = require('./autolaunch')
 const Git = require("../kernel/git")
 const TerminalApi = require('../kernel/api/terminal')
@@ -1500,7 +1501,7 @@ class Server {
       )
     })
   }
-  async get_github_connection() {
+  async get_github_connection(options = {}) {
     if (this._githubConnectionPromise) {
       return this._githubConnectionPromise
     }
@@ -1511,7 +1512,9 @@ class Server {
       let gcmError = null
 
       try {
-        const stdout = await this.github_gcm(['list'], { timeout: 10000 })
+        const stdout = await this.github_gcm(['list'], {
+          timeout: Number.isFinite(options.timeout) ? options.timeout : 10000
+        })
         accounts = stdout
           .split(/\r?\n/)
           .map((line) => line.trim())
@@ -1550,7 +1553,7 @@ class Server {
       ? "echo P^INOKIO_GITHUB_LOGIN_DONE"
       : "(GCM_DONE=INOKIO_GITHUB_LOGIN_DONE; printf 'P%s\\n' \"$GCM_DONE\")"
     const loginCommand = [
-      "git credential-manager github login --web --force",
+      "git credential-manager github login --device --force",
       verifyCommand,
       doneCommand
     ].join(" && ")
@@ -12668,80 +12671,19 @@ class Server {
 
     /*
     GET /connect => display connection options
+    - huggingface
     - github
-    - x
     */
-    this.app.get("/connect", ex(async (req, res) => {
-      let list = this.getPeers()
-      let current_urls = await this.current_urls(req.originalUrl.slice(1))
-      let items = [{
-//        image: "/pinokio-black.png",
-//        name: "pinokio",
-//        title: "pinokio.co",
-//        description: "Connect with pinokio.co",
-//        url: "/connect/pinokio"
-//      }, {
-        icon: "fa-brands fa-hugging-face",
-        name: "huggingface",
-        title: "huggingface.co",
-        description: "Connect with huggingface.co",
-        url: "/connect/huggingface"
-      }, {
-        icon: "fa-brands fa-github",
-        name: "github",
-        title: "github.com",
-        description: "Connect with GitHub.com",
-        url: "/github"
-      }, {
-        icon: "fa-brands fa-square-x-twitter",
-        name: "x",
-        title: "x.com",
-        description: "Connect with X.com",
-        url: "/connect/x",
-        hidden: true
-      }]
-      let github_hosts = await this.get_github_hosts()
-      for(let i=0; i<items.length; i++) {
-        try {
-          if (items[i].name === "github") {
-            if (github_hosts.length > 0) {
-              items[i].profile = {
-                icon: "fa-brands fa-github",
-                items: [{
-                  key: "config",
-                  val: github_hosts
-                }]
-              }
-              items[i].description = `<i class="fa-solid fa-circle-check"></i> Connected with ${items[i].title}`
-              items[i].connected = true
-            }
-          } else {
-            const config = this.kernel.connect.config[items[i].name]
-            if (config) {
-              let profile = await this.kernel.connect.profile(items[i].name)
-              if (profile) {
-                items[i].profile = profile 
-                items[i].description = `<i class="fa-solid fa-circle-check"></i> Connected with ${items[i].title}`
-                items[i].connected = true
-              }
-            }
-          }
-        } catch (e) {
-        }
-      }
-      const peerAccess = await this.composePeerAccessPayload()
-      res.render(`connect`, {
-        current_urls,
-        current_host: this.kernel.peer.host,
-        ...peerAccess,
-        list,
+    registerConnectRoutes(this.app, {
+      getPageContext: (req) => ({
         portal: this.portal,
         logo: this.logo,
         theme: this.theme,
-        agent: req.agent,
-        items: items.filter((item) => !item.hidden),
-      })
-    }))
+        agent: req.agent
+      }),
+      getGithubConnection: (options) => this.get_github_connection(options),
+      getProviderConnection: (provider, options) => this.kernel.connect.connected(provider, options)
+    })
     /*
     *  GET /connect/x
     *  GET /connect/discord
@@ -13514,6 +13456,7 @@ class Server {
     }))
     this.app.get("/github/login", ex(async (req, res) => {
       let id = "gh_login"
+      this.kernel.shell.kill({ id: `shell/${id}` })
       let params = new URLSearchParams()
       const { doneMarker, message } = this.github_login_params()
       params.set("message", encodeURIComponent(message))

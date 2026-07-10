@@ -2618,6 +2618,10 @@ body.connect-page .connect-service-status {
   font-weight: 700;
 }
 
+body.connect-page .connect-service-status[hidden] {
+  display: none;
+}
+
 body.connect-page .connect-service-open {
   color: var(--task-muted);
   font-size: 15px;

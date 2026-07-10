@@ -42,5 +42,11 @@ class Connect {
     let res = await this.clients[provider].keys()
     return res
   }
+  async connected(provider, options) {
+    if (this.clients[provider] && this.clients[provider].connected) {
+      return await this.clients[provider].connected(options)
+    }
+    return false
+  }
 }
 module.exports = Connect

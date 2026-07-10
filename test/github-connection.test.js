@@ -36,6 +36,19 @@ test('GitHub connection reports GCM accounts as connected', async () => {
   assert.equal(connection.display, 'github.com: octocat')
 })
 
+test('GitHub connection forwards a bounded timeout to GCM status checks', async () => {
+  let receivedOptions
+  await Server.prototype.get_github_connection.call({
+    get_legacy_github_hosts: async () => '',
+    github_gcm: async (args, options) => {
+      receivedOptions = options
+      return ''
+    },
+  }, { timeout: 2500 })
+
+  assert.deepEqual(receivedOptions, { timeout: 2500 })
+})
+
 test('GitHub connection coalesces only concurrent GCM checks', async () => {
   let calls = 0
   const context = {
@@ -66,8 +79,9 @@ test('GitHub login only emits completion marker after credential verification', 
   })
 
   assert.equal(doneMarker, 'PINOKIO_GITHUB_LOGIN_DONE')
-  assert.match(message, /git credential-manager github login --web --force && printf 'protocol=https\\nhost=github\.com\\n\\n' \| GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=never git credential fill >\/dev\/null && \(GCM_DONE=INOKIO_GITHUB_LOGIN_DONE; printf 'P%s\\n' "\$GCM_DONE"\)/)
-  assert.doesNotMatch(message, /git credential-manager github login --web --force\s*;/)
+  assert.match(message, /git credential-manager github login --device --force && printf 'protocol=https\\nhost=github\.com\\n\\n' \| GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=never git credential fill >\/dev\/null && \(GCM_DONE=INOKIO_GITHUB_LOGIN_DONE; printf 'P%s\\n' "\$GCM_DONE"\)/)
+  assert.doesNotMatch(message, /git credential-manager github login --device --force\s*;/)
+  assert.doesNotMatch(message, /--web/)
   assert.doesNotMatch(message, /PINOKIO_GITHUB_LOGIN_DONE/)
 })
 
@@ -76,7 +90,8 @@ test('GitHub login uses success-only credential verification on Windows', () => 
     kernel: { platform: 'win32' }
   })
 
-  assert.match(message, /git credential-manager github login --web --force && powershell\.exe -NoProfile -Command "\$env:GIT_TERMINAL_PROMPT='0'; \$env:GCM_INTERACTIVE='never'; @\('protocol=https','host=github\.com',''\) \| git credential fill > \$null; exit \$LASTEXITCODE" && echo P\^INOKIO_GITHUB_LOGIN_DONE/)
+  assert.match(message, /git credential-manager github login --device --force && powershell\.exe -NoProfile -Command "\$env:GIT_TERMINAL_PROMPT='0'; \$env:GCM_INTERACTIVE='never'; @\('protocol=https','host=github\.com',''\) \| git credential fill > \$null; exit \$LASTEXITCODE" && echo P\^INOKIO_GITHUB_LOGIN_DONE/)
+  assert.doesNotMatch(message, /--web/)
   assert.doesNotMatch(message, /PINOKIO_GITHUB_LOGIN_DONE/)
 })
 

@@ -59,12 +59,13 @@ class Huggingface {
     }
     return candidates[0]
   }
-  async runHf(args) {
+  async runHf(args, options = {}) {
     const env = await this.authEnv()
     return new Promise((resolve, reject) => {
       execFile(this.hfPath(), args, {
         cwd: this.kernel.homedir,
         env,
+        timeout: Number.isFinite(options.timeout) ? options.timeout : undefined,
         maxBuffer: 1024 * 1024,
       }, (error, stdout, stderr) => {
         if (error) {
@@ -204,6 +205,14 @@ class Huggingface {
       return { access_token, token_path: env.HF_TOKEN_PATH }
     } catch (error) {
       return null
+    }
+  }
+  async connected(options = {}) {
+    try {
+      await this.runHf(["auth", "whoami", "--format", "quiet"], options)
+      return true
+    } catch (_) {
+      return false
     }
   }
   async profile() {

@@ -78,6 +78,27 @@ test('Hugging Face connect uses shared HF_TOKEN_PATH and ignores ambient HF_TOKE
   }
 })
 
+test('Hugging Face connect verifies status with bounded whoami', async () => {
+  const provider = new HuggingfaceConnect(createKernel('/tmp/pinokio'), {})
+  let receivedArgs
+  let receivedOptions
+  provider.runHf = async (args, options) => {
+    receivedArgs = args
+    receivedOptions = options
+  }
+
+  const connected = await provider.connected({ timeout: 2500 })
+
+  assert.deepEqual(receivedArgs, ['auth', 'whoami', '--format', 'quiet'])
+  assert.deepEqual(receivedOptions, { timeout: 2500 })
+  assert.equal(connected, true)
+
+  provider.runHf = async () => {
+    throw new Error('not logged in')
+  }
+  assert.equal(await provider.connected({ timeout: 2500 }), false)
+})
+
 test('Hugging Face connect supplies the shared token path at runtime when it is not persisted', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-hf-connect-default-'))
   await fs.writeFile(path.join(root, 'ENVIRONMENT'), 'OTHER=value\n')
