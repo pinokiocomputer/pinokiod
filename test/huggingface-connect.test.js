@@ -5,6 +5,7 @@ const path = require('node:path')
 const test = require('node:test')
 
 const HuggingfaceConnect = require('../kernel/connect/providers/huggingface')
+const Environment = require('../kernel/environment')
 
 function createKernel(root) {
   return {
@@ -22,6 +23,11 @@ function createKernel(root) {
     }
   }
 }
+
+test('system environment does not persist the default Hugging Face token path', async () => {
+  const content = await Environment.ENV('system', '/tmp/pinokio', {})
+  assert.doesNotMatch(content, /^HF_TOKEN_PATH=/m)
+})
 
 test('Hugging Face connect parses managed hf JSON device login events', () => {
   const provider = new HuggingfaceConnect(createKernel('/tmp/pinokio'), {})
@@ -68,6 +74,51 @@ test('Hugging Face connect uses shared HF_TOKEN_PATH and ignores ambient HF_TOKE
     } else {
       process.env.HF_TOKEN = oldToken
     }
+    await fs.rm(root, { recursive: true, force: true })
+  }
+})
+
+test('Hugging Face connect supplies the shared token path at runtime when it is not persisted', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-hf-connect-default-'))
+  await fs.writeFile(path.join(root, 'ENVIRONMENT'), 'OTHER=value\n')
+  try {
+    const provider = new HuggingfaceConnect(createKernel(root), {})
+    const env = await provider.authEnv()
+
+    assert.equal(env.HF_TOKEN_PATH, path.join(root, 'cache', 'HF_AUTH', 'token'))
+    await assert.doesNotReject(fs.access(path.join(root, 'cache', 'HF_AUTH')))
+    await assert.rejects(fs.access(env.HF_TOKEN_PATH), { code: 'ENOENT' })
+  } finally {
+    await fs.rm(root, { recursive: true, force: true })
+  }
+})
+
+test('Hugging Face connect repairs an empty directory at the token file path', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-hf-connect-repair-'))
+  const tokenPath = path.join(root, 'cache', 'HF_AUTH', 'token')
+  await fs.mkdir(tokenPath, { recursive: true })
+  try {
+    const provider = new HuggingfaceConnect(createKernel(root), {})
+    const env = await provider.authEnv()
+
+    assert.equal(env.HF_TOKEN_PATH, tokenPath)
+    await assert.rejects(fs.access(tokenPath), { code: 'ENOENT' })
+  } finally {
+    await fs.rm(root, { recursive: true, force: true })
+  }
+})
+
+test('Hugging Face connect preserves and rejects a non-empty token directory', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-hf-connect-invalid-'))
+  const tokenPath = path.join(root, 'cache', 'HF_AUTH', 'token')
+  await fs.mkdir(tokenPath, { recursive: true })
+  await fs.writeFile(path.join(tokenPath, 'keep.txt'), 'keep')
+  try {
+    const provider = new HuggingfaceConnect(createKernel(root), {})
+
+    await assert.rejects(provider.authEnv(), /Hugging Face token path must be a file/)
+    assert.equal(await fs.readFile(path.join(tokenPath, 'keep.txt'), 'utf8'), 'keep')
+  } finally {
     await fs.rm(root, { recursive: true, force: true })
   }
 })

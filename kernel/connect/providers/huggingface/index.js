@@ -34,6 +34,13 @@ class Huggingface {
     }
     delete env.HF_TOKEN
     delete env.HUGGING_FACE_HUB_TOKEN
+    try {
+      await fs.promises.rmdir(env.HF_TOKEN_PATH)
+    } catch (error) {
+      if (!error || !["ENOENT", "ENOTDIR"].includes(error.code)) {
+        throw new Error(`Hugging Face token path must be a file: ${env.HF_TOKEN_PATH}`)
+      }
+    }
     await fs.promises.mkdir(path.dirname(env.HF_TOKEN_PATH), { recursive: true }).catch(() => {})
     return env
   }
