@@ -286,17 +286,59 @@
       return classes.join(' ')
     }
 
+    async copyActionText(action) {
+      if (!action || typeof action.copyText !== 'string') {
+        return
+      }
+      const feedback = action.copyFeedbackSelector
+        ? this.body.querySelector(action.copyFeedbackSelector)
+        : null
+      try {
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          await navigator.clipboard.writeText(action.copyText)
+        } else {
+          const input = createElement('textarea')
+          try {
+            input.value = action.copyText
+            input.setAttribute('readonly', '')
+            input.style.position = 'fixed'
+            input.style.opacity = '0'
+            document.body.appendChild(input)
+            input.select()
+            if (!document.execCommand('copy')) {
+              throw new Error('Clipboard copy was rejected')
+            }
+          } finally {
+            input.remove()
+          }
+        }
+        if (feedback) {
+          feedback.textContent = 'The code has been copied to your clipboard.'
+          feedback.classList.remove('warning')
+          feedback.classList.add('success')
+        }
+      } catch (_) {
+        if (feedback) {
+          feedback.textContent = 'Clipboard copy failed. Copy the displayed code manually.'
+          feedback.classList.remove('success')
+          feedback.classList.add('warning')
+        }
+      }
+    }
+
     handleAction(action) {
       if (!action) {
         return
       }
+      if (typeof action.copyText === 'string') {
+        this.copyActionText(action)
+      }
       if (action.type === 'link' && action.href) {
-        const target = action.target || '_blank'
-        window.open(action.href, target, action.features || 'noopener')
+        this.openActionUrl(action)
         return
       }
       if (action.type === 'submit' && action.href) {
-        window.open(action.href, action.target || '_blank', action.features || 'noopener')
+        this.openActionUrl(action)
       }
       if (action.type === 'submit' && this.current.awaiting && this.current.socket) {
         this.emitResponse({ action: action.id || 'submit', payload: action.payload || null })
@@ -306,8 +348,21 @@
       } else if (action.type === 'button' && this.current.socket && this.current.awaiting) {
         this.emitResponse({ action: action.id || 'button', payload: action.payload || null })
       } else if (action.type === 'button' && action.href) {
-        window.open(action.href, action.target || '_blank', action.features || 'noopener')
+        this.openActionUrl(action)
       }
+    }
+
+    openActionUrl(action) {
+      if (action.features && action.features.includes('browser')) {
+        const agent = document.body.getAttribute('data-agent')
+        if (agent === 'electron') {
+          window.open(action.href, action.target || '_blank', 'browser')
+        } else {
+          window.open(action.href, action.target || '_blank')
+        }
+        return
+      }
+      window.open(action.href, action.target || '_blank', action.features || 'noopener')
     }
 
     emitResponse(data) {

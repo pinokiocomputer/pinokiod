@@ -108,6 +108,8 @@ test('hf.login shows a modal, waits for the user to open Hugging Face, then clos
       href: 'https://huggingface.co/oauth/device?user_code=ABCD-EFGH',
       target: '_blank',
       features: 'browser',
+      copyText: 'ABCD-EFGH',
+      copyFeedbackSelector: '.hf-login-modal-copy',
       primary: true,
       close: false,
       icon: 'fa-solid fa-arrow-up-right-from-square'

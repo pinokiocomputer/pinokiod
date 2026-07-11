@@ -118,6 +118,8 @@ class HF {
           href: login.verification_uri_complete,
           target: "_blank",
           features: "browser",
+          copyText: login.user_code,
+          copyFeedbackSelector: ".hf-login-modal-copy",
           primary: true,
           close: false,
           icon: "fa-solid fa-arrow-up-right-from-square"
