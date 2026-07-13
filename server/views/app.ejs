@@ -575,26 +575,24 @@ body.dark #sidebar-toggle[aria-expanded="true"] {
   transition: filter 140ms cubic-bezier(0.25, 1, 0.5, 1), transform 140ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 #sidebar-toggle.sidebar-edge-hint {
-  color: rgb(29, 78, 216);
-  background: rgba(var(--sidebar-edge-hint-rgb), 0.16);
+  color: rgb(30, 64, 175);
+  background: rgba(var(--sidebar-edge-hint-rgb), 0.09);
   box-shadow:
-    0 0 0 1px rgba(var(--sidebar-edge-hint-rgb), 0.68),
-    0 0 12px rgba(var(--sidebar-edge-hint-rgb), 0.66),
-    0 0 24px rgba(var(--sidebar-edge-hint-rgb), 0.38);
+    0 0 0 1px rgba(var(--sidebar-edge-hint-rgb), 0.42),
+    0 0 8px rgba(var(--sidebar-edge-hint-rgb), 0.28);
 }
 body.dark #sidebar-toggle.sidebar-edge-hint {
-  color: rgb(239, 246, 255);
-  background: rgba(var(--sidebar-edge-hint-rgb), 0.26);
+  color: rgb(219, 234, 254);
+  background: rgba(var(--sidebar-edge-hint-rgb), 0.12);
   box-shadow:
-    0 0 0 1px rgba(147, 197, 253, 0.9),
-    0 0 14px rgba(var(--sidebar-edge-hint-rgb), 0.86),
-    0 0 28px rgba(59, 130, 246, 0.58);
+    0 0 0 1px rgba(147, 197, 253, 0.55),
+    0 0 10px rgba(var(--sidebar-edge-hint-rgb), 0.38);
 }
 #sidebar-toggle.sidebar-edge-hint .sidebar-toggle-glyph {
-  transform: scale(1.08);
+  transform: scale(1.03);
   filter:
-    drop-shadow(0 0 2px rgba(var(--sidebar-edge-hint-rgb), 0.98))
-    drop-shadow(0 0 9px rgba(var(--sidebar-edge-hint-rgb), 0.94));
+    drop-shadow(0 0 1px rgba(var(--sidebar-edge-hint-rgb), 0.82))
+    drop-shadow(0 0 5px rgba(var(--sidebar-edge-hint-rgb), 0.55));
 }
 @media (prefers-reduced-motion: reduce) {
   .sidebar-toggle-glyph {
