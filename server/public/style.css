@@ -6973,3 +6973,45 @@ body.dark .swal2-popup.swal2-modal:not(.loader-popup):not(.pinokio-download-moda
     width: 100%;
   }
 }
+
+.pinokio-path-blocker > p {
+  margin: 0 0 14px;
+}
+
+.pinokio-path-blocker-list {
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.pinokio-path-blocker-item {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(127, 127, 127, 0.18);
+}
+
+.pinokio-path-blocker-name {
+  font-weight: 600;
+}
+
+.pinokio-path-blocker-detail {
+  display: block;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.pinokio-path-blocker-files {
+  margin: 0 0 14px;
+}
+
+.pinokio-path-blocker-files code {
+  display: block;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.pinokio-path-blocker-wait {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

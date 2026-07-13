@@ -34,6 +34,7 @@ const Git = require("../kernel/git")
 const TerminalApi = require('../kernel/api/terminal')
 const PluginSources = require("../kernel/plugin_sources")
 const ManagedSkills = require("../kernel/managed_skills")
+const { isPathRemovalBlockedError, removePath } = require("../kernel/path_removal")
 
 const git = require('isomorphic-git')
 const http = require('isomorphic-git/http/node')
@@ -16263,14 +16264,23 @@ class Server {
     }))
     this.app.post("/pinokio/delete", ex(async (req, res) => {
       try {
-        if (req.body.type === 'bin') {
+        if (req.body.type === 'conda-runtime') {
+          for (const runtimeName of ["miniconda", "miniforge"]) {
+            const runtimePath = this.kernel.path("bin", runtimeName)
+            await removePath(runtimePath)
+          }
+          res.json({ success: true })
+        } else if (req.body.type === 'bin') {
           let folderPath = this.kernel.path("bin")
-          await fse.remove(folderPath)
+          const removalStartedAt = Date.now()
+          console.log(`[fresh install] removing bin: start ${folderPath}`)
+          await removePath(folderPath)
+          console.log(`[fresh install] removing bin: complete (${((Date.now() - removalStartedAt) / 1000).toFixed(1)}s)`)
           await fs.promises.mkdir(folderPath, { recursive: true }).catch((e) => { })
           res.json({ success: true })
         } else if (req.body.type === 'cache') {
           let folderPath = this.kernel.path("cache")
-          await fse.remove(folderPath)
+          await removePath(folderPath)
           await fs.promises.mkdir(folderPath, { recursive: true }).catch((e) => { })
           await Environment.ensurePinokioCacheDirs(this.kernel, {
             throwOnFailure: true
@@ -16288,7 +16298,7 @@ class Server {
           res.json({ success: true })
         } else if (req.body.name) {
           let folderPath = this.kernel.path("api", req.body.name)
-          await fse.remove(folderPath)
+          await removePath(folderPath)
 //          await fs.promises.mkdir(folderPath, { recursive: true }).catch((e) => { })
           await new Promise((resolve, reject) => {
             setTimeout(() => {
@@ -16299,6 +16309,10 @@ class Server {
           res.json({ success: true })
         }
       } catch(err) {
+        if (isPathRemovalBlockedError(err)) {
+          res.status(423).json({ success: false, error: err.toJSON() })
+          return
+        }
         res.json({ error: err.stack })
       }
     }))
@@ -16541,7 +16555,7 @@ class Server {
     this.app.post("/pinokio/install", ex((req, res) => {
       req.session.requirements = req.body.requirements
       req.session.callback = req.body.callback
-      res.redirect("/pinokio/install")
+      res.redirect(req.query.fresh === "1" ? "/pinokio/install?fresh=1" : "/pinokio/install")
     }))
     this.app.post("/pinokio/install/validate", ex(async (req, res) => {
       res.json({

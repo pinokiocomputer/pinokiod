@@ -2361,15 +2361,7 @@ document.addEventListener("click", async (e) => {
           actions: "hidden"
         }
       });
-      let res = await fetch("/pinokio/delete", {
-        method: "post",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ name })
-      }).then((res) => {
-        return res.json()
-      })
+      let res = await PinokioPathRemoval.remove({ name })
       console.log("res", res)
       Swal.close()
       if (res) {

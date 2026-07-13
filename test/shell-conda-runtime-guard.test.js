@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict')
+const fs = require('node:fs/promises')
 const os = require('node:os')
 const path = require('node:path')
 const test = require('node:test')
@@ -949,8 +950,13 @@ test('Windows cmd suppresses echo only for explicit conda shell.run commands', (
   }, command), { command })
 })
 
-test('Windows cmd array shell.run marks only the conda launch quiet', async () => {
-  const { context, root } = createContext('win32')
+test('Windows cmd array shell.run marks only the conda launch quiet', async (t) => {
+  const { context } = createContext('win32')
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-windows-cmd-array-'))
+  t.after(() => fs.rm(root, { recursive: true, force: true }))
+  context.appPath = path.join(root, 'api', 'demo')
+  context.cwd = context.appPath
+  context.managedBasePrefix = path.join(root, 'bin', 'miniforge')
   const records = []
   const originalPrompt = Shell.prototype.prompt
   const originalExec = Shell.prototype.exec

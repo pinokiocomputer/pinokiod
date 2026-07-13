@@ -231,18 +231,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (proceed) {
         document.querySelector(".reset-bin-loading").classList.remove("hidden")
         document.querySelector("#del-bin").classList.add("hidden")
-        let res = await fetch("/pinokio/delete", {
-          method: "post",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ type: "bin" })
-        }).then((res) => {
-          return res.json()
-        })
+        let res = await PinokioPathRemoval.remove({ type: "bin" })
         console.log(res)
         document.querySelector(".reset-bin-loading").classList.add("hidden")
-        if (res.error) {
+        if (res.cancelled) {
+          document.querySelector("#del-bin").classList.remove("hidden")
+        } else if (res.error) {
           alert(res.error)
         } else {
           //location.href = location.href

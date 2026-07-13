@@ -262,7 +262,7 @@ test('Conda install replaces the stale runtime and rebuilds declared Conda modul
   )
 })
 
-test('Conda replacement stops, preserves, and restarts a running managed Caddy', async () => {
+test('Conda replacement stops a running managed Caddy without restoring it', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-caddy-lifecycle-'))
   await createMiniforge(root)
   const kernel = createKernel(root, 'win32')
@@ -276,10 +276,6 @@ test('Conda replacement stops, preserves, and restarts a running managed Caddy',
     stop: async () => {
       events.push('caddy-stop')
       caddyRunning = false
-    },
-    start: async () => {
-      events.push('caddy-start')
-      caddyRunning = true
     },
   }
   kernel.bin.installed.conda = new Set(['caddy'])
@@ -311,9 +307,8 @@ test('Conda replacement stops, preserves, and restarts a running managed Caddy',
 
   assert.ok(events.indexOf('caddy-stop') < events.indexOf('remove-miniforge'))
   assert.ok(events.indexOf('remove-miniforge') < events.indexOf('bootstrap'))
-  assert.ok(events.indexOf('conda-install') < events.indexOf('caddy-start'))
-  assert.match(condaInstall.message[1], / caddy=2\.9\.1$/)
-  assert.equal(caddyRunning, true)
+  assert.doesNotMatch(condaInstall.message[1], /caddy=/)
+  assert.equal(caddyRunning, false)
 })
 
 test('Conda install replaces legacy miniconda with a compatibility alias to miniforge', async () => {
@@ -430,6 +425,53 @@ test('Conda install keeps the old runtime when the replacement installer downloa
   assert.equal(await pathExists(oldRuntimeFile), true)
 })
 
+test('Conda waits for runtime removal before starting the installer', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-removal-order-'))
+  await createMiniforge(root)
+  const kernel = createKernel(root, 'win32')
+  const events = []
+  const output = []
+  let releaseRemoval
+  let removalStarted
+  const removalGate = new Promise((resolve) => { releaseRemoval = resolve })
+  const removalStartedPromise = new Promise((resolve) => { removalStarted = resolve })
+
+  kernel.bin.mods = []
+  kernel.bin.download = async () => events.push('download')
+  kernel.bin.rm = async () => events.push('installer-cleanup')
+  kernel.bin.exec = async (payload) => {
+    events.push(payload && payload.conda && payload.conda.skip ? 'installer' : 'conda-install')
+    if (payload && payload.conda && payload.conda.skip) {
+      await fs.mkdir(path.join(root, 'bin', 'miniforge', 'conda-meta'), { recursive: true })
+      await fs.writeFile(path.join(root, 'bin', 'miniforge', 'python.exe'), 'fake python\n')
+    }
+  }
+
+  const conda = createConda(kernel)
+  const removeInstallPath = conda.removeInstallPath.bind(conda)
+  conda.removeInstallPath = async (...args) => {
+    events.push('remove-start')
+    removalStarted()
+    await removalGate
+    await removeInstallPath(...args)
+    events.push('remove-complete')
+  }
+
+  const installation = conda._install({ dependencies: [] }, (data) => {
+    if (data && data.raw) output.push(data.raw)
+  })
+  await removalStartedPromise
+
+  assert.deepEqual(events, ['download', 'remove-start'])
+  assert.match(output.join(''), /removing existing Miniforge installation/)
+
+  releaseRemoval()
+  await installation
+
+  assert.ok(events.indexOf('remove-complete') < events.indexOf('installer'))
+  assert.match(output.join(''), /existing Miniforge installation removed/)
+})
+
 test('Conda install propagates bootstrap failure after replacing the runtime', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-bootstrap-fails-'))
   await createMiniforge(root)
@@ -452,7 +494,7 @@ test('Conda install propagates bootstrap failure after replacing the runtime', a
   )
 })
 
-test('Conda install reports manual recovery when the old runtime cannot be removed', async () => {
+test('Conda install reports recovery details when the old runtime cannot be removed', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-runtime-locked-'))
   await createLegacyMiniconda(root)
   const kernel = createKernel(root)
@@ -467,10 +509,15 @@ test('Conda install reports manual recovery when the old runtime cannot be remov
   }
 
   try {
+    const packets = []
     await assert.rejects(
-      conda._install({ dependencies: [] }, () => {}),
-      /delete that folder manually/
+      conda._install({ dependencies: [] }, (data, type) => packets.push({ data, type })),
+      process.platform === 'win32' ? /__PINOKIO_BLOCKER__/ : /delete that folder manually/
     )
+    if (process.platform === 'win32') {
+      const blocked = packets.find((packet) => packet.type === 'path.remove.blocked')
+      assert.equal(blocked && blocked.data && blocked.data.code, 'PINOKIO_PATH_REMOVE_BLOCKED')
+    }
   } finally {
     fsModule.promises.rm = originalRm
   }

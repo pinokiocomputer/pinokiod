@@ -447,16 +447,12 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
         })
         try {
-          const res = await fetch("/pinokio/delete", {
-            method: "post",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ name: projectName })
-          }).then((response) => response.json())
+          const res = await PinokioPathRemoval.remove({ name: projectName })
           Swal.close()
           if (res && res.success) {
             navigateHome()
+          } else if (res && res.cancelled) {
+            return
           } else if (res && res.error) {
             alert(res.error)
           } else {

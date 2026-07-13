@@ -179,15 +179,10 @@
 
                   <div class="setup-secondary-actions">
                     <span class="task-inline-help">Not working?</span>
-                    <button class="task-button" type="button" id="del-bin">
+                    <button class="task-button" type="submit" form="install-form" formaction="/pinokio/install?fresh=1">
                       <i class="fa-solid fa-trash" aria-hidden="true"></i>
                       <span>Try a fresh install</span>
                     </button>
-                  </div>
-
-                  <div class="reset-bin-loading hidden setup-reset-loading">
-                    <i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i>
-                    <span>Stand by. Do not close this window.</span>
                   </div>
                 </section>
               </div>
@@ -383,30 +378,6 @@
         showWaitError(error && error.message ? error.message : "Failed to restart Pinokio")
       }
     <% } %>
-    if (document.querySelector("#del-bin")) {
-      document.querySelector("#del-bin").addEventListener("click", async () => {
-        let proceed = confirm("Are you sure you wish to delete the bin folder?")
-        if (proceed) {
-          document.querySelector(".reset-bin-loading").classList.remove("hidden")
-          document.querySelector("#del-bin").classList.add("hidden")
-          let res = await fetch("/pinokio/delete", {
-            method: "post",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ type: "bin" })
-          }).then((res) => {
-            return res.json()
-          })
-          document.querySelector(".reset-bin-loading").classList.add("hidden")
-          if (res.error) {
-            alert(res.error)
-          } else {
-            document.querySelector("#install-form").submit()
-          }
-        }
-      })
-    }
   })
   </script>
   <%- include('partials/app_common_scripts') %>

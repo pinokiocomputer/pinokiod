@@ -1,6 +1,7 @@
 const fs = require('fs')
 const { glob } = require('glob')
 const semver = require('semver')
+const { isPathRemovalBlockedError, removePath } = require('../path_removal')
 const { buildCondaListFromMeta, managedCondaRuns } = require('./conda-meta')
 const {
   CONDA_PIN_VERSION,
@@ -171,11 +172,7 @@ report_errors: false`)
     await this.kernel.bin.download(installer_url, installer, ondata)
 
     const caddy = this.kernel.bin.mod && this.kernel.bin.mod.caddy
-    let caddyWasRunning = false
-    if (caddy && typeof caddy.running === "function") {
-      caddyWasRunning = await caddy.running()
-    }
-    if (caddyWasRunning) {
+    if (caddy && typeof caddy.running === "function" && await caddy.running()) {
       ondata({ raw: `stopping Home Server before replacing Miniforge...\r\n` })
       await caddy.stop()
     }
@@ -183,12 +180,14 @@ report_errors: false`)
     legacy_path_exists = await this.kernel.exists(`bin/${LEGACY_CONDA_ROOT_DIR}`)
     if (legacy_path_exists) {
       console.log("Removing legacy install path...", legacy_path)
-      await this.removeInstallPath(legacy_path)
+      await this.removeInstallPath(legacy_path, ondata)
     }
     install_path_exists = await this.kernel.exists(`bin/${CONDA_ROOT_DIR}`)
     if (install_path_exists) {
       console.log("Removing existing install path...", install_path)
-      await this.removeInstallPath(install_path)
+      ondata({ raw: `removing existing Miniforge installation...\r\n` })
+      await this.removeInstallPath(install_path, ondata)
+      ondata({ raw: `existing Miniforge installation removed.\r\n` })
     }
 
     // 2. run the script
@@ -213,9 +212,6 @@ report_errors: false`)
     }
 
     const dependencies = new Set(Array.isArray(req.dependencies) ? req.dependencies : [])
-    if (caddyWasRunning) {
-      dependencies.add("caddy")
-    }
     let mods = this.kernel.bin.mods.filter((m) => {
       return dependencies.has(m.name)
     }).map((m) => {
@@ -255,33 +251,17 @@ report_errors: false`)
     await this.ensureCompatibilityAlias()
     ondata({ raw: `Install finished\r\n` })
     await this.kernel.bin.rm(installer, ondata)
-    if (caddyWasRunning) {
-      ondata({ raw: `restarting Home Server after replacing Miniforge...\r\n` })
-      await caddy.start()
-    }
   }
-  async removeInstallPath(target) {
+  async removeInstallPath(target, ondata) {
     try {
-      const stat = await fs.promises.lstat(target).catch((error) => {
-        if (error && error.code === "ENOENT") {
-          return null
-        }
-        throw error
-      })
-      if (!stat) {
-        return
-      }
-      if (stat.isSymbolicLink()) {
-        await fs.promises.rm(target, { force: true })
-        return
-      }
-      await fs.promises.rm(target, {
-        recursive: true,
-        force: true,
-        maxRetries: 5,
-        retryDelay: 250,
-      })
+      await removePath(target)
     } catch (error) {
+      if (isPathRemovalBlockedError(error)) {
+        if (typeof ondata === "function") {
+          ondata(error.toJSON(), "path.remove.blocked")
+        }
+        throw new Error(`__PINOKIO_BLOCKER__ ${error.message}`)
+      }
       const reason = error && (error.code || error.message) ? error.code || error.message : String(error)
       throw new Error([
         `Pinokio needs to replace the Conda runtime at ${target}, but it could not delete that folder.`,

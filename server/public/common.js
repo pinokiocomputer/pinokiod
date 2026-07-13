@@ -1,4 +1,191 @@
 const CAPTURE_MIN_SIZE = 32;
+
+const PinokioPathRemoval = (() => {
+  const BLOCKED_CODE = "PINOKIO_PATH_REMOVE_BLOCKED"
+  const RETRY_INTERVAL = 2000
+
+  const escapeHtml = (value) => String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+
+  const blockedDetails = (payload) => {
+    if (!payload || typeof payload !== "object") {
+      return null
+    }
+    if (payload.code === BLOCKED_CODE) {
+      return payload
+    }
+    if (payload.error && payload.error.code === BLOCKED_CODE) {
+      return payload.error
+    }
+    return null
+  }
+
+  const renderBlocker = (blocker) => {
+    const name = blocker.name || blocker.serviceName || `Process ${blocker.pid || ""}`
+    const detail = [
+      blocker.serviceName && blocker.serviceName !== name ? blocker.serviceName : "",
+      blocker.pid ? `PID ${blocker.pid}` : "",
+    ].filter(Boolean).join(" · ")
+    return `<li class="pinokio-path-blocker-item">
+      <span class="pinokio-path-blocker-name">${escapeHtml(name)}</span>
+      ${detail ? `<span class="pinokio-path-blocker-detail">${escapeHtml(detail)}</span>` : ""}
+    </li>`
+  }
+
+  const render = (details) => {
+    const blockers = Array.isArray(details.blockers) ? details.blockers : []
+    const remaining = Array.isArray(details.remaining) ? details.remaining : []
+    const itemCount = Number(details.remainingCount) || remaining.length
+    const itemLabel = itemCount === 1 ? "one remaining item" : `${itemCount || "some"} remaining items`
+    const causeCode = details.causeCode ? ` (${escapeHtml(details.causeCode)})` : ""
+    const explanation = blockers.length > 0
+      ? `Windows couldn't remove ${itemLabel} because one or more files are still in use.`
+      : `Windows couldn't remove ${itemLabel}${causeCode}. No application was identified. Check permissions or security software.`
+    const blockerHtml = blockers.length > 0
+      ? `<ul class="pinokio-path-blocker-list">${blockers.map(renderBlocker).join("")}</ul>`
+      : ""
+    const filesHtml = remaining.length > 0
+      ? `<details class="pinokio-path-blocker-files">
+          <summary>${itemCount > remaining.length ? `Show first ${remaining.length} of ${itemCount} remaining items` : `Show remaining ${remaining.length === 1 ? "item" : "items"}`}</summary>
+          <div>${remaining.map((file) => `<code>${escapeHtml(file)}</code>`).join("")}</div>
+        </details>`
+      : ""
+    return `<div class="pinokio-path-blocker">
+      <p>${explanation}</p>
+      ${blockerHtml}
+      ${filesHtml}
+      <div class="pinokio-path-blocker-wait">
+        <i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i>
+        <span>${blockers.length > 0
+          ? `Close the ${blockers.length === 1 ? "app" : "apps"} above. Pinokio will retry automatically.`
+          : "Resolve the access issue. Pinokio will retry automatically."}</span>
+      </div>
+    </div>`
+  }
+
+  const parseResponse = async (response) => {
+    const payload = await response.json()
+    if (!response.ok && !blockedDetails(payload)) {
+      const message = payload && payload.error
+      throw new Error(typeof message === "string" ? message : `Request failed (${response.status})`)
+    }
+    return payload
+  }
+
+  const show = ({ details, retry }) => {
+    if (typeof Swal === "undefined" || !Swal || typeof Swal.fire !== "function") {
+      return { cancelled: true }
+    }
+
+    let current = details
+    let retrying = false
+    let settled = false
+    let timer = null
+
+    return new Promise((resolve) => {
+      const finish = (result) => {
+        if (settled) return
+        settled = true
+        if (timer) clearInterval(timer)
+        if (Swal.isVisible()) Swal.close()
+        resolve(result)
+      }
+
+      const update = () => {
+        const container = Swal.getHtmlContainer()
+        if (container) {
+          const filesOpen = !!container.querySelector(".pinokio-path-blocker-files")?.open
+          container.innerHTML = render(current)
+          const files = container.querySelector(".pinokio-path-blocker-files")
+          if (files) files.open = filesOpen
+        }
+      }
+
+      const attempt = async (manual = false) => {
+        if (retrying || settled || typeof retry !== "function") return false
+        retrying = true
+        if (manual && typeof Swal.disableButtons === "function") Swal.disableButtons()
+        try {
+          const result = await retry()
+          if (settled) return false
+          const nextBlocked = blockedDetails(result)
+          if (nextBlocked) {
+            if (manual) {
+              current = nextBlocked
+              update()
+              Swal.showValidationMessage("Windows still cannot remove the remaining items.")
+            }
+            return false
+          }
+          if (result && result.error) {
+            throw new Error(typeof result.error === "string" ? result.error : "Retry failed.")
+          }
+          finish(result)
+          return true
+        } catch (error) {
+          if (manual) Swal.showValidationMessage(escapeHtml(error && error.message ? error.message : "Retry failed."))
+          return false
+        } finally {
+          retrying = false
+          if (manual && !settled && typeof Swal.enableButtons === "function") Swal.enableButtons()
+        }
+      }
+
+      Swal.fire({
+        title: "File removal paused",
+        html: render(current),
+        showCancelButton: true,
+        confirmButtonText: "Try again now",
+        cancelButtonText: "Stop for now",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+          timer = setInterval(() => attempt(false), RETRY_INTERVAL)
+        },
+        preConfirm: () => attempt(true),
+      }).then((result) => {
+        if (!settled && !result.isConfirmed) {
+          finish({ cancelled: true })
+        }
+      })
+    })
+  }
+
+  const tryRemove = async (payload) => parseResponse(await fetch("/pinokio/delete", {
+    method: "post",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  }))
+
+  const remove = async (payload) => {
+    const initial = await tryRemove(payload)
+    const details = blockedDetails(initial)
+    if (!details) {
+      return initial
+    }
+    if (typeof Swal !== "undefined" && Swal && Swal.isVisible()) {
+      Swal.close()
+    }
+    return show({
+      details,
+      retry: () => tryRemove(payload),
+    })
+  }
+
+  return {
+    remove,
+    show,
+    tryRemove,
+  }
+})()
+
+if (typeof window !== "undefined") {
+  window.PinokioPathRemoval = PinokioPathRemoval
+}
 let pinokioDevGuardSatisfied = false;
 const createLauncherDebugLog = (...args) => {
   try {
