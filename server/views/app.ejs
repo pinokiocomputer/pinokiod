@@ -8438,7 +8438,7 @@ body.dark .pinokio-custom-terminal-header {
           <button type="button" class="btn header-item sidebar-hover-toggle" role="switch" aria-checked="true" data-app-sidebar-show-on-hover data-tippy-content="Show the sidebar when hovering over the left edge">
             <div class="tab">
               <i class="fa-solid fa-eye menu-action-leading-icon" aria-hidden="true"></i>
-              <div class="display">Show sidebar on hover</div>
+              <div class="display">Show on hover</div>
               <span class="sidebar-hover-switch" aria-hidden="true"><span class="sidebar-hover-switch-thumb"></span></span>
             </div>
           </button>
@@ -11561,7 +11561,7 @@ const rerenderMenuSection = (container, html) => {
         : "Protection beta is off for this app. You can change it later from the Run tab."
     })
   }
-  maybeShowProtectionInstallToast()
+  // maybeShowProtectionInstallToast()
   const buildPluginLaunchFromQuery = () => {
     try {
       const pageUrl = new URL(window.location.href)

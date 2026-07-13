@@ -860,7 +860,7 @@ test("static guard: collapsed app sidebar exposes a hover preference", async () 
   const appView = await fs.readFile(path.resolve(root, "server/views/app.ejs"), "utf8")
 
   assert.match(appView, /data-app-sidebar-show-on-hover/)
-  assert.match(appView, />Show sidebar on hover</)
+  assert.match(appView, />Show on hover</)
   assert.match(appView, /Show the sidebar when hovering over the left edge/)
   assert.match(appView, /#sidebar-toggle\.sidebar-edge-hint \.sidebar-toggle-glyph/)
   assert.match(appView, /peekTrigger\.addEventListener\("pointerenter", \(\) => \{[\s\S]*if \(showOnHoverEnabled\) \{[\s\S]*setPeeking\(true\)[\s\S]*\} else \{[\s\S]*toggle\.classList\.add\("sidebar-edge-hint"\)/)
@@ -887,7 +887,7 @@ test("app sidebar hover preference gates hover without closing the active peek",
       <div class="appcanvas vertical">
         <button type="button" data-app-sidebar-peek-trigger></button>
         <aside id="app-sidebar">
-          <button type="button" role="switch" aria-checked="true" data-app-sidebar-show-on-hover>Show sidebar on hover</button>
+          <button type="button" role="switch" aria-checked="true" data-app-sidebar-show-on-hover>Show on hover</button>
           <button type="button" class="reveal" id="sidebar-reveal">Downloads</button>
           <button type="button" class="revealer" id="sidebar-revealer">Changes</button>
           <button type="button" data-app-autolaunch-button id="sidebar-autolaunch">Autolaunch</button>
