@@ -856,17 +856,21 @@ test("static guard: open without launching disables page-load script frame selec
   assert.match(appView, /if \(!target && !automaticSelectionDisabled && preselected && preselected !== devTab\)/)
 })
 
-test("static guard: collapsed idle run page peeks without persisting sidebar state", async () => {
+test("static guard: collapsed empty run page auto-shows the sidebar when enabled", async () => {
   const appView = await fs.readFile(path.resolve(root, "server/views/app.ejs"), "utf8")
 
-  assert.match(appView, /const shouldAutoPeekOnIdle = <%- JSON\.stringify\(type === "run"\) %>/)
+  assert.match(appView, /const shouldAutoShowOnEmptyRunView = <%- JSON\.stringify\(type === "run"\) %>/)
+  assert.match(appView, /data-app-sidebar-auto-show/)
+  assert.match(appView, />Auto-show sidebar</)
+  assert.match(appView, /Show automatically when the Run view has no content/)
+  assert.doesNotMatch(appView, />Auto-show when idle</)
   assert.match(appView, /const hasVisibleBrowserSurface = \(\) => \{[\s\S]*browserview\.querySelector\("iframe:not\(\.hidden\)"\)[\s\S]*browserview-network-status[\s\S]*data-launch-requirements-status/)
-  assert.match(appView, /if \(shouldAutoPeekOnIdle && initialCollapsed && !hasVisibleBrowserSurface\(\)\) \{[\s\S]*setPeeking\(true\)/)
+  assert.match(appView, /if \(autoShowEnabled && shouldAutoShowOnEmptyRunView && initialCollapsed && !hasVisibleBrowserSurface\(\)\) \{[\s\S]*setPeeking\(true\)/)
   assert.match(appView, /setCollapsed\(initialCollapsed, \{ persist: false \}\)/)
   assert.match(appView, /aside\.addEventListener\("click", \(event\) => \{[\s\S]*target\.closest\("\.reveal, \.revealer, \[data-app-autolaunch-button\]"\)[\s\S]*window\.setTimeout\(\(\) => setPeeking\(false\), 0\)/)
 })
 
-test("app sidebar auto-peeks on collapsed idle run page and dismisses after click", async () => {
+test("app sidebar auto-shows on a collapsed empty run page and dismisses after click", async () => {
   const appView = await fs.readFile(path.resolve(root, "server/views/app.ejs"), "utf8")
   const start = appView.indexOf('<script>\n(() => {\n  const appcanvas = document.querySelector(".appcanvas")')
   const end = appView.indexOf('</script>\n<script src="/tab-idle-notifier.js"></script>', start)
@@ -884,6 +888,7 @@ test("app sidebar auto-peeks on collapsed idle run page and dismisses after clic
       <div class="appcanvas vertical">
         <button type="button" data-app-sidebar-peek-trigger></button>
         <aside id="app-sidebar">
+          <button type="button" role="switch" aria-checked="true" data-app-sidebar-auto-show>Auto-show sidebar</button>
           <button type="button" class="reveal" id="sidebar-reveal">Downloads</button>
           <button type="button" class="revealer" id="sidebar-revealer">Changes</button>
           <button type="button" data-app-autolaunch-button id="sidebar-autolaunch">Autolaunch</button>
@@ -908,6 +913,7 @@ test("app sidebar auto-peeks on collapsed idle run page and dismisses after clic
 
   const wait = (ms = 75) => new Promise((resolve) => setTimeout(resolve, ms))
   const storageKey = "pinokio.sidebar-collapsed:test-app"
+  const autoShowStorageKey = "pinokio.sidebar-auto-show"
 
   const dom = createDom()
   dom.window.localStorage.setItem(storageKey, "1")
@@ -949,6 +955,29 @@ test("app sidebar auto-peeks on collapsed idle run page and dismisses after clic
   assert.equal(activeCanvas.classList.contains("sidebar-collapsed"), true)
   assert.equal(activeCanvas.classList.contains("sidebar-peeking"), false)
   assert.equal(activeDom.window.localStorage.getItem(storageKey), "1")
+
+  const disabledDom = createDom()
+  disabledDom.window.localStorage.setItem(storageKey, "1")
+  disabledDom.window.localStorage.setItem(autoShowStorageKey, "0")
+  disabledDom.window.eval(sidebarScript)
+  await wait()
+
+  const disabledCanvas = disabledDom.window.document.querySelector(".appcanvas")
+  const autoShowToggle = disabledDom.window.document.querySelector("[data-app-sidebar-auto-show]")
+  assert.equal(disabledCanvas.classList.contains("sidebar-collapsed"), true)
+  assert.equal(disabledCanvas.classList.contains("sidebar-peeking"), false)
+  assert.equal(autoShowToggle.getAttribute("aria-checked"), "false")
+
+  autoShowToggle.click()
+  assert.equal(autoShowToggle.getAttribute("aria-checked"), "true")
+  assert.equal(disabledDom.window.localStorage.getItem(autoShowStorageKey), "1")
+
+  disabledDom.window.PinokioSidebar.setPeeking(true)
+  assert.equal(disabledCanvas.classList.contains("sidebar-peeking"), true)
+  autoShowToggle.click()
+  assert.equal(autoShowToggle.getAttribute("aria-checked"), "false")
+  assert.equal(disabledDom.window.localStorage.getItem(autoShowStorageKey), "0")
+  assert.equal(disabledCanvas.classList.contains("sidebar-peeking"), false)
 })
 
 test("app identity popover exposes launcher metadata and remote browser link", async () => {
