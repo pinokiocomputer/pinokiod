@@ -570,6 +570,17 @@ body.dark #sidebar-toggle[aria-expanded="true"] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: filter 140ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+#sidebar-toggle.sidebar-edge-hint .sidebar-toggle-glyph {
+  filter:
+    drop-shadow(0 0 2px var(--pinokio-sidebar-separator-focus))
+    drop-shadow(0 0 7px var(--pinokio-sidebar-separator-focus));
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-toggle-glyph {
+    transition: none;
+  }
 }
 .sidebar-toggle-frame {
   position: relative;
@@ -16625,12 +16636,18 @@ const rerenderMenuSection = (container, html) => {
   const setPeeking = (peeking) => {
     const next = !!peeking && canPeek()
     window.clearTimeout(peekCloseTimer)
+    if (next) {
+      toggle.classList.remove("sidebar-edge-hint")
+    }
     appcanvas.classList.toggle("sidebar-peeking", next)
     syncSidebarVisibility()
   }
   const setShowOnHoverEnabled = (enabled, options = {}) => {
     showOnHoverEnabled = !!enabled
     syncShowOnHoverToggle()
+    if (showOnHoverEnabled) {
+      toggle.classList.remove("sidebar-edge-hint")
+    }
     if (options.persist !== false) {
       try {
         window.localStorage.setItem(showOnHoverStorageKey, showOnHoverEnabled ? "1" : "0")
@@ -16697,11 +16714,18 @@ const rerenderMenuSection = (container, html) => {
 
   if (peekTrigger) {
     peekTrigger.addEventListener("pointerenter", () => {
-      if (showOnHoverEnabled) setPeeking(true)
+      if (showOnHoverEnabled) {
+        setPeeking(true)
+      } else {
+        toggle.classList.add("sidebar-edge-hint")
+      }
     })
     peekTrigger.addEventListener("focus", () => setPeeking(true))
     peekTrigger.addEventListener("click", () => setPeeking(true))
-    peekTrigger.addEventListener("pointerleave", closePeekSoon)
+    peekTrigger.addEventListener("pointerleave", () => {
+      toggle.classList.remove("sidebar-edge-hint")
+      closePeekSoon()
+    })
     peekTrigger.addEventListener("blur", closePeekSoon)
     aside.addEventListener("pointerenter", () => {
       if (isPeeking()) {
