@@ -642,8 +642,10 @@ body.dark .home-server-popover__qr-close:focus-visible {
   root.dataset.homeServerReady = "1"
   const trigger = root.querySelector("[data-home-server-trigger]")
   const panel = root.querySelector("[data-home-server-panel]")
+  const panelContent = root.querySelector("[data-home-server-content]")
   let payload = null
   let pollTimer = null
+  let qrReturnUrl = ""
   const setTriggerHintEnabled = (enabled) => {
     if (!trigger) {
       return
@@ -699,11 +701,12 @@ body.dark .home-server-popover__qr-close:focus-visible {
       existing.remove()
     }
   }
-  const showQrPreview = (url, sourceButton = null) => {
+  const showQrPreview = (url) => {
     if (!panel || !url) {
       return
     }
     removeQrPreview()
+    qrReturnUrl = url
     const safeUrl = escapeHtml(url)
     const qrUrl = `/qr?data=${encodeURIComponent(url)}&s=7&m=0`
     panel.insertAdjacentHTML("beforeend", `
@@ -719,11 +722,6 @@ body.dark .home-server-popover__qr-close:focus-visible {
         </div>
         <div class="home-server-popover__qr-url" title="${safeUrl}">${safeUrl}</div>
       </div>`)
-    const preview = panel.querySelector("[data-home-server-qr-preview]")
-    if (preview && sourceButton) {
-      preview.dataset.returnFocus = "true"
-      root._homeServerQrReturnFocus = sourceButton
-    }
     const closeButton = panel.querySelector("[data-home-server-qr-close]")
     if (closeButton && typeof closeButton.focus === "function") {
       closeButton.focus()
@@ -1002,19 +1000,18 @@ body.dark .home-server-popover__qr-close:focus-visible {
     document.dispatchEvent(new CustomEvent("pinokio:home-server-status", {
       detail: { status, payload: data || { status } }
     }))
-    if (!panel) {
+    if (!panelContent) {
       return
     }
     if (status === "on") {
-      panel.innerHTML = renderOn(data)
+      panelContent.innerHTML = renderOn(data)
     } else if (status === "starting") {
-      panel.innerHTML = renderStarting(data)
+      panelContent.innerHTML = renderStarting(data)
     } else if (status === "setup") {
-      panel.innerHTML = renderSetup(data)
+      panelContent.innerHTML = renderSetup(data)
     } else {
-      panel.innerHTML = renderOff(data)
+      panelContent.innerHTML = renderOff(data)
     }
-    root._homeServerQrReturnFocus = null
   }
   const fetchState = async () => {
     const response = await fetch("/info/home-server", { cache: "no-store" })
@@ -1072,7 +1069,7 @@ body.dark .home-server-popover__qr-close:focus-visible {
         if (attempts >= 60) {
           stopPolling()
           setStatus("error")
-          panel.innerHTML = renderError()
+          panelContent.innerHTML = renderError()
         }
       }
     }, 1500)
@@ -1111,11 +1108,11 @@ body.dark .home-server-popover__qr-close:focus-visible {
       }
     } catch (err) {
       setStatus("error")
-      panel.innerHTML = renderError(err && err.message ? err.message : "")
+      panelContent.innerHTML = renderError(err && err.message ? err.message : "")
     }
   }
   const openPanel = async () => {
-    if (!panel || !trigger) {
+    if (!panel || !panelContent || !trigger) {
       return
     }
     panel.hidden = false
@@ -1123,14 +1120,14 @@ body.dark .home-server-popover__qr-close:focus-visible {
     trigger.setAttribute("aria-expanded", "true")
     setTriggerHintEnabled(false)
     if (!payload) {
-      panel.innerHTML = `<div class="home-server-popover__loading">Checking Home Server...</div>`
+      panelContent.innerHTML = `<div class="home-server-popover__loading">Checking Home Server...</div>`
     }
     try {
       await fetchState()
       refreshPolling(payload)
     } catch (err) {
       setStatus("error")
-      panel.innerHTML = renderError(err && err.message ? err.message : "")
+      panelContent.innerHTML = renderError(err && err.message ? err.message : "")
     }
   }
   const closePanel = () => {
@@ -1139,7 +1136,7 @@ body.dark .home-server-popover__qr-close:focus-visible {
     }
     panel.hidden = true
     removeQrPreview()
-    root._homeServerQrReturnFocus = null
+    qrReturnUrl = ""
     root.dataset.homeServerOpen = "false"
     trigger.setAttribute("aria-expanded", "false")
     setTriggerHintEnabled(true)
@@ -1192,17 +1189,22 @@ body.dark .home-server-popover__qr-close:focus-visible {
     if (qrButton) {
       event.preventDefault()
       event.stopPropagation()
-      showQrPreview(qrButton.getAttribute("data-home-server-qr") || "", qrButton)
+      showQrPreview(qrButton.getAttribute("data-home-server-qr") || "")
       return
     }
     const qrCloseButton = event.target.closest("[data-home-server-qr-close]")
     if (qrCloseButton) {
       event.preventDefault()
       event.stopPropagation()
+      const returnUrl = qrReturnUrl
       removeQrPreview()
-      const focusTarget = root._homeServerQrReturnFocus
-      root._homeServerQrReturnFocus = null
-      if (focusTarget && typeof focusTarget.focus === "function" && document.contains(focusTarget)) {
+      qrReturnUrl = ""
+      const focusTarget = panelContent
+        ? Array.from(panelContent.querySelectorAll("[data-home-server-qr]")).find((button) => {
+            return button.getAttribute("data-home-server-qr") === returnUrl
+          })
+        : null
+      if (focusTarget && typeof focusTarget.focus === "function") {
         focusTarget.focus()
       }
       return
