@@ -856,21 +856,19 @@ test("static guard: open without launching disables page-load script frame selec
   assert.match(appView, /if \(!target && !automaticSelectionDisabled && preselected && preselected !== devTab\)/)
 })
 
-test("static guard: collapsed empty run page auto-shows the sidebar when enabled", async () => {
+test("static guard: collapsed app sidebar exposes a hover preference", async () => {
   const appView = await fs.readFile(path.resolve(root, "server/views/app.ejs"), "utf8")
 
-  assert.match(appView, /const shouldAutoShowOnEmptyRunView = <%- JSON\.stringify\(type === "run"\) %>/)
-  assert.match(appView, /data-app-sidebar-auto-show/)
-  assert.match(appView, />Auto-show sidebar</)
-  assert.match(appView, /Show automatically when the Run view has no content/)
-  assert.doesNotMatch(appView, />Auto-show when idle</)
-  assert.match(appView, /const hasVisibleBrowserSurface = \(\) => \{[\s\S]*browserview\.querySelector\("iframe:not\(\.hidden\)"\)[\s\S]*browserview-network-status[\s\S]*data-launch-requirements-status/)
-  assert.match(appView, /if \(autoShowEnabled && shouldAutoShowOnEmptyRunView && initialCollapsed && !hasVisibleBrowserSurface\(\)\) \{[\s\S]*setPeeking\(true\)/)
+  assert.match(appView, /data-app-sidebar-show-on-hover/)
+  assert.match(appView, />Show sidebar on hover</)
+  assert.match(appView, /Show the sidebar when hovering over the left edge/)
+  assert.match(appView, /peekTrigger\.addEventListener\("pointerenter", \(\) => \{[\s\S]*if \(showOnHoverEnabled\) setPeeking\(true\)/)
+  assert.doesNotMatch(appView, /shouldAutoShowOnEmptyRunView|hasVisibleBrowserSurface/)
   assert.match(appView, /setCollapsed\(initialCollapsed, \{ persist: false \}\)/)
   assert.match(appView, /aside\.addEventListener\("click", \(event\) => \{[\s\S]*target\.closest\("\.reveal, \.revealer, \[data-app-autolaunch-button\]"\)[\s\S]*window\.setTimeout\(\(\) => setPeeking\(false\), 0\)/)
 })
 
-test("app sidebar auto-shows on a collapsed empty run page and dismisses after click", async () => {
+test("app sidebar hover preference gates hover without closing the active peek", async () => {
   const appView = await fs.readFile(path.resolve(root, "server/views/app.ejs"), "utf8")
   const start = appView.indexOf('<script>\n(() => {\n  const appcanvas = document.querySelector(".appcanvas")')
   const end = appView.indexOf('</script>\n<script src="/tab-idle-notifier.js"></script>', start)
@@ -880,24 +878,20 @@ test("app sidebar auto-shows on a collapsed empty run page and dismisses after c
   const sidebarScript = appView
     .slice(start + "<script>\n".length, end)
     .replace(/<%- JSON\.stringify\(typeof name === "string" \? name : ""\) %>/g, '"test-app"')
-    .replace(/<%- JSON\.stringify\(type === "run"\) %>/g, "true")
 
-  const createDom = (browserSurface = "") => {
+  const createDom = () => {
     return new JSDOM(`<!doctype html>
       <button id="sidebar-toggle"></button>
       <div class="appcanvas vertical">
         <button type="button" data-app-sidebar-peek-trigger></button>
         <aside id="app-sidebar">
-          <button type="button" role="switch" aria-checked="true" data-app-sidebar-auto-show>Auto-show sidebar</button>
+          <button type="button" role="switch" aria-checked="true" data-app-sidebar-show-on-hover>Show sidebar on hover</button>
           <button type="button" class="reveal" id="sidebar-reveal">Downloads</button>
           <button type="button" class="revealer" id="sidebar-revealer">Changes</button>
           <button type="button" data-app-autolaunch-button id="sidebar-autolaunch">Autolaunch</button>
           <button type="button" id="sidebar-action">Start</button>
         </aside>
-        <main class="browserview">${browserSurface}</main>
-      </div>
-      <div id="browserview-network-status" hidden></div>
-      <div data-launch-requirements-status hidden></div>`, {
+      </div>`, {
       url: "http://127.0.0.1:42000/v/test-app",
       runScripts: "outside-only",
       pretendToBeVisual: true,
@@ -913,7 +907,8 @@ test("app sidebar auto-shows on a collapsed empty run page and dismisses after c
 
   const wait = (ms = 75) => new Promise((resolve) => setTimeout(resolve, ms))
   const storageKey = "pinokio.sidebar-collapsed:test-app"
-  const autoShowStorageKey = "pinokio.sidebar-auto-show"
+  const showOnHoverStorageKey = "pinokio.sidebar-show-on-hover"
+  const legacyAutoShowStorageKey = "pinokio.sidebar-auto-show"
 
   const dom = createDom()
   dom.window.localStorage.setItem(storageKey, "1")
@@ -922,10 +917,15 @@ test("app sidebar auto-shows on a collapsed empty run page and dismisses after c
 
   const appcanvas = dom.window.document.querySelector(".appcanvas")
   const aside = dom.window.document.getElementById("app-sidebar")
+  const peekTrigger = dom.window.document.querySelector("[data-app-sidebar-peek-trigger]")
   assert.equal(appcanvas.classList.contains("sidebar-collapsed"), true)
+  assert.equal(appcanvas.classList.contains("sidebar-peeking"), false)
+  assert.equal(aside.getAttribute("aria-hidden"), "true")
+  assert.equal(dom.window.localStorage.getItem(storageKey), "1")
+
+  peekTrigger.dispatchEvent(new dom.window.Event("pointerenter"))
   assert.equal(appcanvas.classList.contains("sidebar-peeking"), true)
   assert.equal(aside.getAttribute("aria-hidden"), "false")
-  assert.equal(dom.window.localStorage.getItem(storageKey), "1")
 
   aside.querySelector("#sidebar-reveal").dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }))
   await wait(5)
@@ -946,38 +946,32 @@ test("app sidebar auto-shows on a collapsed empty run page and dismisses after c
   assert.equal(appcanvas.classList.contains("sidebar-peeking"), false)
   assert.equal(dom.window.localStorage.getItem(storageKey), "1")
 
-  const activeDom = createDom('<iframe src="about:blank"></iframe>')
-  activeDom.window.localStorage.setItem(storageKey, "1")
-  activeDom.window.eval(sidebarScript)
-  await wait()
-
-  const activeCanvas = activeDom.window.document.querySelector(".appcanvas")
-  assert.equal(activeCanvas.classList.contains("sidebar-collapsed"), true)
-  assert.equal(activeCanvas.classList.contains("sidebar-peeking"), false)
-  assert.equal(activeDom.window.localStorage.getItem(storageKey), "1")
-
   const disabledDom = createDom()
   disabledDom.window.localStorage.setItem(storageKey, "1")
-  disabledDom.window.localStorage.setItem(autoShowStorageKey, "0")
+  disabledDom.window.localStorage.setItem(legacyAutoShowStorageKey, "0")
   disabledDom.window.eval(sidebarScript)
   await wait()
 
   const disabledCanvas = disabledDom.window.document.querySelector(".appcanvas")
-  const autoShowToggle = disabledDom.window.document.querySelector("[data-app-sidebar-auto-show]")
+  const disabledPeekTrigger = disabledDom.window.document.querySelector("[data-app-sidebar-peek-trigger]")
+  const showOnHoverToggle = disabledDom.window.document.querySelector("[data-app-sidebar-show-on-hover]")
   assert.equal(disabledCanvas.classList.contains("sidebar-collapsed"), true)
   assert.equal(disabledCanvas.classList.contains("sidebar-peeking"), false)
-  assert.equal(autoShowToggle.getAttribute("aria-checked"), "false")
+  assert.equal(showOnHoverToggle.getAttribute("aria-checked"), "false")
 
-  autoShowToggle.click()
-  assert.equal(autoShowToggle.getAttribute("aria-checked"), "true")
-  assert.equal(disabledDom.window.localStorage.getItem(autoShowStorageKey), "1")
-
-  disabledDom.window.PinokioSidebar.setPeeking(true)
-  assert.equal(disabledCanvas.classList.contains("sidebar-peeking"), true)
-  autoShowToggle.click()
-  assert.equal(autoShowToggle.getAttribute("aria-checked"), "false")
-  assert.equal(disabledDom.window.localStorage.getItem(autoShowStorageKey), "0")
+  disabledPeekTrigger.dispatchEvent(new disabledDom.window.Event("pointerenter"))
   assert.equal(disabledCanvas.classList.contains("sidebar-peeking"), false)
+
+  disabledPeekTrigger.click()
+  assert.equal(disabledCanvas.classList.contains("sidebar-peeking"), true)
+  showOnHoverToggle.click()
+  assert.equal(showOnHoverToggle.getAttribute("aria-checked"), "true")
+  assert.equal(disabledDom.window.localStorage.getItem(showOnHoverStorageKey), "1")
+
+  showOnHoverToggle.click()
+  assert.equal(showOnHoverToggle.getAttribute("aria-checked"), "false")
+  assert.equal(disabledDom.window.localStorage.getItem(showOnHoverStorageKey), "0")
+  assert.equal(disabledCanvas.classList.contains("sidebar-peeking"), true)
 })
 
 test("app identity popover exposes launcher metadata and remote browser link", async () => {

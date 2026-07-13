@@ -2664,16 +2664,16 @@ body.dark .appcanvas.panel-open .menu-actions #ask-ai-tab.selected {
 body.dark .appcanvas.vertical .menu-actions {
   border-top: none;
 }
-.appcanvas.vertical .sidebar-auto-show-preference {
+.appcanvas.vertical .sidebar-hover-preference {
   width: 100%;
   padding-top: 5px;
   border-top: 1px solid var(--pinokio-sidebar-separator);
 }
-.appcanvas.vertical .sidebar-auto-show-toggle,
-.appcanvas.vertical .sidebar-auto-show-toggle .tab {
+.appcanvas.vertical .sidebar-hover-toggle,
+.appcanvas.vertical .sidebar-hover-toggle .tab {
   width: 100%;
 }
-.sidebar-auto-show-switch {
+.sidebar-hover-switch {
   display: inline-flex;
   align-items: center;
   width: 30px;
@@ -2687,7 +2687,7 @@ body.dark .appcanvas.vertical .menu-actions {
   flex: 0 0 auto;
   transition: background 140ms ease, border-color 140ms ease;
 }
-.sidebar-auto-show-switch-thumb {
+.sidebar-hover-switch-thumb {
   width: 10px;
   height: 10px;
   border-radius: 50%;
@@ -2695,31 +2695,31 @@ body.dark .appcanvas.vertical .menu-actions {
   transform: translateX(0);
   transition: transform 140ms cubic-bezier(0.25, 1, 0.5, 1), background 140ms ease;
 }
-.sidebar-auto-show-toggle[aria-checked="true"] .sidebar-auto-show-switch {
+.sidebar-hover-toggle[aria-checked="true"] .sidebar-hover-switch {
   border-color: rgba(15, 23, 42, 0.68);
   background: rgba(15, 23, 42, 0.82);
 }
-.sidebar-auto-show-toggle[aria-checked="true"] .sidebar-auto-show-switch-thumb {
+.sidebar-hover-toggle[aria-checked="true"] .sidebar-hover-switch-thumb {
   background: rgba(248, 250, 252, 0.96);
   transform: translateX(14px);
 }
-body.dark .sidebar-auto-show-switch {
+body.dark .sidebar-hover-switch {
   border-color: rgba(148, 163, 184, 0.32);
   background: rgba(148, 163, 184, 0.18);
 }
-body.dark .sidebar-auto-show-switch-thumb {
+body.dark .sidebar-hover-switch-thumb {
   background: rgba(203, 213, 225, 0.76);
 }
-body.dark .sidebar-auto-show-toggle[aria-checked="true"] .sidebar-auto-show-switch {
+body.dark .sidebar-hover-toggle[aria-checked="true"] .sidebar-hover-switch {
   border-color: rgba(226, 232, 240, 0.62);
   background: rgba(226, 232, 240, 0.72);
 }
-body.dark .sidebar-auto-show-toggle[aria-checked="true"] .sidebar-auto-show-switch-thumb {
+body.dark .sidebar-hover-toggle[aria-checked="true"] .sidebar-hover-switch-thumb {
   background: rgba(15, 23, 42, 0.9);
 }
 @media (prefers-reduced-motion: reduce) {
-  .sidebar-auto-show-switch,
-  .sidebar-auto-show-switch-thumb {
+  .sidebar-hover-switch,
+  .sidebar-hover-switch-thumb {
     transition: none;
   }
 }
@@ -8406,12 +8406,12 @@ body.dark .pinokio-custom-terminal-header {
           <%- include('./partials/fs_status') %>
         <% } %>
         <% if (type === 'run') { %>
-        <div class="sidebar-auto-show-preference">
-          <button type="button" class="btn header-item sidebar-auto-show-toggle" role="switch" aria-checked="true" data-app-sidebar-auto-show data-tippy-content="Show automatically when the Run view has no content">
+        <div class="sidebar-hover-preference">
+          <button type="button" class="btn header-item sidebar-hover-toggle" role="switch" aria-checked="true" data-app-sidebar-show-on-hover data-tippy-content="Show the sidebar when hovering over the left edge">
             <div class="tab">
               <i class="fa-solid fa-eye menu-action-leading-icon" aria-hidden="true"></i>
-              <div class="display">Auto-show sidebar</div>
-              <span class="sidebar-auto-show-switch" aria-hidden="true"><span class="sidebar-auto-show-switch-thumb"></span></span>
+              <div class="display">Show sidebar on hover</div>
+              <span class="sidebar-hover-switch" aria-hidden="true"><span class="sidebar-hover-switch-thumb"></span></span>
             </div>
           </button>
         </div>
@@ -16568,7 +16568,7 @@ const rerenderMenuSection = (container, html) => {
   const aside = document.getElementById("app-sidebar")
   const toggle = document.getElementById("sidebar-toggle")
   const peekTrigger = document.querySelector("[data-app-sidebar-peek-trigger]")
-  const autoShowToggle = document.querySelector("[data-app-sidebar-auto-show]")
+  const showOnHoverToggle = document.querySelector("[data-app-sidebar-show-on-hover]")
   if (!appcanvas || !aside || !toggle) {
     if (toggle) {
       toggle.classList.add("hidden")
@@ -16580,15 +16580,20 @@ const rerenderMenuSection = (container, html) => {
   const storageKey = workspaceName
     ? `pinokio.sidebar-collapsed:${workspaceName}`
     : `pinokio.sidebar-collapsed:${location.pathname}`
-  const autoShowStorageKey = "pinokio.sidebar-auto-show"
-  let autoShowEnabled = true
+  const showOnHoverStorageKey = "pinokio.sidebar-show-on-hover"
+  const legacyAutoShowStorageKey = "pinokio.sidebar-auto-show"
+  let showOnHoverEnabled = true
   try {
-    autoShowEnabled = window.localStorage.getItem(autoShowStorageKey) !== "0"
+    const storedShowOnHover = window.localStorage.getItem(showOnHoverStorageKey)
+    const storedPreference = storedShowOnHover === null
+      ? window.localStorage.getItem(legacyAutoShowStorageKey)
+      : storedShowOnHover
+    showOnHoverEnabled = storedPreference !== "0"
   } catch (_) {}
 
-  const syncAutoShowToggle = () => {
-    if (!autoShowToggle) return
-    autoShowToggle.setAttribute("aria-checked", autoShowEnabled ? "true" : "false")
+  const syncShowOnHoverToggle = () => {
+    if (!showOnHoverToggle) return
+    showOnHoverToggle.setAttribute("aria-checked", showOnHoverEnabled ? "true" : "false")
   }
 
   const updateToggle = (collapsed) => {
@@ -16605,20 +16610,10 @@ const rerenderMenuSection = (container, html) => {
   }
 
   const desktopPeekMq = window.matchMedia("(min-width: 769px) and (hover: hover) and (pointer: fine)")
-  const shouldAutoShowOnEmptyRunView = <%- JSON.stringify(type === "run") %>
   let peekCloseTimer = 0
 
   const isCollapsed = () => appcanvas.classList.contains("sidebar-collapsed")
   const isPeeking = () => appcanvas.classList.contains("sidebar-peeking")
-  const hasVisibleBrowserSurface = () => {
-    const browserview = document.querySelector("main.browserview")
-    if (!browserview) return false
-    if (browserview.querySelector("iframe:not(.hidden)")) return true
-    const networkStatus = document.getElementById("browserview-network-status")
-    if (networkStatus && !networkStatus.hidden) return true
-    const launchStatus = document.querySelector("[data-launch-requirements-status]")
-    return Boolean(launchStatus && !launchStatus.hidden)
-  }
   const syncSidebarVisibility = () => {
     const peeking = isPeeking()
     aside.setAttribute("aria-hidden", isCollapsed() && !peeking ? "true" : "false")
@@ -16633,16 +16628,13 @@ const rerenderMenuSection = (container, html) => {
     appcanvas.classList.toggle("sidebar-peeking", next)
     syncSidebarVisibility()
   }
-  const setAutoShowEnabled = (enabled, options = {}) => {
-    autoShowEnabled = !!enabled
-    syncAutoShowToggle()
+  const setShowOnHoverEnabled = (enabled, options = {}) => {
+    showOnHoverEnabled = !!enabled
+    syncShowOnHoverToggle()
     if (options.persist !== false) {
       try {
-        window.localStorage.setItem(autoShowStorageKey, autoShowEnabled ? "1" : "0")
+        window.localStorage.setItem(showOnHoverStorageKey, showOnHoverEnabled ? "1" : "0")
       } catch (_) {}
-    }
-    if (!autoShowEnabled) {
-      setPeeking(false)
     }
   }
   const shouldKeepPeekOpen = () => {
@@ -16685,14 +16677,9 @@ const rerenderMenuSection = (container, html) => {
     initialCollapsed = window.localStorage.getItem(storageKey) === "1"
   } catch (_) {}
   setCollapsed(initialCollapsed, { persist: false })
-  syncAutoShowToggle()
+  syncShowOnHoverToggle()
   requestAnimationFrame(() => {
     appcanvas.classList.add("sidebar-motion-ready")
-    requestAnimationFrame(() => {
-      if (autoShowEnabled && shouldAutoShowOnEmptyRunView && initialCollapsed && !hasVisibleBrowserSurface()) {
-        setPeeking(true)
-      }
-    })
   })
 
   toggle.addEventListener("click", (event) => {
@@ -16700,16 +16687,18 @@ const rerenderMenuSection = (container, html) => {
     setCollapsed(!appcanvas.classList.contains("sidebar-collapsed"))
   })
 
-  if (autoShowToggle) {
-    autoShowToggle.addEventListener("click", (event) => {
+  if (showOnHoverToggle) {
+    showOnHoverToggle.addEventListener("click", (event) => {
       event.preventDefault()
       event.stopPropagation()
-      setAutoShowEnabled(!autoShowEnabled)
+      setShowOnHoverEnabled(!showOnHoverEnabled)
     })
   }
 
   if (peekTrigger) {
-    peekTrigger.addEventListener("pointerenter", () => setPeeking(true))
+    peekTrigger.addEventListener("pointerenter", () => {
+      if (showOnHoverEnabled) setPeeking(true)
+    })
     peekTrigger.addEventListener("focus", () => setPeeking(true))
     peekTrigger.addEventListener("click", () => setPeeking(true))
     peekTrigger.addEventListener("pointerleave", closePeekSoon)
@@ -16761,10 +16750,10 @@ const rerenderMenuSection = (container, html) => {
   window.PinokioSidebar = {
     setCollapsed,
     setPeeking,
-    setAutoShowEnabled,
+    setShowOnHoverEnabled,
     isCollapsed,
     isPeeking,
-    isAutoShowEnabled: () => autoShowEnabled
+    isShowOnHoverEnabled: () => showOnHoverEnabled
   }
 })()
 </script>
