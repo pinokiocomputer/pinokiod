@@ -237,6 +237,34 @@ test("resolveActionSteps links system plugin setup prompts to plugin detail", as
   assert.equal(steps[0].params.target, "_parent")
 })
 
+test("process uses kernel bin as a bundled plugin's implicit cwd", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "pinokio-plugin-cwd-"))
+  try {
+    const virtualSystemRoot = path.join(root, "app.asar", "node_modules", "pinokiod", "system")
+    const virtualPluginDir = path.join(virtualSystemRoot, "plugin", "demo")
+
+    const kernel = createKernel()
+    kernel.homedir = path.join(root, "pinokio")
+    kernel.path = (...parts) => path.join(kernel.homedir, ...parts)
+    kernel.shell = { init: async () => {} }
+    kernel.systemPath = (...parts) => path.join(virtualSystemRoot, ...parts)
+    const api = new Api(kernel)
+    const request = { uri: path.join(virtualPluginDir, "pinokio.js") }
+    api.logSessions = null
+    api.resolveScript = async () => ({
+      cwd: virtualPluginDir,
+      script: { run: [{ method: "shell.run", params: { message: "install" } }] },
+    })
+    api.queue = () => {}
+
+    await api.process(request, () => {})
+
+    assert.equal(request.cwd, kernel.path("bin"))
+  } finally {
+    await fs.rm(root, { recursive: true, force: true })
+  }
+})
+
 test("resolveActionSteps runs plugin action directly when installed check passes", async () => {
   const api = new Api(createKernel())
   const request = { id: "plugin-run-installed", path: "/pinokio/plugin/demo/pinokio.js" }

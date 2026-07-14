@@ -1887,6 +1887,9 @@ class Api {
         }
       } else {
         let { cwd, script } = await this.resolveScript(request.path)
+        if (!request.cwd && this.isPathInsideRoot(cwd, PluginSources.systemPluginRoot(this.kernel))) {
+          request.cwd = this.kernel.path("bin")
+        }
 
         if (!script) {
           this.ondata({
