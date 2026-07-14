@@ -208,7 +208,7 @@ module.exports = {
     const systemPlugins = menu.filter((item) => item.source === "system")
     const localPlugins = menu.filter((item) => item.source === "local")
 
-    assert.strictEqual(systemPlugins.length, 10)
+    assert.strictEqual(systemPlugins.length, 12)
     assert.ok(systemPlugins.every((item) => item.system === true))
     assert.ok(systemPlugins.every((item) => item.href.startsWith("/pinokio/run/plugin/")))
     assert.ok(systemPlugins.every((item) => item.image.startsWith("/pinokio/asset/plugin/")))

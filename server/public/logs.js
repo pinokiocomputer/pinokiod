@@ -590,7 +590,17 @@
         return `${detailUrl}${separator}next=install`
       }
     }
-    redirectToPluginInstallIfNeeded(tool) {
+    async redirectToPluginInstallIfNeeded(tool) {
+      if (tool && tool.hasInstall === true && tool.hasInstalledCheck === true && typeof tool.installed !== 'boolean') {
+        const pluginPath = typeof tool.pluginPath === 'string' ? tool.pluginPath.trim() : ''
+        if (pluginPath) {
+          try {
+            const response = await fetch(`/api/plugin/install-state?path=${encodeURIComponent(pluginPath)}`)
+            const state = response.ok ? await response.json() : null
+            tool.installed = state && typeof state.installed === 'boolean' ? state.installed : null
+          } catch (_) {}
+        }
+      }
       const href = this.pluginInstallHref(tool)
       if (!href) {
         return false
@@ -992,7 +1002,7 @@
           return
         }
         error.textContent = ''
-        if (this.redirectToPluginInstallIfNeeded(tool)) {
+        if (await this.redirectToPluginInstallIfNeeded(tool)) {
           close()
           return
         }

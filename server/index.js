@@ -7632,7 +7632,7 @@ class Server {
       const category = classifyPluginMenuItem(pluginItem)
       const title = pluginItem?.title || pluginItem?.text || pluginItem?.name || "Plugin"
       const hasInstalledCheck = PluginSources.isInstalledCheck(pluginItem?.installed)
-      const installed = hasInstalledCheck ? await evaluatePluginInstalled(pluginItem) : null
+      const installed = null
       return {
         index,
         title,
@@ -8261,6 +8261,11 @@ class Server {
       if (!plugin) {
         res.status(404).send("Plugin not found.")
         return
+      }
+      if (plugin.hasInstalledCheck) {
+        const validation = await contentValidation.validatePluginByPath(plugin.pluginPath)
+        const config = validation.valid && validation.context ? validation.context.config : null
+        plugin.installed = config ? await evaluatePluginInstalled(config) : null
       }
       const [apps, shareState, sidebarContext] = await Promise.all([
         collectPluginApps(),
