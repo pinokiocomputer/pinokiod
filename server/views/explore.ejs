@@ -177,9 +177,9 @@ body.dark .explore-url {
 <%- include('partials/home_server_popover_assets') %>
 <main>
 <% if (theme === "dark") { %>
-  <iframe name="<%=schema%>" src="<%=discover_dark%>" <%=agent === "electron" ? "no-referrer" : ""%> allow="fullscreen *;" allowfullscreen></iframe>
+  <iframe name="pinokio-explore" src="<%=discover_dark%>" <%=agent === "electron" ? "no-referrer" : ""%> allow="fullscreen *;" allowfullscreen></iframe>
 <% } else { %>
-  <iframe name="<%=schema%>" src="<%=discover_light%>" <%=agent === "electron" ? "no-referrer" : ""%> allow="fullscreen *;" allowfullscreen></iframe>
+  <iframe name="pinokio-explore" src="<%=discover_light%>" <%=agent === "electron" ? "no-referrer" : ""%> allow="fullscreen *;" allowfullscreen></iframe>
 <% } %>
 <%- include('partials/main_sidebar', { selected: 'explore' }) %>
 </main>

@@ -3013,7 +3013,19 @@ if (typeof window !== 'undefined' && !window.__pinokioNavigateListenerInstalled)
         return;
       }
     }
-    const frame = document.activeElement;
+    // Only the registry iframe rendered by the Explore page uses this stable name.
+    const exploreFrame = document.querySelector('iframe[name="pinokio-explore"]');
+    // Trust the message only when it comes from that exact iframe and its configured origin.
+    const fromExplore = Boolean(
+      exploreFrame &&
+      event.source === exploreFrame.contentWindow &&
+      event.origin === new URL(exploreFrame.src).origin
+    );
+    let frame = document.activeElement;
+    // Mobile Safari can leave the parent body focused after a tap inside the registry iframe.
+    const exploreFallback = (!frame || frame.tagName !== 'IFRAME') && fromExplore;
+    if (exploreFallback) frame = exploreFrame;
+    // Preserve the existing generic behavior when there is no identifiable sending iframe.
     if (!frame || frame.tagName !== 'IFRAME') {
       try {
         console.warn('[pinokio:navigate] no active iframe');
@@ -3029,6 +3041,31 @@ if (typeof window !== 'undefined' && !window.__pinokioNavigateListenerInstalled)
       } catch (_) {}
       return;
     }
+    // Only translate the two local Pinokio actions emitted by the registry.
+    const localInstall =
+      target.origin === 'http://localhost:42000' &&
+      (
+        // A normal launcher install must include the repository URI.
+        (target.pathname === '/pinokio/download' && Boolean(target.searchParams.get('uri'))) ||
+        (
+          // A snapshot restore must include its registry and a canonical SHA-256 hash.
+          target.pathname === '/checkpoints' &&
+          Boolean(target.searchParams.get('registry')) &&
+          /^(?:sha256:)?[0-9a-f]{64}$/i.test(target.searchParams.get('hash') || '')
+        )
+      );
+    // Handle trusted Explore installs here so Pinokio replaces the parent page, not the iframe.
+    if (fromExplore && localInstall) {
+      // LAN/Home Server clients must use the Pinokio origin they can actually reach.
+      if (target.origin !== window.location.origin) {
+        target = new URL(`${target.pathname}${target.search}${target.hash}`, window.location.origin);
+      }
+      window.location.href = target.toString();
+      return;
+    }
+    // If focus was recovered through the Explore fallback, reject every non-allowlisted action.
+    if (exploreFallback) return;
+    // Keep the existing generic iframe navigation restricted to the current Pinokio origin.
     if (target.origin !== window.location.origin) {
       try {
         console.warn('[pinokio:navigate] blocked origin', target.origin);
