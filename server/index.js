@@ -16155,6 +16155,54 @@ class Server {
       let current_peer_info = await this.kernel.peer.current_host()
       res.json(current_peer_info)
     }))
+    // Local-first fallback catalog for the Explore page. The primary catalog is
+    // the remote site rendered in an iframe; when that fails to load (offline,
+    // DNS, slow network) the page calls this endpoint instead. Results come
+    // from the GitHub topic search and are cached on disk so the fallback also
+    // works offline after the first successful fetch.
+    this.app.get("/pinokio/discover", ex(async (req, res) => {
+      const cache_ttl = 1000 * 60 * 60 * 24
+      const cache_path = this.kernel.homedir ? path.resolve(this.kernel.homedir, "cache", "discover_catalog.json") : null
+      let cached = null
+      if (cache_path) {
+        try {
+          cached = JSON.parse(await fs.promises.readFile(cache_path, "utf8"))
+        } catch (e) { }
+      }
+      if (cached && cached.fetched_at && Date.now() - cached.fetched_at < cache_ttl) {
+        res.json({ source: "cache", items: cached.items })
+        return
+      }
+      try {
+        let response = await axios.get("https://api.github.com/search/repositories", {
+          params: { q: "topic:pinokio", sort: "stars", order: "desc", per_page: 50 },
+          headers: { "Accept": "application/vnd.github+json" },
+          timeout: 8000
+        })
+        let items = (response.data.items || []).map((repo) => {
+          return {
+            name: repo.name,
+            full_name: repo.full_name,
+            description: repo.description,
+            html_url: repo.html_url,
+            stars: repo.stargazers_count,
+            updated_at: repo.updated_at,
+            owner_avatar: repo.owner ? repo.owner.avatar_url : null
+          }
+        })
+        if (cache_path) {
+          await fs.promises.mkdir(path.dirname(cache_path), { recursive: true }).catch((e) => { })
+          await fs.promises.writeFile(cache_path, JSON.stringify({ fetched_at: Date.now(), items })).catch((e) => { })
+        }
+        res.json({ source: "live", items })
+      } catch (e) {
+        if (cached && cached.items) {
+          res.json({ source: "cache", items: cached.items })
+        } else {
+          res.json({ source: "none", items: [], error: e.message })
+        }
+      }
+    }))
     this.app.get("/pinokio/memory", ex((req, res) => {
       let filepath = req.query.filepath
       let mem = this.getMemory(filepath)
