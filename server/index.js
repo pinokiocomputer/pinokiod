@@ -3606,7 +3606,6 @@ class Server {
 
       let error
       let items
-      let readme
 //      if (pathComponents.length === 0) {
 //        let files = await fs.promises.readdir(filepath, { withFileTypes: true })
 //        items = files
@@ -3629,18 +3628,8 @@ class Server {
           }
         }
 
-        // look for README.md
-
         let config
         for(let file of f.files) {
-          if (file.name.toLowerCase() === "readme.md") {
-            let p = path.resolve(filepath, file.name)
-            let md = await fs.promises.readFile(p, "utf8")
-            readme = marked.parse(md, {
-              baseUrl: req._parsedUrl.pathname.replace(/^\/_api/, "/raw/") + "/"
-              //baseUrl: req.originalUrl + "/"
-            })
-          }
           if (file.name === "pinokio.js") {
             let p = path.resolve(filepath, file.name)
             config  = (await this.kernel.loader.load(p)).resolved
@@ -4297,7 +4286,6 @@ class Server {
           home_sort: homeSortMode,
           running,
           notRunning,
-          readme,
           filepath,
           mode: null,
           kernel: this.kernel,
@@ -4329,7 +4317,6 @@ class Server {
           ishome: meta,
           running,
           notRunning,
-          readme,
           filepath,
           mode: null,
           kernel: this.kernel,

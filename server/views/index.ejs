@@ -8,7 +8,6 @@
 <link href="/css/solid.min.css" rel="stylesheet">
 <link href="/css/regular.min.css" rel="stylesheet">
 <link href="/css/brands.min.css" rel="stylesheet">
-<link href="/markdown.css" rel="stylesheet"/>
 <link href="/noty.css" rel="stylesheet"/>
 <link href="/filepond.min.css" rel="stylesheet" />
 <link href="/filepond-plugin-image-preview.min.css" rel="stylesheet" />
@@ -1999,11 +1998,6 @@ body.dark aside .current.selected {
       <div class='description'><%=item.description%></div>
     </a>
   <% }) %>
-<% } %>
-<% if (readme) { %>
-<div class='readme markdown-body'>
-  <div class='content'><%-readme%></div>
-</div>
 <% } %>
 </div>
 <%- include('partials/main_sidebar', { selected: 'home' }) %>

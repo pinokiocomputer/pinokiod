@@ -2637,13 +2637,6 @@ pre {
 pre:empty {
   display: none;
 }
-body.dark .readme {
-  background: none;
-  color: var(--dark-color);
-}
-.readme .content {
-  padding: 0 20px 20px;
-}
 body.dark .empty {
   background: var(--dark-bg);
 }
@@ -2652,21 +2645,6 @@ body.dark .empty {
   padding: 40px;
   opacity: 0.5;
   background: var(--light-bg);
-}
-.readme {
-  max-width: var(--content-width);
-  box-sizing: border-box;
-  margin: 0 auto;
-}
-body.dark .readme a {
-  color: var(--dark-link-color);
-}
-.readme a {
-  color: var(--light-link-color);
-  text-decoration: none;
-}
-.readme ol, .readme ul {
-  padding-inline-start: 20px;
 }
 .runnables .row {
   display: flex;
