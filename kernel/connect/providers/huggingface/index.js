@@ -3,6 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const fetch = require('cross-fetch')
 const Environment = require('../../../environment')
+const { managedPythonEnv } = require('../../../python_env')
 
 const stripAnsi = (value) => String(value || "").replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, "")
 
@@ -56,6 +57,7 @@ class Huggingface {
     if (context.env && typeof context.env === "object") {
       env = Object.assign(env, context.env)
     }
+    env = managedPythonEnv(env)
     if (!env.HF_TOKEN_PATH) {
       env.HF_TOKEN_PATH = this.defaultTokenPath()
     } else if (!path.isAbsolute(env.HF_TOKEN_PATH)) {

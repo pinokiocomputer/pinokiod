@@ -79,6 +79,41 @@ test('Hugging Face connect preserves configured HF paths and ignores ambient HF_
   }
 })
 
+test('Hugging Face connect isolates its managed Python from external packages', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-hf-connect-python-env-'))
+  const childEnvPath = path.join(root, 'child-env.json')
+  await fs.writeFile(
+    path.join(root, 'ENVIRONMENT'),
+    'PYTHONNOUSERSITE=0\nPYTHONPATH=system-packages\n'
+  )
+  try {
+    const provider = new HuggingfaceConnect(createKernel(root), {})
+    provider.hfPath = () => process.execPath
+    const { env } = await provider.runHf([
+      '-e',
+      'require("node:fs").writeFileSync(process.argv[1], JSON.stringify({ pythonNoUserSite: process.env.PYTHONNOUSERSITE, pythonPath: process.env.PYTHONPATH || null }))',
+      childEnvPath
+    ], {}, {
+      env: {
+        PythonNoUserSite: '0',
+        PythonPath: 'command-packages'
+      }
+    })
+    const childEnv = JSON.parse(await fs.readFile(childEnvPath, 'utf8'))
+
+    assert.equal(env.PYTHONNOUSERSITE, '1')
+    assert.equal(env.PYTHONPATH, undefined)
+    assert.equal(env.PythonNoUserSite, undefined)
+    assert.equal(env.PythonPath, undefined)
+    assert.deepEqual(childEnv, {
+      pythonNoUserSite: '1',
+      pythonPath: null
+    })
+  } finally {
+    await fs.rm(root, { recursive: true, force: true })
+  }
+})
+
 test('Hugging Face connect uses the app token path for its managed CLI', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-hf-connect-app-env-'))
   const appDir = path.join(root, 'api', 'demo')

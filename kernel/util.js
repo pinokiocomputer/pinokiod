@@ -13,6 +13,7 @@ const child_process = require('node:child_process');
 const {auto: normalizeEOL} = require("eol");
 const {EOL} = require("os");
 const { randomUUID } = require('crypto');
+const { managedPythonEnv } = require('./python_env')
 const fsp = fs.promises;
 const breakPattern = /\n/g;
 const breakReplacement = "\\n";
@@ -203,7 +204,9 @@ const filepicker = async(req, ondata, kernel) => {
     } else {
       python = kernel.path("bin/miniforge/bin/python")
     }
-    const proc = spawn(python, [picker_path])
+    const proc = spawn(python, [picker_path], {
+      env: managedPythonEnv(),
+    })
 
     let output = "";
     proc.stdout.on("data", (chunk) => output += chunk);

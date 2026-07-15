@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict')
+const childProcess = require('node:child_process')
 const fsModule = require('node:fs')
 const fs = require('node:fs/promises')
 const os = require('node:os')
@@ -75,6 +76,14 @@ async function createLegacyMiniconda(root) {
   return createCondaRoot(root, 'miniconda')
 }
 
+function restoreEnv(name, value) {
+  if (typeof value === 'undefined') {
+    delete process.env[name]
+  } else {
+    process.env[name] = value
+  }
+}
+
 function createConda(kernel) {
   const conda = new Conda()
   conda.kernel = kernel
@@ -93,6 +102,58 @@ function createBin(root, platform = 'win32') {
   kernel.bin = bin
   return bin
 }
+
+test('managed Conda subprocesses ignore external Python packages', async (t) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-python-env-'))
+  const platform = process.platform === 'win32' ? 'win32' : process.platform
+  const miniforge = path.join(root, 'bin', 'miniforge')
+  const versionCapture = path.join(root, 'version-env.json')
+  const listCapture = path.join(root, 'list-env.json')
+  const oldCapturePath = process.env.PINOKIO_TEST_ENV_CAPTURE
+  const oldNoUserSite = process.env.PYTHONNOUSERSITE
+  const oldPythonPath = process.env.PYTHONPATH
+
+  await writeFakeManagedConda(root, platform)
+  const condaMetaPath = require.resolve('../kernel/bin/conda-meta')
+  const realExecFile = childProcess.execFile.bind(childProcess)
+  delete require.cache[condaMetaPath]
+  t.mock.method(childProcess, 'execFile', (_binary, _args, options, done) => {
+    return realExecFile(process.execPath, [
+      '-e',
+      `require('node:fs').writeFileSync(process.env.PINOKIO_TEST_ENV_CAPTURE, JSON.stringify({
+        pythonNoUserSite: process.env.PYTHONNOUSERSITE,
+        pythonPath: process.env.PYTHONPATH || null
+      }))`,
+    ], options, done)
+  })
+  t.after(() => {
+    delete require.cache[condaMetaPath]
+  })
+  const { buildCondaListFromMeta, managedCondaRuns } = require('../kernel/bin/conda-meta')
+
+  process.env.PYTHONNOUSERSITE = '0'
+  process.env.PYTHONPATH = 'external-packages'
+  try {
+    process.env.PINOKIO_TEST_ENV_CAPTURE = versionCapture
+    assert.equal(await managedCondaRuns(miniforge, platform), true)
+    assert.deepEqual(JSON.parse(await fs.readFile(versionCapture, 'utf8')), {
+      pythonNoUserSite: '1',
+      pythonPath: null,
+    })
+
+    process.env.PINOKIO_TEST_ENV_CAPTURE = listCapture
+    await buildCondaListFromMeta(miniforge, true)
+    assert.deepEqual(JSON.parse(await fs.readFile(listCapture, 'utf8')), {
+      pythonNoUserSite: '1',
+      pythonPath: null,
+    })
+  } finally {
+    restoreEnv('PINOKIO_TEST_ENV_CAPTURE', oldCapturePath)
+    restoreEnv('PYTHONNOUSERSITE', oldNoUserSite)
+    restoreEnv('PYTHONPATH', oldPythonPath)
+    await fs.rm(root, { recursive: true, force: true })
+  }
+})
 
 test('Conda uses Miniforge assets and writes conda-forge-only config', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-conda-miniforge-config-'))

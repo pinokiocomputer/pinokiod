@@ -1,6 +1,7 @@
 const fs = require('fs')
 const path = require('path')
 const { execFile } = require('child_process')
+const { managedPythonEnv } = require('../python_env')
 
 async function buildCondaListFromMeta(minicondaPath, useCondaList) {
   if (!useCondaList) {
@@ -59,7 +60,10 @@ async function runCondaList(minicondaPath) {
     return { response: '', source: 'conda-list' }
   }
   return await new Promise((resolve) => {
-    execFile(condaBinary, ['list'], { windowsHide: true }, (err, stdout) => {
+    execFile(condaBinary, ['list'], {
+      env: managedPythonEnv(),
+      windowsHide: true,
+    }, (err, stdout) => {
       if (err) {
         resolve({ response: '', source: 'conda-list' })
       } else {
@@ -75,7 +79,11 @@ async function managedCondaRuns(minicondaPath, platform = process.platform) {
     return false
   }
   return await new Promise((resolve) => {
-    execFile(condaBinary, ['--version'], { windowsHide: true, timeout: 15000 }, (err) => {
+    execFile(condaBinary, ['--version'], {
+      env: managedPythonEnv(),
+      windowsHide: true,
+      timeout: 15000,
+    }, (err) => {
       resolve(!err)
     })
   })
