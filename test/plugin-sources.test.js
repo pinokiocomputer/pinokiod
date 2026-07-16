@@ -19,6 +19,14 @@ test("resolveLauncherPluginSelection returns app-dev plugin query paths", () => 
     "/plugin/codex-auto/pinokio.js"
   )
   assert.strictEqual(
+    PluginSources.resolveLauncherPluginSelection("grok"),
+    "/pinokio/run/plugin/grok/pinokio.js"
+  )
+  assert.strictEqual(
+    PluginSources.resolveLauncherPluginSelection("grok-build"),
+    "/pinokio/run/plugin/grok/pinokio.js"
+  )
+  assert.strictEqual(
     PluginSources.resolveLauncherPluginSelection("plugin/local-tool"),
     "/plugin/local-tool/pinokio.js"
   )
@@ -208,10 +216,20 @@ module.exports = {
     const systemPlugins = menu.filter((item) => item.source === "system")
     const localPlugins = menu.filter((item) => item.source === "local")
 
-    assert.strictEqual(systemPlugins.length, 12)
+    assert.strictEqual(systemPlugins.length, 14)
     assert.ok(systemPlugins.every((item) => item.system === true))
     assert.ok(systemPlugins.every((item) => item.href.startsWith("/pinokio/run/plugin/")))
     assert.ok(systemPlugins.every((item) => item.image.startsWith("/pinokio/asset/plugin/")))
+    assert.ok(systemPlugins.some((item) => (
+      item.title === "Grok Build" &&
+      item.href === "/pinokio/run/plugin/grok/pinokio.js" &&
+      item.image === "/pinokio/asset/plugin/grok/grok.png"
+    )))
+    assert.ok(systemPlugins.some((item) => (
+      item.title === "Grok Build Auto" &&
+      item.href === "/pinokio/run/plugin/grok-auto/pinokio.js" &&
+      item.image === "/pinokio/asset/plugin/grok-auto/grok.png"
+    )))
 
     assert.deepStrictEqual(localPlugins.map((item) => item.title), ["Local Tool"])
     assert.strictEqual(localPlugins[0].href, "/run/plugin/local-tool/pinokio.js")

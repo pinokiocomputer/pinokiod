@@ -16,6 +16,8 @@ const FUNCTION_KEYS = new Set([...ACTION_KEYS, ...STATUS_KEYS])
 const BUILTIN_TOOL_ALIASES = {
   claude: "pinokio/run/plugin/claude",
   codex: "pinokio/run/plugin/codex",
+  grok: "pinokio/run/plugin/grok",
+  "grok-build": "pinokio/run/plugin/grok",
   antigravity: "pinokio/run/plugin/antigravity-cli",
   "antigravity-cli": "pinokio/run/plugin/antigravity-cli",
   "code/claude": "pinokio/run/plugin/claude",
