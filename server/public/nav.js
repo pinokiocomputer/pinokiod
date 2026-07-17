@@ -1,3 +1,4 @@
+const headerCollapseOnly = document.currentScript?.hasAttribute("data-header-collapse-only");
 document.addEventListener("DOMContentLoaded", () => {
   // Logging disabled for production
   const log = () => {};
@@ -5,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const newWindowButton = document.querySelector("#new-window");
   const agent = document.body.getAttribute("data-agent");
-  if (newWindowButton) {
+  if (newWindowButton && !headerCollapseOnly) {
     newWindowButton.addEventListener("click", (event) => {
       if (agent === "electron") {
         window.open("/", "_blank", "pinokio");
@@ -14,6 +15,85 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+
+  (() => {
+    const header = document.querySelector("body > header.navheader");
+    if (!header) return;
+
+    const body = document.body;
+    const row = header.querySelector("h1") || header;
+    const collapseMinWidth = (Number(window.PinokioAppMobileBreakpoint) || 768) + 1;
+    const collapseMedia = matchMedia(`(min-width: ${collapseMinWidth}px) and (hover: hover) and (pointer: fine)`);
+    const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "btn2 header-collapse-toggle";
+    toggle.id = "header-collapse-toggle";
+    toggle.setAttribute("aria-label", "Hide toolbar");
+    toggle.setAttribute("title", "Hide toolbar");
+    toggle.innerHTML = '<div><i class="fa-solid fa-compress" aria-hidden="true"></i></div>';
+    row.insertBefore(toggle, row.querySelector("#new-window, #close-window"));
+
+    const edge = document.createElement("button");
+    edge.type = "button";
+    edge.className = "header-collapse-edge";
+    edge.setAttribute("aria-label", "Show toolbar");
+    edge.setAttribute("title", "Show toolbar");
+    edge.innerHTML = '<span aria-hidden="true"></span>';
+    body.appendChild(edge);
+
+    let collapseTimer;
+    let cueTimer;
+    const clearCue = () => {
+      clearTimeout(collapseTimer);
+      clearTimeout(cueTimer);
+      body.classList.remove("header-collapse-cue");
+    };
+    const setCollapsed = (collapsed) => {
+      body.classList.toggle("header-collapse-moving", collapseMedia.matches && !reducedMotion.matches);
+      body.classList.toggle("header-collapsed", collapsed);
+      header.inert = collapsed;
+      header.setAttribute("aria-hidden", collapsed ? "true" : "false");
+      document.dispatchEvent(new CustomEvent("pinokio:header-state", { detail: { collapsed, minimized: collapsed } }));
+    };
+    const finishMotion = (event) => {
+      if (event.target === header && event.propertyName === "grid-template-rows") {
+        body.classList.remove("header-collapse-moving");
+      }
+    };
+    header.addEventListener("transitionend", finishMotion);
+    header.addEventListener("transitioncancel", finishMotion);
+
+    toggle.addEventListener("click", (event) => {
+      if (!collapseMedia.matches) return;
+      clearCue();
+      body.classList.add("header-collapse-cue");
+      const keyboard = event.detail === 0;
+      collapseTimer = setTimeout(() => {
+        setCollapsed(true);
+        if (keyboard) edge.focus({ preventScroll: true });
+        cueTimer = setTimeout(() => body.classList.remove("header-collapse-cue"), reducedMotion.matches ? 360 : 520);
+      }, reducedMotion.matches ? 0 : 140);
+    });
+    edge.addEventListener("click", (event) => {
+      clearCue();
+      setCollapsed(false);
+      if (event.detail === 0) toggle.focus({ preventScroll: true });
+    });
+    const syncMedia = () => {
+      body.classList.toggle("header-collapse-enabled", collapseMedia.matches);
+      if (!collapseMedia.matches) {
+        clearCue();
+        if (body.classList.contains("header-collapsed")) setCollapsed(false);
+        body.classList.remove("header-collapse-moving");
+      }
+    };
+    collapseMedia.addEventListener("change", syncMedia);
+    syncMedia();
+  })();
+
+  if (headerCollapseOnly) return;
 
   const header = document.querySelector("header.navheader");
   const minimizeButton = document.querySelector("#minimize-header");

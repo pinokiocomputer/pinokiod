@@ -2998,6 +2998,10 @@ const setHomeActionsDrawerOffset = () => {
   const top = header ? Math.max(0, Math.round(header.getBoundingClientRect().bottom)) : 0
   document.body.style.setProperty('--home-actions-drawer-top', `${top}px`)
 }
+const homeActionsDrawerHeader = document.querySelector('body.is-home > header.navheader')
+if (homeActionsDrawerHeader && typeof ResizeObserver === 'function') {
+  new ResizeObserver(setHomeActionsDrawerOffset).observe(homeActionsDrawerHeader)
+}
 const setHomeActionsTriggerExpanded = (dialog, expanded) => {
   if (!dialog || !dialog.id) {
     return
