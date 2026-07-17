@@ -4286,6 +4286,8 @@ class Server {
           home_sort: homeSortMode,
           running,
           notRunning,
+          // Keep legacy custom views compatible without loading or rendering README files.
+          readme: undefined,
           filepath,
           mode: null,
           kernel: this.kernel,
@@ -4317,6 +4319,8 @@ class Server {
           ishome: meta,
           running,
           notRunning,
+          // Keep legacy custom views compatible without loading or rendering README files.
+          readme: undefined,
           filepath,
           mode: null,
           kernel: this.kernel,
