@@ -1284,6 +1284,7 @@ class Shell {
     }
 
     this.env.UV_PYTHON_PREFERENCE="only-managed"
+    this.env.UV_PYTHON_DOWNLOADS="automatic"
 
     // 2. venv
 

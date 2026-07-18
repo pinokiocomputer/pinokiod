@@ -146,6 +146,34 @@ test('Shell.init_env preserves multiline Pinokio argv env values only', async ()
   assert.equal(shell.env.OTHER_MULTILINE, 'line one line two')
 })
 
+test('Shell.activate keeps managed Python downloads automatic on every platform', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-shell-uv-python-'))
+  const kernel = createKernel(root)
+  kernel.bin = {
+    activationCommands: () => [],
+    path: (...parts) => path.join(root, 'bin', ...parts)
+  }
+
+  for (const [platform, shellName] of [
+    ['linux', 'bash'],
+    ['darwin', 'bash'],
+    ['win32', 'cmd.exe']
+  ]) {
+    const shell = createShell(kernel)
+    shell.platform = platform
+    shell.shell = shellName
+    shell.env = { UV_PYTHON_DOWNLOADS: 'manual' }
+
+    await shell.activate({
+      path: root,
+      message: ['true']
+    })
+
+    assert.equal(shell.env.UV_PYTHON_PREFERENCE, 'only-managed')
+    assert.equal(shell.env.UV_PYTHON_DOWNLOADS, 'automatic')
+  }
+})
+
 test('Shell.init_env disables Hugging Face hub update checks by default without overriding apps', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-shell-hf-env-'))
   await fs.mkdir(path.join(root, 'api'), { recursive: true })
