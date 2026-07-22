@@ -136,6 +136,97 @@ body.dark .explore-url {
     box-sizing: border-box;
   }
 }
+main {
+  position: relative;
+}
+.discover-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
+}
+.discover-status.hidden {
+  display: none;
+}
+.discover-status-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  font-size: 14px;
+}
+.discover-fallback {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  z-index: 2;
+  background: inherit;
+  padding: 14px;
+  box-sizing: border-box;
+}
+body.dark .discover-fallback {
+  background: #1a1a1a;
+  color: #eee;
+}
+body:not(.dark) .discover-fallback {
+  background: #fafafa;
+  color: #111;
+}
+.discover-fallback-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 10px;
+}
+.discover-fallback-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.discover-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid rgba(128,128,128,0.25);
+  border-radius: 10px;
+  padding: 12px;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.discover-card:hover {
+  box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+  transform: translateY(-1px);
+}
+.discover-card .card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.discover-card .card-title img {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+}
+.discover-card .card-desc {
+  font-size: 12.5px;
+  opacity: 0.75;
+  margin-bottom: 8px;
+  min-height: 30px;
+}
+.discover-card .card-meta {
+  font-size: 12px;
+  opacity: 0.6;
+  display: flex;
+  gap: 14px;
+}
 </style>
 <script src="/popper.min.js"></script>
 <script src="/tippy-bundle.umd.min.js"></script>
@@ -181,6 +272,22 @@ body.dark .explore-url {
 <% } else { %>
   <iframe name="pinokio-explore" src="<%=discover_light%>" <%=agent === "electron" ? "no-referrer" : ""%> allow="fullscreen *;" allowfullscreen></iframe>
 <% } %>
+<div id="discover-status" class="discover-status">
+  <div class="discover-status-inner">
+    <div class="discover-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+    <div>Loading the community catalog&hellip;</div>
+  </div>
+</div>
+<div id="discover-fallback" class="discover-fallback" hidden>
+  <div class="discover-fallback-header">
+    <div>
+      <b>Offline catalog</b>
+      <span id="discover-fallback-note"></span>
+    </div>
+    <button id="discover-retry" class="btn"><i class="fa-solid fa-rotate-right"></i> Retry online catalog</button>
+  </div>
+  <div id="discover-fallback-list" class="discover-fallback-list"></div>
+</div>
 <%- include('partials/main_sidebar', { selected: 'explore' }) %>
 </main>
 <link href="/xterm.min.css" rel="stylesheet" />
@@ -343,6 +450,95 @@ document.querySelector("form").addEventListener("submit", (e) => {
   })
 
   syncUrlField()
+
+  // ---------------------------------------------------------------------
+  // Never-blank Explore: show a loading indicator while the remote catalog
+  // iframe loads, and fall back to a locally-served catalog if it stalls.
+  // ---------------------------------------------------------------------
+  const statusEl = document.querySelector("#discover-status")
+  const fallbackEl = document.querySelector("#discover-fallback")
+  const fallbackList = document.querySelector("#discover-fallback-list")
+  const fallbackNote = document.querySelector("#discover-fallback-note")
+  const retryBtn = document.querySelector("#discover-retry")
+  const LOAD_TIMEOUT_MS = 8000
+  let frameLoaded = false
+  let loadTimer = null
+
+  const hideStatus = () => { if (statusEl) statusEl.classList.add("hidden") }
+
+  const escapeHtml = (s) => String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+
+  const renderFallback = (payload) => {
+    if (!fallbackEl || !fallbackList) return
+    const items = (payload && payload.items) || []
+    if (fallbackNote) {
+      if (payload && payload.source === "cache") {
+        fallbackNote.textContent = " — showing your last synced catalog"
+      } else if (payload && payload.source === "live") {
+        fallbackNote.textContent = " — live list (community site unreachable)"
+      } else {
+        fallbackNote.textContent = " — couldn't reach the internet. Check your connection and retry."
+      }
+    }
+    fallbackList.innerHTML = items.map((item) => {
+      const uri = encodeURIComponent(item.html_url)
+      return `<a class="discover-card" href="/pinokio/download?uri=${uri}">
+        <div class="card-title">${item.owner_avatar ? `<img src="${escapeHtml(item.owner_avatar)}" loading="lazy">` : ""}${escapeHtml(item.name)}</div>
+        <div class="card-desc">${escapeHtml(item.description || "")}</div>
+        <div class="card-meta"><span><i class="fa-solid fa-star"></i> ${Number(item.stars) || 0}</span><span>${escapeHtml((item.updated_at || "").slice(0, 10))}</span></div>
+      </a>`
+    }).join("")
+    fallbackEl.hidden = false
+  }
+
+  const showFallback = async () => {
+    hideStatus()
+    try {
+      const r = await fetch("/pinokio/discover")
+      const payload = await r.json()
+      renderFallback(payload)
+    } catch (e) {
+      renderFallback({ source: "none", items: [] })
+    }
+  }
+
+  const armLoadTimer = () => {
+    if (loadTimer !== null) clearTimeout(loadTimer)
+    loadTimer = window.setTimeout(() => {
+      if (!frameLoaded) showFallback()
+    }, LOAD_TIMEOUT_MS)
+  }
+
+  if (frame) {
+    frame.addEventListener("load", () => {
+      frameLoaded = true
+      hideStatus()
+      // if the remote catalog recovered while the fallback was up, leave the
+      // fallback visible (don't yank content out from under the user); the
+      // retry button will switch back instantly
+    })
+    if (!navigator.onLine) {
+      showFallback()
+    } else {
+      armLoadTimer()
+    }
+  } else {
+    showFallback()
+  }
+
+  if (retryBtn) {
+    retryBtn.addEventListener("click", () => {
+      if (fallbackEl) fallbackEl.hidden = true
+      if (statusEl) statusEl.classList.remove("hidden")
+      frameLoaded = false
+      try {
+        const src = frame.getAttribute("src")
+        frame.setAttribute("src", src)
+      } catch (e) {}
+      armLoadTimer()
+    })
+  }
 })()
 </script>
 </body>
