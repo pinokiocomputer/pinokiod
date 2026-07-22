@@ -291,7 +291,7 @@ class Shell {
     }
 
     setDefaultEnvValue(this.env, "HF_HUB_DISABLE_UPDATE_CHECK", "1")
-    setDefaultEnvValue(this.env, "HF_TOKEN_PATH", path.resolve(this.kernel.homedir, "cache", "HF_AUTH", "token"))
+    setDefaultEnvValue(this.env, "HF_TOKEN_PATH", this.kernel.envs?.HF_TOKEN_PATH || path.resolve(this.kernel.homedir, "cache", "HF_AUTH", "token"))
 
     if (this.platform === "win32") {
       const managedSslDir = path.resolve(this.kernel.homedir, "bin", "miniforge", "Library", "ssl")

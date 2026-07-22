@@ -32,10 +32,11 @@ class Huggingface {
     try {
       const stat = await fs.promises.lstat(tokenPath)
       if (stat.isDirectory()) {
-        await fs.promises.rm(tokenPath, { recursive: true, force: true })
+        await fs.promises.rmdir(tokenPath)
       }
     } catch (error) {
-      if (!error || error.code !== "ENOENT") {
+      if (error.code !== "ENOENT") {
+        error.tokenPath = tokenPath
         throw error
       }
     }
@@ -45,6 +46,7 @@ class Huggingface {
     let env
     if (context.parentPath) {
       env = await Environment.get2(context.parentPath, this.kernel)
+      if (env.HF_TOKEN_PATH === this.kernel.path("cache", "HF_AUTH", "anonymous")) env.HF_TOKEN_PATH = this.defaultTokenPath()
     } else {
       let systemEnv = {}
       try {
@@ -96,6 +98,7 @@ class Huggingface {
         maxBuffer: 1024 * 1024,
       }, (error, stdout, stderr) => {
         if (error) {
+          error.tokenPath = env.HF_TOKEN_PATH
           error.stdout = stdout
           error.stderr = stderr
           reject(error)
@@ -244,11 +247,17 @@ class Huggingface {
       return null
     }
   }
-  async connected(options = {}) {
+  async connected(options = {}, context = {}) {
     try {
-      await this.runHf(["auth", "whoami", "--format", "quiet"], options)
+      const result = await this.runHf(["auth", "whoami", "--format", "quiet"], options, context)
+      if (this.kernel.envs && result.env.HF_TOKEN_PATH === this.defaultTokenPath()) {
+        this.kernel.envs.HF_TOKEN_PATH = result.env.HF_TOKEN_PATH
+      }
       return true
-    } catch (_) {
+    } catch (error) {
+      if (this.kernel.envs && error.tokenPath === this.defaultTokenPath()) {
+        this.kernel.envs.HF_TOKEN_PATH = this.kernel.path("cache", "HF_AUTH", "anonymous")
+      }
       return false
     }
   }

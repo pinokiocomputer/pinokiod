@@ -240,7 +240,7 @@ test('Hugging Face connect leaves existing token and refresh files unchanged', a
   }
 })
 
-test('Hugging Face connect removes a non-empty token directory', async () => {
+test('Hugging Face connect preserves a non-empty token directory', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pinokio-hf-connect-invalid-dir-'))
   const authDir = path.join(root, 'cache', 'HF_AUTH')
   const tokenPath = path.join(authDir, 'token')
@@ -248,16 +248,12 @@ test('Hugging Face connect removes a non-empty token directory', async () => {
   await fs.writeFile(path.join(tokenPath, 'leftover.txt'), 'leftover')
   await fs.writeFile(path.join(authDir, 'stored_tokens'), 'refresh state')
   try {
-    const provider = new HuggingfaceConnect(createKernel(root), {})
-    await Promise.all([provider.authEnv(), provider.authEnv()])
-    provider.hfPath = () => process.execPath
-    const { env } = await provider.runHf([
-      '-e',
-      'require("node:fs").writeFileSync(process.env.HF_TOKEN_PATH, "hf_replacement_token")'
-    ])
-
-    assert.equal(env.HF_TOKEN_PATH, tokenPath)
-    assert.equal(await fs.readFile(tokenPath, 'utf8'), 'hf_replacement_token')
+    const kernel = createKernel(root)
+    kernel.envs = { HF_TOKEN_PATH: tokenPath }
+    const provider = new HuggingfaceConnect(kernel, {})
+    assert.equal(await provider.connected(), false)
+    assert.equal(kernel.envs.HF_TOKEN_PATH, path.join(authDir, 'anonymous'))
+    assert.equal(await fs.readFile(path.join(tokenPath, 'leftover.txt'), 'utf8'), 'leftover')
     assert.equal(await fs.readFile(path.join(authDir, 'stored_tokens'), 'utf8'), 'refresh state')
   } finally {
     await fs.rm(root, { recursive: true, force: true })

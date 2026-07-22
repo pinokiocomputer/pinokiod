@@ -41,7 +41,8 @@ test('hf.login shows a modal, waits for the user to open Hugging Face, then clos
           login,
           token_path: '/tmp/pinokio/hf-token'
         }
-      }
+      },
+      connected: async () => true
     },
     api: {
       async wait(key) {
@@ -161,7 +162,8 @@ test('hf.login returns success without opening anything when already logged in',
           access_token: 'hf_secret',
           token_path: '/tmp/pinokio/hf-token'
         }
-      }
+      },
+      connected: async () => true
     }
   }
 

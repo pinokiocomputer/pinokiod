@@ -47,6 +47,9 @@ class Shells {
   }
 */
   async init() {
+    const hfDisconnected = !this.kernel.envs?.HF_TOKEN_PATH &&
+      !(await this.kernel.connect.connected("huggingface", { timeout: 5000 }))
+
     // iterate through all the envs
     let sh = new Shell(this.kernel)
     let m
@@ -58,6 +61,9 @@ class Shells {
     await sh.init_env({
       env: this.kernel.bin.envs({}),
     })
+    if (hfDisconnected && sh.env.HF_TOKEN_PATH === this.kernel.path("cache", "HF_AUTH", "token")) {
+      sh.env.HF_TOKEN_PATH = this.kernel.path("cache", "HF_AUTH", "anonymous")
+    }
 
     await this.ensureBracketedPasteSupport(sh.shell)
     if (this.kernel.bracketedPasteSupport) {

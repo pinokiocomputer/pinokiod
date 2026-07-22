@@ -42,9 +42,9 @@ class Connect {
     let res = await this.clients[provider].keys(context)
     return res
   }
-  async connected(provider, options) {
+  async connected(provider, options, context) {
     if (this.clients[provider] && this.clients[provider].connected) {
-      return await this.clients[provider].connected(options)
+      return await this.clients[provider].connected(options, context)
     }
     return false
   }

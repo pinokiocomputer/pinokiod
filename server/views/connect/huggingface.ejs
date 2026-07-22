@@ -168,9 +168,9 @@
   <script>
     const LOGIN_URL = "/connect/huggingface/login"
     const LOGOUT_URL = "/connect/huggingface/logout"
-    const KEYS_URL = "/connect/huggingface/keys"
+    const STATUS_URL = "/connect/status/huggingface"
     const PROFILE_URL = "/connect/huggingface/profile"
-    const POLL_INTERVAL = 2000
+    const POLL_INTERVAL = 5000
     const POLL_TIMEOUT = 120000
 
     const badgeElement = document.getElementById("hf-badge")
@@ -261,9 +261,9 @@
       return res.json()
     }
 
-    async function readToken() {
-      const json = await postJSON(KEYS_URL)
-      return json && json.access_token && !json.error ? json.access_token : null
+    async function isConnected() {
+      const json = await fetch(STATUS_URL, { cache: "no-store" }).then((res) => res.json())
+      return Boolean(json && json.connected)
     }
 
     async function showConnected() {
@@ -326,8 +326,7 @@
     }
 
     async function pollLoginStatus() {
-      const token = await readToken()
-      if (token) {
+      if (await isConnected()) {
         await showConnected()
       }
     }
@@ -415,8 +414,7 @@
 
     window.addEventListener("load", async () => {
       try {
-        const token = await readToken()
-        if (token) {
+        if (await isConnected()) {
           await showConnected()
           return
         }

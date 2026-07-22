@@ -214,7 +214,7 @@ class HF {
 
     if (!force) {
       const existing = await connect.keys("huggingface", authContext)
-      if (existing && existing.access_token) {
+      if (existing && existing.access_token && await connect.connected("huggingface", { timeout: 5000 }, authContext)) {
         return {
           status: "success",
           already_logged_in: true,
@@ -273,7 +273,7 @@ class HF {
     const startedAt = Date.now()
     while (Date.now() - startedAt < timeout) {
       const keys = await connect.keys("huggingface", authContext)
-      if (keys && keys.access_token) {
+      if (keys && keys.access_token && await connect.connected("huggingface", { timeout: 5000 }, authContext)) {
         if (useModal) {
           await this.closeLoginModal(req, ondata, kernel)
         }
