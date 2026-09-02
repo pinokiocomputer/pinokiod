@@ -21,34 +21,79 @@ class Procs {
     if (this.cache.hasOwnProperty("" + port)) {
       return this.cache["" + port]
     }
-//    let ip = "127.0.0.1"
     let timeout = 1000
+    // An HTTP status line is the FIRST thing a server sends and is far under
+    // 8 KiB. Bytes past this point can never turn a non-match into a match, so
+    // there is no reason to keep them. Unbounded accumulation here is what
+    // allowed a single chatty non-HTTP port to build a >0.5 GiB string.
+    const MAX_SNIFF = 8192
+    // Total elapsed budget. `socket.setTimeout()` is an IDLE timer — verified:
+    // a peer that streams continuously never goes idle, so it can never fire.
+    // This deadline is the only thing that bounds a continuously-streaming peer.
+    const MAX_ELAPSED = 3000
     let response = await new Promise(resolve => {
       const socket = new net.Socket();
       let response = '';
       let resolved = false;
+      let deadline = null;
+      // Single exit path: idempotent, always clears the timer and the socket.
+      const finish = (value) => {
+        if (resolved) return;
+        resolved = true;
+        if (deadline) { clearTimeout(deadline); deadline = null; }
+        try { socket.destroy(); } catch (e) {}
+        resolve(value);
+      };
+      deadline = setTimeout(() => finish(false), MAX_ELAPSED);
+      if (deadline.unref) deadline.unref();
       socket.setTimeout(timeout);
       socket.connect(port, host, () => {
         // Use a nonsense method to trigger a 400/405/501 from real HTTP servers
-        socket.write(`FOO / HTTP/1.1\r\nHost: ${host}\r\nConnection: close\r\n\r\n`);
+        try {
+          socket.write(`FOO / HTTP/1.1\r\nHost: ${host}\r\nConnection: close\r\n\r\n`);
+        } catch (e) { finish(false); }
       });
       socket.on('data', chunk => {
-        response += chunk.toString();
-        if (/^HTTP\/\d+\.\d+ \d+/.test(response)) {
-          resolved = true;
-          socket.destroy();
-          resolve(true); // Valid HTTP response detected
+        // This handler MUST NOT throw. An exception raised inside a socket
+        // 'data' callback does not reject the enclosing Promise — it escapes as
+        // an uncaughtException (verified empirically). Pinokio's crash handler
+        // then logs it, the next chunk throws again, and the loop writes the
+        // error to disk forever. On 2026-08-19 that produced a 329 GB log and
+        // took a 4 TB volume to 0 bytes free, killing Docker and WSL with it.
+        try {
+          if (resolved) return;
+          if (response.length < MAX_SNIFF) {
+            // latin1 keeps this byte-exact and cannot throw on split multi-byte
+            // sequences; we only ever match ASCII against it.
+            response += chunk.toString('latin1', 0, Math.min(chunk.length, MAX_SNIFF - response.length));
+          }
+          if (/^HTTP\/\d+\.\d+ \d+/.test(response)) {
+            finish(true); // Valid HTTP response detected
+            return;
+          }
+          // Every HTTP response begins with "HTTP/". The original regex was
+          // already anchored at the start, so once the first 5 bytes are known
+          // and differ, no amount of further data can ever match. This is what
+          // makes a NATS/Postgres/bolt port cost 5 bytes instead of a gigabyte.
+          if (response.length >= 5 && response.slice(0, 5) !== 'HTTP/') {
+            finish(false);
+            return;
+          }
+          if (response.length >= MAX_SNIFF) {
+            finish(false);
+          }
+        } catch (e) {
+          finish(false);
         }
       });
       socket.on('error', () => {
-        if (!resolved) resolve(false);
+        finish(false);
       });
       socket.on('timeout', () => {
-        if (!resolved) resolve(false);
-        socket.destroy();
+        finish(false);
       });
       socket.on('close', () => {
-        if (!resolved) resolve(false);
+        finish(false);
       });
     });
     this.cache["" + port] = response
