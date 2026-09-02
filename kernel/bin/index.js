@@ -185,6 +185,12 @@ class Bin {
   envs(override_env) {
     // return a single merged env object, constructed from all the modules
 
+    // this.mods is populated by init(); shells launched while init() is still
+    // running (e.g. the sysinfo env probe at startup) must not crash the kernel
+    if (!this.mods) {
+      return this.merge_env({}, override_env)
+    }
+
     // 1. get the module envs
     let envs = this.mods.map((mod) => {
       if (mod.name === "vs") {
