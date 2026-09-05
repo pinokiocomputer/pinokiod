@@ -43,7 +43,14 @@ class Bluefairy {
 
   env() {
     return {
-      BLUEFAIRY_HOME: this.runtimeHome()
+      BLUEFAIRY_HOME: this.runtimeHome(),
+      // Bluefairy's runtime shims and activation helpers are created by its
+      // own npm postinstall script. A user's global ~/.npmrc can set
+      // ignore-scripts=true, which silently skips that script (npm still
+      // reports success), leaving Bluefairy stuck failing isInstalledSync()
+      // and re-triggering install() on every launch. Force scripts on for
+      // this internal bootstrap regardless of the user's npm config.
+      npm_config_ignore_scripts: "false"
     }
   }
 
