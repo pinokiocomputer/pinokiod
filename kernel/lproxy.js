@@ -53,11 +53,37 @@ class Lproxy {
       console.log('Client disconnected');
     });
     proxy.on("error", function (err, req, res) {
+      // For websocket upgrades `res` is the client socket, and once a response
+      // has started its status can no longer change. Writing a 500 in either
+      // case throws inside the kernel, so drop the client connection instead.
+      if (!res || typeof res.writeHead !== 'function' || res.headersSent || res.destroyed) {
+        if (res && typeof res.destroy === 'function') {
+          res.destroy()
+        }
+        return
+      }
       res.writeHead(500, {
         'Content-Type': 'text/plain',
       });
       res.end(err.stack)
     });
+    // http-proxy only aborts the upstream request on the incoming request's
+    // 'aborted' event, which Node no longer emits once a GET has been fully
+    // received. When a client drops a response midway (a <video> seeking, a
+    // closed tab), the upstream response stays paused with full socket buffers
+    // and is never released. Tie the upstream request to the client response.
+    proxy.on('proxyReq', (proxyReq, req, res) => {
+      const abortUpstream = () => {
+        if (!res.writableFinished) {
+          proxyReq.destroy()
+        }
+      }
+      if (res.destroyed) {
+        abortUpstream()
+      } else {
+        res.once('close', abortUpstream)
+      }
+    })
     proxy.on('proxyRes', (proxyRes, req, res) => {
       console.log("proxyRes", { proxyRes, req, res })
       if (req.headers.origin) {
@@ -72,8 +98,10 @@ class Lproxy {
       }
       res.setHeader('access-control-max-age', 60 * 60 * 24 * 30);
       if (req.method === 'OPTIONS') {
-        res.send(200);
-        res.end();
+        // Answer preflights with 200 even when the app rejects OPTIONS.
+        // http-proxy copies this status onto `res`, a plain
+        // http.ServerResponse (it has no express-style res.send).
+        proxyRes.statusCode = 200
       }
     });
 
