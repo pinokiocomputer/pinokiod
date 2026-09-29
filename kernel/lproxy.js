@@ -98,8 +98,10 @@ class Lproxy {
       }
       res.setHeader('access-control-max-age', 60 * 60 * 24 * 30);
       if (req.method === 'OPTIONS') {
-        res.send(200);
-        res.end();
+        // Answer preflights with 200 even when the app rejects OPTIONS.
+        // http-proxy copies this status onto `res`, a plain
+        // http.ServerResponse (it has no express-style res.send).
+        proxyRes.statusCode = 200
       }
     });
 

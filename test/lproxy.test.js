@@ -114,6 +114,26 @@ test('lproxy survives an upstream reset after the response has started', async (
   assert.equal(clientError?.code, 'ECONNRESET')
 })
 
+test('lproxy answers CORS preflights with 200', async (t) => {
+  const target = await startUpstream(t, (req, res) => {
+    res.writeHead(405, { 'content-type': 'text/plain' })
+    res.end('method not allowed')
+  })
+  const proxyPort = await startProxy(t, target)
+
+  const res = await fetch(`http://127.0.0.1:${proxyPort}/api`, {
+    method: 'OPTIONS',
+    headers: {
+      origin: 'http://192.168.1.20:3000',
+      'access-control-request-method': 'POST'
+    }
+  })
+  assert.equal(res.status, 200)
+  assert.equal(res.headers.get('access-control-allow-origin'), 'http://192.168.1.20:3000')
+  assert.equal(res.headers.get('access-control-allow-methods'), 'POST')
+  await res.arrayBuffer()
+})
+
 test('lproxy survives a websocket upgrade to an unreachable upstream', async (t) => {
   const target = `http://127.0.0.1:${await freePort()}`
   const proxyPort = await startProxy(t, target)
